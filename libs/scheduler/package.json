@@ -1,0 +1,21 @@
+{
+  "name": "@velachess/scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ts-fsrs": "5.4.1"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}

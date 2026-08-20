@@ -1,0 +1,25 @@
+{
+  "name": "@velachess/repertoire",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/chess": "workspace:*",
+    "@badrap/result": "^0.3.0"
+  },
+  "devDependencies": {
+    "@velachess/fixtures": "workspace:*"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}

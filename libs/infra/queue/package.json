@@ -1,0 +1,23 @@
+{
+  "name": "@velachess/queue",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/db": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "pg-boss": "12.27.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}

@@ -1,0 +1,34 @@
+# Git hooks. `pnpm install` installs them via the prepare script.
+#
+# The split is deliberate: pre-commit is fast and only sees what you
+# staged, pre-push is the cheapest gate that can catch a broken build.
+# The full suite belongs to CI — it boots PGlite and real Stockfish, and
+# a hook that takes a minute is a hook people disable.
+#
+# Escape hatch when you know what you're doing: LEFTHOOK=0 git commit
+
+output:
+  - execution
+  - failure
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,mjs,json,css}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true
+
+    - name: lint
+      glob: "*.{ts,tsx}"
+      run: pnpm exec oxlint {staged_files}
+
+pre-push:
+  jobs:
+    - name: typecheck
+      run: pnpm typecheck
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}

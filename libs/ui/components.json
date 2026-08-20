@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@velachess/ui/components",
+    "utils": "@velachess/ui/lib/utils",
+    "hooks": "@velachess/ui/hooks",
+    "lib": "@velachess/ui/lib",
+    "ui": "@velachess/ui/components"
+  },
+  "registries": {
+    "@trophy": "https://ui.trophy.so/r/{name}.json"
+  }
+}

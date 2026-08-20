@@ -1,0 +1,23 @@
+node_modules/
+.pnpm-store/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.claude/
+.vscode/
+next-env.d.ts
+*.tsbuildinfo
+
+# TanStack Router generates this on dev/build
+apps/web/src/routeTree.gen.ts
+# build output
+dist/
+.output/
+.vite/
+.turbo/
+
+# session working area — files the cloud agent cannot delete land here
+_to_delete/
+_*.tgz

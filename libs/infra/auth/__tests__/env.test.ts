@@ -1,0 +1,133 @@
+/**
+ * The boot-time contract: what refuses to start, and what every refusal
+ * says — and, just as deliberately, what it never says.
+ *
+ * Pure unit tests: `resolveAuthEnv` takes the environment as a value,
+ * so each rule is provable without a process or a database.
+ */
+import { describe, expect, it } from "vitest";
+
+import { resolveAuthEnv } from "../env.ts";
+
+const STRONG = "correct-horse-battery-staple-and-then-some";
+
+describe("the auth secret", () => {
+  it("is required, and the error says how to make one", () => {
+    expect(() => resolveAuthEnv({})).toThrowError(
+      /VELACHESS_AUTH_SECRET is required.*openssl rand -base64 32/s,
+    );
+  });
+
+  it("must be at least 32 characters", () => {
+    expect(() => resolveAuthEnv({ VELACHESS_AUTH_SECRET: "short" })).toThrowError(
+      /VELACHESS_AUTH_SECRET is too short.*at least 32/s,
+    );
+  });
+
+  it("never appears in an error message", () => {
+    const secret = "leak-canary-0123456789";
+    try {
+      resolveAuthEnv({ VELACHESS_AUTH_SECRET: secret });
+      expect.unreachable("a short secret must throw");
+    } catch (error) {
+      expect((error as Error).message).not.toContain(secret);
+      expect((error as Error).message).not.toContain("leak-canary");
+    }
+  });
+
+  it("rejects the .env.example placeholder in production", () => {
+    const env = {
+      NODE_ENV: "production",
+      VELACHESS_AUTH_SECRET: "change-me-to-a-random-32-character-secret",
+      VELACHESS_BASE_URL: "https://chess.example.com",
+    };
+    expect(() => resolveAuthEnv(env)).toThrowError(/placeholder/);
+    // Development tolerates it — .env.example must boot a dev machine.
+    expect(resolveAuthEnv({ ...env, NODE_ENV: undefined }).secret).toBeTruthy();
+  });
+});
+
+describe("the base URL", () => {
+  it("defaults to localhost in development only", () => {
+    const resolved = resolveAuthEnv({ VELACHESS_AUTH_SECRET: STRONG });
+    expect(resolved.baseUrl).toBe("http://localhost:3000");
+    expect(resolved.secureCookies).toBe(false);
+    expect(resolved.insecureProductionTransport).toBe(false);
+  });
+
+  it("is required in production — no silent localhost", () => {
+    expect(() =>
+      resolveAuthEnv({ NODE_ENV: "production", VELACHESS_AUTH_SECRET: STRONG }),
+    ).toThrowError(/VELACHESS_BASE_URL is required in production/);
+  });
+
+  it("rejects a value that is not an http(s) URL", () => {
+    expect(() =>
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        VELACHESS_BASE_URL: "not a url",
+      }),
+    ).toThrowError(/VELACHESS_BASE_URL is not a valid URL/);
+    expect(() =>
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        VELACHESS_BASE_URL: "ftp://chess.example.com",
+      }),
+    ).toThrowError(/must be http:\/\/ or https:\/\//);
+  });
+});
+
+describe("cookie security follows the transport", () => {
+  it("https means Secure cookies — with no switch to turn that off", () => {
+    const resolved = resolveAuthEnv({
+      NODE_ENV: "production",
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_BASE_URL: "https://chess.example.com",
+    });
+    expect(resolved.secureCookies).toBe(true);
+    expect(resolved.insecureProductionTransport).toBe(false);
+  });
+
+  it("production over plain http is flagged for the boot log", () => {
+    // Legal — a LAN self-host has no TLS — but never silent.
+    const resolved = resolveAuthEnv({
+      NODE_ENV: "production",
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_BASE_URL: "http://192.168.1.10:3000",
+    });
+    expect(resolved.secureCookies).toBe(false);
+    expect(resolved.insecureProductionTransport).toBe(true);
+  });
+});
+
+describe("trusted origins", () => {
+  it("is the app's own origin unless widened deliberately", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_BASE_URL: "https://chess.example.com/app",
+    });
+    expect(resolved.trustedOrigins).toEqual(["https://chess.example.com"]);
+  });
+
+  it("accepts a comma-separated widening, normalized to origins", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_BASE_URL: "https://api.example.com",
+      VELACHESS_TRUSTED_ORIGINS: " https://web.example.com , http://localhost:5173/ ",
+    });
+    expect(resolved.trustedOrigins).toEqual([
+      "https://api.example.com",
+      "https://web.example.com",
+      "http://localhost:5173",
+    ]);
+  });
+
+  it("names an invalid entry — origins are not secrets", () => {
+    expect(() =>
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        VELACHESS_TRUSTED_ORIGINS: "https://ok.example.com,not-an-origin",
+      }),
+    ).toThrowError(/VELACHESS_TRUSTED_ORIGINS.*not-an-origin/);
+  });
+});

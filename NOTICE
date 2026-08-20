@@ -1,0 +1,72 @@
+VelaChess
+Copyright (C) the VelaChess contributors
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details. You should have received a copy of the GNU General Public
+License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+--------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------
+
+Why this project is GPL
+    chessops (GPL-3.0-or-later) — https://github.com/niklasf/chessops
+    implements the rules VelaChess is built on: legality and move
+    generation, SAN and UCI, FEN and EPD, and the PGN tree with variations
+    that the repertoire model depends on. libs/chess is a façade over it
+    and nothing else in the workspace imports it directly. It is linked
+    into this program, and so this program carries the same licence.
+
+Stockfish — GPL-3.0-or-later
+    https://stockfishchess.org/
+    https://github.com/official-stockfish/Stockfish
+
+    Used for position analysis, and NOT linked into this program: the
+    engine runs as a separate process, communicated with over the UCI
+    protocol on stdin/stdout. apps/worker spawns whatever the ENGINE_CMD
+    environment variable names; the published Docker image installs
+    Stockfish from the base distribution's package repository. The
+    `stockfish` npm package (a JavaScript/WebAssembly build of the same
+    engine, same licence) backs the test suites and serves as a fallback
+    when ENGINE_CMD is unset.
+
+Chess API response shapes
+    The fixtures under libs/fixtures/ follow the publicly documented
+    Chess.com Published-Data API and the Lichess API. The players, ratings,
+    identifiers and links in them are invented; no third party's games are
+    redistributed here.
+
+Other dependencies
+    The dependency tree is declared across the workspace's package.json
+    files and pinned in pnpm-lock.yaml. Notable direct dependencies:
+
+      pg-boss             MIT
+      drizzle-orm         Apache-2.0
+      hono                MIT
+      react, react-dom    MIT
+      @tanstack/*         MIT
+      react-chessboard    MIT
+      @base-ui/react      MIT
+      @lingui/*           MIT
+      better-auth         MIT
+      @badrap/result      MIT
+      lightningcss        MPL-2.0
+
+    Permissive licences (MIT, BSD, Apache-2.0) are one-way compatible with
+    the GPL: their code may be combined into a GPL program, and the result
+    is GPL. `pnpm licenses list` prints the current, authoritative set.
+
+--------------------------------------------------------------------------
+Trademarks
+--------------------------------------------------------------------------
+
+Chess.com and Lichess are the marks of their respective owners. VelaChess
+integrates with their public APIs and is neither affiliated with nor
+endorsed by either.

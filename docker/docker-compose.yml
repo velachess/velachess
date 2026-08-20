@@ -1,0 +1,83 @@
+# Global composition — everything that spans the whole system lives here;
+# each app's own image recipe lives next to the app (apps/*/Dockerfile).
+# Run from the repo root:
+#   docker compose -f docker/docker-compose.yml up
+name: velachess
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: velachess
+      POSTGRES_PASSWORD: velachess
+      POSTGRES_DB: velachess
+    ports:
+      - "5434:5432"
+    volumes:
+      - velachess_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velachess"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot release step: applies pending drizzle migrations, then exits.
+  # api and worker only start after it succeeds — `up` always boots on a
+  # migrated schema. Idempotent: an already-migrated db is a fast no-op.
+  migrate:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    restart: "no"
+    command: ["pnpm", "--filter", "@velachess/db", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
+      PORT: "3000"
+      # Self-hosted auth: everything local, no VelaChess cloud involved.
+      # Both required values fail fast here AND at boot — the server
+      # validates its own env (libs/infra/auth/env.ts) so compose is a
+      # convenience, not the security boundary.
+      VELACHESS_AUTH_SECRET: ${VELACHESS_AUTH_SECRET:?set a random 32+ char secret — openssl rand -base64 32}
+      # Explicit, no default: the image runs NODE_ENV=production, where a
+      # silently-defaulted base URL is refused at boot anyway.
+      VELACHESS_BASE_URL: ${VELACHESS_BASE_URL:?set the public URL, e.g. http://localhost:3000}
+      VELACHESS_TRUSTED_ORIGINS: ${VELACHESS_TRUSTED_ORIGINS:-}
+      # TEMPORARY: first boot creates this user into an empty user table;
+      # later boots skip. Deliberately optional — the lifecycle ends with
+      # removing both from .env after first login (docs/how-to/self-host.md,
+      # step 6), and an installation with users ignores them either way.
+      VELACHESS_BOOTSTRAP_USER_EMAIL: ${VELACHESS_BOOTSTRAP_USER_EMAIL:-}
+      VELACHESS_BOOTSTRAP_USER_PASSWORD: ${VELACHESS_BOOTSTRAP_USER_PASSWORD:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
+      WORKER_ANALYSIS_CONCURRENCY: "4"
+      ANALYSIS_DEPTH: "12"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  velachess_pgdata:

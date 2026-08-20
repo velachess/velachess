@@ -1,0 +1,25 @@
+{
+  "name": "@velachess/analysis",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/chess": "workspace:*",
+    "@velachess/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "stockfish": "^18.0.8"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}

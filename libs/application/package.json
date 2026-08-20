@@ -1,0 +1,24 @@
+{
+  "name": "@velachess/application",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/analysis": "workspace:*",
+    "@velachess/chess": "workspace:*",
+    "@velachess/db": "workspace:*",
+    "@velachess/engine": "workspace:*",
+    "@velachess/platforms": "workspace:*",
+    "@velachess/queue": "workspace:*",
+    "@velachess/repertoire": "workspace:*",
+    "@velachess/scheduler": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "@velachess/auth": "workspace:*"
+  },
+  "type": "module",
+  "exports": {
+    "./*": "./*.ts"
+  }
+}

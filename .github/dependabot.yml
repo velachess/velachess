@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    # One PR per ecosystem beats ten PRs for ten dev tools that always
+    # move together, and CI still has to pass for the group.
+    groups:
+      dev-tooling:
+        patterns:
+          - "oxlint"
+          - "oxfmt"
+          - "knip"
+          - "vitest"
+          - "typescript"
+          - "lefthook"
+          - "@commitlint/*"
+          - "@types/*"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

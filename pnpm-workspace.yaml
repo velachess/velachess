@@ -1,0 +1,24 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+  - "libs/infra/*"
+  - "packages/*"
+
+# pnpm 10+ blocks dependency build scripts unless approved. `allowBuilds`
+# is the actual gate `pnpm approve-builds` writes (verified against pnpm
+# 11.21.0 — onlyBuiltDependencies alone does NOT suppress
+# ERR_PNPM_IGNORED_BUILDS on its own). esbuild's postinstall fetches its
+# platform binary (drizzle-kit needs it for the migrate release step);
+# stockfish's unpacks the engine.
+allowBuilds:
+  esbuild: true
+  stockfish: true
+  lefthook: true
+  # msw's postinstall only writes a browser mock-worker file used by
+  # client-side tests. It builds nothing, so it stays unapproved.
+  msw: false
+
+onlyBuiltDependencies:
+  - esbuild
+  - stockfish
+  - lefthook

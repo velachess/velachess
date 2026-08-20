@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push makes the older run pointless. Agents and humans both push
+# in quick succession; paying for superseded runs helps neither.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Everything that answers in seconds, so a bad push is caught before the
+  # slow job has finished booting a database.
+  static:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # commitlint needs the range, not just the tip.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Types
+        run: pnpm typecheck
+
+      # `--format=github` emits workflow annotations, so a finding lands on
+      # the diff line instead of only in the log.
+      - name: Lint
+        run: pnpm exec oxlint --format=github .
+
+      - name: Formatting
+        run: pnpm fmt:check
+
+      # Unused files, exports and dependencies.
+      - name: Dead code (knip)
+        run: pnpm knip
+
+      # Fails on high and critical. Moderate findings are reported by the
+      # scheduled CodeQL run rather than blocking every push.
+      - name: Audit
+        run: pnpm audit --audit-level=high
+
+      - name: Commit messages
+        if: github.event_name == 'pull_request'
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
+  # The slow, honest one: real migrations over PGlite and real Stockfish at
+  # shallow depth. Nothing is mocked away, which is the point.
+  test:
+    name: Tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

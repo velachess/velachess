@@ -1,0 +1,23 @@
+name: Setup
+description: Node, pnpm and a warm store — the same versions the repo runs.
+
+runs:
+  using: composite
+  steps:
+    # No `version:` — reads root package.json's "packageManager" field
+    # (pnpm@10.28.0), so this can't drift from what the lockfile and every
+    # contributor's corepack actually run.
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+    # From `.node-version`, not hardcoded here — one file to bump, and the
+    # runner uses the same version a contributor's version manager picks.
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+
+    # `--ignore-scripts` skips lefthook's `prepare`: installing git hooks
+    # on a runner is pointless, and the download is one less thing to fail.
+    - name: Install
+      shell: bash
+      run: pnpm install --frozen-lockfile --ignore-scripts

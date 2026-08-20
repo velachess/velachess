@@ -1,0 +1,28 @@
+{
+  "name": "@velachess/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check ."
+  },
+  "dependencies": {
+    "@velachess/db": "workspace:*",
+    "@velachess/engine": "workspace:*",
+    "@velachess/fixtures": "workspace:*",
+    "@velachess/queue": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "stockfish": "^18.0.8"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5"
+  }
+}

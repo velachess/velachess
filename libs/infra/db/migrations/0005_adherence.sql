@@ -1,0 +1,1 @@
+ALTER TABLE "deviations" ADD COLUMN "game_plies" integer;

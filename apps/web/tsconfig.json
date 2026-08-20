@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"]
+  },
+  "//": "The root config excludes apps/web (it has no generated routeTree yet when the backend typechecks); this app owns its own typecheck, so the exclusion is dropped here. The vitest files are included because the setup file is where jest-dom augments vitest's matchers — leave it out and every `toBeInTheDocument` in the suite is an error.",
+  "include": ["src", "vite.config.ts", "vitest.config.ts", "vitest.setup.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,27 @@
+name: CodeQL
+
+# Paused: code scanning upload needs GitHub Advanced Security, which this
+# private repo doesn't have. Restore the push/pull_request/schedule
+# triggers below once the repo goes public (GHAS is free there).
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write
+  # The analyze step reads the workflow run to attach results; without it
+  # the upload fails with "Resource not accessible by integration".
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+
+      - uses: github/codeql-action/analyze@v4

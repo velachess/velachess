@@ -1,0 +1,30 @@
+{
+  "name": "@velachess/server",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/server.ts",
+  "types": "./src/server.ts",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --watch --experimental-strip-types src/main.ts",
+    "start": "node --experimental-strip-types src/main.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@hono/zod-validator": "^0.9.0",
+    "@velachess/application": "workspace:*",
+    "@velachess/auth": "workspace:*",
+    "@velachess/chess": "workspace:*",
+    "@velachess/db": "workspace:*",
+    "@velachess/logger": "workspace:*",
+    "@velachess/queue": "workspace:*",
+    "@velachess/scheduler": "workspace:*",
+    "hono": "^4.13.2",
+    "postgres": "^3.4.0",
+    "zod": "^4.4.3"
+  },
+  "type": "module",
+  "devDependencies": {
+    "drizzle-orm": "^0.45.2"
+  }
+}

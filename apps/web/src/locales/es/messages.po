@@ -1,0 +1,1186 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-08-16 01:51+0200\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: es\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#: src/games/request-analysis/analysis-status.tsx:12
+msgid "Preparing analysis…"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:21
+msgid "—"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:30
+msgid "{color} · {chapters, plural, one {# chapter} other {# chapters}}"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:32
+msgid "{count, plural, one {# chapter} other {# chapters}}"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:35
+#: src/repertoire/repertoire-practice.tsx:72
+msgid "{count, plural, one {# position due} other {# positions due}}"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:36
+msgid "{count, plural, one {# position} other {# positions}} to practice"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:39
+#: src/repertoire/repertoire-landing.tsx:38
+msgid "{count, plural, one {# prep gap} other {# prep gaps}}"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:38
+msgid "{count, plural, one {# recall failure} other {# recall failures}}"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:44
+msgid "{count, plural, one {in # game} other {in # games}}"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:33
+msgid "{count} due"
+msgstr ""
+
+#: src/insights/finding-views.tsx:371
+msgid "{count} of them in your {moves} moves there — {rate}, against your usual {overall}."
+msgstr ""
+
+#: src/insights/finding-views.tsx:372
+msgid "{count} of them in your {moves} moves there — {rate}, against your usual {overall}. {openingCount} came from {opening}."
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:34
+msgid "{count} to practice"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:73
+msgid "{done} / {total} completed"
+msgstr ""
+
+#: src/insights/finding-views.tsx:284
+msgid "{errors} errors in {moves} moves"
+msgstr ""
+
+#: src/insights/finding-views.tsx:226
+msgid "{games, plural, one {# decided game} other {# decided games}} in this opening, measured against {baselineGames} overall."
+msgstr ""
+
+#: src/insights/finding-views.tsx:431
+msgid "{games, plural, one {# game} other {# games}} affected, out of {analysed} analysed."
+msgstr ""
+
+#: src/insights/finding-views.tsx:282
+msgid "{moves} of your moves there, over {games, plural, one {# analysed game} other {# analysed games}}."
+msgstr ""
+
+#: src/insights/finding-views.tsx:224
+msgid "{opening} is costing you points"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:36
+msgid "{rate} adherence"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:33
+msgid "{rate} adherence over {games} judged games"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:31
+msgid "{rate} adherence over {games} judged games · prep runs {depth} moves deep"
+msgstr ""
+
+#: src/insights/finding-views.tsx:103
+msgid "{rate} of {count, plural, one {# game} other {# games}}"
+msgstr ""
+
+#: src/games/open-game/game-analysis.tsx:22
+msgid "{white} vs {black}"
+msgstr ""
+
+#: src/insights/insights.tsx:43
+msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
+msgstr ""
+
+#: src/app-shell/user-menu.tsx:19
+msgid "Account"
+msgstr ""
+
+#: src/insights/finding-views.tsx:373
+msgid "Across {games, plural, one {# analysed game} other {# analysed games}}."
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:20
+msgid "Already up to date"
+msgstr ""
+
+#: src/shared/ui/route-error.tsx:15
+msgid "An unexpected error interrupted this screen."
+msgstr ""
+
+#: src/games/request-analysis/analysis-status.tsx:17
+msgid "Analyzing move {graded} of {total}…"
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:24
+msgid "Back"
+msgstr ""
+
+#: src/drill/drill.tsx:60
+msgid "Back to drills"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:70
+msgid "Back to the repertoire"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:62
+msgid "Back to the start"
+msgstr ""
+
+#: src/shared/ui/backend-status-banner.tsx:9
+msgid "Backend unavailable · Retrying automatically"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:17
+msgid "Best"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:26
+msgid "Best was"
+msgstr ""
+
+#: src/games/list/filters.ts:37
+#: src/games/open-game/game-result.tsx:9
+#: src/repertoire/repertoire-detail.tsx:29
+msgid "Black"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:31
+msgid "Black repertoire"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:25
+#: src/repertoire/repertoire-practice.tsx:59
+msgid "Black to move"
+msgstr ""
+
+#: src/games/games-list.tsx:29
+#: src/games/list/columns.tsx:23
+#: src/games/list/filters.ts:54
+msgid "Blitz"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:21
+msgid "Blunder"
+msgstr ""
+
+#: src/insights/finding-views.tsx:369
+msgid "Blunders keep landing in your {phase}"
+msgstr ""
+
+#: src/insights/finding-views.tsx:505
+msgid "Blunders per game"
+msgstr ""
+
+#: src/games/open-game/board-pane.tsx:29
+#: src/repertoire/chapter-study.tsx:53
+msgid "Board"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:39
+msgid "Built from your games"
+msgstr ""
+
+#: src/games/games-list.tsx:28
+#: src/games/list/columns.tsx:22
+#: src/games/list/filters.ts:53
+msgid "Bullet"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:54
+msgid "Chapter"
+msgstr ""
+
+#: src/games/import/sources.ts:63
+msgid "Chess.com username"
+msgstr ""
+
+#: src/games/games-list.tsx:31
+#: src/games/list/columns.tsx:25
+#: src/games/list/filters.ts:56
+msgid "Classical"
+msgstr ""
+
+#: src/games/list/filters.ts:67
+msgid "Clear all"
+msgstr ""
+
+#: src/games/list/filters.ts:34
+msgid "Color"
+msgstr ""
+
+#: src/insights/finding-views.tsx:283
+msgid "Compare all phases"
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:25
+msgid "Connect an account"
+msgstr ""
+
+#: src/drill/drill.tsx:52
+#: src/repertoire/repertoire-practice.tsx:65
+msgid "Continue"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:62
+msgid "Correct."
+msgstr ""
+
+#: src/games/list/columns.tsx:26
+msgid "Correspondence"
+msgstr ""
+
+#: src/games/open-game/game-analysis.tsx:21
+#: src/games/request-analysis/analysis-status.tsx:13
+msgid "Couldn't load analysis."
+msgstr ""
+
+#: src/drill/drill.tsx:46
+msgid "Couldn't load drills."
+msgstr ""
+
+#: src/games/games-list.tsx:24
+msgid "Couldn't load games."
+msgstr ""
+
+#: src/insights/insights.tsx:45
+msgid "Couldn't load insights."
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:52
+msgid "Couldn't load this chapter."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:54
+msgid "Couldn't load this practice session."
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:27
+msgid "Couldn't load this repertoire."
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:29
+msgid "Couldn't load your repertoire."
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:24
+msgid "Couldn't reach that account"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:35
+msgid "Couldn't reach the server. Try again in a moment."
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:71
+msgid "Current line"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:19
+msgid "Dashboard"
+msgstr ""
+
+#: src/games/list/columns.tsx:17
+msgid "Date"
+msgstr ""
+
+#: src/games/list/columns.tsx:20
+#: src/games/list/filters.ts:46
+#: src/games/open-game/game-result.tsx:11
+msgid "Draw"
+msgstr ""
+
+#: src/drill/drill.tsx:43
+#: src/test/routes.tsx:101
+msgid "Drill"
+msgstr ""
+
+#: src/drill/drill.tsx:44
+msgid "Drill what is costing you games."
+msgstr ""
+
+#: src/games/view-analysis/drill-cta.tsx:16
+msgid "Drill your mistakes"
+msgstr ""
+
+#: src/drill/drill.tsx:61
+msgid "Drilling"
+msgstr ""
+
+#: src/onboarding/steps.tsx:37
+msgid "Drills from the mistakes that cost you"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:26
+msgid "Due now"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:30
+msgid "Email"
+msgstr ""
+
+#: src/drill/drill.tsx:53
+msgid "End session"
+msgstr ""
+
+#: src/insights/finding-views.tsx:78
+msgid "endgame"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:36
+msgid "Enter your email."
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:38
+msgid "Enter your password."
+msgstr ""
+
+#: src/games/import/sources.ts:14
+msgid "Enter your username"
+msgstr ""
+
+#: src/games/open-game/board-pane.tsx:31
+#: src/games/view-analysis/move-insight.tsx:24
+msgid "Evaluation"
+msgstr ""
+
+#: src/games/view-analysis/eval-graph.tsx:10
+msgid "Evaluation over the game"
+msgstr ""
+
+#: src/games/games-list.tsx:21
+msgid "Every game you've imported, and how it went."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:67
+msgid "Every position in this repertoire is scheduled for later. Come back when the next ones fall due."
+msgstr ""
+
+#: src/drill/drill.tsx:59
+msgid "Everything due is drilled. Come back when the next ones fall due."
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:25
+msgid "Exercises"
+msgstr ""
+
+#: src/games/list/filters.ts:66
+msgid "Filters"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:22
+msgid "Find a better move than the one you played."
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:23
+msgid "Find the best move."
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:27
+#: src/repertoire/repertoire-practice.tsx:61
+msgid "First time"
+msgstr ""
+
+#: src/insights/finding-views.tsx:101
+msgid "Followed the book"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:24
+msgid "found in your repertoire"
+msgstr ""
+
+#: src/insights/finding-views.tsx:430
+msgid "From clearly winning positions, {rate} of your moves gave a real share of the win back — {throws, plural, one {# time} other {# times}} in {positions} chances."
+msgstr ""
+
+#: src/insights/insights.tsx:49
+msgid "Game phases"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:23
+#: src/games/games-list.tsx:20
+#: src/routes/_app/games.tsx:10
+#: src/test/routes.tsx:75
+msgid "Games"
+msgstr ""
+
+#: src/games/games-list.tsx:25
+msgid "Games pages"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:18
+msgid "Good"
+msgstr ""
+
+#: src/games/import/sources.ts:87
+msgid "Got them — opening your games."
+msgstr ""
+
+#: src/games/import/sources.ts:85
+msgid "Import"
+msgstr ""
+
+#: src/drill/drill.tsx:48
+msgid "Import or analyze a game and new positions land here on their own."
+msgstr ""
+
+#: src/games/import/sources.ts:83
+msgid "Import your games"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:23
+msgid "imported from your accounts"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:19
+msgid "Inaccuracy"
+msgstr ""
+
+#: src/insights/insights.tsx:40
+#: src/test/routes.tsx:143
+msgid "Insights"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:34
+msgid "Invalid email or password."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:37
+msgid "is a blunder"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:36
+msgid "is a mistake"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:34
+msgid "is a solid move"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:35
+msgid "is an inaccuracy"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:33
+msgid "is the best move"
+msgstr ""
+
+#: src/onboarding/steps.tsx:32
+msgid "It builds your opening repertoire out of what you actually play, then marks the moves where you left it."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:45
+msgid "It changes who is winning."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:43
+msgid "It gives away a little of what the position was worth."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:44
+msgid "It hands over a real part of the advantage."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:42
+msgid "It keeps the position healthy without giving anything away."
+msgstr ""
+
+#: src/insights/finding-views.tsx:102
+msgid "Left the book"
+msgstr ""
+
+#: src/games/import/sources.ts:16
+msgid "Letters, numbers, hyphen and underscore only"
+msgstr ""
+
+#: src/games/import/sources.ts:71
+msgid "Lichess username"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:51
+msgid "Loading the chapter…"
+msgstr ""
+
+#: src/games/open-game/game-analysis.tsx:20
+msgid "Loading the game…"
+msgstr ""
+
+#: src/drill/drill.tsx:45
+#: src/repertoire/repertoire-practice.tsx:53
+msgid "Loading…"
+msgstr ""
+
+#: src/insights/finding-views.tsx:99
+msgid "Look at these games"
+msgstr ""
+
+#: src/games/list/columns.tsx:19
+#: src/games/list/filters.ts:45
+msgid "Loss"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:25
+msgid "made from your worst ones"
+msgstr ""
+
+#: src/app-shell/app-shell.tsx:18
+msgid "Main"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:74
+msgid "Main line"
+msgstr ""
+
+#: src/insights/finding-views.tsx:77
+msgid "middlegame"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:20
+msgid "Mistake"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:24
+msgid "Mistakes"
+msgstr ""
+
+#: src/insights/finding-views.tsx:368
+msgid "Mistakes keep landing in your {phase}"
+msgstr ""
+
+#: src/insights/finding-views.tsx:504
+msgid "Mistakes per game"
+msgstr ""
+
+#: src/games/open-game/analysis-panel.tsx:20
+msgid "Move"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:28
+msgid "Move insight"
+msgstr ""
+
+#: src/games/open-game/replay-controls.tsx:11
+#: src/repertoire/chapter-study.tsx:57
+msgid "Move navigation"
+msgstr ""
+
+#: src/drill/drill-queue-panel.tsx:32
+msgid "new"
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:22
+msgid "New games imported"
+msgstr ""
+
+#: src/games/games-list.tsx:27
+#: src/games/open-game/replay-controls.tsx:13
+#: src/onboarding/onboarding-dialog.tsx:23
+#: src/repertoire/chapter-study.tsx:61
+msgid "Next"
+msgstr ""
+
+#: src/games/open-game/replay-controls.tsx:10
+#: src/repertoire/chapter-study.tsx:59
+msgid "Next move"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:37
+msgid "no adherence yet"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:40
+msgid "No chapters yet"
+msgstr ""
+
+#: src/games/import/sources.ts:88
+msgid "No games found for that username. Check the spelling and try again."
+msgstr ""
+
+#: src/games/games-list.tsx:22
+msgid "No games imported yet."
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:34
+msgid "No games judged against it yet"
+msgstr ""
+
+#: src/games/games-list.tsx:23
+msgid "No games match these filters."
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:21
+msgid "No new games since your last sync."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:22
+msgid "Not graded yet"
+msgstr ""
+
+#: src/drill/drill.tsx:51
+msgid "Not the move."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:63
+msgid "Not your line."
+msgstr ""
+
+#: src/drill/drill.tsx:47
+msgid "Nothing due today"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:41
+msgid "Nothing in the position was worth more."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:66
+msgid "Nothing to practice"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:37
+msgid "Nothing waiting"
+msgstr ""
+
+#: src/insights/insights.tsx:42
+msgid "Nothing worth saying yet"
+msgstr ""
+
+#: src/insights/finding-views.tsx:432
+msgid "Open the worst one"
+msgstr ""
+
+#: src/insights/finding-views.tsx:76
+msgid "opening"
+msgstr ""
+
+#: src/games/view-analysis/game-report.tsx:13
+msgid "Opening not recognised"
+msgstr ""
+
+#: src/insights/insights.tsx:50
+msgid "Openings"
+msgstr ""
+
+#: src/games/list/columns.tsx:14
+msgid "Opponent"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:43
+msgid "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:69
+msgid "Opponent plays:"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:31
+msgid "Password"
+msgstr ""
+
+#: src/insights/insights.tsx:48
+msgid "Performance"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:21
+#: src/repertoire/repertoire-practice.tsx:57
+msgid "Play the move you prepared."
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:72
+msgid "Play the prepared moves on the board to walk the line."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:55
+#: src/repertoire/repertoire-practice.tsx:74
+msgid "Position to play"
+msgstr ""
+
+#: src/drill/drill.tsx:49
+msgid "Position to solve"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:52
+#: src/repertoire/repertoire-practice.tsx:56
+msgid "Practice"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:63
+msgid "Practice chapter"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:68
+msgid "Practice complete"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:32
+msgid "Practice repertoire"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:42
+msgid "Prep gaps"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:64
+msgid "Prepared move"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:64
+msgid "Prepared move:"
+msgstr ""
+
+#: src/games/open-game/replay-controls.tsx:12
+#: src/repertoire/chapter-study.tsx:60
+msgid "Prev"
+msgstr ""
+
+#: src/games/games-list.tsx:26
+msgid "Previous"
+msgstr ""
+
+#: src/games/open-game/replay-controls.tsx:9
+#: src/repertoire/chapter-study.tsx:58
+msgid "Previous move"
+msgstr ""
+
+#: src/drill/drill.tsx:54
+#: src/repertoire/repertoire-practice.tsx:71
+msgid "Progress"
+msgstr ""
+
+#: src/games/games-list.tsx:30
+#: src/games/list/columns.tsx:24
+#: src/games/list/filters.ts:55
+msgid "Rapid"
+msgstr ""
+
+#: src/insights/finding-views.tsx:503
+msgid "Rating"
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:27
+msgid "Reading your games"
+msgstr ""
+
+#: src/games/import/sources.ts:86
+msgid "Reading your games…"
+msgstr ""
+
+#: src/shared/ui/route-error.tsx:17
+msgid "Reload"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:27
+#: src/routes/_app/repertoire.tsx:9
+#: src/test/routes.tsx:111
+msgid "Repertoire"
+msgstr ""
+
+#: src/games/open-game/analysis-panel.tsx:21
+msgid "Report"
+msgstr ""
+
+#: src/games/list/columns.tsx:15
+#: src/games/list/filters.ts:42
+msgid "Result"
+msgstr ""
+
+#: src/games/open-game/analysis-panel.tsx:23
+msgid "Review"
+msgstr ""
+
+#: src/drill/drill-queue-panel.tsx:31
+msgid "reviews"
+msgstr ""
+
+#: src/drill/drill.tsx:57
+msgid "Right"
+msgstr ""
+
+#: src/insights/insights.tsx:44
+msgid "Right now: {games} games imported, {analysed} deeply analysed."
+msgstr ""
+
+#: src/drill/drill.tsx:50
+msgid "Right."
+msgstr ""
+
+#: src/insights/finding-views.tsx:502
+msgid "Score"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:45
+msgid "See a game"
+msgstr ""
+
+#: src/games/view-analysis/drill-cta.tsx:18
+msgid "See your patterns"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:26
+#: src/repertoire/repertoire-practice.tsx:60
+msgid "Seen before"
+msgstr ""
+
+#: src/drill/drill.tsx:58
+msgid "Session complete"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:25
+msgid "Show the engine's move on the board"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:32
+msgid "Sign in"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:29
+msgid "Sign in to your VelaChess instance."
+msgstr ""
+
+#: src/app-shell/user-menu.tsx:20
+msgid "Sign out"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:33
+msgid "Signing in…"
+msgstr ""
+
+#: src/app-shell/user-menu.tsx:21
+msgid "Signing out…"
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:22
+msgid "Skip"
+msgstr ""
+
+#: src/app-shell/app-shell.tsx:17
+msgid "Skip to content"
+msgstr ""
+
+#: src/shared/ui/route-error.tsx:14
+msgid "Something went wrong."
+msgstr ""
+
+#: src/drill/drill-queue-panel.tsx:30
+msgid "Start drilling"
+msgstr ""
+
+#: src/insights/insights.tsx:47
+msgid "Start here"
+msgstr ""
+
+#: src/games/open-game/board-pane.tsx:30
+#: src/repertoire/chapter-study.tsx:55
+#: src/repertoire/chapter-study.tsx:56
+msgid "Starting position"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:21
+msgid "Step forward to walk through the game."
+msgstr ""
+
+#: src/onboarding/steps.tsx:38
+msgid "Stockfish confirms what leaving your book was worth. The ones that hurt come back as spaced-repetition drills."
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:18
+msgid "Sync games"
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:23
+msgid "Synced a moment ago"
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:19
+msgid "Syncing…"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:37
+msgid "That doesn't look like an email address."
+msgstr ""
+
+#: src/games/import/sources.ts:15
+msgid "That username is too long"
+msgstr ""
+
+#: src/games/view-analysis/eval-graph.tsx:11
+msgid "The curve appears as the analysis lands."
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:18
+msgid "The engine preferred"
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:23
+msgid "The engine reaches this move shortly."
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:19
+msgid "The move here is"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:70
+msgid "The prepared line ends here."
+msgstr ""
+
+#: src/games/view-analysis/move-insight.tsx:20
+msgid "The starting position."
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:41
+msgid "This repertoire is derived from your games. Sync a few more and its chapters appear here on their own."
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:40
+msgid "This side has no lines yet. Sync a few more games and the repertoire appears here on its own — nothing to set up."
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:28
+msgid "This takes a moment. The app opens as soon as they land."
+msgstr ""
+
+#: src/games/list/columns.tsx:16
+msgid "Time"
+msgstr ""
+
+#: src/games/list/filters.ts:51
+msgid "Time control"
+msgstr ""
+
+#: src/drill/drill-queue-panel.tsx:33
+msgid "to drill"
+msgstr ""
+
+#: src/drill/drill.tsx:55
+msgid "To go"
+msgstr ""
+
+#: src/drill/drill-queue-panel.tsx:29
+msgid "Today"
+msgstr ""
+
+#: src/insights/finding-views.tsx:285
+msgid "too few moves to judge"
+msgstr ""
+
+#: src/insights/finding-views.tsx:98
+msgid "Train the moves you missed"
+msgstr ""
+
+#: src/insights/finding-views.tsx:286
+#: src/insights/finding-views.tsx:374
+#: src/insights/finding-views.tsx:433
+msgid "Train this"
+msgstr ""
+
+#: src/insights/insights.tsx:51
+msgid "Training"
+msgstr ""
+
+#: src/shared/ui/route-error.tsx:16
+msgid "Try again"
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:25
+msgid "Try again in a moment."
+msgstr ""
+
+#: src/insights/finding-views.tsx:501
+msgid "Two windows of {n} games each, most recent last."
+msgstr ""
+
+#: src/games/list/columns.tsx:21
+#: src/games/open-game/game-result.tsx:12
+msgid "Unfinished"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:35
+msgid "Up to date"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:73
+msgid "Variation"
+msgstr ""
+
+#: src/onboarding/steps.tsx:26
+msgid "VelaChess reads your public archive from Chess.com or Lichess. Nothing to install, and no password — the archive is already public."
+msgstr ""
+
+#: src/games/import/sources.ts:84
+msgid "VelaChess reads your public game archive to find where you leave your own repertoire. No password needed."
+msgstr ""
+
+#: src/games/open-game/game-result.tsx:10
+msgid "Victory"
+msgstr ""
+
+#: src/insights/finding-views.tsx:227
+#: src/insights/finding-views.tsx:506
+msgid "View games"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:26
+msgid "waiting for you today"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:28
+msgid "Welcome back"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:28
+msgid "What you intend to play, and how well you know it."
+msgstr ""
+
+#: src/insights/insights.tsx:41
+msgid "What your games are telling you to prioritize."
+msgstr ""
+
+#: src/games/list/filters.ts:36
+#: src/games/open-game/game-result.tsx:8
+#: src/repertoire/repertoire-detail.tsx:28
+msgid "White"
+msgstr ""
+
+#: src/repertoire/repertoire-landing.tsx:30
+msgid "White repertoire"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:24
+#: src/repertoire/repertoire-practice.tsx:58
+msgid "White to move"
+msgstr ""
+
+#: src/games/list/columns.tsx:18
+#: src/games/list/filters.ts:44
+msgid "Win"
+msgstr ""
+
+#: src/insights/finding-views.tsx:429
+msgid "Winning positions are slipping away"
+msgstr ""
+
+#: src/insights/finding-views.tsx:104
+msgid "won {rate} of {count, plural, one {# game} other {# games}}"
+msgstr ""
+
+#: src/games/view-analysis/drill-cta.tsx:17
+msgid "Working out which positions are worth drilling…"
+msgstr ""
+
+#: src/drill/drill.tsx:56
+msgid "Wrong"
+msgstr ""
+
+#: src/insights/finding-views.tsx:281
+msgid "You err on {rate} of your {phase} moves, against {overall} across the whole game."
+msgstr ""
+
+#: src/insights/finding-views.tsx:105
+msgid "You followed it in {adherence} of {judged} judged games, and it runs about {depth} moves deep."
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:20
+msgid "You played"
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:75
+msgid "You played {san}."
+msgstr ""
+
+#: src/games/list/columns.tsx:28
+msgid "You played black"
+msgstr ""
+
+#: src/games/list/columns.tsx:27
+msgid "You played white"
+msgstr ""
+
+#: src/insights/finding-views.tsx:94
+msgid "You score better when you leave your Black book"
+msgstr ""
+
+#: src/insights/finding-views.tsx:93
+msgid "You score better when you leave your White book"
+msgstr ""
+
+#: src/insights/finding-views.tsx:500
+msgid "You scored {latest} against {previous} in the {n} before them."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:69
+msgid "You went through everything due in this repertoire."
+msgstr ""
+
+#: src/insights/finding-views.tsx:225
+msgid "You win {rate} of your games in it, against {baseline} across everything you play."
+msgstr ""
+
+#: src/insights/finding-views.tsx:279
+msgid "Your {phase} is where the mistakes concentrate"
+msgstr ""
+
+#: src/insights/finding-views.tsx:280
+msgid "Your {phase} is your most solid stretch"
+msgstr ""
+
+#: src/onboarding/steps.tsx:31
+msgid "Your book, from your own play"
+msgstr ""
+
+#: src/onboarding/steps.tsx:25
+msgid "Your games are the syllabus"
+msgstr ""
+
+#: src/dashboard/dashboard.tsx:20
+msgid "Your games, your repertoire, your mistakes."
+msgstr ""
+
+#: src/onboarding/onboarding-dialog.tsx:26
+msgid "Your handle is all it takes. We read the public archive and stop there."
+msgstr ""
+
+#: src/insights/finding-views.tsx:498
+msgid "Your last {n} games are a clear step up"
+msgstr ""
+
+#: src/insights/finding-views.tsx:499
+msgid "Your last {n} games have slipped"
+msgstr ""
+
+#: src/insights/finding-views.tsx:90
+msgid "Your preparation is paying off with Black"
+msgstr ""
+
+#: src/insights/finding-views.tsx:89
+msgid "Your preparation is paying off with White"
+msgstr ""
+
+#: src/drill/drill-prompt.tsx:17
+msgid "Your preparation said"
+msgstr ""
+
+#: src/repertoire/chapter-study.tsx:65
+msgid "Your repertoire plays:"
+msgstr ""

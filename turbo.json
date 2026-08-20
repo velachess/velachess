@@ -1,0 +1,51 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "tasks": {
+    "test": {},
+    "//#test:root": {},
+    "//#test:e2e": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/db#test": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/queue#test": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/application#test": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/server#test": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/worker#test": {
+      "env": ["DATABASE_URL"]
+    },
+    "@velachess/web#test": {
+      "env": ["LINGUI_CONFIG"]
+    },
+    "typecheck": {},
+    "@velachess/web#typecheck": {
+      "dependsOn": ["@velachess/web#build"]
+    },
+    "//#typecheck:root": {},
+    "//#lint:root": {},
+    "build": {
+      "outputs": ["dist/**"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    }
+  }
+}

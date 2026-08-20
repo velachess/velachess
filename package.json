@@ -1,0 +1,60 @@
+{
+  "name": "velachess",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source, evidence-grounded post-game chess review and coaching platform.",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:yurimutti/velachess.git"
+  },
+  "scripts": {
+    "prepare": "lefthook install || echo 'lefthook: skipped (no git directory)'",
+    "infra:dev:up": "docker compose -f docker/docker-compose.dev.yml up -d --wait postgres",
+    "infra:dev:down": "docker compose -f docker/docker-compose.dev.yml down",
+    "infra:dev:prune": "docker compose -f docker/docker-compose.dev.yml down -v",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@velachess/web",
+    "dev:server": "turbo run dev --filter=@velachess/server",
+    "dev:worker": "turbo run dev --filter=@velachess/worker",
+    "dev:setup": "pnpm install && pnpm infra:dev:up && pnpm db:migrate",
+    "build": "turbo run build",
+    "start": "turbo run start --filter=@velachess/web",
+    "typecheck:root": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "turbo run typecheck typecheck:root",
+    "lint:root": "oxlint .",
+    "lint": "turbo run lint:root",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "knip": "knip",
+    "check": "pnpm typecheck && pnpm lint && pnpm knip",
+    "test:root": "vitest run --project root",
+    "test": "turbo run test test:root",
+    "test:watch": "vitest",
+    "test:e2e": "vitest run --project e2e"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@types/node": "^26.2.0",
+    "jsdom": "^30.0.1",
+    "knip": "^6.32.2",
+    "lefthook": "^2.1.10",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "turbo": "^2.10.11",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "overrides": {
+      "srvx": ">=0.12.0"
+    }
+  }
+}

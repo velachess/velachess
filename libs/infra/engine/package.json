@@ -1,0 +1,24 @@
+{
+  "name": "@velachess/engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts",
+    "./transport-child-process": "./transport-child-process.ts",
+    "./transport-worker": "./transport-worker.ts"
+  },
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@velachess/fixtures": "workspace:*",
+    "stockfish": "^18.0.8"
+  },
+  "type": "module"
+}

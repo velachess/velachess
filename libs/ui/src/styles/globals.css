@@ -1,0 +1,144 @@
+/* The one place tokens exist. A token is born here or it does not exist.
+   Palette, contrast and the board rules: docs/explanation/modules/ui.md */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+/* Country flags for the player strips; Lucide has shapes, not countries. */
+@import "flag-icons/css/flag-icons.min.css";
+
+/* Tailwind ignores node_modules, and this package is reached by symlink —
+   without these, no class used here or in the app is ever generated. */
+@source "../**/*.{ts,tsx}";
+@source "../../../../apps/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+
+  /* Dark is the only palette shipping; :root carries it directly.
+     Two indigos on purpose: --brand is the accent you look at, --primary
+     is the fill you click. See docs/explanation/modules/ui.md. */
+  --brand: #5b6cff; /* Vela Indigo */
+  --background: #0b0d12; /* canvas */
+  --foreground: #f4f6fa; /* primary text */
+  --card: #12151c; /* surface — panels, tables, boards */
+  --card-foreground: #f4f6fa;
+  --popover: #181c25; /* elevated — menus, dialogs */
+  --popover-foreground: #f4f6fa;
+  --primary: #4453d6; /* filled controls — deep enough to carry a label */
+  --primary-foreground: #f4f6fa;
+  --secondary: #171a22;
+  --secondary-foreground: #f4f6fa;
+  --muted: #171a22;
+  --muted-foreground: #98a2b8; /* secondary text */
+  --accent: color-mix(in oklab, var(--brand) 10%, transparent);
+  --accent-foreground: #f4f6fa;
+  --destructive: #f0616f;
+  --destructive-foreground: #f4f6fa;
+  --success: #3fbf87;
+  --success-foreground: #0b0d12;
+  --warning: #e8a33d;
+  --warning-foreground: #0b0d12;
+  --info: #8eebff; /* Ice Cyan */
+  --info-foreground: #0b0d12;
+  --guidance: #f1e67a; /* Lunar Yellow */
+  --guidance-foreground: #101828;
+  --border: #272c36; /* hairline separator */
+  --border-strong: #38404d; /* control outlines — a separator hairline isn't a 3:1 input border */
+  --input: var(--border-strong);
+  --ring: var(--brand); /* the brighter indigo: a focus ring must be seen */
+  --chart-1: var(--brand); /* primary series */
+  --chart-2: #8eebff; /* secondary series */
+  --chart-3: #768196; /* reference / baseline */
+  --chart-4: #f1e67a; /* guided insight */
+  --chart-5: color-mix(in oklab, var(--brand) 62%, #f4f6fa); /* tint of chart-1 */
+
+  /* Board and engine verdicts. Names mirror `engine_category` in the db. */
+  --board-light: #9eabb6;
+  --board-dark: #5d6c79;
+  --board-highlight: color-mix(
+    in oklab,
+    #5b6cff 40%,
+    transparent
+  ); /* selection, last move */
+  --board-suggested: #5b6cff; /* off the grade ramp: a suggestion is not a verdict */
+  --board-check: #f0616f; /* same ink as --destructive, on purpose. No renderer yet. */
+  --move-ok: oklch(0.65 0.16 150);
+  --move-inaccuracy: oklch(0.79 0.15 85);
+  --move-mistake: oklch(0.72 0.17 55);
+  --move-blunder: oklch(0.6 0.22 25);
+  /* The two armies, never themed: a bar that followed the squares would
+     stop meaning "White is winning". */
+  --eval-white: oklch(0.97 0.005 85);
+  --eval-black: oklch(0.24 0.008 85);
+}
+
+/* Tokens become utilities: bg-background, text-move-blunder, … */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Space Grotesk is opt-in (font-display), for major headings only. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-brand: var(--brand);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-guidance: var(--guidance);
+  --color-guidance-foreground: var(--guidance-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-board-light: var(--board-light);
+  --color-board-dark: var(--board-dark);
+  --color-board-highlight: var(--board-highlight);
+  --color-board-check: var(--board-check);
+  --color-move-ok: var(--move-ok);
+  --color-move-inaccuracy: var(--move-inaccuracy);
+  --color-move-mistake: var(--move-mistake);
+  --color-move-blunder: var(--move-blunder);
+  --color-eval-white: var(--eval-white);
+  --color-eval-black: var(--eval-black);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

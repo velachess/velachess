@@ -1,0 +1,22 @@
+{
+  "name": "@velachess/worker",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/worker.ts",
+  "types": "./src/worker.ts",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local --watch --experimental-strip-types src/main.ts",
+    "start": "node --experimental-strip-types src/main.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/application": "workspace:*",
+    "@velachess/db": "workspace:*",
+    "@velachess/engine": "workspace:*",
+    "@velachess/logger": "workspace:*",
+    "@velachess/queue": "workspace:*",
+    "postgres": "^3.4.0",
+    "stockfish": "^18.0.8"
+  },
+  "type": "module"
+}

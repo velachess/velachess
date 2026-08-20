@@ -1,0 +1,25 @@
+{
+  "name": "velachess",
+  "dockerComposeFile": ["../docker/docker-compose.dev.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "forwardPorts": [3000, 5173, 5434],
+  "portsAttributes": {
+    "3000": { "label": "api (pnpm --filter @velachess/server dev)" },
+    "5173": { "label": "web (pnpm dev)" },
+    "5434": { "label": "postgres" }
+  },
+  "postCreateCommand": "[ -f .env.local ] || echo 'DATABASE_URL=postgres://velachess:velachess@postgres:5432/velachess' > .env.local; pnpm install --frozen-lockfile && pnpm db:migrate",
+  "containerEnv": {
+    "VELACHESS_AUTH_SECRET": "change-me-to-a-random-32-character-secret",
+    "VELACHESS_BASE_URL": "http://localhost:5173",
+    "VELACHESS_BOOTSTRAP_USER_EMAIL": "user@velachess.local",
+    "VELACHESS_BOOTSTRAP_USER_PASSWORD": "dev-password"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["oxc.oxc-vscode"]
+    }
+  }
+}

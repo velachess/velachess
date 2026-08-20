@@ -1,0 +1,55 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // TanStack Router consumes each file-route `Route` export by filename
+  // convention during Vite route generation; there is no normal import edge.
+  "ignoreIssues": {
+    "apps/web/src/routes/**/*.tsx": ["exports"]
+  },
+  "workspaces": {
+    // apps/web was unconfigured, so knip fell back to defaults and started
+    // from `src/router.tsx` alone. That file imports `./routeTree.gen`,
+    // which TanStack Start generates at dev/build time and .gitignore
+    // excludes — so in CI the import is unresolved, traversal stops there,
+    // and every screen behind it reads as dead. Twenty-one "unused files"
+    // and two "unused dependencies" were all that one missing edge.
+    //
+    // Routes are the real entry points: the router finds them on the
+    // filesystem rather than through an import, so knip has to be told the
+    // same thing the plugin already knows.
+    "apps/web": {
+      "entry": ["src/routes/**/*.tsx", "lingui.config.ts", "**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx,css}"]
+    },
+    "libs/chess": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/fixtures": {
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/infra/engine": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/infra/platforms": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/infra/db": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/repertoire": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/analysis": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/scheduler": {
+      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    }
+  }
+}

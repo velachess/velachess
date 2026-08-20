@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="520" height="128" fill="none" role="img" aria-label="VelaChess">
+  <g transform="translate(4 9.5)">
+  <circle cx="20" cy="12" r="6.4" fill="#101828"></circle>
+  <path d="M15.4 18.6 H24.6 L23.4 22 H16.6 Z" fill="#101828"></path>
+  <path d="M16.6 22 H23.4 L27.8 35 H12.2 Z" fill="#101828"></path>
+  <rect x="10" y="34.5" width="20" height="4" rx="2" fill="#101828"></rect>
+  <path d="M35.5 7.6 L36 8.75 L37.15 9.2 L36 9.65 L35.5 10.8 L35 9.65 L33.85 9.2 L35 8.75 Z" fill="#B8A13A"></path>
+  </g>
+  <text x="62" y="41" font-family="Space Grotesk, Inter, system-ui, sans-serif" font-size="30" font-weight="700" letter-spacing="-0.60" fill="#101828">Vela<tspan fill="#667085">Chess</tspan></text>
+</svg>

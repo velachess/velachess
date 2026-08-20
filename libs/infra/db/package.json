@@ -1,0 +1,36 @@
+{
+  "name": "@velachess/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "lint": "oxlint .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run",
+    "db:generate": "node --env-file-if-exists=../../../.env --env-file-if-exists=../../../.env.local node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --env-file-if-exists=../../../.env --env-file-if-exists=../../../.env.local node_modules/drizzle-kit/bin.cjs migrate",
+    "studio": "node --env-file-if-exists=../../../.env --env-file-if-exists=../../../.env.local node_modules/drizzle-kit/bin.cjs studio"
+  },
+  "dependencies": {
+    "@velachess/platforms": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.0"
+  },
+  "devDependencies": {
+    "@velachess/analysis": "workspace:*",
+    "@velachess/chess": "workspace:*",
+    "@velachess/engine": "workspace:*",
+    "@velachess/repertoire": "workspace:*",
+    "@velachess/scheduler": "workspace:*",
+    "@electric-sql/pglite": "^0.5.5",
+    "drizzle-kit": "^0.31.10",
+    "stockfish": "^18.0.8"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}

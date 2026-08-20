@@ -1,0 +1,44 @@
+# Local dev infra + the Dev Container's own service — not the release
+# stack (docker-compose.yml). No redis: not used anywhere in this repo.
+name: velachess-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: velachess
+      POSTGRES_PASSWORD: velachess
+      POSTGRES_DB: velachess
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - velachess_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velachess"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      # Separate from the bind mount: host and this Linux container must
+      # not share node_modules — esbuild/stockfish ship platform binaries.
+      - velachess_dev_node_modules:/workspace/node_modules
+    # DATABASE_URL isn't set here: test-db.ts falls back to isolated
+    # PGlite when unset, which every suite is written against — setting
+    # it container-wide would make `pnpm test` hit this Postgres instead.
+    # devcontainer.json's postCreateCommand writes it to .env.local
+    # instead, which only the scripts that need it (dev:server,
+    # dev:worker, db:migrate, db:generate) load — see README.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sleep infinity
+
+volumes:
+  velachess_dev_pgdata:
+  velachess_dev_node_modules:
