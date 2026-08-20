@@ -1,9 +1,14 @@
 name: CodeQL
 
-# Paused: code scanning upload needs GitHub Advanced Security, which this
-# private repo doesn't have. Restore the push/pull_request/schedule
-# triggers below once the repo goes public (GHAS is free there).
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, catches findings a push-triggered run wouldn't (advisory
+    # database updates, not just new code).
+    - cron: "0 3 * * 1"
   workflow_dispatch: {}
 
 permissions:
