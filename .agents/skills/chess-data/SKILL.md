@@ -96,7 +96,7 @@ Assets and data have licences, and this repo is GPL-3.0-or-later:
 
 - **chess.com sounds and assets** — proprietary. Do not download. The
   licence of this repo changes nothing about that.
-- **Lichess default sounds** — non-free. Its *free* sound sets are
+- **Lichess default sounds** — non-free. Its _free_ sound sets are
   AGPLv3+, which GPLv3 §13 does permit combining with — but the AGPL's
   network-source obligation then rides on anything that includes them,
   which is a bigger decision than picking a sound. Ask first.

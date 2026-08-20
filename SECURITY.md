@@ -21,10 +21,10 @@ Useful things to include, to whatever extent you have them:
 VelaChess is maintained by a very small number of people, so please read
 these as intentions rather than guarantees:
 
-| | |
-| --- | --- |
-| First response | within 5 business days |
-| Assessment and severity | within 10 business days |
+|                                         |                                                               |
+| --------------------------------------- | ------------------------------------------------------------- |
+| First response                          | within 5 business days                                        |
+| Assessment and severity                 | within 10 business days                                       |
 | Fix for a confirmed high-severity issue | as fast as we can, and we will keep you updated if it is slow |
 
 We will tell you when a fix ships, and we will credit you in the advisory
@@ -39,7 +39,7 @@ Out of scope: vulnerabilities in Chess.com, Lichess, Stockfish, Postgres or
 any other third party. Report those to their maintainers. Findings that
 require an already-compromised machine, or that describe a self-hosted
 deployment misconfigured against our own documentation, are also out of
-scope — though if our documentation is what led someone there, that *is* a
+scope — though if our documentation is what led someone there, that _is_ a
 bug and we want to hear about it.
 
 ## Self-hosting notes

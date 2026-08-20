@@ -62,10 +62,10 @@ No script hardcodes it. `dev:server`, `dev:worker`, `db:generate` and
 Same scripts, same names, on the host or inside the Dev Container — only
 the file supplying the value differs:
 
-| Where | File | Value |
-| --- | --- | --- |
-| Host | `.env`, copied from `.env.example` | `...@localhost:5434/...` — the port `infra:dev:up` publishes |
-| Dev Container | `.env.local`, written once by `postCreateCommand` | `...@postgres:5432/...` — the compose service name |
+| Where         | File                                              | Value                                                        |
+| ------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| Host          | `.env`, copied from `.env.example`                | `...@localhost:5434/...` — the port `infra:dev:up` publishes |
+| Dev Container | `.env.local`, written once by `postCreateCommand` | `...@postgres:5432/...` — the compose service name           |
 
 `.env.local` is git-ignored and never committed.
 
