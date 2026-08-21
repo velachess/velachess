@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { i18n } from "../shared/i18n.ts";
@@ -67,10 +68,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} no-js`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-      </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {THEME_BOOTSTRAP}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

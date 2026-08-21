@@ -58,6 +58,10 @@
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
     "overrides": {
+      "@lhci/cli>lighthouse": "13.4.1",
+      "@lhci/utils>lighthouse": "13.4.1",
+      "proxy-agent": "8.0.1",
+      "tmp": "0.2.7",
       "srvx": ">=0.12.0"
     }
   }

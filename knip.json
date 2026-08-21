@@ -20,7 +20,6 @@
       "entry": [
         "src/routes/**/*.tsx",
         "lingui.config.ts",
-        "playwright.config.ts",
         "**/*.test.{ts,tsx}",
         "**/*.spec.{ts,tsx}"
       ],
@@ -29,8 +28,9 @@
     "apps/site": {
       "entry": [
         "src/app/**/*.{ts,tsx}",
+        // Next resolves the custom image loader from a config string.
+        "src/shared/image-loader.ts",
         "lingui.config.ts",
-        "next.config.ts",
         "**/*.test.{ts,tsx}"
       ],
       "project": ["src/**/*.{ts,tsx,css}"],

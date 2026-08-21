@@ -45,7 +45,7 @@ function ShimmerButton({
               </span>
             </span>
             {children}
-            <span className="absolute inset-0 size-full rounded-2xl px-4 py-1.5 text-sm font-medium shadow-[inset_0_-8px_10px_color-mix(in_oklab,var(--primary-foreground)_12%,transparent)] transition-all duration-300 ease-in-out group-hover:shadow-[inset_0_-6px_10px_color-mix(in_oklab,var(--primary-foreground)_25%,transparent)] group-active:shadow-[inset_0_-10px_10px_color-mix(in_oklab,var(--primary-foreground)_25%,transparent)]" />
+            <span className="absolute inset-0 size-full rounded-2xl px-4 py-1.5 text-sm font-medium shadow-[inset_0_-8px_10px_color-mix(in_oklab,var(--primary-foreground)_12%,transparent)] transition-shadow duration-300 ease-in-out group-hover:shadow-[inset_0_-6px_10px_color-mix(in_oklab,var(--primary-foreground)_25%,transparent)] group-active:shadow-[inset_0_-10px_10px_color-mix(in_oklab,var(--primary-foreground)_25%,transparent)]" />
             <span className="absolute inset-[var(--cut)] -z-20 rounded-full bg-primary" />
           </>
         ),

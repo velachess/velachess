@@ -62,8 +62,8 @@ export function LandingHeader() {
               onClick={() => setMenuOpen((open) => !open)}
               className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
             >
-              <Menu className="in-data-[state=active]:rotate-180 in-data-[state=active]:scale-0 in-data-[state=active]:opacity-0 m-auto size-6 duration-200" />
-              <X className="in-data-[state=active]:rotate-0 in-data-[state=active]:scale-100 in-data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200" />
+              <Menu className="in-data-[state=active]:opacity-0 m-auto size-6 transition-opacity duration-200" />
+              <X className="in-data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 opacity-0 transition-opacity duration-200" />
             </button>
           </div>
 
@@ -73,7 +73,7 @@ export function LandingHeader() {
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="block text-base text-muted-foreground duration-150 hover:text-foreground"
+                    className="block text-base text-muted-foreground transition-colors duration-150 hover:text-foreground"
                   >
                     {i18n._(item.label)}
                   </a>
@@ -90,7 +90,7 @@ export function LandingHeader() {
                     <a
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
-                      className="block text-muted-foreground duration-150 hover:text-foreground"
+                      className="block text-muted-foreground transition-colors duration-150 hover:text-foreground"
                     >
                       {i18n._(item.label)}
                     </a>

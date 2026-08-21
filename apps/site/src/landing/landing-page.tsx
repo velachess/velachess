@@ -27,6 +27,8 @@ import { i18n } from "../shared/i18n.ts";
 import { LandingHeader } from "./landing-header.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";
+const GAME_ANALYSIS_IMAGE_SRC = "/product/game-analysis.webp";
+const DRILL_IMAGE_SRC = "/product/drill.webp";
 const GITHUB_URL = "https://github.com/velachess/velachess";
 const CONTRIBUTE_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 const SELF_HOST_URL = `${GITHUB_URL}/blob/main/docs/how-to/self-host.md`;
@@ -189,20 +191,15 @@ function Hero() {
         </ShimmerButton>
       </MotionDiv>
       <div className="relative">
-        <picture className="block">
-          <source media="(max-width: 40rem)" srcSet="/product/game-analysis-640.webp" />
-          <source media="(max-width: 48rem)" srcSet="/product/game-analysis-768.webp" />
-          <Image
-            src="/product/game-analysis.webp"
-            alt={i18n._(COPY.analysisAlt)}
-            width={1440}
-            height={900}
-            sizes="100vw"
-            loading="eager"
-            fetchPriority="high"
-            className="h-auto w-full rounded-md border shadow-lg"
-          />
-        </picture>
+        <Image
+          src={GAME_ANALYSIS_IMAGE_SRC}
+          alt={i18n._(COPY.analysisAlt)}
+          width={1440}
+          height={900}
+          sizes="100vw"
+          preload
+          className="h-auto w-full rounded-md border shadow-lg"
+        />
       </div>
     </MotionSection>
   );
@@ -305,24 +302,14 @@ function ProductShowcases() {
                   <ArrowRight data-icon="inline-end" />
                 </a>
               </div>
-              <picture className="block lg:col-span-3">
-                <source
-                  media="(max-width: 40rem)"
-                  srcSet="/product/game-analysis-640.webp"
-                />
-                <source
-                  media="(max-width: 48rem)"
-                  srcSet="/product/game-analysis-768.webp"
-                />
-                <Image
-                  src="/product/game-analysis.webp"
-                  alt={i18n._(COPY.analysisAlt)}
-                  width={1440}
-                  height={900}
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  className="w-full rounded-md border shadow-lg"
-                />
-              </picture>
+              <Image
+                src={GAME_ANALYSIS_IMAGE_SRC}
+                alt={i18n._(COPY.analysisAlt)}
+                width={1440}
+                height={900}
+                sizes="(max-width: 1024px) 100vw, 60vw"
+                className="w-full rounded-md border shadow-lg lg:col-span-3"
+              />
             </CardContent>
           </Card>
         </MotionDiv>
@@ -360,18 +347,14 @@ function ProductShowcases() {
                   <ArrowRight data-icon="inline-end" />
                 </a>
               </div>
-              <picture className="block lg:order-1 lg:col-span-3">
-                <source media="(max-width: 40rem)" srcSet="/product/drill-640.webp" />
-                <source media="(max-width: 48rem)" srcSet="/product/drill-768.webp" />
-                <Image
-                  src="/product/drill.webp"
-                  alt={i18n._(COPY.drillAlt)}
-                  width={1440}
-                  height={900}
-                  sizes="(max-width: 1024px) 100vw, 60vw"
-                  className="w-full rounded-md border shadow-lg"
-                />
-              </picture>
+              <Image
+                src={DRILL_IMAGE_SRC}
+                alt={i18n._(COPY.drillAlt)}
+                width={1440}
+                height={900}
+                sizes="(max-width: 1024px) 100vw, 60vw"
+                className="w-full rounded-md border shadow-lg lg:order-1 lg:col-span-3"
+              />
             </CardContent>
           </Card>
         </MotionDiv>

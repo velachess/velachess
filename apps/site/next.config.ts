@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   typedRoutes: true,
-  images: { unoptimized: true },
+  images: {
+    deviceSizes: [640, 768, 1440],
+    loader: "custom",
+    loaderFile: "./src/shared/image-loader.ts",
+  },
   transpilePackages: ["@velachess/ui"],
   experimental: {
     inlineCss: true,
