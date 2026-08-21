@@ -10,7 +10,7 @@ function contentOf(selector: string): string | null {
   return page.querySelector(selector)?.getAttribute("content") ?? null;
 }
 
-describe("site SEO output", () => {
+describe("site output", () => {
   it("publishes the title, description, canonical URL, and language", () => {
     expect(page.title).toBe("VelaChess - Turn your games into training");
     expect(contentOf('meta[name="description"]')).toContain(
@@ -70,6 +70,21 @@ describe("site SEO output", () => {
     expect(
       links.some((link) => link.href === "https://github.com/velachess/velachess"),
     ).toBe(true);
+  });
+
+  it("makes the hero product image immediately discoverable", () => {
+    const heroImage = page.querySelector("#top img");
+    const heroPreload = page.querySelector(
+      'link[rel="preload"][as="image"][imagesizes="100vw"]',
+    );
+
+    expect(heroImage?.getAttribute("loading")).not.toBe("lazy");
+    expect(heroImage?.getAttribute("fetchpriority")).toBe("high");
+    expect(heroImage?.getAttribute("width")).toBe("1440");
+    expect(heroImage?.getAttribute("height")).toBe("900");
+    expect(heroImage?.getAttribute("srcset")).toContain("game-analysis-640.webp");
+    expect(heroImage?.getAttribute("srcset")).toContain("game-analysis-768.webp");
+    expect(heroPreload?.getAttribute("fetchpriority")).toBe("high");
   });
 
   it("exports indexable robots and sitemap files", () => {
