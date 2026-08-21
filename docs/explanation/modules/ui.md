@@ -67,9 +67,10 @@ flag, or application styles. Font files and their licences live beside
 the theme in `src/styles/fonts`; each app loads them through its own
 framework without redefining the typography tokens.
 
-Dark mode is already paved: `:root` and `.dark` carry the same tokens and
-the `dark` variant is declared. All that's missing is something writing
-the class on `<html>`.
+The product app inherits the dark palette from `:root`. Theme-aware surfaces
+such as the public site write `.light` or `.dark` on `<html>`; both modes use
+the same semantic tokens, while the product remains dark until it adopts the
+same behavior deliberately.
 
 The `@source` lines are load-bearing, not decoration: Tailwind skips
 `node_modules`, and this package reaches the apps through a workspace
@@ -80,10 +81,11 @@ generated.
 
 Two indigos, and which one to reach for is the whole rule:
 
-| Token       | Value     | For                                                                        |
-| ----------- | --------- | -------------------------------------------------------------------------- |
-| `--brand`   | `#5B6CFF` | what you look at — the lockup tile, focus rings, `chart-1`, board overlays |
-| `--primary` | `#4453D6` | what you click — filled controls, primary button                           |
+| Token          | Value     | For                                                                        |
+| -------------- | --------- | -------------------------------------------------------------------------- |
+| `--brand`      | `#5B6CFF` | what you look at — the lockup tile, focus rings, `chart-1`, board overlays |
+| `--brand-text` | theme     | Vela Indigo adjusted only when small text needs stronger contrast          |
+| `--primary`    | `#4453D6` | what you click — filled controls, primary button                           |
 
 Vela Indigo `#5B6CFF` replaced Electric Blue `#4F7CFF` across the theme,
 the Brand Guide (v3) and the logo kit at once, so the system cannot

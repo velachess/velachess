@@ -2,48 +2,71 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Badge } from "@velachess/ui/components/badge";
 import { buttonVariants } from "@velachess/ui/components/button";
-import { Separator } from "@velachess/ui/components/separator";
+import { Card, CardContent } from "@velachess/ui/components/card";
+import { ShimmerButton } from "@velachess/ui/components/shimmer-button";
 import {
   ArrowRight,
-  BookOpen,
-  BrainCircuit,
-  Check,
   Dumbbell,
-  GitFork,
   Lightbulb,
-  Menu,
-  Repeat2,
   ScanSearch,
   Upload,
   VelaChessMark,
 } from "@velachess/ui/icons";
+import { cn } from "@velachess/ui/lib/utils";
+import type { Variants } from "motion/react";
+import {
+  div as MotionDiv,
+  h1 as MotionHeading,
+  li as MotionListItem,
+  p as MotionParagraph,
+  section as MotionSection,
+} from "motion/react-client";
 import Image from "next/image";
 
 import { i18n } from "../shared/i18n.ts";
+import { LandingHeader } from "./landing-header.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";
-const SIGN_IN_URL = "https://app.velachess.com/login";
 const GITHUB_URL = "https://github.com/velachess/velachess";
 const CONTRIBUTE_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 const SELF_HOST_URL = `${GITHUB_URL}/blob/main/docs/how-to/self-host.md`;
+const DOCUMENTATION_URL = `${GITHUB_URL}/tree/main/docs`;
+const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
+
+const containerVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const fadeUpVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const VIEWPORT = { once: true, amount: 0.3 } as const;
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 const COPY = {
   brand: msg`VelaChess`,
   product: msg`Product`,
-  howItWorks: msg`How it works`,
-  openSource: msg`Open Source`,
-  signIn: msg`Sign in`,
-  tryVelaChess: msg`Try VelaChess`,
-  viewGitHub: msg`View on GitHub`,
-  publicBeta: msg`Public Beta`,
+  gameAnalysis: msg`Game Analysis`,
+  drill: msg`Drill`,
+  project: msg`Project`,
+  resources: msg`Resources`,
+  publicBeta: msg`Public Beta 🎉`,
   heroTitle: msg`Turn your games into training.`,
-  heroBody: msg`Import your Chess.com and Lichess games. VelaChess finds recurring mistakes and opening weaknesses, then turns them into training built from the games you actually play.`,
-  analysisEyebrow: msg`Game Analysis`,
-  analysisTitle: msg`See the moment the game changed.`,
-  analysisBody: msg`Walk through every move with Stockfish evaluation, clear move classification, and the better continuation shown on the board.`,
+  heroBody: msg`Import your Chess.com and Lichess games. VelaChess finds the decisions that cost you, then turns them into training built from the games you actually play.`,
+  tryForFree: msg`Try for free`,
+  tryVelaChess: msg`Try VelaChess`,
   analysisAlt: msg`VelaChess game analysis showing a blunder on move two`,
-  workflowEyebrow: msg`From archive to training`,
   workflowTitle: msg`One loop, grounded in your games.`,
+  workflowBody: msg`Every step keeps the game you played, the mistake you made, and the position you need to remember connected.`,
   importTitle: msg`Import`,
   importBody: msg`Connect Chess.com or Lichess and bring your games together.`,
   analyzeTitle: msg`Analyze`,
@@ -52,45 +75,25 @@ const COPY = {
   understandBody: msg`Spot recurring mistakes and weaknesses in the openings you play.`,
   trainTitle: msg`Train`,
   trainBody: msg`Solve those positions again on a schedule that adapts to you.`,
-  drillEyebrow: msg`Personalized Drill`,
+  productTitle: msg`Game Analysis becomes Drill.`,
+  productBody: msg`Move from a clear explanation of what changed to focused practice on the exact position.`,
+  analysisTitle: msg`See the moment the game changed.`,
+  analysisBody: msg`Walk through every move with Stockfish evaluation, clear move classification, and the better continuation shown on the board.`,
+  inspectGames: msg`Inspect your games`,
   drillTitle: msg`The analysis becomes a training loop.`,
   drillBody: msg`Replay positions from your own mistakes, get immediate feedback, and let the next review arrive when it is useful.`,
   drillAlt: msg`VelaChess drill showing feedback and the next review date`,
-  capabilitiesEyebrow: msg`Built for improvement`,
-  capabilitiesTitle: msg`Keep the useful parts of every game.`,
-  repertoireTitle: msg`Your opening repertoire`,
-  repertoireBody: msg`Learn where your real games leave the lines you rely on.`,
-  patternsTitle: msg`Recurring mistakes`,
-  patternsBody: msg`Turn isolated engine verdicts into patterns you can recognize.`,
-  schedulingTitle: msg`Training that comes back`,
-  schedulingBody: msg`Use spaced review to retain the corrections that matter.`,
-  ownGamesTitle: msg`Evidence from your own play`,
-  ownGamesBody: msg`Prioritize positions you reached, not a generic puzzle feed.`,
-  openEyebrow: msg`Open source by design`,
-  openTitle: msg`Transparent training you can trust.`,
-  openBody: msg`VelaChess is open source, Stockfish-powered, and self-hostable. Inspect how your games are analyzed, run it yourself, or contribute to the project.`,
-  openProject: msg`Open source`,
-  selfHostable: msg`Self-hostable`,
-  stockfishPowered: msg`Stockfish-powered`,
-  transparentLogic: msg`Transparent training logic`,
-  contributions: msg`Contributions welcome`,
-  viewProject: msg`View VelaChess on GitHub`,
+  startDrilling: msg`Start drilling`,
+  github: msg`GitHub`,
   contribute: msg`Contribute`,
   selfHost: msg`Self-host`,
-  finalEyebrow: msg`Public Beta`,
   finalTitle: msg`Train on the games you actually play.`,
   finalBody: msg`Connect an account and turn your next mistake into a position you will remember.`,
-  menu: msg`Open navigation`,
-  githubProject: msg`GitHub project`,
+  documentation: msg`Documentation`,
+  license: msg`License`,
   footerBody: msg`Personalized chess training from your own games.`,
-  copyright: msg`VelaChess. Open-source chess training.`,
+  copyright: msg`© VelaChess. Open-source chess training.`,
 } as const;
-
-const NAVIGATION = [
-  { href: "#product", label: COPY.product },
-  { href: "#how-it-works", label: COPY.howItWorks },
-  { href: "#open-source", label: COPY.openSource },
-] as const;
 
 const WORKFLOW = [
   { title: COPY.importTitle, body: COPY.importBody, icon: Upload },
@@ -99,32 +102,39 @@ const WORKFLOW = [
   { title: COPY.trainTitle, body: COPY.trainBody, icon: Dumbbell },
 ] as const;
 
-const CAPABILITIES = [
-  { title: COPY.repertoireTitle, body: COPY.repertoireBody, icon: BookOpen },
-  { title: COPY.patternsTitle, body: COPY.patternsBody, icon: BrainCircuit },
-  { title: COPY.schedulingTitle, body: COPY.schedulingBody, icon: Repeat2 },
-  { title: COPY.ownGamesTitle, body: COPY.ownGamesBody, icon: ScanSearch },
-] as const;
-
-const OPEN_SOURCE_PROOFS = [
-  COPY.openProject,
-  COPY.selfHostable,
-  COPY.stockfishPowered,
-  COPY.transparentLogic,
-  COPY.contributions,
+const FOOTER_GROUPS = [
+  {
+    title: COPY.product,
+    links: [
+      { label: COPY.gameAnalysis, href: "#game-analysis" },
+      { label: COPY.drill, href: "#drill" },
+    ],
+  },
+  {
+    title: COPY.project,
+    links: [
+      { label: COPY.github, href: GITHUB_URL },
+      { label: COPY.contribute, href: CONTRIBUTE_URL },
+      { label: COPY.selfHost, href: SELF_HOST_URL },
+    ],
+  },
+  {
+    title: COPY.resources,
+    links: [
+      { label: COPY.documentation, href: DOCUMENTATION_URL },
+      { label: COPY.license, href: LICENSE_URL },
+    ],
+  },
 ] as const;
 
 export function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <SiteHeader />
-      <main>
+      <LandingHeader />
+      <main className="mx-auto max-w-7xl px-6 pt-40">
         <Hero />
-        <ProductAnalysis />
-        <DrillShowcase />
+        <ProductShowcases />
         <Workflow />
-        <Capabilities />
-        <OpenSource />
         <FinalCta />
       </main>
       <SiteFooter />
@@ -132,271 +142,239 @@ export function LandingPage() {
   );
 }
 
-function SiteHeader() {
-  return (
-    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Brand />
-
-        <nav aria-label={i18n._(COPY.menu)} className="hidden items-center gap-8 md:flex">
-          {NAVIGATION.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {i18n._(item.label)}
-            </a>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-2 md:flex">
-          <a href={SIGN_IN_URL} className={buttonVariants({ variant: "ghost" })}>
-            {i18n._(COPY.signIn)}
-          </a>
-          <a href={PRODUCT_URL} className={buttonVariants()}>
-            {i18n._(COPY.tryVelaChess)}
-            <ArrowRight data-icon="inline-end" />
-          </a>
-        </div>
-
-        <MobileNavigation />
-      </div>
-    </header>
-  );
-}
-
-function MobileNavigation() {
-  return (
-    <details className="group relative md:hidden">
-      <summary
-        aria-label={i18n._(COPY.menu)}
-        className="flex size-9 cursor-pointer list-none items-center justify-center rounded-lg border bg-background hover:bg-muted"
-      >
-        <Menu className="size-4" />
-      </summary>
-      <nav className="absolute right-0 mt-2 flex w-64 flex-col gap-1 rounded-lg border bg-popover p-2 shadow-md">
-        {NAVIGATION.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="rounded-md px-3 py-2 text-sm hover:bg-muted"
-          >
-            {i18n._(item.label)}
-          </a>
-        ))}
-        <Separator className="my-1" />
-        <a href={SIGN_IN_URL} className="rounded-md px-3 py-2 text-sm hover:bg-muted">
-          {i18n._(COPY.signIn)}
-        </a>
-        <a href={PRODUCT_URL} className={buttonVariants({ className: "mt-1" })}>
-          {i18n._(COPY.tryVelaChess)}
-        </a>
-      </nav>
-    </details>
-  );
-}
-
-function Brand() {
-  return (
-    <a href="#top" className="flex items-center gap-2" aria-label={i18n._(COPY.brand)}>
-      <VelaChessMark className="size-8" />
-      <span className="font-display text-lg font-semibold">{i18n._(COPY.brand)}</span>
-    </a>
-  );
-}
-
 function Hero() {
   return (
-    <section id="top" className="border-b">
-      <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-        <Badge
-          variant="outline"
-          className="mb-6 border-brand/40 bg-brand/10 text-foreground"
-        >
-          <span className="size-1.5 rounded-full bg-guidance" />
+    <MotionSection
+      id="top"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <MotionDiv
+        data-motion-reveal
+        className="flex items-center justify-center"
+        variants={fadeUpVariants}
+      >
+        <Badge variant="outline" className="h-auto px-4 py-2 text-sm font-medium">
           {i18n._(COPY.publicBeta)}
         </Badge>
-        <h1 className="font-display text-5xl leading-tight font-semibold sm:text-6xl lg:text-7xl">
+      </MotionDiv>
+      <div className="mt-8 text-center">
+        <MotionHeading
+          data-motion-reveal
+          className="font-display text-4xl font-bold tracking-tight sm:text-6xl"
+          variants={fadeUpVariants}
+        >
           {i18n._(COPY.heroTitle)}
-        </h1>
-        <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground sm:text-xl">
+        </MotionHeading>
+        <MotionParagraph
+          data-motion-reveal
+          className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground"
+          variants={fadeUpVariants}
+        >
           {i18n._(COPY.heroBody)}
-        </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href={PRODUCT_URL} className={buttonVariants({ size: "lg" })}>
-            {i18n._(COPY.tryVelaChess)}
-            <ArrowRight data-icon="inline-end" />
-          </a>
-          <a
-            href={GITHUB_URL}
-            className={buttonVariants({ size: "lg", variant: "outline" })}
-          >
-            <GitFork data-icon="inline-start" />
-            {i18n._(COPY.viewGitHub)}
-          </a>
-        </div>
+        </MotionParagraph>
       </div>
-    </section>
-  );
-}
-
-function ProductAnalysis() {
-  return (
-    <section id="product" className="border-b py-16 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow={COPY.analysisEyebrow}
-          title={COPY.analysisTitle}
-          body={COPY.analysisBody}
-        />
-        <ProductFrame>
+      <MotionDiv
+        data-motion-reveal
+        className="my-6 mb-12 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-x-4"
+        variants={fadeUpVariants}
+      >
+        <ShimmerButton
+          render={<a href={PRODUCT_URL} aria-label={i18n._(COPY.tryForFree)} />}
+          className="h-11 gap-2"
+        >
+          {i18n._(COPY.tryForFree)}
+          <ArrowRight className="size-4" />
+        </ShimmerButton>
+      </MotionDiv>
+      <div className="relative">
+        <picture className="block">
+          <source media="(max-width: 40rem)" srcSet="/product/game-analysis-640.webp" />
+          <source media="(max-width: 48rem)" srcSet="/product/game-analysis-768.webp" />
           <Image
             src="/product/game-analysis.webp"
             alt={i18n._(COPY.analysisAlt)}
             width={1440}
             height={900}
-            priority
-            sizes="(max-width: 1280px) 100vw, 1280px"
-            className="h-auto w-full"
+            sizes="100vw"
+            loading="eager"
+            fetchPriority="high"
+            className="h-auto w-full rounded-md border shadow-lg"
           />
-        </ProductFrame>
+        </picture>
       </div>
-    </section>
+    </MotionSection>
   );
 }
 
 function Workflow() {
   return (
-    <section id="how-it-works" className="border-b py-16 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading eyebrow={COPY.workflowEyebrow} title={COPY.workflowTitle} />
-        <ol className="mt-12 grid border-y sm:grid-cols-2 lg:grid-cols-4">
-          {WORKFLOW.map((step, index) => (
-            <li
-              key={step.title.id}
-              className="border-b p-6 last:border-b-0 sm:border-r lg:border-b-0"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-muted-foreground">
-                  {i18n.number(index + 1, { minimumIntegerDigits: 2 })}
-                </span>
-                <step.icon className="size-5 text-brand" />
-              </div>
-              <h3 className="mt-8 text-lg font-medium">{i18n._(step.title)}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {i18n._(step.body)}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-function DrillShowcase() {
-  return (
-    <section className="border-b py-16 sm:py-24">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-5 lg:px-8">
-        <div className="lg:col-span-2">
-          <SectionHeading
-            eyebrow={COPY.drillEyebrow}
-            title={COPY.drillTitle}
-            body={COPY.drillBody}
+    <section id="how-it-works" className="py-24 sm:py-32">
+      <SectionIntro title={COPY.workflowTitle} body={COPY.workflowBody} />
+      <ol className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+        {WORKFLOW.map((step, index) => (
+          <WorkflowStep
+            key={step.title.id}
+            title={step.title}
+            body={step.body}
+            icon={step.icon}
+            index={index}
           />
-        </div>
-        <div className="lg:col-span-3">
-          <ProductFrame>
-            <Image
-              src="/product/drill.webp"
-              alt={i18n._(COPY.drillAlt)}
-              width={1440}
-              height={900}
-              sizes="(max-width: 1024px) 100vw, 60vw"
-              className="h-auto w-full"
-            />
-          </ProductFrame>
-        </div>
-      </div>
+        ))}
+      </ol>
     </section>
   );
 }
 
-function Capabilities() {
+function WorkflowStep({
+  title,
+  body,
+  icon: Icon,
+  index,
+}: {
+  title: MessageDescriptor;
+  body: MessageDescriptor;
+  icon: typeof Upload;
+  index: number;
+}) {
   return (
-    <section className="border-b py-16 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow={COPY.capabilitiesEyebrow}
-          title={COPY.capabilitiesTitle}
-        />
-        <div className="mt-12 grid border-t md:grid-cols-2">
-          {CAPABILITIES.map((capability) => (
-            <article
-              key={capability.title.id}
-              className="flex gap-4 border-b p-6 md:even:border-l"
-            >
-              <capability.icon className="mt-1 size-5 shrink-0 text-info" />
-              <div>
-                <h3 className="font-medium">{i18n._(capability.title)}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {i18n._(capability.body)}
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
+    <MotionListItem
+      data-motion-reveal
+      className={cn(
+        "group/feature relative flex flex-col py-10 lg:border-r",
+        index === 0 && "lg:border-l",
+      )}
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={VIEWPORT}
+      transition={{ duration: 0.5, delay: index * 0.15, ease: EASE }}
+    >
+      <div className="pointer-events-none absolute inset-0 size-full bg-linear-to-t from-muted to-transparent opacity-0 transition duration-200 group-hover/feature:opacity-100" />
+      <div className="relative z-10 mb-4 px-10 text-muted-foreground transition duration-200 group-hover/feature:scale-101 group-hover/feature:text-primary">
+        <Icon />
       </div>
-    </section>
+      <div className="relative z-10 mb-2 px-10 text-lg font-bold">
+        <div className="absolute inset-y-0 left-0 h-6 w-1 origin-center rounded-tr-full rounded-br-full bg-border transition-colors duration-200 group-hover/feature:bg-primary" />
+        <span className="inline-block transition duration-200 group-hover/feature:translate-x-2">
+          {i18n._(title)}
+        </span>
+      </div>
+      <p className="relative z-10 max-w-xs px-10 text-sm text-muted-foreground">
+        {i18n._(body)}
+      </p>
+    </MotionListItem>
   );
 }
 
-function OpenSource() {
+function ProductShowcases() {
   return (
-    <section id="open-source" className="border-b bg-card py-16 sm:py-24">
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-        <SectionHeading
-          eyebrow={COPY.openEyebrow}
-          title={COPY.openTitle}
-          body={COPY.openBody}
-        />
-        <div className="flex flex-col justify-center">
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {OPEN_SOURCE_PROOFS.map((proof) => (
-              <li key={proof.id} className="flex items-center gap-3 text-sm">
-                <span className="flex size-6 items-center justify-center rounded-full bg-success/15 text-success">
-                  <Check className="size-4" />
-                </span>
-                {i18n._(proof)}
-              </li>
-            ))}
-          </ul>
-          <a
-            href={GITHUB_URL}
-            className={buttonVariants({
-              className: "mt-8 self-start",
-              variant: "outline",
-            })}
+    <section id="product" className="pt-24 sm:pt-32">
+      <SectionIntro title={COPY.productTitle} body={COPY.productBody} />
+      <div className="space-y-6">
+        <MotionDiv
+          data-motion-reveal
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
+          <Card
+            id="game-analysis"
+            className="group h-full border transition-shadow duration-300 hover:shadow-lg"
           >
-            <GitFork data-icon="inline-start" />
-            {i18n._(COPY.viewProject)}
-          </a>
-          <div className="mt-4 flex gap-5 text-sm">
-            <a
-              href={CONTRIBUTE_URL}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {i18n._(COPY.contribute)}
-            </a>
-            <a
-              href={SELF_HOST_URL}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {i18n._(COPY.selfHost)}
-            </a>
-          </div>
-        </div>
+            <CardContent className="grid items-center gap-8 p-6 lg:grid-cols-5 lg:p-8">
+              <div className="lg:col-span-2">
+                <Badge variant="outline" className="mb-4">
+                  {i18n._(COPY.gameAnalysis)}
+                </Badge>
+                <h2 className="mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  {i18n._(COPY.analysisTitle)}
+                </h2>
+                <p className="text-lg leading-8 text-muted-foreground">
+                  {i18n._(COPY.analysisBody)}
+                </p>
+                <a
+                  href={PRODUCT_URL}
+                  className={buttonVariants({
+                    className: "mt-8 rounded-full",
+                    variant: "outline",
+                  })}
+                >
+                  {i18n._(COPY.inspectGames)}
+                  <ArrowRight data-icon="inline-end" />
+                </a>
+              </div>
+              <picture className="block lg:col-span-3">
+                <source
+                  media="(max-width: 40rem)"
+                  srcSet="/product/game-analysis-640.webp"
+                />
+                <source
+                  media="(max-width: 48rem)"
+                  srcSet="/product/game-analysis-768.webp"
+                />
+                <Image
+                  src="/product/game-analysis.webp"
+                  alt={i18n._(COPY.analysisAlt)}
+                  width={1440}
+                  height={900}
+                  sizes="(max-width: 1024px) 100vw, 60vw"
+                  className="w-full rounded-md border shadow-lg"
+                />
+              </picture>
+            </CardContent>
+          </Card>
+        </MotionDiv>
+
+        <MotionDiv
+          data-motion-reveal
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
+          transition={{ duration: 0.6, delay: 0.15, ease: EASE }}
+        >
+          <Card
+            id="drill"
+            className="group h-full border transition-shadow duration-300 hover:shadow-lg"
+          >
+            <CardContent className="grid items-center gap-8 p-6 lg:grid-cols-5 lg:p-8">
+              <div className="lg:order-2 lg:col-span-2">
+                <Badge variant="outline" className="mb-4">
+                  {i18n._(COPY.drill)}
+                </Badge>
+                <h2 className="mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  {i18n._(COPY.drillTitle)}
+                </h2>
+                <p className="text-lg leading-8 text-muted-foreground">
+                  {i18n._(COPY.drillBody)}
+                </p>
+                <a
+                  href={PRODUCT_URL}
+                  className={buttonVariants({
+                    className: "mt-8 rounded-full",
+                    variant: "outline",
+                  })}
+                >
+                  {i18n._(COPY.startDrilling)}
+                  <ArrowRight data-icon="inline-end" />
+                </a>
+              </div>
+              <picture className="block lg:order-1 lg:col-span-3">
+                <source media="(max-width: 40rem)" srcSet="/product/drill-640.webp" />
+                <source media="(max-width: 48rem)" srcSet="/product/drill-768.webp" />
+                <Image
+                  src="/product/drill.webp"
+                  alt={i18n._(COPY.drillAlt)}
+                  width={1440}
+                  height={900}
+                  sizes="(max-width: 1024px) 100vw, 60vw"
+                  className="w-full rounded-md border shadow-lg"
+                />
+              </picture>
+            </CardContent>
+          </Card>
+        </MotionDiv>
       </div>
     </section>
   );
@@ -404,24 +382,24 @@ function OpenSource() {
 
 function FinalCta() {
   return (
-    <section className="py-20 sm:py-28">
-      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-        <p className="font-mono text-xs uppercase text-guidance">
-          {i18n._(COPY.finalEyebrow)}
-        </p>
-        <h2 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">
+    <section className="rounded-xl border bg-muted/40 py-24 sm:py-32">
+      <div className="mx-auto max-w-2xl px-6 text-center">
+        <Badge variant="outline" className="mb-4">
+          {i18n._(COPY.publicBeta)}
+        </Badge>
+        <h2 className="mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
           {i18n._(COPY.finalTitle)}
         </h2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-          {i18n._(COPY.finalBody)}
-        </p>
-        <a
-          href={PRODUCT_URL}
-          className={buttonVariants({ className: "mt-8", size: "lg" })}
-        >
-          {i18n._(COPY.tryVelaChess)}
-          <ArrowRight data-icon="inline-end" />
-        </a>
+        <p className="mb-8 text-lg text-muted-foreground">{i18n._(COPY.finalBody)}</p>
+        <div className="flex justify-center">
+          <ShimmerButton
+            render={<a href={PRODUCT_URL} aria-label={i18n._(COPY.tryVelaChess)} />}
+            className="h-11 gap-2"
+          >
+            {i18n._(COPY.tryVelaChess)}
+            <ArrowRight className="size-4" />
+          </ShimmerButton>
+        </div>
       </div>
     </section>
   );
@@ -429,66 +407,69 @@ function FinalCta() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-3 lg:px-8">
-        <div>
-          <Brand />
-          <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-            {i18n._(COPY.footerBody)}
-          </p>
-        </div>
-        <nav className="flex flex-col gap-2 text-sm">
-          {NAVIGATION.map((item) => (
+    <footer className="mt-24 border-t">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="col-span-1">
             <a
-              key={item.href}
-              href={item.href}
-              className="text-muted-foreground hover:text-foreground"
+              href="#top"
+              className="mb-4 flex items-center gap-2"
+              aria-label={i18n._(COPY.brand)}
             >
-              {i18n._(item.label)}
+              <VelaChessMark className="size-8" />
+              <span className="font-display text-xl font-bold">{i18n._(COPY.brand)}</span>
             </a>
+            <p className="text-sm text-muted-foreground">{i18n._(COPY.footerBody)}</p>
+          </div>
+          {FOOTER_GROUPS.map((group) => (
+            <nav key={group.title.id} aria-label={i18n._(group.title)}>
+              <h3 className="mb-4 text-sm font-semibold">{i18n._(group.title)}</h3>
+              <ul className="space-y-2">
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {i18n._(link.label)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           ))}
-        </nav>
-        <div className="flex flex-col items-start gap-3 md:items-end">
-          <a
-            href={GITHUB_URL}
-            aria-label={i18n._(COPY.githubProject)}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <GitFork className="size-5" />
-          </a>
-          <p className="text-xs text-muted-foreground">{i18n._(COPY.copyright)}</p>
+        </div>
+
+        <div className="mt-12 border-t pt-8 text-center">
+          <p className="text-sm text-muted-foreground">{i18n._(COPY.copyright)}</p>
         </div>
       </div>
     </footer>
   );
 }
 
-function SectionHeading({
-  eyebrow,
+function SectionIntro({
   title,
   body,
 }: {
-  eyebrow: MessageDescriptor;
   title: MessageDescriptor;
-  body?: MessageDescriptor;
+  body: MessageDescriptor;
 }) {
   return (
-    <div className="max-w-3xl">
-      <p className="font-mono text-xs uppercase text-brand">{i18n._(eyebrow)}</p>
-      <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
+    <MotionDiv
+      data-motion-reveal
+      className="mb-16 text-center"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.6, ease: EASE }}
+    >
+      <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
         {i18n._(title)}
       </h2>
-      {body !== undefined && (
-        <p className="mt-4 text-lg leading-8 text-muted-foreground">{i18n._(body)}</p>
-      )}
-    </div>
-  );
-}
-
-function ProductFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-10 overflow-hidden rounded-lg border border-border-strong bg-card p-2 shadow-2xl shadow-black/30">
-      <div className="overflow-hidden rounded-md border bg-background">{children}</div>
-    </div>
+      <p className="mx-auto max-w-3xl text-lg text-muted-foreground md:text-xl">
+        {i18n._(body)}
+      </p>
+    </MotionDiv>
   );
 }

@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { MetadataRoute } from "next";
 
 import { i18n } from "../shared/i18n.ts";
@@ -17,8 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: i18n._(MANIFEST_COPY.description),
     start_url: "/",
     display: "standalone",
-    background_color: "#0b0d12",
-    theme_color: "#0b0d12",
+    background_color: VELACHESS_THEME_COLORS.light.background,
+    theme_color: VELACHESS_THEME_COLORS.light.primary,
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

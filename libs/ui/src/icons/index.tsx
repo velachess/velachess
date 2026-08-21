@@ -4,5 +4,5 @@
  */
 export * from "lucide-react";
 
-export { ChessComIcon, LichessIcon, type BrandIconProps } from "./brand.tsx";
+export { ChessComIcon, GitHubIcon, LichessIcon, type BrandIconProps } from "./brand.tsx";
 export { VelaChessMark, type VelaChessMarkProps } from "./mark.tsx";

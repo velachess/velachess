@@ -10,10 +10,11 @@
 :root {
   --radius: 0.625rem;
 
-  /* Dark is the only palette shipping; :root carries it directly.
-     Two indigos on purpose: --brand is the accent you look at, --primary
-     is the fill you click. See docs/explanation/modules/ui.md. */
+  /* The product app inherits this dark default; theme-aware surfaces opt
+     into .light or .dark without changing the product's shipped palette. */
   --brand: #5b6cff; /* Vela Indigo */
+  --brand-text: #7684ff; /* Vela Indigo lifted for readable small text */
+  --brand-mark-on-primary: #ffffff;
   --background: #0b0d12; /* canvas */
   --foreground: #f4f6fa; /* primary text */
   --card: #12151c; /* surface — panels, tables, boards */
@@ -47,6 +48,7 @@
   --chart-3: #768196; /* reference / baseline */
   --chart-4: #f1e67a; /* guided insight */
   --chart-5: color-mix(in oklab, var(--brand) 62%, #f4f6fa); /* tint of chart-1 */
+  --shadow-ink: #000000;
 
   /* Board and engine verdicts. Names mirror `engine_category` in the db. */
   --board-light: #9eabb6;
@@ -66,6 +68,52 @@
      stop meaning "White is winning". */
   --eval-white: oklch(0.97 0.005 85);
   --eval-black: oklch(0.24 0.008 85);
+
+  color-scheme: dark;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+:root.light {
+  --brand: #5b6cff;
+  --brand-text: #4453d6;
+  --background: #f7f8fc;
+  --foreground: #10131a;
+  --card: #ffffff;
+  --card-foreground: #10131a;
+  --popover: #ffffff;
+  --popover-foreground: #10131a;
+  --primary: #4453d6;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f6;
+  --secondary-foreground: #10131a;
+  --muted: #eef0f6;
+  --muted-foreground: #596174;
+  --accent: color-mix(in oklab, var(--brand) 10%, transparent);
+  --accent-foreground: #10131a;
+  --destructive: #c52e45;
+  --destructive-foreground: #ffffff;
+  --success: #167553;
+  --success-foreground: #ffffff;
+  --warning: #8a5800;
+  --warning-foreground: #ffffff;
+  --info: #00657d;
+  --info-foreground: #ffffff;
+  --guidance: #6b5c00;
+  --guidance-foreground: #ffffff;
+  --border: #d8dde8;
+  --border-strong: #aab3c5;
+  --input: var(--border-strong);
+  --ring: #4453d6;
+  --chart-1: #4453d6;
+  --chart-2: #00657d;
+  --chart-3: #687287;
+  --chart-4: #8a5800;
+  --chart-5: color-mix(in oklab, var(--brand) 62%, #10131a);
+
+  color-scheme: light;
 }
 
 /* Tokens become utilities: bg-background, text-move-blunder, … */
@@ -87,6 +135,8 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
+  --color-brand-mark-on-primary: var(--brand-mark-on-primary);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -125,6 +175,35 @@
   --color-move-blunder: var(--move-blunder);
   --color-eval-white: var(--eval-white);
   --color-eval-black: var(--eval-black);
+
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+}
+
+@keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+  }
+}
+
+@keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+  }
+
+  15%,
+  35% {
+    transform: translateZ(0) rotate(90deg);
+  }
+
+  65%,
+  85% {
+    transform: translateZ(0) rotate(270deg);
+  }
+
+  100% {
+    transform: translateZ(0) rotate(360deg);
+  }
 }
 
 @layer base {
