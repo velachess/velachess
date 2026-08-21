@@ -1,0 +1,56 @@
+name: React Doctor
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+jobs:
+  react-doctor:
+    name: React Doctor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Find affected React workspaces
+        id: affected
+        env:
+          TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
+          TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          projects="$(
+            pnpm exec turbo ls --affected \
+              --filter=@velachess/web \
+              --filter=@velachess/site \
+              --filter=@velachess/ui \
+              --output=json \
+              | jq -r '[.packages.items[].name] | join(",")'
+          )"
+          echo "projects=${projects}" >> "${GITHUB_OUTPUT}"
+
+      - name: No affected React workspaces
+        if: steps.affected.outputs.projects == ''
+        shell: bash
+        run: echo "No affected React workspaces; React Doctor was skipped." >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Review affected React workspaces
+        if: steps.affected.outputs.projects != ''
+        uses: millionco/react-doctor@v2
+        with:
+          project: ${{ steps.affected.outputs.projects }}
+          scope: changed
+          blocking: error
