@@ -22,7 +22,7 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { cn } from "@velachess/ui/lib/utils";
 import { ArrowRight } from "@velachess/ui/icons";
 import { Link, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { MoveSquares } from "@velachess/chess";
 import { useBreadcrumbTrail } from "../app-shell/breadcrumb-trail.ts";
@@ -34,6 +34,7 @@ import { legalTargetsFrom, playMove, sideToMove, squaresOfSanAt } from "./move.t
 import {
   drillNextQuery,
   drillQueueQuery,
+  type DrillAnswer,
   type DrillItem,
   type DrillQueue,
   type DrillScopeSearch,
@@ -49,6 +50,8 @@ const DRILL_COPY = {
   boardLabel: msg`Position to solve`,
   correct: msg`Right.`,
   wrong: msg`Not the move.`,
+  attemptedMove: msg`You tried`,
+  nextReview: msg`Next review`,
   continue: msg`Continue`,
   endSession: msg`End session`,
   progress: msg`Progress`,
@@ -149,6 +152,12 @@ interface Attempt {
   /** The move just played here, which is what the red arrow draws. Not
    * `context.playedSan` — that is the move from the original game, and
    * pointing at it would grade a choice nobody made just now. */
+  san: string;
+  answer: DrillAnswer | null;
+}
+
+interface AttemptView {
+  fen: string;
   san: string;
   answer: Answer | null;
 }
@@ -312,6 +321,7 @@ export function Drill() {
   }
 
   const answer = attempt?.answer ?? null;
+  const displayedSession = answer ? advanced(session, item, answer) : session;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 lg:overflow-hidden">
@@ -342,7 +352,7 @@ export function Drill() {
         <aside className="bg-card flex min-h-0 flex-col overflow-hidden rounded-lg border">
           <div className="shrink-0 border-b p-4">
             <SessionHeader
-              session={session}
+              session={displayedSession}
               labels={{
                 progress: i18n._(DRILL_COPY.progress),
                 end: i18n._(DRILL_COPY.endSession),
@@ -355,7 +365,7 @@ export function Drill() {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-            <DrillBody item={item} answer={answer} />
+            <DrillBody item={item} answer={answer} attemptedSan={attempt?.san} />
           </div>
 
           <ContinueAction answer={answer} onContinue={continueSession} />
@@ -394,20 +404,57 @@ function DrillQueueSkeleton() {
   );
 }
 
-function DrillBody({ item, answer }: { item: DrillItem; answer: Answer | null }) {
+function DrillBody({
+  item,
+  answer,
+  attemptedSan,
+}: {
+  item: DrillItem;
+  answer: DrillAnswer | null;
+  attemptedSan: string | undefined;
+}) {
   const { i18n } = useLingui();
 
   if (!answer) return <DrillPrompt item={item} answer={null} />;
 
   const verdict = answer.correct ? DRILL_COPY.correct : DRILL_COPY.wrong;
-  return <p className="text-sm font-medium">{i18n._(verdict)}</p>;
+  const nextReview = i18n.date(new Date(answer.nextDue), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-lg font-medium">{i18n._(verdict)}</p>
+
+      <dl className="grid grid-cols-2 gap-3">
+        <div className="bg-muted/50 rounded-md p-3">
+          <dt className="text-muted-foreground text-xs">
+            {i18n._(DRILL_COPY.attemptedMove)}
+          </dt>
+          <dd className="mt-1 font-mono text-sm">{attemptedSan}</dd>
+        </div>
+        <div className="bg-muted/50 rounded-md p-3">
+          <dt className="text-muted-foreground text-xs">
+            {i18n._(DRILL_COPY.nextReview)}
+          </dt>
+          <dd className="mt-1 text-sm">
+            <time dateTime={answer.nextDue}>{nextReview}</time>
+          </dd>
+        </div>
+      </dl>
+
+      <DrillPrompt item={item} answer={answer} />
+    </div>
+  );
 }
 
 function ContinueAction({
   answer,
   onContinue,
 }: {
-  answer: Answer | null;
+  answer: DrillAnswer | null;
   onContinue: () => void;
 }) {
   const { i18n } = useLingui();
@@ -436,16 +483,18 @@ function Trail({ current }: { current: string }) {
     <Breadcrumb className="shrink-0">
       <BreadcrumbList>
         {trail.map((crumb) => (
-          <BreadcrumbItem key={crumb.fullPath}>
-            <BreadcrumbLink
-              render={
-                <Link to={crumb.fullPath} params={crumb.params}>
-                  {i18n._(crumb.label)}
-                </Link>
-              }
-            />
+          <Fragment key={crumb.fullPath}>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                render={
+                  <Link to={crumb.fullPath} params={crumb.params}>
+                    {i18n._(crumb.label)}
+                  </Link>
+                }
+              />
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-          </BreadcrumbItem>
+          </Fragment>
         ))}
         <BreadcrumbItem>
           <BreadcrumbPage>{current}</BreadcrumbPage>
@@ -555,13 +604,13 @@ function Tally({
  * costs a beat on the correct case and never moves a piece that should
  * not have moved.
  */
-export function boardFen(asked: string, attempt: Attempt | null): string {
+export function boardFen(asked: string, attempt: AttemptView | null): string {
   return attempt?.answer?.correct === true ? attempt.fen : asked;
 }
 
 export function verdictArrows(
   item: DrillItem,
-  attempt: Attempt | null,
+  attempt: AttemptView | null,
 ): {
   playedMove?: MoveSquares;
   bestMove?: MoveSquares;

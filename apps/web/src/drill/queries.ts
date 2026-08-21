@@ -4,6 +4,7 @@ import { queryOptions } from "../shared/libs/query/index.ts";
 
 export type DrillQueue = InferResponseType<typeof api.drill.queue.$get, 200>;
 export type DrillItem = InferResponseType<typeof api.drill.next.$get, 200>;
+export type DrillAnswer = InferResponseType<typeof api.drill.answer.$post, 200>;
 
 /**
  * The slice of the queue this screen was asked for, carried in the URL:

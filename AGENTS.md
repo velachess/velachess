@@ -214,7 +214,7 @@ pnpm install       # also installs git hooks (lefthook, via `prepare`)
 pnpm check         # typecheck + lint + knip
 pnpm fmt:check     # formatting gate; pnpm fmt fixes the tree
 pnpm test          # turbo-orchestrated: one vitest project per app/package, plus root and e2e
-pnpm build         # turbo run build — apps/web only, no other package ships a build
+pnpm build         # turbo run build — apps/web plus the static apps/site export
 docker compose -f docker/docker-compose.yml up --build   # postgres + migrate + api (:3000) + worker
 ```
 
@@ -334,6 +334,8 @@ own.
   enforce (aria-label is copy, tokens never hex, skeletons are for
   absence). `Item`, `Empty`, `Skeleton` and `Spinner` were each written by
   hand here before someone noticed the registry already had them.
+- `.agents/skills/site-quality` — public-site SEO, accessibility,
+  performance, Lighthouse thresholds and static-export constraints.
 
 ## Roles
 

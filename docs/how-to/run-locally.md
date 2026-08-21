@@ -9,10 +9,11 @@ and the one failure that reliably confuses people.
 ```bash
 cp .env.example .env
 pnpm dev:setup   # pnpm install + Postgres on 5434 + migrations
-pnpm dev         # web :5173, API :3000, worker — all three, watching
+pnpm dev         # site :3001, web :5173, API :3000, worker — all watching
 ```
 
-`pnpm dev` runs every app's `dev` script through Turborepo. The web app
+`pnpm dev` runs every app's `dev` script through Turborepo. The public
+site is independent on `:3001`. The web app
 proxies `/api` to the API on `:3000`, so the browser only ever talks to
 `:5173`.
 
@@ -20,6 +21,7 @@ Run them apart when you want quieter output, or only need one:
 
 ```bash
 pnpm dev:web      # Vite on :5173
+pnpm dev:site     # Next.js on :3001
 pnpm dev:server   # API on :3000
 pnpm dev:worker   # queue consumers
 ```
@@ -84,8 +86,8 @@ Node, pnpm and Postgres wired together with nothing to install:
 - `docker/docker-compose.dev.yml` starts Postgres alongside it
 - `postCreateCommand` writes `.env.local` and runs the first migration
 
-`pnpm dev`, `pnpm test`, `pnpm check`, `pnpm dev:server` and
-`pnpm dev:worker` all work unchanged inside it — nothing to prefix.
+`pnpm dev`, `pnpm test`, `pnpm check`, `pnpm dev:site`, `pnpm dev:server`
+and `pnpm dev:worker` all work unchanged inside it — nothing to prefix.
 
 ## Environment variables
 

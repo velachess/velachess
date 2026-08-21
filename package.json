@@ -17,6 +17,7 @@
     "db:migrate": "turbo run db:migrate",
     "dev": "turbo run dev",
     "dev:web": "turbo run dev --filter=@velachess/web",
+    "dev:site": "turbo run dev --filter=@velachess/site",
     "dev:server": "turbo run dev --filter=@velachess/server",
     "dev:worker": "turbo run dev --filter=@velachess/worker",
     "dev:setup": "pnpm install && pnpm infra:dev:up && pnpm db:migrate",
@@ -33,7 +34,10 @@
     "test:root": "vitest run --project root",
     "test": "turbo run test test:root",
     "test:watch": "vitest",
-    "test:e2e": "vitest run --project e2e"
+    "test:e2e": "vitest run --project e2e",
+    "site:capture": "pnpm --filter @velachess/web capture:site",
+    "site:lighthouse": "pnpm --filter @velachess/site lighthouse",
+    "site:quality": "pnpm --filter @velachess/site build && pnpm --filter @velachess/site test && pnpm site:lighthouse"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

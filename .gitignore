@@ -8,6 +8,7 @@ coverage/
 .claude/
 .vscode/
 next-env.d.ts
+!apps/site/next-env.d.ts
 *.tsbuildinfo
 
 # TanStack Router generates this on dev/build
@@ -16,7 +17,12 @@ apps/web/src/routeTree.gen.ts
 dist/
 .output/
 .vite/
+.next/
 .turbo/
+apps/site/out/
+apps/web/.playwright/
+apps/site/.lighthouseci/
+apps/site/src/locales/*/messages.ts
 
 # session working area — files the cloud agent cannot delete land here
 _to_delete/

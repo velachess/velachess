@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "capture:site": "playwright test --config playwright.config.ts --project marketing",
     "dev": "vite dev",
     "i18n:extract": "lingui extract --clean",
     "start": "vite preview",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@playwright/test": "1.62.1",
     "@velachess/server": "workspace:*",
     "@lingui/babel-plugin-lingui-macro": "^6.6.0",
     "@lingui/cli": "^6.6.0",

@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Link, useParams, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { Board } from "@velachess/ui/chess/board";
 import type { BoardMove } from "@velachess/ui/chess/board";
@@ -206,16 +206,18 @@ function PracticeSession({
       page={i18n._(PRACTICE_COPY.title)}
       crumbs={
         book.data && (
-          <BreadcrumbItem>
-            <BreadcrumbLink
-              render={
-                <Link to="/repertoire/$repertoireId" params={{ repertoireId }}>
-                  {book.data.name}
-                </Link>
-              }
-            />
+          <Fragment>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                render={
+                  <Link to="/repertoire/$repertoireId" params={{ repertoireId }}>
+                    {book.data.name}
+                  </Link>
+                }
+              />
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-          </BreadcrumbItem>
+          </Fragment>
         )
       }
     >

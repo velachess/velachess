@@ -17,8 +17,25 @@
     // filesystem rather than through an import, so knip has to be told the
     // same thing the plugin already knows.
     "apps/web": {
-      "entry": ["src/routes/**/*.tsx", "lingui.config.ts", "**/*.test.{ts,tsx}"],
-      "project": ["src/**/*.{ts,tsx,css}"]
+      "entry": [
+        "src/routes/**/*.tsx",
+        "lingui.config.ts",
+        "playwright.config.ts",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}"
+      ],
+      "project": ["src/**/*.{ts,tsx,css}", "__e2e__/**/*.{ts,tsx}"]
+    },
+    "apps/site": {
+      "entry": [
+        "src/app/**/*.{ts,tsx}",
+        "lingui.config.ts",
+        "next.config.ts",
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": ["src/**/*.{ts,tsx,css}"],
+      // Referenced by string from Next/PostCSS configuration and imported CSS.
+      "ignoreDependencies": ["@lingui/swc-plugin", "tailwindcss"]
     },
     "libs/chess": {
       "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],

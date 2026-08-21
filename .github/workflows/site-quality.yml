@@ -1,0 +1,38 @@
+name: Site quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Build static site
+        run: pnpm --filter @velachess/site build
+
+      - name: Validate SEO output
+        run: pnpm --filter @velachess/site test
+
+      - name: Serve export and run Lighthouse CI
+        run: pnpm --filter @velachess/site lighthouse
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: lighthouse-reports
+          path: apps/site/.lighthouseci/reports
+          if-no-files-found: ignore

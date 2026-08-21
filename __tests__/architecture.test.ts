@@ -84,12 +84,16 @@ describe("monorepo direction", () => {
       offenders(
         everyLib,
         (specifier) =>
-          ["@velachess/server", "@velachess/worker", "@velachess/web"].some((app) =>
-            specifier.startsWith(app),
-          ) ||
+          [
+            "@velachess/server",
+            "@velachess/worker",
+            "@velachess/web",
+            "@velachess/site",
+          ].some((app) => specifier.startsWith(app)) ||
           specifier.includes("apps/server") ||
           specifier.includes("apps/worker") ||
-          specifier.includes("apps/web"),
+          specifier.includes("apps/web") ||
+          specifier.includes("apps/site"),
       ),
     ).toEqual([]);
   });
@@ -293,18 +297,35 @@ describe("no resurrected layers", () => {
   });
 });
 
+describe("design system ownership", () => {
+  it("keeps theme declarations in libs/ui", () => {
+    const appThemes = globSync("apps/**/*.css", { cwd: root }).filter((file) =>
+      readFileSync(path.join(root, file), "utf8").includes("@theme"),
+    );
+
+    expect(appThemes).toEqual([]);
+  });
+
+  it("keeps the public site's shared fonts in libs/ui", () => {
+    expect(
+      globSync("apps/site/{src,public}/**/*.{otf,ttf,woff,woff2}", { cwd: root }),
+    ).toEqual([]);
+  });
+});
+
 describe("frontend slices", () => {
   const web = sourcesOf("apps/web/src/**/*.ts", "apps/web/src/**/*.tsx");
+  const site = sourcesOf("apps/site/src/**/*.ts", "apps/site/src/**/*.tsx");
 
-  it("rejects technical bucket directories in apps/web/src", () => {
+  it("rejects technical bucket directories in frontend apps", () => {
     // The frontend's unit is a behavior inside an area, never a pile of
     // same-shaped files. A components/ or hooks/ directory is the layered
     // architecture growing back with React vocabulary; primitives belong
     // to libs/ui, behavior to its slice.
-    const buckets = web
+    const buckets = [...web, ...site]
       .map(({ file }) => file)
       .filter((file) =>
-        /apps\/web\/src\/(?:[^/]+\/)*(components|hooks|stores|services|helpers|utils)\//.test(
+        /apps\/(?:web|site)\/src\/(?:[^/]+\/)*(components|hooks|stores|services|helpers|utils)\//.test(
           file,
         ),
       );

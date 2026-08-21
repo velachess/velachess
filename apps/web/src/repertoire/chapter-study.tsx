@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Link, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { Board } from "@velachess/ui/chess/board";
@@ -165,19 +165,21 @@ function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
     <BoardScreen
       page={chapter.name}
       crumbs={
-        <BreadcrumbItem>
-          <BreadcrumbLink
-            render={
-              <Link
-                to="/repertoire/$repertoireId"
-                params={{ repertoireId: chapter.repertoireId }}
-              >
-                {chapter.repertoireName}
-              </Link>
-            }
-          />
+        <Fragment>
+          <BreadcrumbItem>
+            <BreadcrumbLink
+              render={
+                <Link
+                  to="/repertoire/$repertoireId"
+                  params={{ repertoireId: chapter.repertoireId }}
+                >
+                  {chapter.repertoireName}
+                </Link>
+              }
+            />
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-        </BreadcrumbItem>
+        </Fragment>
       }
     >
       <BoardColumn label={i18n._(STUDY_COPY.boardRegion)}>

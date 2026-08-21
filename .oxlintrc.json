@@ -26,7 +26,7 @@
   ],
   "overrides": [
     {
-      "files": ["apps/web/**/*.{ts,tsx}"],
+      "files": ["apps/web/**/*.{ts,tsx}", "apps/site/**/*.{ts,tsx}"],
       "plugins": ["react", "react-perf", "jsx-a11y"],
       "env": {
         "browser": true
@@ -130,6 +130,10 @@
               {
                 "group": ["@velachess/web", "@velachess/web/**"],
                 "message": "Architecture: libs must not import apps. apps/web is a composition root; it depends on libs, never the reverse."
+              },
+              {
+                "group": ["@velachess/site", "@velachess/site/**"],
+                "message": "Architecture: libs must not import apps. apps/site is a composition root; it depends on libs, never the reverse."
               }
             ]
           }
@@ -154,6 +158,10 @@
               {
                 "group": ["@velachess/web", "@velachess/web/**"],
                 "message": "Architecture: libs must not import apps. apps/web is a composition root; it depends on libs, never the reverse."
+              },
+              {
+                "group": ["@velachess/site", "@velachess/site/**"],
+                "message": "Architecture: libs must not import apps. apps/site is a composition root; it depends on libs, never the reverse."
               },
               {
                 "group": ["@velachess/application", "@velachess/application/**"],

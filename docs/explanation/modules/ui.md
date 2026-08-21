@@ -54,19 +54,27 @@ generic.
 
 ## Theme
 
-`src/styles/globals.css` is the only place tokens exist in the repo.
-shadcn `base-nova` (utilities from `shadcn/tailwind.css`, `neutral` base
-colour) plus our domain tokens: board squares and the four move-quality
-colours, named after `engine_category` in the database and after
-`MoveClassification` as the market names it.
+`src/styles/theme.css` is the only place tokens exist in the repo. It
+combines shadcn `base-nova` (utilities from `shadcn/tailwind.css`,
+`neutral` base colour) with our domain tokens: board squares and the four
+move-quality colours, named after `engine_category` in the database and
+after `MoveClassification` as the market names it.
+
+`src/styles/globals.css` adds product-wide dependencies and scans every UI
+primitive for `apps/web`. The public site imports the same theme and scans
+only the primitives it renders, so its export does not carry board,
+flag, or application styles. Font files and their licences live beside
+the theme in `src/styles/fonts`; each app loads them through its own
+framework without redefining the typography tokens.
 
 Dark mode is already paved: `:root` and `.dark` carry the same tokens and
 the `dark` variant is declared. All that's missing is something writing
 the class on `<html>`.
 
 The `@source` lines are load-bearing, not decoration: Tailwind skips
-`node_modules`, and this package reaches the app through a workspace
-symlink — without them, classes used here would never be generated.
+`node_modules`, and this package reaches the apps through a workspace
+symlink — without explicit sources, classes used here would never be
+generated.
 
 ### The palette
 

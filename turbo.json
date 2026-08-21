@@ -24,14 +24,24 @@
     "@velachess/web#test": {
       "env": ["LINGUI_CONFIG"]
     },
+    "@velachess/site#test": {
+      "dependsOn": ["@velachess/site#build"],
+      "env": ["LINGUI_CONFIG"]
+    },
     "typecheck": {},
     "@velachess/web#typecheck": {
       "dependsOn": ["@velachess/web#build"]
+    },
+    "@velachess/site#typecheck": {
+      "dependsOn": ["@velachess/site#build"]
     },
     "//#typecheck:root": {},
     "//#lint:root": {},
     "build": {
       "outputs": ["dist/**"]
+    },
+    "@velachess/site#build": {
+      "outputs": [".next/**", "out/**"]
     },
     "start": {
       "cache": false,

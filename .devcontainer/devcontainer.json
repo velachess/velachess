@@ -4,10 +4,11 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "remoteUser": "node",
-  "forwardPorts": [3000, 5173, 5434],
+  "forwardPorts": [3000, 3001, 5173, 5434],
   "portsAttributes": {
     "3000": { "label": "api (pnpm --filter @velachess/server dev)" },
-    "5173": { "label": "web (pnpm dev)" },
+    "3001": { "label": "site (pnpm dev:site)" },
+    "5173": { "label": "web (pnpm dev:web)" },
     "5434": { "label": "postgres" }
   },
   "postCreateCommand": "[ -f .env.local ] || echo 'DATABASE_URL=postgres://velachess:velachess@postgres:5432/velachess' > .env.local; pnpm install --frozen-lockfile && pnpm db:migrate",

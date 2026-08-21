@@ -1,0 +1,41 @@
+{
+  "name": "@velachess/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm i18n:compile && next build --webpack",
+    "dev": "pnpm i18n:compile && next dev -p 3001",
+    "i18n:compile": "lingui compile --typescript",
+    "i18n:extract": "lingui extract --clean",
+    "lighthouse": "lhci autorun --config=./lighthouserc.json",
+    "start": "pnpm i18n:compile && next dev -p 3001",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lingui/core": "^6.6.0",
+    "@velachess/ui": "workspace:*",
+    "next": "16.3.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@lhci/cli": "0.15.1",
+    "@lingui/babel-plugin-lingui-macro": "^6.6.0",
+    "@lingui/cli": "^6.6.0",
+    "@lingui/swc-plugin": "6.6.0",
+    "@lingui/vite-plugin": "^6.6.0",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.20.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "tailwindcss": "^4.3.3",
+    "vitest": "^4.1.10"
+  }
+}
