@@ -8,7 +8,6 @@ coverage/
 .claude/
 .vscode/
 next-env.d.ts
-!apps/site/next-env.d.ts
 *.tsbuildinfo
 
 # TanStack Router generates this on dev/build

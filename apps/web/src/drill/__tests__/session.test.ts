@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { advanced, boardFen, toGoIn, verdictArrows, type Session } from "../drill.tsx";
+import { advanced, boardFen, toGoIn, verdictArrows, type Session } from "../session.ts";
 import { drillItem } from "../../test/handlers/drill.ts";
 
 /**

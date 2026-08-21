@@ -54,3 +54,4 @@ jobs:
           project: ${{ steps.affected.outputs.projects }}
           scope: changed
           blocking: error
+          version: 0.9.12

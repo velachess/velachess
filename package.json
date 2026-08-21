@@ -27,6 +27,7 @@
     "typecheck": "turbo run typecheck typecheck:root",
     "lint:root": "oxlint .",
     "lint": "turbo run lint:root",
+    "react-doctor": "pnpm dlx react-doctor@0.9.12 . --verbose --scope changed --base main --project @velachess/web,@velachess/site,@velachess/ui",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "knip": "knip",
