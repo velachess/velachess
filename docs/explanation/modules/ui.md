@@ -54,28 +54,38 @@ generic.
 
 ## Theme
 
-`src/styles/globals.css` is the only place tokens exist in the repo.
-shadcn `base-nova` (utilities from `shadcn/tailwind.css`, `neutral` base
-colour) plus our domain tokens: board squares and the four move-quality
-colours, named after `engine_category` in the database and after
-`MoveClassification` as the market names it.
+`src/styles/theme.css` is the only place tokens exist in the repo. It
+combines shadcn `base-nova` (utilities from `shadcn/tailwind.css`,
+`neutral` base colour) with our domain tokens: board squares and the four
+move-quality colours, named after `engine_category` in the database and
+after `MoveClassification` as the market names it.
 
-Dark mode is already paved: `:root` and `.dark` carry the same tokens and
-the `dark` variant is declared. All that's missing is something writing
-the class on `<html>`.
+`src/styles/globals.css` adds product-wide dependencies and scans every UI
+primitive for `apps/web`. The public site imports the same theme and scans
+only the primitives it renders, so its export does not carry board,
+flag, or application styles. Font files and their licences live beside
+the theme in `src/styles/fonts`; each app loads them through its own
+framework without redefining the typography tokens.
+
+The product app inherits the dark palette from `:root`. Theme-aware surfaces
+such as the public site write `.light` or `.dark` on `<html>`; both modes use
+the same semantic tokens, while the product remains dark until it adopts the
+same behavior deliberately.
 
 The `@source` lines are load-bearing, not decoration: Tailwind skips
-`node_modules`, and this package reaches the app through a workspace
-symlink — without them, classes used here would never be generated.
+`node_modules`, and this package reaches the apps through a workspace
+symlink — without explicit sources, classes used here would never be
+generated.
 
 ### The palette
 
 Two indigos, and which one to reach for is the whole rule:
 
-| Token       | Value     | For                                                                        |
-| ----------- | --------- | -------------------------------------------------------------------------- |
-| `--brand`   | `#5B6CFF` | what you look at — the lockup tile, focus rings, `chart-1`, board overlays |
-| `--primary` | `#4453D6` | what you click — filled controls, primary button                           |
+| Token          | Value     | For                                                                        |
+| -------------- | --------- | -------------------------------------------------------------------------- |
+| `--brand`      | `#5B6CFF` | what you look at — the lockup tile, focus rings, `chart-1`, board overlays |
+| `--brand-text` | theme     | Vela Indigo adjusted only when small text needs stronger contrast          |
+| `--primary`    | `#4453D6` | what you click — filled controls, primary button                           |
 
 Vela Indigo `#5B6CFF` replaced Electric Blue `#4F7CFF` across the theme,
 the Brand Guide (v3) and the logo kit at once, so the system cannot

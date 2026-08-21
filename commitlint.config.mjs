@@ -12,6 +12,7 @@
 /** Workspaces double as scopes, so a scope is checkable rather than folklore. */
 const scopes = [
   "api",
+  "site",
   "web",
   "worker",
   "analysis",

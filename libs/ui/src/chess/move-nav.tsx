@@ -19,7 +19,9 @@ import {
   PaginationItem,
 } from "../components/pagination.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/tooltip.tsx";
-import { ArrowLeft, ArrowRight, RotateCcw } from "../icons/index.tsx";
+// Icons stay behind the UI package's single entry point so replacing Lucide does not leak here.
+// react-doctor-disable-next-line react-doctor/no-barrel-import
+import { ArrowLeft, ArrowRight, RotateCcw } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
 
 export interface MoveNavCopy {

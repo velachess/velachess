@@ -1,6 +1,6 @@
 import { useLingui } from "@lingui/react";
 import { Link } from "@tanstack/react-router";
-import type * as React from "react";
+import { Fragment, type ReactNode } from "react";
 
 import {
   Breadcrumb,
@@ -20,9 +20,9 @@ export interface BoardScreenProps {
   page: string;
   /** Crumbs between the router's trail and this page, as
    * `<BreadcrumbItem>`s — a chapter's repertoire, for instance. */
-  crumbs?: React.ReactNode;
+  crumbs?: ReactNode;
   /** The board column and its context panel, in that order. */
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -46,16 +46,18 @@ export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
       <Breadcrumb className="shrink-0">
         <BreadcrumbList>
           {trail.map((crumb) => (
-            <BreadcrumbItem key={crumb.fullPath}>
-              <BreadcrumbLink
-                render={
-                  <Link to={crumb.fullPath} params={crumb.params}>
-                    {i18n._(crumb.label)}
-                  </Link>
-                }
-              />
+            <Fragment key={crumb.fullPath}>
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  render={
+                    <Link to={crumb.fullPath} params={crumb.params}>
+                      {i18n._(crumb.label)}
+                    </Link>
+                  }
+                />
+              </BreadcrumbItem>
               <BreadcrumbSeparator />
-            </BreadcrumbItem>
+            </Fragment>
           ))}
           {crumbs}
           <BreadcrumbItem>

@@ -17,7 +17,7 @@ const PROMPT_COPY = {
   fromBook: msg`Your preparation said`,
   fromEngine: msg`The engine preferred`,
   neutral: msg`The move here is`,
-  played: msg`You played`,
+  played: msg`In the game, you played`,
   askBook: msg`Play the move you prepared.`,
   askEngine: msg`Find a better move than the one you played.`,
   askNeutral: msg`Find the best move.`,

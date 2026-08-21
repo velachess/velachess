@@ -1,0 +1,52 @@
+@import "@velachess/ui/theme.css";
+@source "../**/*.{ts,tsx}";
+@source "../../../../libs/ui/src/components/badge.tsx";
+@source "../../../../libs/ui/src/components/button.tsx";
+@source "../../../../libs/ui/src/components/card.tsx";
+@source "../../../../libs/ui/src/components/shimmer-button.tsx";
+@source "../../../../libs/ui/src/icons/mark.tsx";
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+body {
+  min-width: 20rem;
+}
+
+.no-js [data-motion-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.header-brand-mark :is(.fill-foreground, .fill-guidance) {
+  fill: var(--brand-mark-on-primary);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-motion-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .animate-shimmer-slide,
+  .animate-spin-around {
+    animation: none;
+  }
+}
+
+::selection {
+  background: var(--brand);
+  color: var(--primary-foreground);
+}

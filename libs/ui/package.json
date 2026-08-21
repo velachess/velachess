@@ -8,6 +8,8 @@
   },
   "exports": {
     "./globals.css": "./src/styles/globals.css",
+    "./theme.css": "./src/styles/theme.css",
+    "./styles/*": "./src/styles/*.ts",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
     "./chess/*": [
@@ -15,7 +17,7 @@
       "./src/chess/*.ts"
     ],
     "./layout/*": "./src/layout/*.tsx",
-    "./icons": "./src/icons/index.tsx",
+    "./icons": "./src/icons/index.ts",
     "./icons/*": "./src/icons/*.tsx",
     "./charts/*": "./src/charts/*.tsx"
   },

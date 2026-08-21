@@ -11,7 +11,7 @@ pnpm test         # turbo, one vitest project per app/package
 pnpm lint         # oxlint
 pnpm fmt:check    # oxfmt
 pnpm knip         # unused files, exports and dependencies
-pnpm build        # only when apps/web moved
+pnpm build        # when apps/web or apps/site moved
 ```
 
 `pnpm check` runs typecheck, lint and knip together — the fast static
@@ -47,6 +47,8 @@ build without a `.git` still installs. Check with
   transform.
 - **`web`** — `apps/web` alone, because it compiles Lingui macros and
   needs its own transform.
+- **`site`** — `apps/site` alone, with the same Lingui transform and its
+  Next.js landing composition.
 
 To run one: `pnpm exec vitest run --project db` (or any project name —
 `server`, `e2e`, `root`, `web`, `ui`, and so on).
@@ -65,6 +67,7 @@ itself, and the root pass said nothing. When you change one package:
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
+cd apps/site && pnpm exec tsc --noEmit
 ```
 
 ## If you touched copy
@@ -73,6 +76,7 @@ Any `msg` string added, changed or removed:
 
 ```bash
 pnpm --filter @velachess/web i18n:extract
+pnpm --filter @velachess/site i18n:extract
 ```
 
 Commit the `.po` files with the change. A catalogue that drifts from the

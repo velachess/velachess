@@ -57,7 +57,7 @@ libs/
   analysis/         move classification math — shared by process-analysis AND apps/web
   repertoire/       book building and judgment — shared by judge, extract, insights
   scheduler/        the FSRS wrapper
-  ui/               the design system (apps/web's primitives)
+  ui/               the design system (apps/web and apps/site primitives)
   fixtures/, test-utils/   test infrastructure
 ```
 
@@ -166,6 +166,13 @@ document. As areas grow, organize within them by user behavior
 technical kind. Presentation primitives stay in `libs/ui`; the query
 client, router and HTTP client stay global as shared technical
 infrastructure. Business behavior never migrates into generic helpers.
+
+`apps/site` uses the same vocabulary with a smaller surface: `app/` owns
+Next.js routes and composition, `landing/` owns the public marketing
+vertical, and `shared/` holds only cross-vertical infrastructure. It
+imports no application or chess behavior. Product fixtures stay in
+`apps/web`; Playwright captures the real screens; `apps/site/public`
+receives only the resulting marketing assets.
 
 ## Deciding where code goes
 

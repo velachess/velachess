@@ -22,22 +22,23 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { cn } from "@velachess/ui/lib/utils";
 import { ArrowRight } from "@velachess/ui/icons";
 import { Link, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
-import type { MoveSquares } from "@velachess/chess";
 import { useBreadcrumbTrail } from "../app-shell/breadcrumb-trail.ts";
 import { api, parseResponse } from "../shared/api/client.ts";
 import { useMutation, useQuery, useQueryClient } from "../shared/libs/query/index.ts";
 import { DrillPrompt } from "./drill-prompt.tsx";
 import { DrillQueuePanel, totalWaiting } from "./drill-queue-panel.tsx";
-import { legalTargetsFrom, playMove, sideToMove, squaresOfSanAt } from "./move.ts";
+import { legalTargetsFrom, playMove, sideToMove } from "./move.ts";
 import {
   drillNextQuery,
   drillQueueQuery,
+  type DrillAnswer,
   type DrillItem,
   type DrillQueue,
   type DrillScopeSearch,
 } from "./queries.ts";
+import { advanced, boardFen, toGoIn, verdictArrows, type Session } from "./session.ts";
 
 const DRILL_COPY = {
   title: msg`Drill`,
@@ -49,6 +50,8 @@ const DRILL_COPY = {
   boardLabel: msg`Position to solve`,
   correct: msg`Right.`,
   wrong: msg`Not the move.`,
+  attemptedMove: msg`You tried`,
+  nextReview: msg`Next review`,
   continue: msg`Continue`,
   endSession: msg`End session`,
   progress: msg`Progress`,
@@ -76,11 +79,6 @@ const DRILL_COPY = {
  */
 const BOARD_WIDTH = "w-full min-w-0 max-w-[min(100svh-7rem,100%)] justify-self-stretch";
 
-interface Answer {
-  expectedSans: string[];
-  correct: boolean;
-}
-
 /**
  * The board's own position while an answer is on screen.
  *
@@ -89,68 +87,13 @@ interface Answer {
  * exactly like rejecting. The move stays on the board until the person
  * moves on.
  */
-/**
- * What the session has counted so far.
- *
- * Session-scoped rather than read back from the server: these numbers
- * describe *this sitting*, and a card answered wrong here is still
- * "wrong today" even after the schedule moves it. The queue's own totals
- * answer a different question.
- */
-export interface Session {
-  /** Positions the sitting started with. */
-  size: number;
-  /** Answered right — the only way a position leaves the sitting. */
-  right: number;
-  /** Times a position was missed. Can exceed `size`: missing the same one
-   * twice is two misses and one position still to go. */
-  wrong: number;
-  /**
-   * Missed positions, waiting to be asked again before the sitting ends.
-   *
-   * Local on purpose. Nothing durable rides here — the answer was
-   * recorded and the card scheduled the moment it was given, so closing
-   * the tab loses no progress. What is lost is the intent to re-ask
-   * *today*, and FSRS already put those cards a minute out, so they are
-   * overdue and first in line whenever the person comes back.
-   */
-  retry: DrillItem[];
-}
-
-/** How many positions still have to be answered right. */
-export function toGoIn(session: Session): number {
-  return Math.max(0, session.size - session.right);
-}
-
-/**
- * One position leaves the screen.
- *
- * A right answer retires it; a wrong one sends it to the back of the
- * sitting. That is the whole of the repetition loop, and the reason a
- * hint would be redundant: being asked again *is* the help.
- */
-export function advanced(
-  session: Session,
-  item: DrillItem,
-  answer: Answer | null,
-): Session {
-  if (answer?.correct === true) {
-    return { ...session, right: session.right + 1 };
-  }
-  return {
-    ...session,
-    wrong: session.wrong + 1,
-    retry: [...session.retry, item],
-  };
-}
-
 interface Attempt {
   fen: string;
   /** The move just played here, which is what the red arrow draws. Not
    * `context.playedSan` — that is the move from the original game, and
    * pointing at it would grade a choice nobody made just now. */
   san: string;
-  answer: Answer | null;
+  answer: DrillAnswer | null;
 }
 
 export function Drill() {
@@ -312,6 +255,7 @@ export function Drill() {
   }
 
   const answer = attempt?.answer ?? null;
+  const displayedSession = answer ? advanced(session, item, answer) : session;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 lg:overflow-hidden">
@@ -342,7 +286,7 @@ export function Drill() {
         <aside className="bg-card flex min-h-0 flex-col overflow-hidden rounded-lg border">
           <div className="shrink-0 border-b p-4">
             <SessionHeader
-              session={session}
+              session={displayedSession}
               labels={{
                 progress: i18n._(DRILL_COPY.progress),
                 end: i18n._(DRILL_COPY.endSession),
@@ -355,7 +299,7 @@ export function Drill() {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-            <DrillBody item={item} answer={answer} />
+            <DrillBody item={item} answer={answer} attemptedSan={attempt?.san} />
           </div>
 
           <ContinueAction answer={answer} onContinue={continueSession} />
@@ -394,20 +338,57 @@ function DrillQueueSkeleton() {
   );
 }
 
-function DrillBody({ item, answer }: { item: DrillItem; answer: Answer | null }) {
+function DrillBody({
+  item,
+  answer,
+  attemptedSan,
+}: {
+  item: DrillItem;
+  answer: DrillAnswer | null;
+  attemptedSan: string | undefined;
+}) {
   const { i18n } = useLingui();
 
   if (!answer) return <DrillPrompt item={item} answer={null} />;
 
   const verdict = answer.correct ? DRILL_COPY.correct : DRILL_COPY.wrong;
-  return <p className="text-sm font-medium">{i18n._(verdict)}</p>;
+  const nextReview = i18n.date(new Date(answer.nextDue), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-lg font-medium">{i18n._(verdict)}</p>
+
+      <dl className="grid grid-cols-2 gap-3">
+        <div className="bg-muted/50 rounded-md p-3">
+          <dt className="text-muted-foreground text-xs">
+            {i18n._(DRILL_COPY.attemptedMove)}
+          </dt>
+          <dd className="mt-1 font-mono text-sm">{attemptedSan}</dd>
+        </div>
+        <div className="bg-muted/50 rounded-md p-3">
+          <dt className="text-muted-foreground text-xs">
+            {i18n._(DRILL_COPY.nextReview)}
+          </dt>
+          <dd className="mt-1 text-sm">
+            <time dateTime={answer.nextDue}>{nextReview}</time>
+          </dd>
+        </div>
+      </dl>
+
+      <DrillPrompt item={item} answer={answer} />
+    </div>
+  );
 }
 
 function ContinueAction({
   answer,
   onContinue,
 }: {
-  answer: Answer | null;
+  answer: DrillAnswer | null;
   onContinue: () => void;
 }) {
   const { i18n } = useLingui();
@@ -436,16 +417,18 @@ function Trail({ current }: { current: string }) {
     <Breadcrumb className="shrink-0">
       <BreadcrumbList>
         {trail.map((crumb) => (
-          <BreadcrumbItem key={crumb.fullPath}>
-            <BreadcrumbLink
-              render={
-                <Link to={crumb.fullPath} params={crumb.params}>
-                  {i18n._(crumb.label)}
-                </Link>
-              }
-            />
+          <Fragment key={crumb.fullPath}>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                render={
+                  <Link to={crumb.fullPath} params={crumb.params}>
+                    {i18n._(crumb.label)}
+                  </Link>
+                }
+              />
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-          </BreadcrumbItem>
+          </Fragment>
         ))}
         <BreadcrumbItem>
           <BreadcrumbPage>{current}</BreadcrumbPage>
@@ -535,61 +518,6 @@ function Tally({
   );
 }
 
-/**
- * The verdict, as two arrows and nothing else.
- *
- * Red from where your piece came to where you put it, green to where it
- * should have gone — the same grade colours the game report uses, so a
- * mistake looks the same in both places. No tick on the square: the green
- * arrow already lands there, and a second mark says the same thing twice.
- *
- * Nothing before the answer, because an arrow on an unanswered position
- * *is* the answer.
- */
-/**
- * The position the board shows.
- *
- * The move lands only once it is known to be right. Showing it the moment
- * it was dropped and rewinding on a wrong answer made the piece jump out
- * and back — the board asserting a move and then taking it away. Waiting
- * costs a beat on the correct case and never moves a piece that should
- * not have moved.
- */
-export function boardFen(asked: string, attempt: Attempt | null): string {
-  return attempt?.answer?.correct === true ? attempt.fen : asked;
-}
-
-export function verdictArrows(
-  item: DrillItem,
-  attempt: Attempt | null,
-): {
-  playedMove?: MoveSquares;
-  bestMove?: MoveSquares;
-  lastMove?: MoveSquares;
-  badges?: Record<string, { tone: "ok"; label: string }>;
-} {
-  const answer = attempt?.answer;
-  if (!answer) return {};
-
-  const played = squaresOfSanAt(item.fen, attempt.san);
-
-  // Right: the move stays on the board, its squares lit and marked. No
-  // arrows — there is nothing to contrast a correct move with.
-  if (answer.correct) {
-    return {
-      ...(played ? { lastMove: played } : {}),
-      ...(played ? { badges: { [played.to]: { tone: "ok" as const, label: "✓" } } } : {}),
-    };
-  }
-
-  // Wrong: what you did in red, what was there in green.
-  const best = squaresOfSanAt(item.fen, answer.expectedSans[0] ?? "");
-  return {
-    ...(played ? { playedMove: played } : {}),
-    ...(best ? { bestMove: best } : {}),
-  };
-}
-
 function Screen({ children }: { children: React.ReactNode }) {
   const { i18n } = useLingui();
   return (
@@ -622,5 +550,3 @@ function Empty({
     </EmptyState>
   );
 }
-
-export type { DrillItem };

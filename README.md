@@ -34,10 +34,11 @@ Requires **Node.js 22+**, **pnpm** (via corepack) and **Docker**.
 ```bash
 cp .env.example .env
 pnpm dev:setup   # install, start Postgres, run migrations
-pnpm dev         # web on :5173, API on :3000, worker alongside
+pnpm dev         # site :3001, web :5173, API :3000, worker alongside
 ```
 
-Open `http://localhost:5173`. The first user is created from the
+Open `http://localhost:3001` for the public site or `http://localhost:5173`
+for the product. The first user is created from the
 `VELACHESS_BOOTSTRAP_USER_*` values in `.env` on first boot into an empty
 database; sign-up is closed by default.
 
@@ -75,7 +76,9 @@ packages (`chess`, `repertoire`, `analysis`, `scheduler`) and
 infrastructure ports (`db` — Drizzle/Postgres, `queue` — pg-boss, `engine`
 — Stockfish). One Postgres holds both the domain data and the job queue.
 `apps/web` (TanStack Start) talks to the API through a client typed
-straight from its `AppType`, with the design system in `libs/ui`.
+straight from its `AppType`. `apps/site` is the independently deployable
+Next.js static marketing site. Both inherit the design system in
+`libs/ui`.
 
 Deep dives live in [`docs/`](docs/README.md).
 
@@ -85,6 +88,7 @@ Deep dives live in [`docs/`](docs/README.md).
 pnpm test        # vitest, per workspace — real migrations, real Stockfish
 pnpm check       # typecheck + lint + knip
 pnpm fmt         # oxfmt
+pnpm site:quality # static export SEO tests + Lighthouse CI
 ```
 
 Tests run in-process against PGlite and a shallow-depth engine: no mocks
