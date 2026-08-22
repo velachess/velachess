@@ -10,10 +10,15 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../../shared/chess-sounds/chess-sounds.ts";
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { gradeAtPly, previewFor, seatOf, suggestedArrow } from "../analysis-read.ts";
 import { BoardPane } from "./board-pane.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
+import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
 import { useAnalysis } from "../watch-analysis/use-analysis.ts";
 
 const ANALYSE_COPY = {
@@ -41,6 +46,7 @@ export function GameAnalysis() {
 
 function GameAnalysisContent({ gameId }: { gameId: string }) {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   // The array itself, mapped where it is used: a selector that builds a
   // new array every render never compares equal, and zustand re-renders
   // until React gives up.
@@ -54,6 +60,18 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
    */
   const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
 
+  const playReplaySound = (event: ReplayNavigationEvent) => {
+    if (event.type === REPLAY_NAVIGATION.START) {
+      playSound({ type: CHESS_SOUND_EVENT.GAME_START });
+      return;
+    }
+    playSound({
+      type: CHESS_SOUND_EVENT.MOVE,
+      fenBefore: event.move.fenBefore,
+      san: event.move.san,
+    });
+  };
+
   const {
     game,
     isLoading,
@@ -63,7 +81,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     graded,
     isAnalyzing,
     analysisFailed,
-  } = useAnalysis(gameId);
+  } = useAnalysis(gameId, playReplaySound);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would

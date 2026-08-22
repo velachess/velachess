@@ -26,6 +26,10 @@ import { Fragment, useState } from "react";
 
 import { useBreadcrumbTrail } from "../app-shell/breadcrumb-trail.ts";
 import { api, parseResponse } from "../shared/api/client.ts";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../shared/chess-sounds/chess-sounds.ts";
 import { useMutation, useQuery, useQueryClient } from "../shared/libs/query/index.ts";
 import { DrillPrompt } from "./drill-prompt.tsx";
 import { DrillQueuePanel, totalWaiting } from "./drill-queue-panel.tsx";
@@ -98,6 +102,7 @@ interface Attempt {
 
 export function Drill() {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   const queryClient = useQueryClient();
   // The scope arrives in the URL — a chapter's Train button, a book's,
   // an insight's CTA. Absent params mean the whole queue, unchanged.
@@ -151,6 +156,8 @@ export function Drill() {
     const played = playMove(item.fen, move.from, move.to);
     if (!played) return false;
 
+    playSound({ type: CHESS_SOUND_EVENT.MOVE, fenBefore: item.fen, san: played.san });
+
     // Recorded, not rendered: the board keeps showing the position as it
     // was asked until the answer says the move belongs there.
     setAttempt({ fen: played.fen, san: played.san, answer: null });
@@ -167,6 +174,10 @@ export function Drill() {
   }
 
   function continueSession() {
+    const answer = attempt?.answer ?? null;
+    if (session && item && answer && toGoIn(advanced(session, item, answer)) === 0) {
+      playSound({ type: CHESS_SOUND_EVENT.GAME_END });
+    }
     setAttempt(null);
     setShownAt(Date.now());
     // Drop the retry that was just served. Done here rather than when it
@@ -181,6 +192,11 @@ export function Drill() {
   }
 
   function endSession() {
+    playSound({ type: CHESS_SOUND_EVENT.GAME_END });
+    closeSession();
+  }
+
+  function closeSession() {
     setAttempt(null);
     setSession(null);
     void queryClient.invalidateQueries({ queryKey: ["drill"] });
@@ -208,14 +224,15 @@ export function Drill() {
 
   const waiting = totalWaiting(queue.data);
 
+  function startSession() {
+    playSound({ type: CHESS_SOUND_EVENT.GAME_START });
+    setSession({ size: waiting, right: 0, wrong: 0, retry: [] });
+  }
+
   if (!session) {
     return (
       <Screen>
-        <QueueStart
-          queue={queue.data}
-          waiting={waiting}
-          onStart={() => setSession({ size: waiting, right: 0, wrong: 0, retry: [] })}
-        />
+        <QueueStart queue={queue.data} waiting={waiting} onStart={startSession} />
       </Screen>
     );
   }
@@ -246,7 +263,7 @@ export function Drill() {
     return (
       <Screen>
         <Empty title={i18n._(DRILL_COPY.doneTitle)} body={i18n._(DRILL_COPY.doneBody)}>
-          <Button variant="outline" onClick={endSession}>
+          <Button variant="outline" onClick={closeSession}>
             {i18n._(DRILL_COPY.backToQueue)}
           </Button>
         </Empty>

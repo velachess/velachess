@@ -1,8 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ReplayMove } from "../../analysis-contract.ts";
-import { useChessReplay } from "../use-chess-replay.ts";
+import { REPLAY_NAVIGATION, useChessReplay } from "../use-chess-replay.ts";
 
 /**
  * A screen test proves you can step forward and back; these pin the
@@ -27,6 +27,22 @@ describe("useChessReplay", () => {
     expect(result.current.fen).toBe(START);
     expect(result.current.canGoBack).toBe(false);
     expect(result.current.canGoForward).toBe(true);
+  });
+
+  it("emits explicit navigation events without firing on initial render", () => {
+    const onNavigate = vi.fn();
+    const { result } = renderHook(() => useChessReplay(moves, START, onNavigate));
+
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    act(() => result.current.next());
+    expect(onNavigate).toHaveBeenLastCalledWith({
+      type: REPLAY_NAVIGATION.MOVE,
+      move: moves[0],
+    });
+
+    act(() => result.current.previous());
+    expect(onNavigate).toHaveBeenLastCalledWith({ type: REPLAY_NAVIGATION.START });
   });
 
   it("moves one half-move at a time", () => {

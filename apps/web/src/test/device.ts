@@ -1,12 +1,14 @@
 import { accountIsTracked } from "./handlers/accounts.ts";
 import { useMyAccounts, type RememberedAccount } from "../games/import/my-accounts.ts";
 import { useSourceStore } from "../games/import/source-store.ts";
+import { useSoundPreferences } from "../shared/chess-sounds/chess-sounds.ts";
 import { archiveAccount } from "./archive.ts";
 
 export function resetDevice(): void {
   localStorage.clear();
   useMyAccounts.setState(useMyAccounts.getInitialState(), true);
   useSourceStore.setState(useSourceStore.getInitialState(), true);
+  useSoundPreferences.setState(useSoundPreferences.getInitialState(), true);
 }
 
 /** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. */

@@ -28,6 +28,10 @@ import { Progress } from "@velachess/ui/components/progress";
 
 import { BoardScreen } from "../app-shell/board-screen.tsx";
 import { api, parseResponse } from "../shared/api/client.ts";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../shared/chess-sounds/chess-sounds.ts";
 import { legalTargetsFrom, playMove, squaresOfSanAt } from "../drill/move.ts";
 import { useMutation, useQuery, useQueryClient } from "../shared/libs/query/index.ts";
 import { drillNextQuery, drillQueueQuery } from "../drill/queries.ts";
@@ -109,6 +113,7 @@ function PracticeSession({
   chapterId: string | undefined;
 }) {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   const queryClient = useQueryClient();
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [done, setDone] = useState(0);
@@ -178,6 +183,7 @@ function PracticeSession({
     if (answer || submit.isPending || !move.to) return false;
     const played = playMove(item.fen, move.from, move.to);
     if (!played) return false;
+    playSound({ type: CHESS_SOUND_EVENT.MOVE, fenBefore: item.fen, san: played.san });
     submit.mutate({ exerciseId: item.exerciseId, san: played.san, fen: played.fen });
     return true;
   };

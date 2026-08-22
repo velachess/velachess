@@ -18,12 +18,37 @@ export interface ChessReplay {
   reset: () => void;
 }
 
-export function useChessReplay(moves: ReplayMove[], startFen: string): ChessReplay {
+export const REPLAY_NAVIGATION = {
+  START: "start",
+  MOVE: "move",
+} as const;
+
+export type ReplayNavigationEvent =
+  | { type: typeof REPLAY_NAVIGATION.START }
+  | { type: typeof REPLAY_NAVIGATION.MOVE; move: ReplayMove };
+
+export type ReplayNavigation = (event: ReplayNavigationEvent) => void;
+
+export function useChessReplay(
+  moves: ReplayMove[],
+  startFen: string,
+  onNavigate?: ReplayNavigation,
+): ChessReplay {
   const [ply, setPly] = useState(0);
 
   // Clamped on read, not write: `moves` arrives async, so a ply set
   // against a longer game must not index into a shorter one.
   const current = Math.min(ply, moves.length);
+
+  const navigate = (target: number) => {
+    const next = Math.min(Math.max(target, 0), moves.length);
+    if (next === current) return;
+    const move = moves[next - 1];
+    onNavigate?.(
+      move ? { type: REPLAY_NAVIGATION.MOVE, move } : { type: REPLAY_NAVIGATION.START },
+    );
+    setPly(next);
+  };
 
   return {
     ply: current,
@@ -32,9 +57,9 @@ export function useChessReplay(moves: ReplayMove[], startFen: string): ChessRepl
     totalPlies: moves.length,
     canGoBack: current > 0,
     canGoForward: current < moves.length,
-    goTo: (target) => setPly(Math.min(Math.max(target, 0), moves.length)),
-    previous: () => setPly((value) => Math.max(value - 1, 0)),
-    next: () => setPly((value) => Math.min(value + 1, moves.length)),
-    reset: () => setPly(0),
+    goTo: navigate,
+    previous: () => navigate(current - 1),
+    next: () => navigate(current + 1),
+    reset: () => navigate(0),
   };
 }

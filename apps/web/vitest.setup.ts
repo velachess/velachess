@@ -27,6 +27,10 @@ beforeAll(() => {
   // stub every navigation logs a "Not implemented" error that looks like
   // a failure and is not one.
   window.scrollTo = () => {};
+
+  // jsdom has no audio backend; failure behavior is tested through the
+  // sound dispatcher's injected output instead of this browser stub.
+  HTMLMediaElement.prototype.play = () => Promise.resolve();
 });
 
 /**

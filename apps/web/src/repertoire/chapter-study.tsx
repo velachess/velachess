@@ -24,6 +24,10 @@ import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/e
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../app-shell/board-screen.tsx";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../shared/chess-sounds/chess-sounds.ts";
 import { useQuery } from "../shared/libs/query/index.ts";
 import {
   chapterQuery,
@@ -117,6 +121,7 @@ type Cursor = MoveCursor | null;
 
 function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   const [cursor, setCursor] = useState<Cursor>(null);
 
   const line = cursor ? chapter.lines[cursor.line] : undefined;
@@ -146,6 +151,7 @@ function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
       (option) => option.from === played.from && option.to === played.to,
     );
     if (!match) return false;
+    playSound({ type: CHESS_SOUND_EVENT.MOVE, fenBefore: here.fen, san: match.san });
     setCursor(match.at);
     return true;
   };

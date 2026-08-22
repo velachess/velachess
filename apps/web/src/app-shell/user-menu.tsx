@@ -12,6 +12,7 @@ import { Separator } from "@velachess/ui/components/separator";
 import { UserRoundIcon } from "@velachess/ui/icons";
 
 import { useSignOut } from "../auth/sign-out/use-sign-out.ts";
+import { SoundToggle } from "../shared/chess-sounds/sound-toggle.tsx";
 import { sessionQuery } from "../auth/session.ts";
 import { useQuery } from "../shared/libs/query/index.ts";
 
@@ -45,6 +46,10 @@ export function UserMenu() {
           <span className="text-sm font-medium">{user.name}</span>
           <span className="text-muted-foreground truncate text-xs">{user.email}</span>
         </div>
+
+        <Separator className="my-3" />
+
+        <SoundToggle />
 
         <Separator className="my-3" />
 
