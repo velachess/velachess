@@ -14,3 +14,4 @@ export * from "./opening-family.ts";
 export * from "./providers/chess-com.ts";
 export * from "./providers/lichess.ts";
 export * from "./providers/pgn.ts";
+export * from "./providers/profile.ts";

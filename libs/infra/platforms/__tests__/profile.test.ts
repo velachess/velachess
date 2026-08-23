@@ -1,8 +1,11 @@
 /**
  * The payloads below are trimmed copies of real responses, captured with
- * curl on 17/08/2026. Invented fixtures would have missed the two things
- * that actually matter here: that `country` is a link, and that `location`
- * is a different, free-text field that does not agree with it.
+ * curl on 17/08/2026 (Lichess flair re-captured 23/08/2026 off
+ * DrNykterstein, whose santa flair the earlier capture predated).
+ * Invented fixtures would have missed the things that actually matter
+ * here: that `country` is a link, that `location` is a different,
+ * free-text field that does not agree with it, and that `flair` is an
+ * asset id at the top level, not part of `profile`.
  */
 import { describe, expect, it } from "vitest";
 
@@ -41,6 +44,15 @@ const LICHESS_REAL_EMPTY = {
   // No `profile` key at all, and no image field anywhere.
 };
 
+const LICHESS_REAL_FLAIRED = {
+  id: "drnykterstein",
+  username: "DrNykterstein",
+  title: "GM",
+  flair: "people.santa-claus-light-skin-tone",
+  profile: {},
+  url: "https://lichess.org/@/DrNykterstein",
+};
+
 describe("countryCodeFromUrl", () => {
   it("takes the code off the end of the link Chess.com sends", () => {
     expect(countryCodeFromUrl("https://api.chess.com/pub/country/BR")).toBe("BR");
@@ -65,6 +77,8 @@ describe("fetchChessComProfile", () => {
 
     expect(profile.avatarUrl).toBe(CHESS_COM_REAL.avatar);
     expect(profile.countryCode).toBe("BR");
+    // Chess.com has no flair concept — the field stays null for every account.
+    expect(profile.flair).toBeNull();
   });
 
   it("does not mistake `location` for the country", async () => {
@@ -82,7 +96,7 @@ describe("fetchChessComProfile", () => {
       fetch: respondWith({ username: "someone" }),
     });
 
-    expect(profile).toEqual({ avatarUrl: null, countryCode: null });
+    expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
   it("comes back empty rather than throwing on a 404", async () => {
@@ -92,7 +106,7 @@ describe("fetchChessComProfile", () => {
       fetch: respondWith(null, false),
     });
 
-    expect(profile).toEqual({ avatarUrl: null, countryCode: null });
+    expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
   it("does not call out at all for a username that cannot exist", async () => {
@@ -124,6 +138,25 @@ describe("fetchLichessProfile", () => {
     });
 
     expect(profile.countryCode).toBe("BR");
+  });
+
+  it("reads the flair off a real response, where it sits at the top level", async () => {
+    // Captured off DrNykterstein: `flair` is a sibling of `profile`, not
+    // inside it, and it is an asset id rather than an image URL.
+    const profile = await fetchLichessProfile("DrNykterstein", {
+      fetch: respondWith(LICHESS_REAL_FLAIRED),
+    });
+
+    expect(profile.flair).toBe("people.santa-claus-light-skin-tone");
+    expect(profile.avatarUrl).toBeNull();
+  });
+
+  it("comes back without a flair when none is set", async () => {
+    const profile = await fetchLichessProfile("yurimutti", {
+      fetch: respondWith(LICHESS_REAL_EMPTY),
+    });
+
+    expect(profile.flair).toBeNull();
   });
 
   it("ignores a flag that is not a country code", async () => {

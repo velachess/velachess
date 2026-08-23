@@ -190,6 +190,16 @@ export const trackedAccounts = pgTable(
      * documentation of what can actually land in this column. */
     syncCursor: jsonb("sync_cursor").$type<ChessComCursor | LichessCursor>(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    /** Provider identity, read at connect time and then left alone:
+     * profiles change rarely and games every session, so re-reading one
+     * per sync would spend a request on nothing. Null until the first
+     * successful read; the UI falls back to initials meanwhile, and a
+     * refetch that comes back empty never erases what is here. */
+    avatarUrl: text("avatar_url"),
+    /** Lichess only — an asset id like `people.santa-claus`, not a URL.
+     * Kept apart from `avatar_url`: it decorates the name, it is not a
+     * face. */
+    flair: text("flair"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

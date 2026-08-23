@@ -4,6 +4,7 @@ import { aGradedPly } from "../../test/games.ts";
 import {
   suggestedArrow,
   previewFor,
+  seatIdentityOf,
   seatOf,
   badgeForCategory,
   bestMoveSan,
@@ -303,6 +304,57 @@ describe("seatOf", () => {
     // has no seat of yours to take.
     expect(seatOf(game, ["someoneelse"])).toBe("white");
     expect(seatOf(game, [])).toBe("white");
+  });
+});
+
+/**
+ * Which seats carry provider identity.
+ *
+ * Profiles exist only for handles this user tracks, and a handle is
+ * platform-scoped: the same name on both platforms may show two
+ * different pictures.
+ */
+describe("seatIdentityOf", () => {
+  const tracked = [
+    {
+      platform: "chess_com",
+      username: "yurimutti",
+      avatarUrl: "https://example.com/pic.jpg",
+      flair: null,
+    },
+    {
+      platform: "lichess",
+      username: "yurimutti",
+      avatarUrl: null,
+      flair: "people.santa-claus-light-skin-tone",
+    },
+  ];
+
+  it("returns the identity of the handle on that game's platform", () => {
+    expect(seatIdentityOf("chess_com", "yurimutti", tracked)).toEqual({
+      avatarUrl: "https://example.com/pic.jpg",
+    });
+    expect(seatIdentityOf("lichess", "yurimutti", tracked)).toEqual({
+      flair: "people.santa-claus-light-skin-tone",
+    });
+  });
+
+  it("matches a username whatever its case", () => {
+    // Platforms echo back whatever casing the player typed — the same
+    // rule `seatOf` applies when finding your side of the board.
+    expect(seatIdentityOf("chess_com", "YuriMutti", tracked)).toEqual({
+      avatarUrl: "https://example.com/pic.jpg",
+    });
+  });
+
+  it("answers nothing for a handle this user does not track", () => {
+    expect(seatIdentityOf("chess_com", "gothamchess", tracked)).toEqual({});
+    expect(seatIdentityOf("lichess", "yurimutti", [])).toEqual({});
+  });
+
+  it("answers nothing for a source that has no accounts at all", () => {
+    // A pasted PGN is not any platform's handle, whoever plays it.
+    expect(seatIdentityOf("pgn", "yurimutti", tracked)).toEqual({});
   });
 });
 

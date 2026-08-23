@@ -10,6 +10,9 @@ export interface ArchiveAccount {
   id: string;
   platform: Platform;
   username: string;
+  /** Provider identity, as the real route returns it. */
+  avatarUrl: string | null;
+  flair: string | null;
   lastSyncedAt: string | null;
 }
 
@@ -17,6 +20,8 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
   id: "account-1",
   platform: "chess_com",
   username: ME,
+  avatarUrl: null,
+  flair: null,
   lastSyncedAt: "2026-05-04T18:30:00.000Z",
 };
 

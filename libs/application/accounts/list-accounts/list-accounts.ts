@@ -21,6 +21,8 @@ export async function listTrackedAccountsByUser(db: Database, userId: string) {
       id: trackedAccounts.id,
       platform: trackedAccounts.platform,
       username: trackedAccounts.username,
+      avatarUrl: trackedAccounts.avatarUrl,
+      flair: trackedAccounts.flair,
       lastSyncedAt: trackedAccounts.lastSyncedAt,
     })
     .from(trackedAccounts)

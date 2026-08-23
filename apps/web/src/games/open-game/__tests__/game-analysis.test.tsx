@@ -1,6 +1,6 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   addGames,
@@ -300,6 +300,79 @@ describe("game analysis", () => {
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Provider identity reaches the board: a handle this user tracks shows
+ * the picture and flair its platform reported, everyone else stays on
+ * initials.
+ */
+describe("provider identity on the board", () => {
+  const MY_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/461825478.test.jpg";
+  const MY_FLAIR = "people.santa-claus-light-skin-tone";
+
+  beforeAll(() => {
+    // jsdom loads no resources, so base-ui's Avatar waits forever on a
+    // preload that never fires and mounts no <img>. A loaded picture is
+    // what a real browser reports; make jsdom say the same.
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        complete = true;
+        naturalWidth = 64;
+      },
+    );
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  beforeEach(() => {
+    deviceHasImported({ avatarUrl: MY_AVATAR, flair: MY_FLAIR });
+  });
+
+  it("shows the tracked handle's avatar and flair beside the name", async () => {
+    await openGame({ kind: "cached", moves: gradedPlies() });
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    // White by default — my strip sits at the bottom of the board region.
+    const strip = within(board).getByText(ME).closest("div")!;
+    const sources = [...strip.querySelectorAll("img")].map((image) =>
+      image.getAttribute("src"),
+    );
+
+    expect(sources).toEqual([
+      MY_AVATAR,
+      `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`,
+    ]);
+  });
+
+  it("leaves an untracked opponent on initials alone", async () => {
+    await openGame({ kind: "cached", moves: gradedPlies() });
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    // Only the imported handle carries identity; gothamchess was never
+    // connected, so their seat has no picture to show.
+    const opponent = within(board).getByText("gothamchess").closest("div")!;
+    expect(opponent.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("hides the flair when its asset fails to load", async () => {
+    // An asset that 404s must not leave a broken-image glyph where the
+    // decoration stood.
+    await openGame({ kind: "cached", moves: gradedPlies() });
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const strip = within(board).getByText(ME).closest("div")!;
+    const flair = [...strip.querySelectorAll("img")].at(-1)!;
+
+    fireEvent(flair, new Event("error"));
+
+    expect(flair).not.toBeVisible();
   });
 });
 
