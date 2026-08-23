@@ -16,12 +16,13 @@ import { INPUT_KINDS, type SourceId } from "./sources.ts";
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
 
 /** Lichess serves its flairs from one public asset directory keyed by the
- * id the API reports (`people.santa-claus` → `<dir>/people.santa-claus.svg`).
- * Only the id crosses the API; the address is presentation. */
+ * id the API reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`),
+ * rendered as webp by its own frontend. Only the id crosses the API; the
+ * address is presentation. */
 const LICHESS_FLAIR_ASSETS = "https://lichess1.org/assets/flair/img";
 
 export function flairImageOf(flair: string): string {
-  return `${LICHESS_FLAIR_ASSETS}/${flair}.svg`;
+  return `${LICHESS_FLAIR_ASSETS}/${flair}.webp`;
 }
 
 /** Tracked accounts per the server, not localStorage's `my-accounts` — a new machine or rebuilt DB can desync from local memory. */

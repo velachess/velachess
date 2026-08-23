@@ -347,7 +347,7 @@ describe("provider identity on the board", () => {
 
     expect(sources).toEqual([
       MY_AVATAR,
-      `https://lichess1.org/assets/flair/img/${MY_FLAIR}.svg`,
+      `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`,
     ]);
   });
 
