@@ -141,7 +141,7 @@ libs/infra/
   platforms     Chess.com + Lichess
 ```
 
-The backend follows Vertical Slice Architecture. `apps/server` and `apps/worker` handle transport and runtime concerns while application behaviour lives in `libs/application`.
+Application logic lives in libs/application, with apps/server and apps/worker kept as thin runtime shells.
 
 Read the [architecture documentation](docs/explanation/architecture.md) for the full model.
 
