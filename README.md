@@ -106,6 +106,14 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, repository structure,
 commit conventions and review expectations. Coding agents: see
 [AGENTS.md](AGENTS.md).
 
+## Contributors
+
+Thanks to everyone helping make VelaChess better ❤️
+
+<a href="https://github.com/velachess/velachess/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=velachess/velachess&columns=8" />
+</a>
+
 ## Security
 
 Found a vulnerability? Please do not open a public issue — see
