@@ -24,6 +24,16 @@ function respondWith(body: unknown, ok = true): typeof globalThis.fetch {
     }) as Response) as typeof globalThis.fetch;
 }
 
+function rejectFetch(error: Error): typeof globalThis.fetch {
+  return (async () => {
+    throw error;
+  }) as typeof globalThis.fetch;
+}
+
+function respondWithInvalidJson(): typeof globalThis.fetch {
+  return (async () => new Response("{")) as typeof globalThis.fetch;
+}
+
 const CHESS_COM_REAL = {
   avatar:
     "https://images.chesscomfiles.com/uploads/v1/user/461825478.97ae265f.200x200o.5fa38b32b080.jpg",
@@ -109,6 +119,14 @@ describe("fetchChessComProfile", () => {
     expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
+  it("comes back empty when the profile request is rejected", async () => {
+    const profile = await fetchChessComProfile("someone", {
+      fetch: rejectFetch(new Error("network error")),
+    });
+
+    expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
+  });
+
   it("does not call out at all for a username that cannot exist", async () => {
     let called = false;
     const profile = await fetchChessComProfile("!!bad!!", {
@@ -157,6 +175,14 @@ describe("fetchLichessProfile", () => {
     });
 
     expect(profile.flair).toBeNull();
+  });
+
+  it("comes back empty when the profile response is not valid JSON", async () => {
+    const profile = await fetchLichessProfile("someone", {
+      fetch: respondWithInvalidJson(),
+    });
+
+    expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
   it("ignores a flag that is not a country code", async () => {
