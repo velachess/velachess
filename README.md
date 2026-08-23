@@ -1,110 +1,193 @@
-# VelaChess
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="libs/ui/src/brand/logo/velachess-horizontal-dark-bg.svg">
+    <img src="libs/ui/src/brand/logo/velachess-horizontal-light-bg.svg" alt="VelaChess" width="260">
+  </picture>
+</p>
 
-VelaChess turns your own games into practice. It syncs your chess.com and
-Lichess games, derives your opening repertoire from the moves you actually
-play, finds where you left those lines, confirms the cost with Stockfish,
-and schedules the mistakes that matter as spaced-repetition exercises.
+<h1 align="center">Turn your games into training</h1>
 
-Self-hosted, open source, no account on anyone else's server.
+<p align="center">
+  Import your games. Find what went wrong. 
+  Train the positions that matter.
+</p>
 
-## Overview
+<p align="center">
+  <a href="https://app.velachess.com">Try VelaChess</a> ·
+  <a href="docs/how-to/self-host.md">Self-host</a> ·
+  <a href="docs/README.md">Documentation</a>
+</p>
 
+<p align="center">
+  <img src="apps/site/public/product/game-analysis.webp" alt="VelaChess game analysis" width="900">
+</p>
+
+VelaChess turns your own chess games into practice.
+
+It builds a repertoire from the moves you play, finds where you leave your lines, checks those mistakes with Stockfish, and turns the important ones into spaced-repetition exercises.
+
+Use the hosted public beta or run the full application yourself.
+
+## How it works
+
+```text
+Chess.com / Lichess games
+          ↓
+        Sync
+          ↓
+Repertoire from your own play
+          ↓
+        Judge
+          ↓
+Deviations from your lines
+          ↓
+      Stockfish
+          ↓
+Harmful mistakes become exercises
+          ↓
+         FSRS
+          ↓
+        Review
 ```
-your games (chess.com / lichess)
-      ↓ sync
-book extracted from your own play
-      ↓ judge (per repertoire)
-deviations from your lines
-      ↓ Stockfish confirms severity
-harmful mistakes → exercises
-      ↓ FSRS schedules review
-you stop repeating the mistake
-```
 
-- **Sync** — chess.com and Lichess accounts, cursor-based, background worker
-- **Extract** — your repertoire derived from your games, no manual entry
-- **Judge** — every game compared against your book, per repertoire
-- **Analyze** — Stockfish per-move classification (win%-based), streamed live over SSE
-- **Drill** — harmful deviations become exercises on an FSRS schedule
+- **Sync** — import games from Chess.com and Lichess
+- **Extract** — build a repertoire from the openings you actually play
+- **Judge** — compare your games against your repertoire
+- **Analyze** — review moves with Stockfish
+- **Drill** — practise important mistakes with spaced repetition
 
 ## Quick start
 
-Requires **Node.js 22+**, **pnpm** (via corepack) and **Docker**.
+Requirements:
+
+- Node.js 22+
+- pnpm via Corepack
+- Docker
 
 ```bash
 cp .env.example .env
-pnpm dev:setup   # install, start Postgres, run migrations
-pnpm dev         # site :3001, web :5173, API :3000, worker alongside
+
+pnpm dev:setup
+pnpm dev
 ```
 
-Open `http://localhost:3001` for the public site or `http://localhost:5173`
-for the product. The first user is created from the
-`VELACHESS_BOOTSTRAP_USER_*` values in `.env` on first boot into an empty
-database; sign-up is closed by default.
+This starts:
 
-Running the whole stack in containers instead:
+- site → `http://localhost:3001`
+- web → `http://localhost:5173`
+- API → `http://localhost:3000`
+- worker
+
+On a fresh database, VelaChess creates the user configured through `VELACHESS_BOOTSTRAP_USER_*`. Sign-up is disabled by default.
+
+To run the full stack with Docker:
 
 ```bash
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-More: [running locally](docs/how-to/run-locally.md) for the development
-loop and its options, [self-hosting](docs/how-to/self-host.md) for a real
-deployment.
+See [Running locally](docs/how-to/run-locally.md) for development setup or [Self-hosting](docs/how-to/self-host.md) for deployment.
 
-## Usage
+## Using VelaChess
 
-The web app is the product: connect an account, let the sync and the
-worker do their work, then study your repertoire and practise what is due.
+Connect your Chess.com or Lichess account and let VelaChess import your games.
 
-The API is a typed HTTP surface underneath it. Two endpoints are public:
+From there you can:
+
+1. Review your games
+2. Explore the repertoire extracted from your play
+3. Find deviations from your usual lines
+4. Analyze important positions with Stockfish
+5. Review due exercises
+
+Game analysis runs on demand when you open a game.
+
+## API
+
+The web app runs on top of the VelaChess HTTP API.
+
+Public endpoints:
 
 ```bash
 curl localhost:3000/health
-curl localhost:3000/openapi.json   # the full API surface
+curl localhost:3000/openapi.json
 ```
 
-Everything else — accounts, games, repertoires, drills — requires a
-session cookie, so it is reached through the app or an authenticated
-client rather than a bare `curl`.
+Accounts, games, repertoires, analysis, and drills require authentication.
 
 ## Architecture
 
-pnpm monorepo. `apps/server` (Hono) and `apps/worker` (pg-boss consumers)
-are thin shells over `libs/application`, which orchestrates pure domain
-packages (`chess`, `repertoire`, `analysis`, `scheduler`) and
-infrastructure ports (`db` — Drizzle/Postgres, `queue` — pg-boss, `engine`
-— Stockfish). One Postgres holds both the domain data and the job queue.
-`apps/web` (TanStack Start) talks to the API through a client typed
-straight from its `AppType`. `apps/site` is the independently deployable
-Next.js static marketing site. Both inherit the design system in
-`libs/ui`.
+VelaChess is a pnpm monorepo.
 
-Deep dives live in [`docs/`](docs/README.md).
+```text
+apps/
+  server        Hono API
+  worker        background jobs
+  web           TanStack Start application
+  site          Next.js website
+
+libs/
+  application   application workflows
+  chess         chess rules and PGN
+  analysis      move classification
+  repertoire    repertoire extraction and judgment
+  scheduler     FSRS scheduling
+  ui            shared design system
+
+libs/infra/
+  db            Postgres + Drizzle
+  queue         pg-boss
+  engine        Stockfish
+  platforms     Chess.com + Lichess
+```
+
+The backend follows Vertical Slice Architecture. `apps/server` and `apps/worker` handle transport and runtime concerns while application behaviour lives in `libs/application`.
+
+Read the [architecture documentation](docs/explanation/architecture.md) for the full model.
 
 ## Development
 
 ```bash
-pnpm test        # vitest, per workspace — real migrations, real Stockfish
-pnpm check       # typecheck + lint + knip
-pnpm fmt         # oxfmt
-pnpm site:quality # static export SEO tests + Lighthouse CI
+pnpm test
+pnpm check
+pnpm fmt:check
+pnpm site:quality
 ```
 
-Tests run in-process against PGlite and a shallow-depth engine: no mocks
-of the database or of Stockfish. Details in
-[verify a change](docs/how-to/verify-a-change.md).
+- `pnpm test` — workspace tests
+- `pnpm check` — typecheck, lint, and Knip
+- `pnpm fmt:check` — formatting
+- `pnpm site:quality` — site build, SEO checks, and Lighthouse CI
+
+Tests use PGlite and Stockfish locally.
+
+See [Verifying a change](docs/how-to/verify-a-change.md) for the full verification flow.
 
 ## Contributing
 
-1. Fork the repository and create a branch
-2. Make your change, with tests for behaviour
-3. `pnpm test` and `pnpm check` must pass
-4. Open a pull request
+Contributions are welcome.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, repository structure,
-commit conventions and review expectations. Coding agents: see
-[AGENTS.md](AGENTS.md).
+For small fixes and documentation improvements, open a pull request directly.
+
+For larger features or architecture changes, open an issue first.
+
+1. Fork the repository
+2. Create a branch
+3. Make your changes and add tests
+4. Run `pnpm test` and `pnpm check`
+5. Open a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, conventions, and contribution guidelines.
+
+## Contributors
+
+Thanks to everyone helping make VelaChess better.
+
+<p>
+  <a href="https://github.com/velachess/velachess/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=velachess/velachess&columns=8" alt="VelaChess contributors">
+  </a>
+</p>
 
 ## Contributors
 
@@ -116,15 +199,14 @@ Thanks to everyone helping make VelaChess better ❤️
 
 ## Security
 
-Found a vulnerability? Please do not open a public issue — see
-[SECURITY.md](SECURITY.md) for how to report it privately.
+Found a vulnerability?
+
+Please do not open a public issue. See [SECURITY.md](SECURITY.md) for private reporting instructions.
 
 ## License
 
-GPL-3.0-or-later. VelaChess builds on GPL software — notably
-[chessops](https://github.com/niklasf/chessops) for the chess rules and
-[Stockfish](https://stockfishchess.org/) for analysis.
+VelaChess is licensed under [GPL-3.0-or-later](LICENSE).
 
-If you distribute a modified version, it has to stay GPL-compatible and
-ship its source. See [LICENSE](LICENSE) for the full terms and
-[NOTICE](NOTICE) for third-party attributions.
+It uses GPL software including [chessops](https://github.com/niklasf/chessops) and [Stockfish](https://stockfishchess.org/).
+
+See [NOTICE](NOTICE) for third-party attributions.
