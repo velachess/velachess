@@ -28,6 +28,10 @@
       "dependsOn": ["@velachess/site#build"],
       "env": ["LINGUI_CONFIG"]
     },
+    "@velachess/site#lighthouse": {
+      "dependsOn": ["@velachess/site#test"],
+      "outputs": [".lighthouseci/reports/**"]
+    },
     "typecheck": {},
     "@velachess/web#typecheck": {
       "dependsOn": ["@velachess/web#build"]
