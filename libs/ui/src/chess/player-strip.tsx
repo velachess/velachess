@@ -115,6 +115,11 @@ export function PlayerStrip({
           src={flairSrc}
           alt=""
           aria-hidden
+          // A missing asset must not leave a broken-image glyph where the
+          // decoration stood — it simply goes away.
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
           className="size-4 shrink-0 object-contain"
         />
       ) : null}

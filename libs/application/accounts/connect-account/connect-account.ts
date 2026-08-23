@@ -7,7 +7,6 @@
  */
 import type { Database } from "@velachess/db";
 import { getTrackedAccount, upsertTrackedAccount } from "@velachess/db";
-import type { FetchFn } from "@velachess/platforms";
 import { fetchChessComProfile, fetchLichessProfile } from "@velachess/platforms";
 
 import { ensureCandidateRepertoires } from "../../repertoires/extract-repertoire/extract-repertoire.ts";
@@ -25,15 +24,11 @@ export type Platform = "chess_com" | "lichess";
  * (the fetchers answer an empty profile rather than throw), so a provider
  * outage costs the avatar, never the connection.
  */
-async function fetchProfile(
-  platform: Platform,
-  username: string,
-  deps: SyncDeps,
-): Promise<{ avatarUrl: string | null; flair: string | null }> {
-  const opts = deps.fetch ? { fetch: deps.fetch as FetchFn } : {};
+function fetchProfile(platform: Platform, username: string, deps: SyncDeps) {
+  const opts = deps.fetch ? { fetch: deps.fetch } : {};
   return platform === "chess_com"
-    ? await fetchChessComProfile(username, opts)
-    : await fetchLichessProfile(username, opts);
+    ? fetchChessComProfile(username, opts)
+    : fetchLichessProfile(username, opts);
 }
 
 /**

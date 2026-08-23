@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -359,6 +359,20 @@ describe("provider identity on the board", () => {
     // connected, so their seat has no picture to show.
     const opponent = within(board).getByText("gothamchess").closest("div")!;
     expect(opponent.querySelectorAll("img")).toHaveLength(0);
+  });
+
+  it("hides the flair when its asset fails to load", async () => {
+    // An asset that 404s must not leave a broken-image glyph where the
+    // decoration stood.
+    await openGame({ kind: "cached", moves: gradedPlies() });
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const strip = within(board).getByText(ME).closest("div")!;
+    const flair = [...strip.querySelectorAll("img")].at(-1)!;
+
+    fireEvent(flair, new Event("error"));
+
+    expect(flair).not.toBeVisible();
   });
 });
 
