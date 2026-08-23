@@ -22,6 +22,9 @@ const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const sanSquares = (fen: string, san: string) =>
   squaresOfSan(positionFromFen(fen).unwrap(), san);
 
+/** Same position with the other side to move. */
+const blackToMove = (fen: string) => fen.replace(" w ", " b ");
+
 const at = (fen: string, square: string) =>
   legalDestinations(positionFromFen(fen).unwrap(), square);
 
@@ -117,6 +120,24 @@ describe("squaresOfSan", () => {
   it("names the squares a played move touched", () => {
     expect(sanSquares(START, "e4")).toEqual({ from: "e2", to: "e4" });
     expect(sanSquares(START, "Nf3")).toEqual({ from: "g1", to: "f3" });
+  });
+
+  it("renders castling on the king's destination, not the rook's square", () => {
+    // chessops encodes castling as the king taking its own rook (e1h1);
+    // a board drawing the move wants the square the king lands on — which
+    // is also what an engine's UCI would name (issue #3).
+    const castling = "r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1";
+
+    expect(sanSquares(castling, "O-O")).toEqual({ from: "e1", to: "g1" });
+    expect(sanSquares(castling, "O-O-O")).toEqual({ from: "e1", to: "c1" });
+    expect(sanSquares(blackToMove(castling), "O-O")).toEqual({
+      from: "e8",
+      to: "g8",
+    });
+    expect(sanSquares(blackToMove(castling), "O-O-O")).toEqual({
+      from: "e8",
+      to: "c8",
+    });
   });
 
   it("gives nothing when the move does not fit the position", () => {
