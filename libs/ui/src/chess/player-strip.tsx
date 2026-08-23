@@ -71,7 +71,11 @@ export interface PlayerStripProps {
    * this package has no locale. Absent when the rating is unknown. */
   rating?: string | undefined;
   /** Photo URL. Falls back to initials when absent or failing to load. */
-  avatarSrc?: string;
+  avatarSrc?: string | undefined;
+  /** Decoration beside the name — Lichess calls it a flair. Deliberately
+   * not `avatarSrc`: it never stands in for a face, and when it fails to
+   * load it disappears rather than degrading to initials. */
+  flairSrc?: string | undefined;
   /** ISO 3166-1 alpha-2, as both platforms report it. The name behind it
    * is resolved here, so a caller never carries the two out of step. */
   countryCode?: string;
@@ -82,6 +86,7 @@ export function PlayerStrip({
   name,
   rating,
   avatarSrc,
+  flairSrc,
   countryCode,
   className,
 }: PlayerStripProps) {
@@ -102,6 +107,15 @@ export function PlayerStrip({
           {...(countryName
             ? { role: "img", "aria-label": countryName }
             : { "aria-hidden": true })}
+        />
+      ) : null}
+
+      {flairSrc ? (
+        <img
+          src={flairSrc}
+          alt=""
+          aria-hidden
+          className="size-4 shrink-0 object-contain"
         />
       ) : null}
 

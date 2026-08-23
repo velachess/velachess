@@ -41,7 +41,13 @@ export function accountsRoutes(deps: ApiDeps) {
           deps.sync ?? {},
         );
         return c.json(
-          { id: account.id, platform: account.platform, username: account.username },
+          {
+            id: account.id,
+            platform: account.platform,
+            username: account.username,
+            avatarUrl: account.avatarUrl,
+            flair: account.flair,
+          },
           201,
         );
       })

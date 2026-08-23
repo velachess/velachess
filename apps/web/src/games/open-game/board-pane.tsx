@@ -39,6 +39,9 @@ interface PlayerSeat {
   name: string;
   /** Already localised — absent when the platform did not report one. */
   rating: string | undefined;
+  /** Provider identity of a tracked handle; absent for everyone else. */
+  avatarUrl: string | undefined;
+  flair: string | undefined;
 }
 
 export interface BoardPaneProps {
@@ -89,6 +92,8 @@ export function BoardPane({
       <PlayerStrip
         name={top.name}
         rating={top.rating}
+        avatarSrc={top.avatarUrl}
+        flairSrc={top.flair}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 
@@ -118,6 +123,8 @@ export function BoardPane({
       <PlayerStrip
         name={bottom.name}
         rating={bottom.rating}
+        avatarSrc={bottom.avatarUrl}
+        flairSrc={bottom.flair}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 

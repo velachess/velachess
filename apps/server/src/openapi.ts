@@ -99,6 +99,18 @@ export const openApiSpec = {
                   id: { type: "string", format: "uuid" },
                   platform: { type: "string", enum: ["chess_com", "lichess"] },
                   username: { type: "string" },
+                  avatarUrl: {
+                    type: "string",
+                    nullable: true,
+                    description:
+                      "Chess.com profile picture, read at connect time; null when the account has none or is on Lichess, which has no avatars",
+                  },
+                  flair: {
+                    type: "string",
+                    nullable: true,
+                    description:
+                      "Lichess flair asset id (e.g. people.santa-claus), read at connect time; null when unset or on Chess.com",
+                  },
                   lastSyncedAt: { type: "string", format: "date-time", nullable: true },
                   syncState: {
                     type: "string",
@@ -106,7 +118,15 @@ export const openApiSpec = {
                     description: "Delivery state of the newest non-completed sync job",
                   },
                 },
-                required: ["id", "platform", "username", "lastSyncedAt", "syncState"],
+                required: [
+                  "id",
+                  "platform",
+                  "username",
+                  "avatarUrl",
+                  "flair",
+                  "lastSyncedAt",
+                  "syncState",
+                ],
               },
             }),
           },
@@ -134,8 +154,10 @@ export const openApiSpec = {
                 id: { type: "string", format: "uuid" },
                 platform: { type: "string" },
                 username: { type: "string" },
+                avatarUrl: { type: "string", nullable: true },
+                flair: { type: "string", nullable: true },
               },
-              required: ["id", "platform", "username"],
+              required: ["id", "platform", "username", "avatarUrl", "flair"],
             }),
           },
           "400": { description: "Invalid body", ...errorResponse },

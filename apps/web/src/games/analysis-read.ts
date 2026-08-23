@@ -186,6 +186,45 @@ export function seatOf(
   return "white";
 }
 
+export interface SeatIdentity {
+  /** Provider profile picture, read at connect time. Absent when the
+   * handle has none — initials stand in. */
+  avatarUrl?: string;
+  /** Lichess asset id, decorated beside the name. Never an avatar. */
+  flair?: string;
+}
+
+/**
+ * The provider identity of one seat, when that handle is one this user
+ * tracks — profiles exist only for connected accounts, so an opponent's
+ * seat stays on initials unless their handle was imported too.
+ *
+ * Platform and username together, case-insensitively: the same handle on
+ * both platforms may carry two different pictures.
+ */
+export function seatIdentityOf(
+  source: string,
+  name: string,
+  tracked: readonly {
+    platform: string;
+    username: string;
+    avatarUrl: string | null;
+    flair: string | null;
+  }[],
+): SeatIdentity {
+  const handle = tracked.find(
+    (account) =>
+      account.platform === source &&
+      account.username.toLowerCase() === name.toLowerCase(),
+  );
+  if (!handle) return {};
+
+  return {
+    ...(handle.avatarUrl !== null ? { avatarUrl: handle.avatarUrl } : {}),
+    ...(handle.flair !== null ? { flair: handle.flair } : {}),
+  };
+}
+
 /** Engine's move as an arrow, not a played position — keeps the board showing the choice the player faced. */
 export function suggestedArrow(
   fen: string | undefined,

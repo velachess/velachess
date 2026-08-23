@@ -431,12 +431,19 @@ describe("application services (the flow, end to end)", () => {
       expect(game.analyzed).toBe(false);
     }
 
-    // Second read never touches the platform: a fetch that would throw.
+    // Second read never pulls the archive again: a fetch that would throw
+    // on any game request. The profile endpoint is answered instead of
+    // throwing — a re-import still refreshes identity by design — and
+    // returning no avatar keeps what was stored.
     const again = await openImported(
       "fresh_import",
       {},
       {
-        fetch: (() => {
+        fetch: (async (input: RequestInfo | URL) => {
+          const url = String(input);
+          if (/\/pub\/player\/[^/]+$/.test(url)) {
+            return Response.json({ username: "fresh_import" });
+          }
           throw new Error("the archive was already filled");
         }) as unknown as typeof fetch,
       },

@@ -8,6 +8,10 @@ interface TrackedAccountRow {
   id: string;
   platform: "chess_com" | "lichess";
   username: string;
+  /** Provider identity, per the real route: read at connect time, null
+   * when the account has none or the provider never reported one. */
+  avatarUrl: string | null;
+  flair: string | null;
   lastSyncedAt: string | null;
   syncState: QueueState;
 }
@@ -26,6 +30,8 @@ export function accountIsTracked(
       id: account.id ?? `account-${trackedAccounts.length + 1}`,
       platform: account.platform ?? "chess_com",
       username: account.username,
+      avatarUrl: account.avatarUrl ?? null,
+      flair: account.flair ?? null,
       lastSyncedAt: account.lastSyncedAt ?? null,
       syncState: account.syncState ?? "none",
     },
@@ -57,11 +63,19 @@ export const accountsHandlers = [
         id: account.id,
         platform: account.platform,
         username: account.username,
+        avatarUrl: account.avatarUrl,
+        flair: account.flair,
         lastSyncedAt: account.lastSyncedAt,
       });
     }
     return HttpResponse.json(
-      { id: account.id, platform: account.platform, username: account.username },
+      {
+        id: account.id,
+        platform: account.platform,
+        username: account.username,
+        avatarUrl: account.avatarUrl,
+        flair: account.flair,
+      },
       { status: 201 },
     );
   }),

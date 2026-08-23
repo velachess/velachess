@@ -17,11 +17,20 @@ export interface PlayerProfile {
   /** Absent on Lichess, which has no avatars at all, and on Chess.com
    * accounts that never uploaded one. */
   avatarUrl: string | null;
+  /** Lichess only — a flair id like `people.santa-claus-light-skin-tone`,
+   * rendered from Lichess's own asset set, not an image URL. Kept apart
+   * from the avatar on purpose: it decorates the name, it does not stand
+   * in for a face. Null on Chess.com, which has no flair concept. */
+  flair: string | null;
   /** ISO 3166-1 alpha-2, uppercase. Null when undeclared. */
   countryCode: string | null;
 }
 
-const EMPTY_PROFILE: PlayerProfile = { avatarUrl: null, countryCode: null };
+const EMPTY_PROFILE: PlayerProfile = {
+  avatarUrl: null,
+  flair: null,
+  countryCode: null,
+};
 
 /** Chess.com's `country` field is a link like `.../pub/country/BR` — the
  * last path segment is already the code, no need to resolve the link. */
@@ -43,8 +52,10 @@ const chessComProfileSchema = z.object({
 });
 
 /** Lichess omits `profile` until the person fills it, hence `.optional()`.
- * No avatar field exists on this endpoint for any account. */
+ * `flair` sits at the top level and is equally optional. No avatar field
+ * exists on this endpoint for any account. */
 const lichessProfileSchema = z.object({
+  flair: z.string().optional(),
   profile: z.object({ flag: z.string().optional() }).optional(),
 });
 
@@ -69,6 +80,7 @@ export async function fetchChessComProfile(
 
   return {
     avatarUrl: parsed.data.avatar ?? null,
+    flair: null,
     countryCode: countryCodeFromUrl(parsed.data.country),
   };
 }
@@ -89,6 +101,7 @@ export async function fetchLichessProfile(
     // Lichess has no profile pictures. Not "we don't read it yet" — the
     // endpoint carries no image field for any account.
     avatarUrl: null,
+    flair: parsed.data.flair ?? null,
     countryCode: ISO_ALPHA2.test(flag ?? "") ? flag!.toUpperCase() : null,
   };
 }

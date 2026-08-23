@@ -7,12 +7,34 @@
  */
 import type { Database } from "@velachess/db";
 import { getTrackedAccount, upsertTrackedAccount } from "@velachess/db";
+import type { FetchFn } from "@velachess/platforms";
+import { fetchChessComProfile, fetchLichessProfile } from "@velachess/platforms";
 
 import { ensureCandidateRepertoires } from "../../repertoires/extract-repertoire/extract-repertoire.ts";
 import type { SyncDeps } from "../sync-account/sync-account.ts";
 import { syncAccount } from "../sync-account/sync-account.ts";
 
 export type Platform = "chess_com" | "lichess";
+
+/**
+ * Read the provider's picture of this handle, once, at the moment the
+ * connection is made — profiles change rarely and games every session,
+ * so a refresh cadence of their own would spend requests on nothing.
+ *
+ * The read is decoration around the name and fails soft by contract
+ * (the fetchers answer an empty profile rather than throw), so a provider
+ * outage costs the avatar, never the connection.
+ */
+async function fetchProfile(
+  platform: Platform,
+  username: string,
+  deps: SyncDeps,
+): Promise<{ avatarUrl: string | null; flair: string | null }> {
+  const opts = deps.fetch ? { fetch: deps.fetch as FetchFn } : {};
+  return platform === "chess_com"
+    ? await fetchChessComProfile(username, opts)
+    : await fetchLichessProfile(username, opts);
+}
 
 /**
  * Start tracking a handle: create (or find) the user's connection to it,
@@ -35,7 +57,10 @@ export async function importAccount(
   username: string,
   deps: SyncDeps = {},
 ) {
-  const tracked = await upsertTrackedAccount(db, userId, platform, username);
+  // Before the upsert, so the row is born with its identity and a
+  // re-import refreshes it in the same write that finds the connection.
+  const profile = await fetchProfile(platform, username, deps);
+  const tracked = await upsertTrackedAccount(db, userId, platform, username, profile);
   if (tracked.lastSyncedAt === null) {
     const outcome = await syncAccount(db, tracked.id, deps);
     // The first archive is also the first chance to derive a book, and
