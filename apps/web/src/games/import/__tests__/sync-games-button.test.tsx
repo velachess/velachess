@@ -54,6 +54,8 @@ describe("sync games button", () => {
     await user.click(screen.getByRole("button", { name: "Sync games" }));
 
     expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
+    // With the actual wait — "a moment" invites an immediate retry.
+    expect(screen.getByText("Try again in 45 seconds.")).toBeInTheDocument();
   });
 
   it("syncs the accounts the server knows, never a stale remembered id", async () => {

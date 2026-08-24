@@ -69,6 +69,11 @@ const authConfig = {
   // Never weakened for production; localhost simply has no TLS.
   secureCookies: authEnv.secureCookies,
   trustedOrigins: authEnv.trustedOrigins,
+  // Both optional and both spread rather than passed as `undefined`: an
+  // absent Google config means the provider is not offered at all, and an
+  // absent proxy list means the socket address is already the client's.
+  ...(authEnv.google ? { google: authEnv.google } : {}),
+  ...(authEnv.trustedProxies ? { trustedProxies: authEnv.trustedProxies } : {}),
 };
 
 // The instance the HTTP server mounts: sign-up closed. A self-hosted
@@ -96,6 +101,11 @@ apiLogger.info({ bootstrap }, "first-user bootstrap");
 const app = createApp({
   db,
   auth,
+  trustedOrigins: authEnv.trustedOrigins,
+  // Password sign-in is always available; Google appears only where it is
+  // configured. Derived from the same resolved env the auth instance is built
+  // from, so the screen and the server cannot disagree about what exists.
+  signInMethods: { password: true, google: Boolean(authEnv.google) },
   analysisQueue,
   watchers: createWatchers({ db, analysisQueue }),
   syncQueue: makeSyncQueue(boss, db),

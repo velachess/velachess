@@ -16,6 +16,7 @@ import {
 } from "@velachess/platforms/schema";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -162,6 +163,45 @@ export const verifications = pgTable(
 );
 
 /**
+ * Better Auth's own rate-limit store, for `rateLimit.storage: "database"`.
+ *
+ * The shape is not ours to choose — it is what @better-auth/core declares in
+ * `db/get-tables.mjs` for the `rateLimit` model: `key` (unique string),
+ * `count` (number) and `lastRequest` (number, **bigint**, epoch millis, not a
+ * timestamp). Getting the type wrong here fails at runtime, inside the
+ * library, on the first throttled request — so it is written to match rather
+ * than to look like the rest of this file.
+ *
+ * One row per key, updated in place: Better Auth also prunes it itself
+ * (`deleteExpiredRows` inside its `consume`), so nothing here needs a
+ * cleanup job.
+ */
+export const authRateLimits = pgTable("auth_rate_limits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
+
+/**
+ * The API's own rate limiter — separate from Better Auth's on purpose.
+ *
+ * Better Auth owns `/auth/*` and throttles it with its own table above;
+ * this one covers the authenticated application routes, keyed by user.
+ * Same storage shape deliberately: one row per key, updated in place, so
+ * the row count is bounded by users rather than by elapsed time and there
+ * is nothing to prune.
+ *
+ * `lastRequest` here IS a timestamp, unlike Better Auth's — this table is
+ * ours, and Postgres comparing intervals beats comparing epoch integers.
+ */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  lastRequest: timestamp("last_request", { withTimezone: true }).notNull(),
+});
+
+/**
  * A chess.com or Lichess handle this user follows.
  *
  * `user_id` is part of the unique key and NOT NULL, which is the whole
@@ -245,12 +285,13 @@ export const games = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("games_source_external_id")
-      .on(table.source, table.externalId)
+    // Both scoped to the tracked account: each account owns a complete,
+    // independent copy of whatever it imports, and dedup only ever
+    // happens within one account — never across two accounts tracking
+    // the same real provider handle.
+    uniqueIndex("games_account_source_external_id")
+      .on(table.accountId, table.source, table.externalId)
       .where(sql`${table.externalId} is not null`),
-    // One game = one row, keyed by whoever imports first. A game_accounts
-    // join table is the upgrade path if tracking both sides of the same
-    // game ever becomes real.
     unique("games_account_movetext")
       .on(table.accountId, table.movetextHash)
       .nullsNotDistinct(),

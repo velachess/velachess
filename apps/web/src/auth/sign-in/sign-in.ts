@@ -1,9 +1,9 @@
 /**
- * Better Auth's error message is written for developers and never
- * reaches the user — echoing it would leak which half was wrong.
+ * Auth adapter: Better Auth in, `SignInFailure` out. Raw Better Auth
+ * messages never reach the user.
  */
 
-import { authClient } from "../client.ts";
+import { authClient, type SessionUser } from "../client.ts";
 import { NetworkError } from "../../shared/api/errors.ts";
 
 export interface Credentials {
@@ -12,6 +12,16 @@ export interface Credentials {
 }
 
 export type SignInFailure = "invalid-credentials" | "unavailable";
+
+// The code, not the status: a bare 401 can also be a proxy or an
+// outage, which must not read as "wrong password". INVALID_EMAIL is
+// Better Auth's genuine 400 for a malformed address — a real answer,
+// not an outage — and gets the same copy without saying which half of
+// the form was wrong.
+const CREDENTIAL_REJECTION_CODES = new Set([
+  "INVALID_EMAIL_OR_PASSWORD",
+  "INVALID_EMAIL",
+]);
 
 class SignInError extends Error {
   readonly reason: SignInFailure;
@@ -23,7 +33,8 @@ class SignInError extends Error {
   }
 }
 
-export async function signIn(credentials: Credentials): Promise<void> {
+/** Resolves with the user from the sign-in response — no second round-trip. */
+export async function signIn(credentials: Credentials): Promise<SessionUser> {
   let result: Awaited<ReturnType<typeof authClient.signIn.email>>;
 
   try {
@@ -32,17 +43,19 @@ export async function signIn(credentials: Credentials): Promise<void> {
       password: credentials.password,
     });
   } catch (cause) {
-    // The request never completed — the client only rejects on transport
-    // failure, since HTTP errors come back in `error`.
+    // Transport failure; HTTP errors come back in `error`.
     throw new SignInError("unavailable", { cause });
   }
 
-  if (!result.error) return;
+  if (result.error) {
+    const rejected =
+      typeof result.error.code === "string" &&
+      CREDENTIAL_REJECTION_CODES.has(result.error.code);
+    throw new SignInError(rejected ? "invalid-credentials" : "unavailable");
+  }
 
-  // 401/403 is "these credentials are not it". Anything else — 500, a
-  // proxy in the way — is the server failing to answer the question.
-  const rejected = result.error.status === 401 || result.error.status === 403;
-  throw new SignInError(rejected ? "invalid-credentials" : "unavailable");
+  const { id, email, name, image } = result.data.user;
+  return { id, email, name, image: image ?? null };
 }
 
 export function signInFailureOf(error: unknown): SignInFailure {

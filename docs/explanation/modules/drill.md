@@ -3,7 +3,7 @@
 **[DRILL] — turns mistakes, deviations and prepared lines into recallable
 exercises.** Three slices own the loop: `seed-exercises` (triage and
 generation), `get-next-drill` (the queue), `submit-answer` (grading and the
-FSRS handoff). Deciding *when* to review is the scheduler's job, not this
+FSRS handoff). Deciding _when_ to review is the scheduler's job, not this
 package's. Exact rules, constants and shapes live in
 `docs/reference/drills.md`; this document is the reasoning.
 
@@ -25,7 +25,7 @@ flowchart TD
 An exercise can be born three ways, and the origins deliberately ask
 different questions:
 
-- **`repertoire-deviation`** — did you play what you *decided*? Your own move
+- **`repertoire-deviation`** — did you play what you _decided_? Your own move
   left your book and the book had an answer to recall. Nothing about
   severity: forgetting your line for a perfectly sound alternative costs zero
   evaluation, so the engine is permanently silent about it — and that is
@@ -35,7 +35,7 @@ different questions:
   repertoire existed, so the requirement was removed. Volume needs no budget
   here: `deviations_game_repertoire` guarantees at most one deviation per
   game per repertoire.
-- **`engine-blunder`** — did you play *well*? Every graded ply of your side is
+- **`engine-blunder`** — did you play _well_? Every graded ply of your side is
   a candidate. Volume does not come from a severity floor — measured on real
   games, blunder is the most common category, so a fixed floor either starves
   strong players or drowns beginners. Instead candidates are ranked by
@@ -60,7 +60,7 @@ origins, merges into one exercise with one provenance row per origin in
 `exercise_sources`, enforced by partial unique indexes rather than caller
 discipline.
 
-When origins collide, the preparation wins the *answer*: a repertoire seed
+When origins collide, the preparation wins the _answer_: a repertoire seed
 refreshes `expected_sans`, an engine seed only adds its provenance. The
 engine is a strong opinion about the position; your book is a decision about
 what you intend to play, and drilling should not quietly redirect you away

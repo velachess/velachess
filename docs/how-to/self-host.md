@@ -127,14 +127,44 @@ reason: users-exist` (or `not-configured` once step 6 is done) — both
 mean the same thing: your users are yours, and startup will never touch
 them again.
 
+## Behind a reverse proxy
+
+Every auth call, including the Google OAuth return leg, reaches the API
+under `/api/…` — one location (`/api/*`) is enough; there is no second
+path to route.
+
+**Set `VELACHESS_TRUSTED_PROXIES`** to the proxy's address, or to the
+CIDR range it sits in (comma-separated for several). Better Auth keys
+its sign-in throttling by client IP, and behind a proxy every request
+arrives from the proxy's address. It refuses to trust a forwarded chain
+it cannot attribute, and falls back to a **single shared bucket for the
+whole site** — three failed sign-ins by anyone lock out everyone, with
+nothing but one log line to say so.
+
+## Sign-in with Google (optional)
+
+Set both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Setting one
+without the other refuses to boot, rather than shipping a button that
+fails at the redirect. Leave both unset and the provider is simply not
+offered.
+
+In the Google Cloud console, the authorized redirect URI is
+`<VELACHESS_BASE_URL>/api/auth/callback/google`.
+
+This is also what opens public sign-up without an SMTP dependency:
+`POST /auth/sign-up/email` stays closed (`disableSignUp` governs the
+password path only), while social sign-in creates the account on first
+use.
+
 ## What refuses to boot, and why
 
-| Condition                                             | Behavior                                                                                                        |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `VELACHESS_AUTH_SECRET` missing or under 32 chars     | Startup fails; the error names the variable and how to generate one. The value is never printed.                |
-| Production with the `.env.example` placeholder secret | Startup fails — a copied example file is indistinguishable from no secret.                                      |
-| Production without `VELACHESS_BASE_URL`               | Startup fails — cookies and trusted origins for a defaulted localhost would belong to a host nobody is on.      |
-| Production with an `http://` base URL                 | Boots, with a loud warning: put TLS in front. `Secure` cookies follow the actual transport and are never faked. |
+| Condition                                                            | Behavior                                                                                                        |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `VELACHESS_AUTH_SECRET` missing or under 32 chars                    | Startup fails; the error names the variable and how to generate one. The value is never printed.                |
+| Production with the `.env.example` placeholder secret                | Startup fails — a copied example file is indistinguishable from no secret.                                      |
+| Production without `VELACHESS_BASE_URL`                              | Startup fails — cookies and trusted origins for a defaulted localhost would belong to a host nobody is on.      |
+| One of `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` without the other | Startup fails — half a provider is a button that fails at the redirect instead of at boot.                      |
+| Production with an `http://` base URL                                | Boots, with a loud warning: put TLS in front. `Secure` cookies follow the actual transport and are never faked. |
 
 All of these rules live in `libs/infra/auth/env.ts` with unit tests
 beside them.

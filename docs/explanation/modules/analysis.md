@@ -58,7 +58,7 @@ pins it to Lichess's public implementation, same inputs, same expected
 outputs:
 
 | What                                                       | Reference source                                                                                                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Win% formula + cp ceiling + mate mapping                   | `scalachess core/src/main/scala/eval.scala` (`WinPercent.winningChances`, `fromCentiPawns`, `fromMate`); prose at lichess.org/page/accuracy |
 | Judgment thresholds (.1/.2/.3 win-chance drop)             | `lila modules/tree/src/main/Advice.scala` (`CpAdvice.winningChanceJudgements`)                                                              |
 | Move accuracy curve (exact constants, +1 bonus)            | `lila modules/analyze/src/main/AccuracyPercent.scala` (`fromWinPercents`)                                                                   |

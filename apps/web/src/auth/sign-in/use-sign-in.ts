@@ -1,7 +1,11 @@
-/** Session cache is set from the sign-in response, not refetched — avoids a window where the guard still reads "signed out". */
+/**
+ * Identity transition: `removeQueries` (not invalidate — the previous
+ * user's data must not stay visible), then seed the session from the
+ * sign-in response, so no follow-up fetch can fail a successful sign-in.
+ */
 
 import { signIn, type Credentials } from "./sign-in.ts";
-import { fetchSession, sessionQueryKey } from "../session.ts";
+import { sessionQueryKey } from "../session.ts";
 import { useMutation, useQueryClient } from "../../shared/libs/query/index.ts";
 
 export function useSignIn() {
@@ -9,11 +13,9 @@ export function useSignIn() {
 
   return useMutation({
     mutationFn: (credentials: Credentials) => signIn(credentials),
-    onSuccess: async () => {
-      queryClient.setQueryData(sessionQueryKey, await fetchSession());
-      // Everything cached under the previous visitor is now somebody
-      // else's data. Dropping it is cheaper than auditing every key.
-      await queryClient.invalidateQueries();
+    onSuccess: (user) => {
+      queryClient.removeQueries();
+      queryClient.setQueryData(sessionQueryKey, user);
     },
   });
 }

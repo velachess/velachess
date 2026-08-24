@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { Button } from "@velachess/ui/components/button";
 import {
@@ -16,17 +17,25 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
-import { VelaChessMark } from "@velachess/ui/icons";
+import { GoogleIcon, VelaChessMark } from "@velachess/ui/icons";
 
 import { signInFailureOf, type SignInFailure } from "./sign-in.ts";
+import { signInWithGoogle } from "./social.ts";
 import { useSignIn } from "./use-sign-in.ts";
+import { signInMethodsQuery } from "../sign-in-methods.ts";
+import { useQuery } from "../../shared/libs/query/index.ts";
 import { z } from "../../shared/libs/zod.ts";
 
+// Neutral copy: with Google enabled, the provider button also creates
+// the account on first use — never assume the visitor is returning, and
+// never promise email registration (it does not exist).
 const SIGN_IN_COPY = {
-  title: msg`Welcome back`,
-  description: msg`Sign in to your VelaChess instance.`,
+  title: msg`Continue to VelaChess`,
+  descriptionGoogle: msg`Continue with Google or sign in with your account credentials.`,
+  descriptionPassword: msg`Sign in with your account credentials.`,
   email: msg`Email`,
   password: msg`Password`,
   submit: msg`Sign in`,
@@ -36,6 +45,11 @@ const SIGN_IN_COPY = {
   emailRequired: msg`Enter your email.`,
   emailInvalid: msg`That doesn't look like an email address.`,
   passwordRequired: msg`Enter your password.`,
+  google: msg`Continue with Google`,
+  or: msg`Or continue with`,
+  googleCancelled: msg`Google sign-in was cancelled.`,
+  googleFailed: msg`Google sign-in didn't complete. Try again.`,
+  googleAccountNotLinked: msg`An account already exists with that email. Sign in with your password instead.`,
 } as const;
 
 const FAILURE_COPY: Record<
@@ -46,27 +60,37 @@ const FAILURE_COPY: Record<
   unavailable: SIGN_IN_COPY.unavailable,
 };
 
+/** OAuth's own "the person said no". */
+const OAUTH_ERROR_ACCESS_DENIED = "access_denied";
+/** Better Auth refusing to attach Google to an existing password account —
+ * retrying never succeeds, so it gets its own copy. */
+const OAUTH_ERROR_ACCOUNT_NOT_LINKED = "account_not_linked";
+
+// Everything else reads as a retryable failure. The raw code is never
+// rendered.
+function oauthErrorCopy(code: string) {
+  if (code === OAUTH_ERROR_ACCESS_DENIED) return SIGN_IN_COPY.googleCancelled;
+  if (code === OAUTH_ERROR_ACCOUNT_NOT_LINKED) return SIGN_IN_COPY.googleAccountNotLinked;
+  return SIGN_IN_COPY.googleFailed;
+}
+
 /**
- * The one screen reachable without a session.
- *
- * Laid out as shadcn's login block: a muted full-height page, the brand
- * lockup centred above a `max-w-sm` card, a centred card header, and the
- * form as one `FieldGroup`.
- *
- * What the block ships that this build does not: OAuth buttons and their
- * separator, "forgot your password", and a sign-up link. None of the
- * three exists on the server — `/auth/sign-up/email` answers 400 and the
- * first user is provisioned at startup (docs/how-to/self-host.md) — and
- * a control that cannot do anything is worse than an absent one.
- *
- * Where it lands afterwards is the router's business, not this form's:
- * `redirect` carries where the person was headed before the guard
- * intervened.
+ * The one screen reachable without a session. Which methods appear is
+ * the server's answer (`GET /config`), so an instance without Google
+ * credentials renders no dead button.
  */
-export function SignInScreen({ redirect }: { redirect?: string }) {
+export function SignInScreen({
+  redirect,
+  oauthError,
+}: {
+  redirect?: string;
+  /** `?error=` as Better Auth returned it after a Google attempt. */
+  oauthError?: string;
+}) {
   const { i18n } = useLingui();
   const navigate = useNavigate();
   const signIn = useSignIn();
+  const { data: methods } = useQuery(signInMethodsQuery);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -77,9 +101,8 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
           password: value.password,
         });
       } catch {
-        // Held by the mutation and rendered below. Rethrowing would end
-        // the chain in an unhandled rejection — the submit handler is
-        // the end of the chain.
+        // Held by the mutation and rendered below; rethrowing would be
+        // an unhandled rejection.
         return;
       }
 
@@ -88,14 +111,32 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
   });
 
   const failure = signIn.isError ? signInFailureOf(signIn.error) : null;
+  const [googlePending, setGooglePending] = useState(false);
+  const [googleFailed, setGoogleFailed] = useState(false);
+
+  const oauthMessage = googleFailed
+    ? SIGN_IN_COPY.googleFailed
+    : oauthError
+      ? oauthErrorCopy(oauthError)
+      : null;
+
+  const startGoogle = async () => {
+    setGoogleFailed(false);
+    setGooglePending(true);
+    try {
+      await signInWithGoogle({ successURL: redirect ?? "/", redirect });
+      // No `finally`: on success the browser is navigating away, and
+      // re-enabling the button here would let a click race that navigation
+      // and start a second flow before it lands.
+    } catch {
+      setGoogleFailed(true);
+      setGooglePending(false);
+    }
+  };
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        {/* The lockup, not a link: there is nowhere to go from here
-            without a session, and a dead anchor is a promise the page
-            cannot keep. `bg-brand`, not `bg-primary` — the tile is
-            decoration, not a control. */}
         <div className="flex items-center gap-2 self-center font-medium">
           <div className="flex size-6 items-center justify-center rounded-md bg-brand text-primary-foreground">
             <VelaChessMark
@@ -111,7 +152,13 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-xl">{i18n._(SIGN_IN_COPY.title)}</CardTitle>
-              <CardDescription>{i18n._(SIGN_IN_COPY.description)}</CardDescription>
+              <CardDescription>
+                {i18n._(
+                  methods?.google
+                    ? SIGN_IN_COPY.descriptionGoogle
+                    : SIGN_IN_COPY.descriptionPassword,
+                )}
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -122,6 +169,35 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
                 }}
               >
                 <FieldGroup>
+                  {/* Rendered even when the button below is not — the
+                      person must learn why they are back here even if the
+                      provider was switched off meanwhile. */}
+                  {oauthMessage !== null && (
+                    <Field>
+                      <FieldError>{i18n._(oauthMessage)}</FieldError>
+                    </Field>
+                  )}
+
+                  {methods?.google && (
+                    <>
+                      <Field>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={googlePending || signIn.isPending}
+                          onClick={() => void startGoogle()}
+                        >
+                          <GoogleIcon className="size-4" />
+                          {i18n._(SIGN_IN_COPY.google)}
+                        </Button>
+                      </Field>
+
+                      <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                        {i18n._(SIGN_IN_COPY.or)}
+                      </FieldSeparator>
+                    </>
+                  )}
+
                   <form.Field
                     name="email"
                     validators={{
@@ -147,7 +223,7 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
                             name={field.name}
                             type="email"
                             autoComplete="email"
-                            placeholder="you@example.com"
+                            placeholder="m@example.com"
                             aria-invalid={isInvalid}
                             value={field.state.value}
                             onBlur={field.handleBlur}
@@ -188,16 +264,9 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
                           />
                           <FieldError errors={field.state.meta.errors} />
 
-                          {/* A rejected sign-in, as plain inline text under
-                              the last field — no panel, no border, nothing
-                              that looks like another input.
-                              Deliberately NOT marked on the password input:
-                              the server cannot say which half was wrong, and
-                              a red ring around one field would claim it
-                              could. The server's own wording never reaches
-                              here either — it is written for developers, and
-                              "user not found" would answer the question the
-                              generic message refuses to. */}
+                          {/* Not marked on the input: the server will not
+                              say which half was wrong, so no field may
+                              claim to know. */}
                           {failure !== null && (
                             <FieldError>{i18n._(FAILURE_COPY[failure])}</FieldError>
                           )}

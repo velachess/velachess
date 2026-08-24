@@ -6,16 +6,16 @@ rules, and persisted shapes. The reasoning behind these choices lives in
 
 ## Engine configuration (production)
 
-| Setting          | Value                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| Setting          | Value                                                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Binary           | `ENGINE_CMD` env var if set; otherwise `stockfish` npm `^18.0.8` (`stockfish-18-lite-single.js`, single-threaded WASM) run as a Node child process — `apps/worker/src/main.ts` |
-| Depth            | **12** — `deps.depth ?? 12` in `process-analysis.ts`; the worker passes no depth, so `analyzeGame`'s own default of 14 is never used in production |
-| UCI options      | None set. No Threads, no Hash, no MultiPV — `EngineSession.setOption` has no production caller. Only `multipv === 1` info lines are read |
-| Search           | `go depth <N>` once per mainline position                                                                     |
-| Watchdog         | `min(30000, max(5000, 3000 + depth·400))` ms per search (7800 ms at depth 12); on timeout `stop` + 2 s grace  |
-| Failure policy   | One whole-game retry on a fresh session; a second failure throws                                              |
-| Handshake        | `EngineSession.init` fails after 10 s without `uciok`/`readyok`                                               |
-| `engine_version` | Stored as the literal `"stockfish"` (`deps.engineVersion ?? "stockfish"`; nothing passes a value)             |
+| Depth            | **12** — `deps.depth ?? 12` in `process-analysis.ts`; the worker passes no depth, so `analyzeGame`'s own default of 14 is never used in production                             |
+| UCI options      | None set. No Threads, no Hash, no MultiPV — `EngineSession.setOption` has no production caller. Only `multipv === 1` info lines are read                                       |
+| Search           | `go depth <N>` once per mainline position                                                                                                                                      |
+| Watchdog         | `min(30000, max(5000, 3000 + depth·400))` ms per search (7800 ms at depth 12); on timeout `stop` + 2 s grace                                                                   |
+| Failure policy   | One whole-game retry on a fresh session; a second failure throws                                                                                                               |
+| Handshake        | `EngineSession.init` fails after 10 s without `uciok`/`readyok`                                                                                                                |
+| `engine_version` | Stored as the literal `"stockfish"` (`deps.engineVersion ?? "stockfish"`; nothing passes a value)                                                                              |
 
 Analysis has one trigger: `POST /games/:id/analyze` enqueues (pg-boss); the
 worker executes. Execution ownership is the session advisory lock

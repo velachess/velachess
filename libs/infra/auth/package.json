@@ -14,7 +14,8 @@
     "@better-auth/drizzle-adapter": "1.7.0",
     "@velachess/db": "workspace:*",
     "better-auth": "1.7.0",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "envalid": "^8.2.0"
   },
   "type": "module",
   "exports": {
