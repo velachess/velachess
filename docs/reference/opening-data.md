@@ -11,11 +11,11 @@ Written once at import by `normalizeGame`
 (`libs/infra/platforms/normalize.ts`), straight from PGN headers, never
 recomputed:
 
-| Column               | Source header | chess.com  | Lichess |
-| -------------------- | ------------- | ---------- | ------- |
-| `games.opening_eco`  | `ECO`         | sent       | sent    |
-| `games.opening_name` | `Opening`     | never sent (always null) | sent ("Family: Variation") |
-| `games.opening_url`  | `ECOUrl`      | sent (name lives in the slug) | not sent |
+| Column               | Source header | chess.com                     | Lichess                    |
+| -------------------- | ------------- | ----------------------------- | -------------------------- |
+| `games.opening_eco`  | `ECO`         | sent                          | sent                       |
+| `games.opening_name` | `Opening`     | never sent (always null)      | sent ("Family: Variation") |
+| `games.opening_url`  | `ECOUrl`      | sent (name lives in the slug) | not sent                   |
 
 No validation or lookup happens on any of the three.
 
@@ -38,11 +38,11 @@ insight bucket "Closed Sicilian Defense".
 
 ## Consumers
 
-| Consumer                       | What it reads                                                       |
-| ------------------------------ | ------------------------------------------------------------------- |
-| Game report and games list UI  | raw columns (`game.openingName`, `game.openingEco`); chess.com games render the unknown-opening copy because `opening_name` is null |
-| Insights (`opening-weakness`)  | `openingFamily(...)` derived at read time; floors: 5 decided games per opening, 20 baseline games, 0.10 win-rate delta |
-| Repertoire extraction          | `openingNameFrom(...)` for chapter names (dominant among supporting games, fallback `Line N`) |
+| Consumer                      | What it reads                                                                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Game report and games list UI | raw columns (`game.openingName`, `game.openingEco`); chess.com games render the unknown-opening copy because `opening_name` is null |
+| Insights (`opening-weakness`) | `openingFamily(...)` derived at read time; floors: 5 decided games per opening, 20 baseline games, 0.10 win-rate delta              |
+| Repertoire extraction         | `openingNameFrom(...)` for chapter names (dominant among supporting games, fallback `Line N`)                                       |
 
 ## Interaction with analysis
 
