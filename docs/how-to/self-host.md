@@ -129,17 +129,9 @@ them again.
 
 ## Behind a reverse proxy
 
-Two things need saying to the proxy, and both are quiet when wrong.
-
-**Route `/auth/*` to the API, not only `/api/*`.** The browser reaches
-every auth call under `/api/auth/…`, which the proxy rewrites onto the
-API — except one. Better Auth builds its OAuth `redirect_uri` from its
-own base URL, so Google returns the user to
-`<VELACHESS_BASE_URL>/auth/callback/google`, with no `/api` prefix to
-rewrite away. Without a second location for `/auth/`, that return leg
-lands on the SPA and 404s, and the symptom reads as "Google sign-in is
-broken" rather than as a missing proxy rule. The dev proxy already does
-this (`apps/web/vite.config.ts`); production needs the same.
+Every auth call, including the Google OAuth return leg, reaches the API
+under `/api/…` — one location (`/api/*`) is enough; there is no second
+path to route.
 
 **Set `VELACHESS_TRUSTED_PROXIES`** to the proxy's address, or to the
 CIDR range it sits in (comma-separated for several). Better Auth keys
@@ -157,7 +149,7 @@ fails at the redirect. Leave both unset and the provider is simply not
 offered.
 
 In the Google Cloud console, the authorized redirect URI is
-`<VELACHESS_BASE_URL>/auth/callback/google` — see the proxy note above.
+`<VELACHESS_BASE_URL>/api/auth/callback/google`.
 
 This is also what opens public sign-up without an SMTP dependency:
 `POST /auth/sign-up/email` stays closed (`disableSignUp` governs the
