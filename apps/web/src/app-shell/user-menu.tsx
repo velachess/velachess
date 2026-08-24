@@ -23,17 +23,8 @@ const USER_MENU_COPY = {
   signingOut: msg`Signing out…`,
 } as const;
 
-/**
- * The account entry point in the shell: who is signed in, the way into
- * Settings, and the way out.
- *
- * Managing the account happens behind the Settings link, not in here — a
- * popover you can rename yourself in is a popover you rename yourself in
- * by accident. What stays is what has to be one click: signing out.
- *
- * Reads the same session query the route guard already resolved, so there
- * is no loading state to render.
- */
+/** Who is signed in, the way into Settings, and the way out. Reads the
+ * session query the route guard already resolved — no loading state. */
 export function UserMenu() {
   const { i18n } = useLingui();
   const navigate = useNavigate();
@@ -54,9 +45,6 @@ export function UserMenu() {
           />
         }
       >
-        {/* The person's own picture is the affordance. A generic user
-            glyph reads as "account" to whoever built the page and as
-            nothing in particular to whoever is looking for themselves. */}
         <UserAvatar user={user} size="sm" />
       </PopoverTrigger>
 

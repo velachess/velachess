@@ -29,24 +29,23 @@ import { signInMethodsQuery } from "../sign-in-methods.ts";
 import { useQuery } from "../../shared/libs/query/index.ts";
 import { z } from "../../shared/libs/zod.ts";
 
-// shadcn's login block wording, kept as-is where the control exists.
-// The description is the one line that varies by deployment: the block's
-// "Login with your Apple or Google account" names providers, so it can
-// only name the ones this instance actually offers.
+// Neutral copy: with Google enabled, the provider button also creates
+// the account on first use — never assume the visitor is returning, and
+// never promise email registration (it does not exist).
 const SIGN_IN_COPY = {
-  title: msg`Welcome back`,
-  descriptionGoogle: msg`Login with your Google account`,
-  descriptionPassword: msg`Enter your email below to login to your account`,
+  title: msg`Continue to VelaChess`,
+  descriptionGoogle: msg`Continue with Google or sign in with your account credentials.`,
+  descriptionPassword: msg`Sign in with your account credentials.`,
   email: msg`Email`,
   password: msg`Password`,
-  submit: msg`Login`,
-  submitting: msg`Logging in…`,
+  submit: msg`Sign in`,
+  submitting: msg`Signing in…`,
   invalidCredentials: msg`Invalid email or password.`,
   unavailable: msg`Couldn't reach the server. Try again in a moment.`,
   emailRequired: msg`Enter your email.`,
   emailInvalid: msg`That doesn't look like an email address.`,
   passwordRequired: msg`Enter your password.`,
-  google: msg`Login with Google`,
+  google: msg`Continue with Google`,
   or: msg`Or continue with`,
   googleCancelled: msg`Google sign-in was cancelled.`,
   googleFailed: msg`Google sign-in didn't complete. Try again.`,
@@ -60,16 +59,8 @@ const FAILURE_COPY: Record<
   unavailable: SIGN_IN_COPY.unavailable,
 };
 
-/**
- * Two ways a Google attempt comes back here, and they are not the same
- * event: the person said no, or something broke. Better Auth puts the
- * reason in `?error=`; `access_denied` is OAuth's own code for a refused
- * consent screen, and everything else — a stale state, a provider
- * timeout, a misconfigured client — reads as a failure worth retrying.
- *
- * The provider's raw code is never rendered. It is written for whoever
- * reads a log, not for someone who just wanted to sign in.
- */
+// access_denied is OAuth's "the person said no"; everything else reads
+// as a retryable failure. The raw code is never rendered.
 function oauthErrorCopy(code: string) {
   return code === "access_denied"
     ? SIGN_IN_COPY.googleCancelled
@@ -77,23 +68,9 @@ function oauthErrorCopy(code: string) {
 }
 
 /**
- * The one screen reachable without a session.
- *
- * Laid out as shadcn's login block: a muted full-height page, the brand
- * lockup centred above a `max-w-sm` card, a centred card header, and the
- * form as one `FieldGroup`.
- *
- * Which methods appear is the server's answer, not this file's guess:
- * `signInMethodsQuery` reads `GET /config`, so a self-host without Google
- * credentials renders no Google button. A control that cannot do anything
- * is worse than an absent one — the same reason there is still no
- * "forgot your password" or sign-up link: `/auth/sign-up/email` answers
- * 400 by design and password recovery needs an SMTP dependency this build
- * does not have. Public sign-up, where it is wanted, is Google's path.
- *
- * Where it lands afterwards is the router's business, not this form's:
- * `redirect` carries where the person was headed before the guard
- * intervened, and it is the same destination for both methods.
+ * The one screen reachable without a session. Which methods appear is
+ * the server's answer (`GET /config`), so an instance without Google
+ * credentials renders no dead button.
  */
 export function SignInScreen({
   redirect,
@@ -117,9 +94,8 @@ export function SignInScreen({
           password: value.password,
         });
       } catch {
-        // Held by the mutation and rendered below. Rethrowing would end
-        // the chain in an unhandled rejection — the submit handler is
-        // the end of the chain.
+        // Held by the mutation and rendered below; rethrowing would be
+        // an unhandled rejection.
         return;
       }
 
@@ -131,8 +107,6 @@ export function SignInScreen({
   const [googlePending, setGooglePending] = useState(false);
   const [googleFailed, setGoogleFailed] = useState(false);
 
-  // Two sources, one message: a code Better Auth handed back through the
-  // URL, or a request that never reached the provider at all.
   const oauthMessage = googleFailed
     ? SIGN_IN_COPY.googleFailed
     : oauthError
@@ -143,8 +117,7 @@ export function SignInScreen({
     setGoogleFailed(false);
     setGooglePending(true);
     try {
-      await signInWithGoogle({ callbackURL: redirect ?? "/" });
-      // Reached only if the browser did not navigate away.
+      await signInWithGoogle({ callbackURL: redirect ?? "/", redirect });
     } catch {
       setGoogleFailed(true);
     } finally {
@@ -155,10 +128,6 @@ export function SignInScreen({
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        {/* The lockup, not a link: there is nowhere to go from here
-            without a session, and a dead anchor is a promise the page
-            cannot keep. `bg-brand`, not `bg-primary` — the tile is
-            decoration, not a control. */}
         <div className="flex items-center gap-2 self-center font-medium">
           <div className="flex size-6 items-center justify-center rounded-md bg-brand text-primary-foreground">
             <VelaChessMark
@@ -191,22 +160,15 @@ export function SignInScreen({
                 }}
               >
                 <FieldGroup>
-                  {/* Rendered whether or not the button below is, and
-                      that is the point: if the provider was switched off
-                      between the redirect out and the return, the person
-                      still gets told why they are back here instead of
-                      inside the app. */}
+                  {/* Rendered even when the button below is not — the
+                      person must learn why they are back here even if the
+                      provider was switched off meanwhile. */}
                   {oauthMessage !== null && (
                     <Field>
                       <FieldError>{i18n._(oauthMessage)}</FieldError>
                     </Field>
                   )}
 
-                  {/* Above the password fields, because it is the faster
-                      path for anyone who has it, and because a provider
-                      button below a submit button reads as a second
-                      submit. Rendered only where the server says the
-                      provider exists. */}
                   {methods?.google && (
                     <>
                       <Field>
@@ -293,16 +255,9 @@ export function SignInScreen({
                           />
                           <FieldError errors={field.state.meta.errors} />
 
-                          {/* A rejected sign-in, as plain inline text under
-                              the last field — no panel, no border, nothing
-                              that looks like another input.
-                              Deliberately NOT marked on the password input:
-                              the server cannot say which half was wrong, and
-                              a red ring around one field would claim it
-                              could. The server's own wording never reaches
-                              here either — it is written for developers, and
-                              "user not found" would answer the question the
-                              generic message refuses to. */}
+                          {/* Not marked on the input: the server will not
+                              say which half was wrong, so no field may
+                              claim to know. */}
                           {failure !== null && (
                             <FieldError>{i18n._(FAILURE_COPY[failure])}</FieldError>
                           )}

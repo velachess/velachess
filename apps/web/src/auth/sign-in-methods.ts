@@ -1,12 +1,5 @@
-/**
- * What this deployment lets people sign in with.
- *
- * A self-hosted instance with no Google credentials must not be offered a
- * "Login with Google" button — it would redirect to an error and there
- * is nothing the person could do about it. The server answers this at
- * `GET /config`, which is public precisely because the question is asked
- * before anyone has a session.
- */
+/** What this deployment lets people sign in with — `GET /config`,
+ * public because it is asked before anyone has a session. */
 
 import { api, parseResponse } from "../shared/api/client.ts";
 import { queryOptions } from "../shared/libs/query/index.ts";
@@ -16,11 +9,7 @@ export interface SignInMethods {
   google: boolean;
 }
 
-/**
- * Password only. Used when the request fails — a login screen that renders
- * nothing because a capability lookup 500'd is worse than one that offers
- * the method every instance has.
- */
+// On failure, offer the method every instance has.
 const FALLBACK: SignInMethods = { password: true, google: false };
 
 export const signInMethodsQuery = queryOptions({
@@ -33,7 +22,5 @@ export const signInMethodsQuery = queryOptions({
       return FALLBACK;
     }
   },
-  // Capabilities change when the server is redeployed, not while someone
-  // is looking at the login form.
   staleTime: Infinity,
 });

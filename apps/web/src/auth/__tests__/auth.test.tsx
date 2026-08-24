@@ -28,7 +28,7 @@ import {
 async function signIn(user: Awaited<ReturnType<typeof renderApp>>["user"]) {
   await user.type(screen.getByLabelText("Email"), TEST_USER.email);
   await user.type(screen.getByLabelText("Password"), TEST_PASSWORD);
-  await user.click(screen.getByRole("button", { name: "Login" }));
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
 }
 
 describe("the wall", () => {
@@ -38,7 +38,7 @@ describe("the wall", () => {
     const { router } = await renderApp({ path: "/games" });
 
     expect(router.state.location.pathname).toBe("/login");
-    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
     // Where they were going, kept for after they sign in — the whole
     // location, search included, not just the path.
     expect(router.state.location.search).toMatchObject({
@@ -115,7 +115,7 @@ describe("the wall", () => {
     const { router } = await renderApp({ path: "/games" });
 
     expect(router.state.location.pathname).toBe("/login");
-    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 });
 
@@ -148,7 +148,7 @@ describe("signing in", () => {
     const { router, user } = await renderApp({ path: "/login" });
     await user.type(screen.getByLabelText("Email"), TEST_USER.email);
     await user.type(screen.getByLabelText("Password"), "not-the-password");
-    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Invalid email or password.",
@@ -176,11 +176,49 @@ describe("signing in", () => {
     sessionInactive();
 
     const { router, user } = await renderApp({ path: "/login" });
-    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/login");
+  });
+});
+
+describe("what a sign-in outcome depends on", () => {
+  it("succeeds even when the session endpoint is down — no follow-up fetch", async () => {
+    sessionInactive();
+    // The session cache is seeded from the sign-in response itself, so a
+    // broken get-session cannot make a successful sign-in look failed.
+    server.use(
+      http.get("/api/auth/get-session", () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
+      ),
+    );
+
+    const { router, user } = await renderApp({ path: "/login" });
+    await signIn(user);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+  });
+
+  it("reads a 401 without Better Auth's credential code as unavailability", async () => {
+    sessionInactive();
+    // A proxy or an outage can also answer 401 — that is not proof the
+    // password was wrong, and saying so would send someone to re-type a
+    // correct one.
+    server.use(
+      http.post("/api/auth/sign-in/email", () =>
+        HttpResponse.json({ message: "upstream timeout" }, { status: 401 }),
+      ),
+    );
+
+    const { user } = await renderApp({ path: "/login" });
+    await signIn(user);
+
+    expect(
+      await screen.findByText("Couldn't reach the server. Try again in a moment."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Invalid email or password.")).not.toBeInTheDocument();
   });
 });
 
@@ -228,6 +266,6 @@ describe("a session that ends mid-visit", () => {
     await queryClient.invalidateQueries({ queryKey: ["games"] });
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
-    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 });

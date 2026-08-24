@@ -43,11 +43,6 @@ export function LichessIcon(props: BrandIconProps) {
   );
 }
 
-/**
- * The monochrome "G", as shadcn's login block ships it — `currentColor`
- * like every other mark here. Google's branding also blesses a solid
- * single-colour G on outline buttons, so nothing is being bent.
- */
 export function GoogleIcon(props: BrandIconProps) {
   return (
     <BrandIcon {...props}>

@@ -54,18 +54,9 @@ const ACCOUNT_COPY = {
 } as const;
 
 /**
- * Settings → Account.
- *
- * Two questions, in the order people ask them: who am I here, and how do I
- * get back in. Nothing else — no session list, no delete-account, no
- * password change — because each of those is a control that has to work,
- * and Better Auth's `changeEmail`/`forgetPassword` paths want a mail
- * transport this build does not have. An empty "Danger zone" heading
- * would only teach people the page is unfinished.
- *
- * Sign-in methods are read, never written, for the same reason: unlinking
- * the only method on an account locks the person out of it, and the guard
- * for that ("is there another way in?") is a decision, not a checkbox.
+ * Settings → Account: who am I here, and how do I get back in.
+ * Sign-in methods are read-only — unlinking the last one locks the
+ * person out.
  */
 export function AccountScreen() {
   const { i18n } = useLingui();
@@ -76,15 +67,10 @@ export function AccountScreen() {
   const form = useForm({
     defaultValues: { name: user?.name ?? "" },
     onSubmit: async ({ value }) => {
-      // The mutation holds the failure; the submit handler is the end of
-      // the chain, so rethrowing here would land as an unhandled rejection.
       await rename.mutateAsync(value.name.trim()).catch(() => undefined);
     },
   });
 
-  // The route guard resolved the session before this rendered; `user`
-  // being absent means it has just been invalidated and a redirect is
-  // already in flight.
   if (!user) return null;
 
   const linked = new Set(methods.data?.map((method) => method.providerId));
@@ -148,9 +134,6 @@ export function AccountScreen() {
                 }}
               </form.Field>
 
-              {/* Shown because people look for it, disabled because
-                  changing it is a verification flow this build cannot
-                  complete. Saying so is the whole point of the field. */}
               <Field>
                 <FieldLabel htmlFor="account-email">
                   {i18n._(ACCOUNT_COPY.email)}
@@ -225,8 +208,6 @@ export function AccountScreen() {
             </ItemGroup>
           )}
 
-          {/* The line the issue asks for in words: a chess account is a
-              source of games, not a way into this one. */}
           <p className="max-w-md text-xs text-muted-foreground">
             {i18n._(ACCOUNT_COPY.connections)}
           </p>
