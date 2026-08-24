@@ -74,6 +74,12 @@ export function createAuth(config: AuthConfig) {
     secret: config.secret,
     trustedOrigins: config.trustedOrigins ?? [config.baseUrl],
 
+    // Default is baseURL + basePath + "/error" (e.g. /auth/error) — a
+    // path this SPA never routes, so an OAuth failure that has no
+    // recoverable state (state_mismatch, invalid_callback_request) 404s
+    // instead of reaching the sign-in screen's own error copy.
+    onAPIError: { errorURL: `${config.baseUrl}/login` },
+
     database: drizzleAdapter(config.db, {
       provider: "pg",
       // Keyed by the modelName each model maps to below — the adapter

@@ -78,6 +78,17 @@ describe("Google sign-in", () => {
   });
 });
 
+describe("the OAuth error fallback", () => {
+  it("points at the sign-in screen, not Better Auth's own /auth/error", () => {
+    // Reached only when there's no recoverable state to carry a caller's
+    // own errorCallbackURL — a state_mismatch or a malformed callback
+    // request. Left unset, this is baseURL + basePath + "/error", a
+    // path the SPA never routes.
+    const { options } = createAuth(base);
+    expect(options.onAPIError?.errorURL).toBe("https://chess.example.com/login");
+  });
+});
+
 describe("cookies", () => {
   it("follow the configured transport, with no production override", () => {
     expect(createAuth(base).options.advanced?.useSecureCookies).toBe(true);
