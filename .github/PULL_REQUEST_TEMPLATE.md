@@ -14,8 +14,20 @@
 
 <!-- Tests run / manual verification performed. -->
 
+## Evidence
+
+<!-- Include only evidence relevant to this PR. Delete the examples that do not apply. -->
+
+- Frontend/UI: screenshot or screen recording.
+- API/server: request/response example, preferably `curl`.
+- Database: migration application and relevant verification.
+- Bug fix: before/after evidence, when applicable.
+- Worker/infra: relevant logs or command output.
+- No visible or runtime behavior: `N/A`.
+
 ## Checklist
 
-- [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck` pass
-- [ ] Behavior changes have tests; API changes are in `apps/api/src/openapi.ts`
-- [ ] No unrelated changes
+- [ ] Tests added or updated
+- [ ] Relevant evidence included
+- [ ] Migrations verified, if applicable
+- [ ] Documentation updated, if applicable

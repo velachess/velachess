@@ -15,11 +15,19 @@ import {
   useChessSounds,
 } from "../../shared/chess-sounds/chess-sounds.ts";
 import { useMyAccounts } from "../import/my-accounts.ts";
-import { gradeAtPly, previewFor, seatOf, suggestedArrow } from "../analysis-read.ts";
+import { flairImageOf, trackedAccountsQuery } from "../import/queries.ts";
+import {
+  gradeAtPly,
+  previewFor,
+  seatIdentityOf,
+  seatOf,
+  suggestedArrow,
+} from "../analysis-read.ts";
 import { BoardPane } from "./board-pane.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
 import { useAnalysis } from "../watch-analysis/use-analysis.ts";
+import { useQuery } from "../../shared/libs/query/index.ts";
 
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
@@ -51,6 +59,9 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   // new array every render never compares equal, and zustand re-renders
   // until React gives up.
   const myAccounts = useMyAccounts((state) => state.accounts);
+  // Provider identity for the seats — only handles this user tracks have
+  // one, so an opponent's seat stays on initials unless imported too.
+  const tracked = useQuery(trackedAccountsQuery).data ?? [];
   /**
    * The engine's move, shown on the board.
    *
@@ -105,10 +116,17 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     );
   }
 
-  const seat = (name: string, rating: number | null) => ({
-    name,
-    rating: rating === null ? undefined : i18n.number(rating),
-  });
+  const seat = (name: string, rating: number | null) => {
+    const identity = seatIdentityOf(game.source, name, tracked);
+    return {
+      name,
+      rating: rating === null ? undefined : i18n.number(rating),
+      avatarUrl: identity.avatarUrl,
+      // The API carries the flair id; the address it is served from is
+      // presentation, resolved at the last moment before render.
+      flair: identity.flair ? flairImageOf(identity.flair) : undefined,
+    };
+  };
   const white = seat(game.whiteName, game.whiteRating);
   const black = seat(game.blackName, game.blackRating);
 

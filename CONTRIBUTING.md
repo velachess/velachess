@@ -108,6 +108,19 @@ local hooks when you mean to.
   anti-drift test fails the suite otherwise.
 - Contract changes update the matching doc under `docs/explanation/`.
 
+## Pull request evidence
+
+Include enough relevant evidence for reviewers to validate the change
+without reproducing the entire flow locally. Keep it proportional to the
+PR; do not include evidence that does not apply.
+
+- Frontend/UI: screenshot or screen recording.
+- API/server: request/response example, preferably with `curl`.
+- Database: proof that the migration applies and a relevant verification.
+- Bug fix: before/after evidence, when applicable.
+- Worker/infra: relevant logs or command output.
+- Changes without visible or runtime behavior: `N/A`.
+
 ## Architecture principles
 
 Dependency direction is `apps → application → domain + ports`. Domain

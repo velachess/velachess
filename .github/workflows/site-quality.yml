@@ -18,16 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
 
-      - name: Build static site
-        run: pnpm --filter @velachess/site build
-
-      - name: Validate SEO output
-        run: pnpm --filter @velachess/site test
-
-      - name: Serve export and run Lighthouse CI
-        run: pnpm --filter @velachess/site lighthouse
+      - name: Run affected site quality checks
+        run: pnpm exec turbo run lighthouse --affected --filter=@velachess/site
 
       - name: Upload Lighthouse reports
         if: always()

@@ -11,14 +11,20 @@ export function resetDevice(): void {
   useSoundPreferences.setState(useSoundPreferences.getInitialState(), true);
 }
 
-/** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. */
-export function deviceHasImported(): RememberedAccount {
+/** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. Identity defaults to none — pass it to simulate a provider that reported one at connect time. */
+export function deviceHasImported(
+  identity: { avatarUrl: string | null; flair: string | null } = {
+    avatarUrl: null,
+    flair: null,
+  },
+): RememberedAccount {
   const account = archiveAccount();
   // The server's side of the same fact — the dashboard asks it, not the device.
   accountIsTracked({
     id: account.id,
     platform: account.platform,
     username: account.username,
+    ...identity,
   });
   const remembered: RememberedAccount = {
     accountId: account.id,

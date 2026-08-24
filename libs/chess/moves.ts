@@ -5,7 +5,7 @@
  */
 
 import type { Context, Position } from "chessops/chess";
-import { normalizeMove } from "chessops/chess";
+import { castlingSide, normalizeMove } from "chessops/chess";
 import { SquareSet } from "chessops/squareSet";
 import {
   type DropMove,
@@ -140,9 +140,22 @@ export function squaresOfUci(uci: string): MoveSquares | null {
 /**
  * Squares a SAN move touches; requires the position since SAN leaves the
  * origin implicit (e.g. which knight `Nf3` means depends on the board).
+ * Castling comes back as the king's own two-square step (O-O → g1), not the
+ * king-takes-own-rook encoding chessops uses internally — drawing wants the
+ * square the king lands on, which is also what an engine's UCI would name.
  */
 export function squaresOfSan(pos: Position, san: string): MoveSquares | null {
   const move = parseSan(pos, san);
   if (!move || !isNormal(move)) return null;
+
+  const side = castlingSide(pos, move);
+  if (side) {
+    const kingFile = side === "h" ? 6 : 2; // g-file or c-file, zero-based
+    return {
+      from: makeSquare(move.from),
+      to: makeSquare(kingFile + 8 * (move.to >> 3)),
+    };
+  }
+
   return { from: makeSquare(move.from), to: makeSquare(move.to) };
 }
