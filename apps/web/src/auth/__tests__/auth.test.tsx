@@ -28,7 +28,7 @@ import {
 async function signIn(user: Awaited<ReturnType<typeof renderApp>>["user"]) {
   await user.type(screen.getByLabelText("Email"), TEST_USER.email);
   await user.type(screen.getByLabelText("Password"), TEST_PASSWORD);
-  await user.click(screen.getByRole("button", { name: "Sign in" }));
+  await user.click(screen.getByRole("button", { name: "Login" }));
 }
 
 describe("the wall", () => {
@@ -38,7 +38,7 @@ describe("the wall", () => {
     const { router } = await renderApp({ path: "/games" });
 
     expect(router.state.location.pathname).toBe("/login");
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
     // Where they were going, kept for after they sign in — the whole
     // location, search included, not just the path.
     expect(router.state.location.search).toMatchObject({
@@ -115,7 +115,7 @@ describe("the wall", () => {
     const { router } = await renderApp({ path: "/games" });
 
     expect(router.state.location.pathname).toBe("/login");
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 });
 
@@ -148,7 +148,7 @@ describe("signing in", () => {
     const { router, user } = await renderApp({ path: "/login" });
     await user.type(screen.getByLabelText("Email"), TEST_USER.email);
     await user.type(screen.getByLabelText("Password"), "not-the-password");
-    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Invalid email or password.",
@@ -176,7 +176,7 @@ describe("signing in", () => {
     sessionInactive();
 
     const { router, user } = await renderApp({ path: "/login" });
-    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
@@ -228,6 +228,6 @@ describe("a session that ends mid-visit", () => {
     await queryClient.invalidateQueries({ queryKey: ["games"] });
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 });

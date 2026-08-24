@@ -257,10 +257,6 @@ msgstr ""
 msgid "Continue"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:44
-msgid "Continue with Google"
-msgstr ""
-
 #: src/repertoire/repertoire-practice.tsx:62
 msgid "Correct."
 msgstr ""
@@ -310,7 +306,7 @@ msgstr ""
 msgid "Couldn't reach that account"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:40
+#: src/auth/sign-in/sign-in-screen.tsx:45
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr ""
 
@@ -361,7 +357,7 @@ msgstr ""
 msgid "Due now"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:40
 #: src/settings/account/account-screen.tsx:40
 msgid "Email"
 msgstr ""
@@ -382,11 +378,15 @@ msgstr ""
 msgid "Enter a name."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:41
+#: src/auth/sign-in/sign-in-screen.tsx:39
+msgid "Enter your email below to login to your account"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "Enter your email."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:43
+#: src/auth/sign-in/sign-in-screen.tsx:48
 msgid "Enter your password."
 msgstr ""
 
@@ -471,11 +471,11 @@ msgstr ""
 msgid "Google"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:47
+#: src/auth/sign-in/sign-in-screen.tsx:52
 msgid "Google sign-in didn't complete. Try again."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:46
+#: src/auth/sign-in/sign-in-screen.tsx:51
 msgid "Google sign-in was cancelled."
 msgstr ""
 
@@ -516,7 +516,7 @@ msgstr ""
 msgid "Insights"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "Invalid email or password."
 msgstr ""
 
@@ -583,6 +583,22 @@ msgstr ""
 #: src/drill/drill.tsx:46
 #: src/repertoire/repertoire-practice.tsx:53
 msgid "Loading…"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:43
+msgid "Logging in…"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:42
+msgid "Login"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:49
+msgid "Login with Google"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:38
+msgid "Login with your Google account"
 msgstr ""
 
 #: src/insights/finding-views.tsx:99
@@ -755,11 +771,11 @@ msgstr ""
 msgid "Opponent plays:"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:45
-msgid "or"
+#: src/auth/sign-in/sign-in-screen.tsx:50
+msgid "Or continue with"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Password"
 msgstr ""
 
@@ -941,24 +957,12 @@ msgstr ""
 msgid "Show the engine's move on the board"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
-msgid "Sign in"
-msgstr ""
-
-#: src/auth/sign-in/sign-in-screen.tsx:34
-msgid "Sign in to your VelaChess instance."
-msgstr ""
-
 #: src/app-shell/user-menu.tsx:22
 msgid "Sign out"
 msgstr ""
 
 #: src/settings/account/account-screen.tsx:46
 msgid "Sign-in methods"
-msgstr ""
-
-#: src/auth/sign-in/sign-in-screen.tsx:38
-msgid "Signing in…"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:23
@@ -1011,7 +1015,7 @@ msgstr ""
 msgid "Syncing…"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:42
+#: src/auth/sign-in/sign-in-screen.tsx:47
 msgid "That doesn't look like an email address."
 msgstr ""
 
@@ -1152,7 +1156,7 @@ msgstr ""
 msgid "Ways you can get into this account."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:33
+#: src/auth/sign-in/sign-in-screen.tsx:37
 msgid "Welcome back"
 msgstr ""
 

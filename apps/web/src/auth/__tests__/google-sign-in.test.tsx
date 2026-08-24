@@ -28,9 +28,9 @@ describe("the Google button", () => {
     // without credentials does.
     await renderApp({ path: "/login" });
 
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Continue with Google" }),
+      screen.queryByRole("button", { name: "Login with Google" }),
     ).not.toBeInTheDocument();
     // And the password form is untouched — the two methods are
     // independent, which is the whole reason the flag exists.
@@ -44,10 +44,10 @@ describe("the Google button", () => {
     await renderApp({ path: "/login" });
 
     expect(
-      await screen.findByRole("button", { name: "Continue with Google" }),
+      await screen.findByRole("button", { name: "Login with Google" }),
     ).toBeInTheDocument();
     // Both methods, not one replacing the other.
-    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 
   it("asks the server to start the flow, and never handles OAuth itself", async () => {
@@ -63,7 +63,7 @@ describe("the Google button", () => {
     );
 
     const { user } = await renderApp({ path: "/login?redirect=%2Fgames" });
-    await user.click(await screen.findByRole("button", { name: "Continue with Google" }));
+    await user.click(await screen.findByRole("button", { name: "Login with Google" }));
 
     await waitFor(() => expect(body).toBeDefined());
     // The provider, and where the person was headed — nothing else. No
@@ -86,7 +86,7 @@ describe("the Google button", () => {
     );
 
     const { user } = await renderApp({ path: "/login" });
-    await user.click(await screen.findByRole("button", { name: "Continue with Google" }));
+    await user.click(await screen.findByRole("button", { name: "Login with Google" }));
 
     // No `redirect` in the URL means the app's front door.
     await waitFor(() => expect(body).toMatchObject({ callbackURL: "/" }));
@@ -134,7 +134,7 @@ describe("coming back from Google without a session", () => {
 
     await user.type(screen.getByLabelText("Email"), TEST_USER.email);
     await user.type(screen.getByLabelText("Password"), TEST_PASSWORD);
-    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
   });
@@ -153,7 +153,7 @@ describe("when the sign-in-methods lookup fails", () => {
 
     // A login screen that renders nothing because a capability lookup
     // failed is worse than one that offers the password form.
-    expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Login" })).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 });

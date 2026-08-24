@@ -44,40 +44,15 @@ export function LichessIcon(props: BrandIconProps) {
 }
 
 /**
- * The one mark here that does NOT inherit `currentColor`.
- *
- * Google's sign-in branding guidelines allow the "G" only in its four
- * official colours (or as a solid white/black variant on a matching
- * button); a tinted G is a modified logo. So the fills are literal, and
- * this component takes no colour from its surroundings.
+ * The monochrome "G", as shadcn's login block ships it — `currentColor`
+ * like every other mark here. Google's branding also blesses a solid
+ * single-colour G on outline buttons, so nothing is being bent.
  */
-export function GoogleIcon({ title, ...props }: BrandIconProps) {
+export function GoogleIcon(props: BrandIconProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      role={title ? "img" : "presentation"}
-      aria-hidden={title ? undefined : true}
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      {title ? <title>{title}</title> : null}
-      <path
-        fill="#4285F4"
-        d="M23.52 12.273c0-.851-.076-1.669-.218-2.454H12v4.642h6.458a5.52 5.52 0 0 1-2.394 3.622v3.01h3.878c2.269-2.088 3.578-5.165 3.578-8.82Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.956-1.075 7.942-2.907l-3.878-3.01c-1.075.72-2.45 1.145-4.064 1.145-3.125 0-5.77-2.11-6.714-4.947H1.276v3.109A11.995 11.995 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.286 14.281A7.207 7.207 0 0 1 4.91 12c0-.791.136-1.56.376-2.281V6.61H1.276A11.995 11.995 0 0 0 0 12c0 1.936.464 3.769 1.276 5.39l4.01-3.109Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.773c1.762 0 3.344.605 4.588 1.794l3.442-3.442C17.951 1.19 15.235 0 12 0 7.31 0 3.255 2.69 1.276 6.609l4.01 3.11C6.23 6.882 8.875 4.772 12 4.772Z"
-      />
-    </svg>
+    <BrandIcon {...props}>
+      <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+    </BrandIcon>
   );
 }
 

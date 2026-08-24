@@ -2,7 +2,7 @@
  * What this deployment lets people sign in with.
  *
  * A self-hosted instance with no Google credentials must not be offered a
- * "Continue with Google" button — it would redirect to an error and there
+ * "Login with Google" button — it would redirect to an error and there
  * is nothing the person could do about it. The server answers this at
  * `GET /config`, which is public precisely because the question is asked
  * before anyone has a session.

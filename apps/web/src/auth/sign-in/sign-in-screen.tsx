@@ -29,20 +29,25 @@ import { signInMethodsQuery } from "../sign-in-methods.ts";
 import { useQuery } from "../../shared/libs/query/index.ts";
 import { z } from "../../shared/libs/zod.ts";
 
+// shadcn's login block wording, kept as-is where the control exists.
+// The description is the one line that varies by deployment: the block's
+// "Login with your Apple or Google account" names providers, so it can
+// only name the ones this instance actually offers.
 const SIGN_IN_COPY = {
   title: msg`Welcome back`,
-  description: msg`Sign in to your VelaChess instance.`,
+  descriptionGoogle: msg`Login with your Google account`,
+  descriptionPassword: msg`Enter your email below to login to your account`,
   email: msg`Email`,
   password: msg`Password`,
-  submit: msg`Sign in`,
-  submitting: msg`Signing in…`,
+  submit: msg`Login`,
+  submitting: msg`Logging in…`,
   invalidCredentials: msg`Invalid email or password.`,
   unavailable: msg`Couldn't reach the server. Try again in a moment.`,
   emailRequired: msg`Enter your email.`,
   emailInvalid: msg`That doesn't look like an email address.`,
   passwordRequired: msg`Enter your password.`,
-  google: msg`Continue with Google`,
-  or: msg`or`,
+  google: msg`Login with Google`,
+  or: msg`Or continue with`,
   googleCancelled: msg`Google sign-in was cancelled.`,
   googleFailed: msg`Google sign-in didn't complete. Try again.`,
 } as const;
@@ -169,7 +174,13 @@ export function SignInScreen({
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-xl">{i18n._(SIGN_IN_COPY.title)}</CardTitle>
-              <CardDescription>{i18n._(SIGN_IN_COPY.description)}</CardDescription>
+              <CardDescription>
+                {i18n._(
+                  methods?.google
+                    ? SIGN_IN_COPY.descriptionGoogle
+                    : SIGN_IN_COPY.descriptionPassword,
+                )}
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
@@ -210,7 +221,9 @@ export function SignInScreen({
                         </Button>
                       </Field>
 
-                      <FieldSeparator>{i18n._(SIGN_IN_COPY.or)}</FieldSeparator>
+                      <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
+                        {i18n._(SIGN_IN_COPY.or)}
+                      </FieldSeparator>
                     </>
                   )}
 
@@ -239,7 +252,7 @@ export function SignInScreen({
                             name={field.name}
                             type="email"
                             autoComplete="email"
-                            placeholder="you@example.com"
+                            placeholder="m@example.com"
                             aria-invalid={isInvalid}
                             value={field.state.value}
                             onBlur={field.handleBlur}

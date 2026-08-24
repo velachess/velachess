@@ -257,10 +257,6 @@ msgstr "Connected — you can sign in with Google."
 msgid "Continue"
 msgstr "Continue"
 
-#: src/auth/sign-in/sign-in-screen.tsx:44
-msgid "Continue with Google"
-msgstr "Continue with Google"
-
 #: src/repertoire/repertoire-practice.tsx:62
 msgid "Correct."
 msgstr "Correct."
@@ -310,7 +306,7 @@ msgstr "Couldn't load your sign-in methods."
 msgid "Couldn't reach that account"
 msgstr "Couldn't reach that account"
 
-#: src/auth/sign-in/sign-in-screen.tsx:40
+#: src/auth/sign-in/sign-in-screen.tsx:45
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr "Couldn't reach the server. Try again in a moment."
 
@@ -361,7 +357,7 @@ msgstr "Drills from the mistakes that cost you"
 msgid "Due now"
 msgstr "Due now"
 
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:40
 #: src/settings/account/account-screen.tsx:40
 msgid "Email"
 msgstr "Email"
@@ -382,11 +378,15 @@ msgstr "endgame"
 msgid "Enter a name."
 msgstr "Enter a name."
 
-#: src/auth/sign-in/sign-in-screen.tsx:41
+#: src/auth/sign-in/sign-in-screen.tsx:39
+msgid "Enter your email below to login to your account"
+msgstr "Enter your email below to login to your account"
+
+#: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "Enter your email."
 msgstr "Enter your email."
 
-#: src/auth/sign-in/sign-in-screen.tsx:43
+#: src/auth/sign-in/sign-in-screen.tsx:48
 msgid "Enter your password."
 msgstr "Enter your password."
 
@@ -471,11 +471,11 @@ msgstr "Good"
 msgid "Google"
 msgstr "Google"
 
-#: src/auth/sign-in/sign-in-screen.tsx:47
+#: src/auth/sign-in/sign-in-screen.tsx:52
 msgid "Google sign-in didn't complete. Try again."
 msgstr "Google sign-in didn't complete. Try again."
 
-#: src/auth/sign-in/sign-in-screen.tsx:46
+#: src/auth/sign-in/sign-in-screen.tsx:51
 msgid "Google sign-in was cancelled."
 msgstr "Google sign-in was cancelled."
 
@@ -516,7 +516,7 @@ msgstr "Inaccuracy"
 msgid "Insights"
 msgstr "Insights"
 
-#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "Invalid email or password."
 msgstr "Invalid email or password."
 
@@ -584,6 +584,22 @@ msgstr "Loading the game…"
 #: src/repertoire/repertoire-practice.tsx:53
 msgid "Loading…"
 msgstr "Loading…"
+
+#: src/auth/sign-in/sign-in-screen.tsx:43
+msgid "Logging in…"
+msgstr "Logging in…"
+
+#: src/auth/sign-in/sign-in-screen.tsx:42
+msgid "Login"
+msgstr "Login"
+
+#: src/auth/sign-in/sign-in-screen.tsx:49
+msgid "Login with Google"
+msgstr "Login with Google"
+
+#: src/auth/sign-in/sign-in-screen.tsx:38
+msgid "Login with your Google account"
+msgstr "Login with your Google account"
 
 #: src/insights/finding-views.tsx:99
 msgid "Look at these games"
@@ -755,11 +771,11 @@ msgstr "Opponent moves your repertoire has no answer to, most frequent first. Co
 msgid "Opponent plays:"
 msgstr "Opponent plays:"
 
-#: src/auth/sign-in/sign-in-screen.tsx:45
-msgid "or"
-msgstr "or"
+#: src/auth/sign-in/sign-in-screen.tsx:50
+msgid "Or continue with"
+msgstr "Or continue with"
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Password"
 msgstr "Password"
 
@@ -941,14 +957,6 @@ msgstr "Settings"
 msgid "Show the engine's move on the board"
 msgstr "Show the engine's move on the board"
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
-msgid "Sign in"
-msgstr "Sign in"
-
-#: src/auth/sign-in/sign-in-screen.tsx:34
-msgid "Sign in to your VelaChess instance."
-msgstr "Sign in to your VelaChess instance."
-
 #: src/app-shell/user-menu.tsx:22
 msgid "Sign out"
 msgstr "Sign out"
@@ -956,10 +964,6 @@ msgstr "Sign out"
 #: src/settings/account/account-screen.tsx:46
 msgid "Sign-in methods"
 msgstr "Sign-in methods"
-
-#: src/auth/sign-in/sign-in-screen.tsx:38
-msgid "Signing in…"
-msgstr "Signing in…"
 
 #: src/app-shell/user-menu.tsx:23
 msgid "Signing out…"
@@ -1011,7 +1015,7 @@ msgstr "Synced a moment ago"
 msgid "Syncing…"
 msgstr "Syncing…"
 
-#: src/auth/sign-in/sign-in-screen.tsx:42
+#: src/auth/sign-in/sign-in-screen.tsx:47
 msgid "That doesn't look like an email address."
 msgstr "That doesn't look like an email address."
 
@@ -1152,7 +1156,7 @@ msgstr "waiting for you today"
 msgid "Ways you can get into this account."
 msgstr "Ways you can get into this account."
 
-#: src/auth/sign-in/sign-in-screen.tsx:33
+#: src/auth/sign-in/sign-in-screen.tsx:37
 msgid "Welcome back"
 msgstr "Welcome back"
 
