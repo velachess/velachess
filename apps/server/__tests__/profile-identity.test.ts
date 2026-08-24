@@ -1,46 +1,58 @@
 // @vitest-environment node
 /**
- * Provider profile identity over the real route: an avatar read off
- * Chess.com and a flair read off Lichess land in the tracked account,
- * survive listing, and never cost a connection when the provider's
- * profile endpoint is down.
+ * Provider identity on game review: GET /games/:id carries BOTH seats'
+ * picture or flair, resolved from a per-handle cache shared by every
+ * user — asked for once, reused until stale, and never a reason for the
+ * read to fail.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { LICHESS_PGN_EXPORT } from "@velachess/fixtures";
+import {
+  LISTER_ARCHIVE_MONTH,
+  LISTER_ARCHIVES_INDEX,
+  LICHESS_PGN_EXPORT,
+} from "@velachess/fixtures";
 import { chessComFixtureFetch } from "@velachess/test-utils";
+import { providerProfiles } from "@velachess/db";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
 const CHESS_COM_AVATAR =
   "https://images.chesscomfiles.com/uploads/v1/user/461825478.97ae265f.200x200o.5fa38b32b080.jpg";
+const RIVAL_AVATAR =
+  "https://images.chesscomfiles.com/uploads/v1/user/rival.97ae265f.200x200o.jpg";
 const LICHESS_FLAIR = "people.santa-claus-light-skin-tone";
 
 /**
- * The suite's chess.com fixtures, plus the two profile endpoints the
- * connect slice now reads. `setProfilesUp(false)` blackholes them —
- * the failure mode every test below leans on.
+ * The suite's chess.com fixtures plus the profile endpoints the review
+ * read resolves through. Every profile attempt is counted — caching is
+ * asserted by what stops being asked for, and a dead provider is
+ * simulated rather than awaited (`setProfilesUp(false)`).
  */
 function fakeSyncFetch() {
   const base = chessComFixtureFetch();
   let profilesUp = true;
+  const profileRequests: string[] = [];
 
   const doFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
 
     if (CHESS_COM_PROFILE_URL.test(url)) {
-      if (!profilesUp) return new Response("not found", { status: 404 });
+      const username = url.split("/").pop()!.toLowerCase();
+      profileRequests.push(`chess_com:${username}`);
+      if (!profilesUp) return new Response("unavailable", { status: 503 });
       return Response.json({
-        username: url.split("/").pop(),
-        avatar: CHESS_COM_AVATAR,
+        username,
+        avatar: username === "rival" ? RIVAL_AVATAR : CHESS_COM_AVATAR,
         country: "https://api.chess.com/pub/country/BR",
       });
     }
     if (url.startsWith("https://lichess.org/api/user/")) {
-      if (!profilesUp) return new Response("not found", { status: 404 });
+      profileRequests.push(`lichess:${url.split("/").pop()!.toLowerCase()}`);
+      if (!profilesUp) return new Response("unavailable", { status: 503 });
       return Response.json({
         id: "sea-lion",
-        username: "Sea-Lion",
+        username: url.split("/").pop(),
         flair: LICHESS_FLAIR,
       });
     }
@@ -49,10 +61,23 @@ function fakeSyncFetch() {
         headers: { "content-type": "application/x-chess-pgn" },
       });
     }
+    // The lister archive — a second player whose games are against the
+    // same opponent, so a second user can own games without re-importing
+    // looper's rows (games dedup globally on source+externalId).
+    if (url.endsWith("/player/lister/games/archives")) {
+      return Response.json(LISTER_ARCHIVES_INDEX);
+    }
+    if (url.endsWith("/player/lister/games/2026/06")) {
+      return Response.json(LISTER_ARCHIVE_MONTH);
+    }
     return base(input, init);
   }) as typeof globalThis.fetch;
 
-  return { fetch: doFetch, setProfilesUp: (up: boolean) => void (profilesUp = up) };
+  return {
+    fetch: doFetch,
+    setProfilesUp: (up: boolean) => void (profilesUp = up),
+    profileRequests,
+  };
 }
 
 const json = (body: unknown): RequestInit => ({
@@ -79,88 +104,146 @@ afterAll(async () => {
   await harness.close();
 });
 
-interface AccountView {
-  id: string;
-  platform: string;
-  username: string;
+interface SeatIdentity {
   avatarUrl: string | null;
   flair: string | null;
 }
 
-async function listAccounts(): Promise<AccountView[]> {
-  return (await (await owner.request("/accounts")).json()) as AccountView[];
+interface GameView {
+  whiteIdentity: SeatIdentity;
+  blackIdentity: SeatIdentity;
 }
 
-describe("provider profile identity", () => {
-  it("a chess.com import stores the avatar the provider reports", async () => {
+/** First imported game of an archive — any one will do for seat reads. */
+async function firstGameId(
+  app: AuthedApp,
+  platform: string,
+  username: string,
+): Promise<string> {
+  const page = (await (
+    await app.request(`/games?platform=${platform}&username=${username}`)
+  ).json()) as { games: { id: string }[] };
+  expect(page.games.length).toBeGreaterThan(0);
+  return page.games[0]!.id;
+}
+
+async function openGame(app: AuthedApp, gameId: string): Promise<Response> {
+  return app.request(`/games/${gameId}`);
+}
+
+describe("provider profile identity on game review", () => {
+  it("carries the provider picture of both seats, connected player or opponent", async () => {
     const created = await owner.request(
       "/accounts",
       json({ platform: "chess_com", username: "Looper" }),
     );
     expect(created.status).toBe(201);
-    const account = (await created.json()) as AccountView;
-    expect(account.username).toBe("looper");
-    expect(account.avatarUrl).toBe(CHESS_COM_AVATAR);
-    // Chess.com has no flair concept — the field exists and stays empty.
-    expect(account.flair).toBeNull();
 
-    const listed = await listAccounts();
-    expect(listed.find((entry) => entry.id === account.id)?.avatarUrl).toBe(
-      CHESS_COM_AVATAR,
-    );
+    // Connect-time warmed my handle; the opponent's is a cold miss here.
+    const before = sync.profileRequests.length;
+    const game = await firstGameId(owner, "chess_com", "looper");
+    const response = await openGame(owner, game);
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as GameView;
+    expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
+    expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
+
+    // Exactly the one opponent was worth a request — never a fan-out.
+    expect(sync.profileRequests.slice(before)).toEqual(["chess_com:rival"]);
   });
 
-  it("a lichess import stores the flair, and never an avatar", async () => {
+  it("reopening the same game spends no further provider request", async () => {
+    const game = await firstGameId(owner, "chess_com", "looper");
+    const before = sync.profileRequests.length;
+
+    const response = await openGame(owner, game);
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as GameView).blackIdentity.avatarUrl).toBe(
+      RIVAL_AVATAR,
+    );
+
+    expect(sync.profileRequests.slice(before)).toEqual([]);
+  });
+
+  it("shares one cached profile between users", async () => {
+    // A second user tracks a DIFFERENT handle whose games are against the
+    // same opponent — their connect warms only their own handle, and the
+    // opponent's identity comes from the row the first user's open wrote.
+    const second = (await harness.signUp("colleague@api.test")).app;
+    const connected = await second.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "Lister" }),
+    );
+    expect(connected.status).toBe(201);
+
+    const before = sync.profileRequests.length;
+    const game = await firstGameId(second, "chess_com", "lister");
+    const response = await openGame(second, game);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as GameView;
+    // The lister fixture's latest game is lister as black, rival as white.
+    expect(body.whiteIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
+    expect(body.blackIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
+
+    // The opponent was asked for exactly once across both users' opens.
+    expect(
+      sync.profileRequests.filter((request) => request === "chess_com:rival"),
+    ).toHaveLength(1);
+    expect(sync.profileRequests.slice(before)).toEqual([]);
+  });
+
+  it("reads a Lichess flair for either seat, and never an avatar", async () => {
     const created = await owner.request(
       "/accounts",
       json({ platform: "lichess", username: "Sea-Lion" }),
     );
     expect(created.status).toBe(201);
-    const account = (await created.json()) as AccountView;
-    // Flair decorates the name; it is not a face, so avatar stays null
-    // even though the connection succeeded.
-    expect(account.flair).toBe(LICHESS_FLAIR);
-    expect(account.avatarUrl).toBeNull();
 
-    const listed = await listAccounts();
-    expect(listed.find((entry) => entry.id === account.id)?.flair).toBe(LICHESS_FLAIR);
+    const game = await firstGameId(owner, "lichess", "sea-lion");
+    const response = await openGame(owner, game);
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as GameView;
+    for (const seat of [body.whiteIdentity, body.blackIdentity]) {
+      expect(seat.flair).toBe(LICHESS_FLAIR);
+      // Lichess has no profile pictures at all — the field exists and stays empty.
+      expect(seat.avatarUrl).toBeNull();
+    }
   });
 
-  it("a re-import that cannot reach the profile keeps the identity already stored", async () => {
-    // First import reads the avatar…
-    await owner.request("/accounts", json({ platform: "chess_com", username: "looper" }));
-    // …then the provider's profile endpoint goes down and the handle is
-    // imported again (the documented way to refresh a connection).
+  it("a dead profile endpoint costs the decoration, not the game", async () => {
+    // Forget the cache so both seats are cold, then blackhole the provider.
+    await harness.db.delete(providerProfiles);
     sync.setProfilesUp(false);
     try {
-      const again = await owner.request(
-        "/accounts",
-        json({ platform: "chess_com", username: "looper" }),
-      );
-      expect(again.status).toBe(201);
-      expect(((await again.json()) as AccountView).avatarUrl).toBe(CHESS_COM_AVATAR);
+      const game = await firstGameId(owner, "chess_com", "looper");
+      const response = await openGame(owner, game);
+      expect(response.status).toBe(200);
+
+      const body = (await response.json()) as GameView;
+      expect(body.whiteIdentity).toEqual({ avatarUrl: null, flair: null });
+      expect(body.blackIdentity).toEqual({ avatarUrl: null, flair: null });
     } finally {
       sync.setProfilesUp(true);
     }
   });
 
-  it("a dead profile endpoint costs the decoration, not the connection", async () => {
-    sync.setProfilesUp(false);
-    try {
-      const created = await owner.request(
-        "/accounts",
-        json({ platform: "lichess", username: "sea-wolf" }),
-      );
-      expect(created.status).toBe(201);
-      const account = (await created.json()) as AccountView;
-      expect(account.avatarUrl).toBeNull();
-      expect(account.flair).toBeNull();
+  it("an entry past its refresh window is asked for again", async () => {
+    // The failed attempts above wrote negative entries — they age out
+    // like any other, instead of pinning initials for a refresh cycle.
+    const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+    await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
-      // The archive was filled regardless — the account works.
-      const games = await owner.request(`/accounts/${account.id}/games`);
-      expect(games.status).toBe(200);
-    } finally {
-      sync.setProfilesUp(true);
-    }
+    const before = sync.profileRequests.length;
+    const game = await firstGameId(owner, "chess_com", "looper");
+    const response = await openGame(owner, game);
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as GameView;
+    expect(body.whiteIdentity.avatarUrl).toBe(CHESS_COM_AVATAR);
+    expect(body.blackIdentity.avatarUrl).toBe(RIVAL_AVATAR);
+    // One request per seat, both seats asked.
+    expect(sync.profileRequests.slice(before)).toHaveLength(2);
   });
 });

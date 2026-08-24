@@ -8,6 +8,7 @@ import {
   countWatch,
   knowsPlayer,
   readArchive,
+  seatIdentityFields,
 } from "../archive.ts";
 import { GAME_PGN } from "../games.ts";
 
@@ -48,9 +49,11 @@ export const gamesHandlers = [
   http.get("/api/games/:id", ({ params }) => {
     const game = gameById(String(params["id"]));
     if (!game) return HttpResponse.json({ error: "game not found" }, { status: 404 });
-    // Fields the list does not carry: movetext, and this screen's tags.
+    // Fields the list does not carry: movetext, this screen's tags, and
+    // both seats' provider identity as the profile cache resolved it.
     return HttpResponse.json({
       ...game,
+      ...seatIdentityFields(String(params["id"])),
       openingEco: "C20",
       termination: "by resignation",
       rawPgn: GAME_PGN,
