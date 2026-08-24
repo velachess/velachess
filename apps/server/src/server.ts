@@ -6,7 +6,6 @@
 
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { except } from "hono/combine";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
@@ -63,6 +62,9 @@ export function createApp(deps: ApiDeps) {
     // carries no Origin header worth answering, so this middleware is
     // effectively inert. It exists for the deployment that puts the SPA on a
     // separate host, and it fails closed until that host is declared.
+    //
+    // Also the layer that stops a forged JSON fetch() — see csrf() below
+    // for the request class this one doesn't cover.
     .use(
       "*",
       cors({
@@ -74,7 +76,6 @@ export function createApp(deps: ApiDeps) {
         maxAge: 600,
       }),
     )
-    // Refuse an oversized body before anything spends effort parsing it.
     .use(
       "*",
       bodyLimit({
@@ -84,14 +85,11 @@ export function createApp(deps: ApiDeps) {
         },
       }),
     )
-    // Origin check on unsafe methods. The session rides in a cookie, so a
-    // forged cross-site POST would otherwise arrive authenticated — and it
-    // is rejected here, before it can even cost a session lookup.
-    //
-    // No CORS beside it, deliberately: the SPA fetches `/api` on its own
-    // origin (apps/web/src/shared/api/client.ts), so there is no second
-    // origin to authorise. Adding a permissive list would widen a surface
-    // that does not currently exist.
+    // Origin check for requests CORS never sees: a plain <form> POST needs
+    // no preflight (content-type form-urlencoded/multipart/text-plain, or
+    // absent), so it reaches here un-vetted — and SameSite=Lax lets a
+    // top-level form submission carry the cookie cross-site regardless.
+    // A JSON fetch() never matches this check; that's CORS's job, above.
     .use("*", csrf({ origin: deps.trustedOrigins }))
     // System routes — liveness and documentation answer even when the
     // database is down; identity never touches them.
@@ -103,19 +101,24 @@ export function createApp(deps: ApiDeps) {
     // Better Auth owns everything under /auth/* — sign-in, sign-out,
     // session, sign-up. Mounted before the session gate because logging
     // in is, definitionally, done without a session. The handler shape is
-    // the official Hono integration: forward the raw Request.
-    //
-    // It throttles itself: `rateLimit.storage: "database"` in
-    // libs/infra/auth, with its own stricter rules for the sensitive
-    // endpoints. No limiter of ours in front of it.
+    // the official Hono integration: forward the raw Request. It throttles
+    // itself; no limiter of ours in front of it.
     .all("/auth/*", (c) => deps.auth.handler(c.req.raw))
     .use("*", sessionMiddleware(deps.auth))
-    // Everything past the gate has a userId, which is what every policy is
-    // keyed by. /health is exempt: a liveness probe that can be throttled
-    // is a liveness probe that lies during an incident.
-    .use("*", except("/health", rateLimit(deps, POLICIES.authenticated)))
+    // Every policy is keyed by userId, so this sits below the gate. No
+    // `/health` exemption needed: it's registered above the gate, so a
+    // request to it never reaches this line (__tests__/openapi.test.ts
+    // asserts the ordering).
+    .use("*", rateLimit(deps, POLICIES.authenticated))
     // Costlier actions get their own budget on top of the general one.
-    .use("/accounts/:id/sync", rateLimit(deps, POLICIES.import))
+    // import is keyed per account, not per user: the 60s sync cooldown
+    // (SYNC_COOLDOWN_SECONDS) is already per account, and a user syncing
+    // several tracked accounts must not have the first ones spend the
+    // budget the last one needs.
+    .use(
+      "/accounts/:id/sync",
+      rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
+    )
     .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
     .route("/accounts", accountsRoutes(deps))
     .route("/games", gamesRoutes(deps))

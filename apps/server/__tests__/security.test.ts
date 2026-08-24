@@ -27,20 +27,22 @@ afterAll(async () => {
 });
 
 /** A route that is cheap to call and cannot succeed — the limiter runs
- * before the handler, so a 404 past it is all these tests need. */
-const sync = () => `/accounts/${randomUUID()}/sync`;
+ * before the handler, so a 404 past it is all these tests need. Callers
+ * that care about the budget reuse one id; callers that don't, don't. */
+const sync = (accountId: string = randomUUID()) => `/accounts/${accountId}/sync`;
 
 describe("rate limiting", () => {
   it("refuses past the policy's budget, and says when to come back", async () => {
     const limited = await harness.signUp("throttled@velachess.local");
+    const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
       // oxlint-disable-next-line eslint/no-await-in-loop
-      const response = await limited.app.request(sync(), { method: "POST" });
+      const response = await limited.app.request(sync(accountId), { method: "POST" });
       expect(response.status, `request ${i + 1}`).not.toBe(429);
     }
 
-    const refused = await limited.app.request(sync(), { method: "POST" });
+    const refused = await limited.app.request(sync(accountId), { method: "POST" });
     expect(refused.status).toBe(429);
 
     // The wait lives in the body as well as the header, because the SPA's
@@ -75,17 +77,36 @@ describe("rate limiting", () => {
     // this user a fresh budget here; a shared one does not.
     const second = createApp(harness.deps);
     const spender = await harness.signUp("shared@velachess.local");
+    const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
       // oxlint-disable-next-line eslint/no-await-in-loop
-      await spender.app.request(sync(), { method: "POST" });
+      await spender.app.request(sync(accountId), { method: "POST" });
     }
 
-    const response = await second.request(sync(), {
+    const response = await second.request(sync(accountId), {
       method: "POST",
       headers: { cookie: spender.cookie, origin: ORIGIN },
     });
     expect(response.status).toBe(429);
+  });
+
+  it("budgets separately per account, so tracking several does not throttle the first", async () => {
+    // Keyed by (userId, accountId) — see server.ts's mount of
+    // POLICIES.import. A user syncing six accounts must get six full
+    // budgets, not one shared across all of them.
+    const owner = await harness.signUp("multi-account@velachess.local");
+    const first = randomUUID();
+
+    for (let i = 0; i < POLICIES.import.max; i++) {
+      // oxlint-disable-next-line eslint/no-await-in-loop
+      await owner.app.request(sync(first), { method: "POST" });
+    }
+    const firstExhausted = await owner.app.request(sync(first), { method: "POST" });
+    expect(firstExhausted.status).toBe(429);
+
+    const second = await owner.app.request(sync(randomUUID()), { method: "POST" });
+    expect(second.status).not.toBe(429);
   });
 
   it("leaves the liveness probe alone", async () => {

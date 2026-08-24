@@ -58,6 +58,10 @@ export interface AuthConfig {
   trustedProxies?: string[];
 }
 
+/** Google's authorized-redirect-URI path. Exported so the pinned test and
+ * the Google Cloud console value in self-host.md have one source. */
+export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
+
 /** One Better Auth instance per process, built from injected deps the way
  * apps/api builds everything else — never from ambient env reads here. */
 export function createAuth(config: AuthConfig) {
@@ -102,6 +106,10 @@ export function createAuth(config: AuthConfig) {
             google: {
               clientId: config.google.clientId,
               clientSecret: config.google.clientSecret,
+              // Explicit, under /api: Better Auth's default derives this
+              // from baseURL + basePath ("/auth"), with no /api prefix —
+              // a second proxy rule this avoids needing.
+              redirectURI: `${config.baseUrl}${GOOGLE_CALLBACK_PATH}`,
             },
           },
         }

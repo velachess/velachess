@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrapUser } from "@velachess/application/auth/bootstrap-user/bootstrap-user";
-import { createAuth } from "@velachess/auth";
+import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/auth";
 import { eq } from "drizzle-orm";
 
 import { schema } from "@velachess/db";
@@ -70,6 +70,10 @@ describe("bootstrap", () => {
 
     const rows = await harness.db.select().from(schema.users);
     expect(rows).toHaveLength(1);
+    // Better Auth's own sign-up writes emailVerified: false; bootstrapUser
+    // corrects it, or this account can never link a Google sign-in on the
+    // same email (Better Auth refuses with account_not_linked, always).
+    expect(rows[0]!.emailVerified).toBe(true);
   });
 
   it("does nothing when the env is not configured", async () => {
@@ -247,14 +251,11 @@ describe("Google sign-in", () => {
     const authorize = new URL(url);
     expect(authorize.origin).toBe("https://accounts.google.com");
     expect(authorize.searchParams.get("client_id")).toBe("client-id");
-    // Pinned deliberately. Better Auth derives this from its own baseURL
-    // and basePath, so it carries NO /api prefix — while the browser
-    // reaches every other auth call under /api. Whatever serves the app
-    // must therefore route /auth/* to this API as well, in production and
-    // in the dev proxy (apps/web/vite.config.ts), or the return leg of
-    // every Google sign-in lands on the SPA and 404s.
+    // Pinned deliberately: an explicit redirectURI (auth.ts) keeps the
+    // OAuth return leg on the same /api/* proxy contract every other auth
+    // call already uses — no second proxy rule to remember.
     expect(authorize.searchParams.get("redirect_uri")).toBe(
-      "https://chess.example.com/auth/callback/google",
+      `https://chess.example.com${GOOGLE_CALLBACK_PATH}`,
     );
     // PKCE, not an implicit flow.
     expect(authorize.searchParams.get("code_challenge_method")).toBe("S256");

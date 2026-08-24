@@ -82,6 +82,16 @@ it("system routes are registered before the identity middleware", () => {
   // And the limiter sits below the gate, because every policy is keyed by
   // the userId the gate resolves — above it there would be nothing to key.
   expect(at("rateLimited")).toBeGreaterThan(gate);
+
+  // Unlike the checks above, this catches a route the list doesn't
+  // already know about — a new endpoint added above the gate, answering
+  // unauthenticated by accident.
+  const above = new Set(
+    harness.app.routes.slice(0, gate).map((r) => `${r.method} ${r.path}`),
+  );
+  expect(above).toEqual(
+    new Set(["ALL /*", "GET /health", "GET /config", "GET /openapi.json", "ALL /auth/*"]),
+  );
 });
 
 it("error responses honor the documented { error } contract", async () => {
