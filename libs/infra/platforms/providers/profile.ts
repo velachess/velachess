@@ -26,7 +26,7 @@ export interface PlayerProfile {
   countryCode: string | null;
 }
 
-const EMPTY_PROFILE: PlayerProfile = {
+export const EMPTY_PROFILE: PlayerProfile = {
   avatarUrl: null,
   flair: null,
   countryCode: null,
@@ -60,11 +60,15 @@ const lichessProfileSchema = z.object({
 });
 
 async function fetchJson(url: string, doFetch: FetchFn): Promise<unknown | null> {
-  const res = await doFetch(url, { headers: HEADERS });
-  // A profile is decoration around a name. A missing or broken one leaves
-  // the initials in place; it must never fail a game from loading.
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await doFetch(url, { headers: HEADERS });
+    // A profile is decoration around a name. A missing or broken one leaves
+    // the initials in place; it must never fail a game from loading.
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchChessComProfile(
