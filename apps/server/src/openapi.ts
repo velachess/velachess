@@ -77,6 +77,32 @@ export const openApiSpec = {
         },
       },
     },
+    "/config": {
+      get: {
+        summary: "What this deployment offers, before anyone signs in",
+        description:
+          "Public by necessity: the sign-in screen has to know which methods exist before it can render them, and it has no session yet. Carries capability flags only — never credentials, never anything about a user.",
+        responses: {
+          "200": {
+            description: "Sign-in methods this instance actually offers",
+            ...jsonOf({
+              type: "object",
+              properties: {
+                signInMethods: {
+                  type: "object",
+                  properties: {
+                    password: { type: "boolean" },
+                    google: { type: "boolean" },
+                  },
+                  required: ["password", "google"],
+                },
+              },
+              required: ["signInMethods"],
+            }),
+          },
+        },
+      },
+    },
     "/openapi.json": {
       get: {
         summary: "This document",

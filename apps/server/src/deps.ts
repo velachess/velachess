@@ -13,10 +13,27 @@ import type { Scheduler } from "@velachess/scheduler";
 
 import type { Watchers } from "@velachess/application/analysis/watch-analysis/watchers";
 
+/**
+ * What the sign-in screen may render. Capability flags, nothing more: the
+ * screen has to know which methods exist *before* it has a session, and a
+ * self-host with no Google credentials must not show a button whose only
+ * possible outcome is an error at the redirect.
+ */
+interface SignInMethods {
+  password: boolean;
+  google: boolean;
+}
+
 export interface ApiDeps {
   db: Database;
   /** Answers exactly one question: who is making this request. */
   auth: Auth;
+  /** Origins the CSRF check accepts on unsafe methods. The same list the
+   * auth config resolves from VELACHESS_BASE_URL, so a request the session
+   * would accept and a request CSRF would accept cannot disagree. */
+  trustedOrigins: string[];
+  /** Served publicly at GET /config — see SignInMethods. */
+  signInMethods: SignInMethods;
   analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
   scheduler: Scheduler;

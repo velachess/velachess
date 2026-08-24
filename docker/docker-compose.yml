@@ -54,6 +54,13 @@ services:
       # silently-defaulted base URL is refused at boot anyway.
       VELACHESS_BASE_URL: ${VELACHESS_BASE_URL:?set the public URL, e.g. http://localhost:3000}
       VELACHESS_TRUSTED_ORIGINS: ${VELACHESS_TRUSTED_ORIGINS:-}
+      # Google sign-in: both or neither (libs/infra/auth/env.ts refuses to
+      # boot with only one set).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Reverse proxies in front of this container, if any — see
+      # docs/how-to/self-host.md#behind-a-reverse-proxy.
+      VELACHESS_TRUSTED_PROXIES: ${VELACHESS_TRUSTED_PROXIES:-}
       # TEMPORARY: first boot creates this user into an empty user table;
       # later boots skip. Deliberately optional — the lifecycle ends with
       # removing both from .env after first login (docs/how-to/self-host.md,

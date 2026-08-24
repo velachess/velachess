@@ -1,0 +1,2 @@
+DROP INDEX "games_source_external_id";--> statement-breakpoint
+CREATE UNIQUE INDEX "games_account_source_external_id" ON "games" USING btree ("account_id","source","external_id") WHERE "games"."external_id" is not null;

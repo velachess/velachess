@@ -70,6 +70,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     graded,
     isAnalyzing,
     analysisFailed,
+    analysisRetryAfterSeconds,
   } = useAnalysis(gameId);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
@@ -158,6 +159,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
         graded={graded}
         isAnalyzing={isAnalyzing}
         hasFailed={analysisFailed}
+        retryAfterSeconds={analysisRetryAfterSeconds}
       />
     </BoardScreen>
   );

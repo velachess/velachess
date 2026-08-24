@@ -117,8 +117,22 @@
     {
       "idx": 16,
       "version": "7",
-      "when": 1787578324538,
-      "tag": "0016_provider_profiles",
+      "when": 1787569610477,
+      "tag": "0016_rate_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787606597509,
+      "tag": "0017_account_scoped_game_dedup",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787613237066,
+      "tag": "0018_provider_profiles",
       "breakpoints": true
     }
   ]

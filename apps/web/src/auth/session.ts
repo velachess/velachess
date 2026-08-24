@@ -10,7 +10,7 @@ export const sessionQueryKey = ["auth", "session"] as const;
  * Better Auth resolves rather than throws: a 401 means "answered, nobody";
  * any other error means the question was never actually answered.
  */
-export async function fetchSession(): Promise<SessionUser | null> {
+async function fetchSession(): Promise<SessionUser | null> {
   const { data, error } = await authClient.getSession();
 
   if (error) {
@@ -19,8 +19,8 @@ export async function fetchSession(): Promise<SessionUser | null> {
   }
 
   if (!data?.user) return null;
-  const { id, email, name } = data.user;
-  return { id, email, name };
+  const { id, email, name, image } = data.user;
+  return { id, email, name, image: image ?? null };
 }
 
 export const sessionQuery = queryOptions({

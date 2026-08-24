@@ -166,20 +166,25 @@ orchestration layer that reads a chapter's PGN and feeds
 
 ## Dedup
 
-Two constraints, not one: a partial unique index on `(source,
-external_id) WHERE external_id IS NOT NULL` catches every Chess.com/Lichess
-re-sync for free, no hashing. A table-level unique constraint on
-`(account_id, movetext_hash)` with `NULLS NOT DISTINCT` catches a pasted
-PGN re-pasted with no linked account — Postgres treats `NULL` as distinct
-from itself by default, which would silently defeat this exact case
-without that clause. `saveGames` inserts with a bare `onConflictDoNothing()`
-(no target), which lets one statement satisfy both constraints at once,
-and reads the actual inserted count off what Postgres returns rather than
-pre-selecting to check.
+Both constraints are scoped to the tracked account, not global: a
+partial unique index on `(account_id, source, external_id) WHERE
+external_id IS NOT NULL` catches every Chess.com/Lichess re-sync for
+free, no hashing, within that account. A table-level unique constraint
+on `(account_id, movetext_hash)` with `NULLS NOT DISTINCT` catches a
+pasted PGN re-pasted with no linked account — Postgres treats `NULL` as
+distinct from itself by default, which would silently defeat this exact
+case without that clause. `saveGames` inserts with a bare
+`onConflictDoNothing()` (no target), which lets one statement satisfy
+both constraints at once, and reads the actual inserted count off what
+Postgres returns rather than pre-selecting to check.
 
-Known limitation, not fixed: the source/external_id index is global, so if
-two different tracked accounts both play the same game, only the first
-import sticks. One game = one row is the honest model for now.
+Each tracked account owns a complete, independent copy of whatever it
+imports. Two accounts (any two users, or the same user twice) tracking
+the same real chess.com/Lichess handle each get their own full history
+— dedup only ever happens within one account, never across two. This
+duplicates storage when that happens, deliberately: simple, correct
+isolation over global storage dedup. A `game_accounts` join table is
+the upgrade path if duplication ever becomes a measured problem.
 
 ## Client
 

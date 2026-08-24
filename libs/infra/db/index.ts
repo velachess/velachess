@@ -19,6 +19,7 @@ export * from "./queries/training-counts.ts";
 export * from "./queries/drill.ts";
 export * from "./queries/engine-drills.ts";
 export * from "./queries/scheduler.ts";
+export * from "./queries/rate-limit.ts";
 export * from "./queries/pagination.ts";
 export * from "./queries/status.ts";
 export * from "./advisory-lock.ts";

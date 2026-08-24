@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrapUser } from "@velachess/application/auth/bootstrap-user/bootstrap-user";
-import { createAuth } from "@velachess/auth";
+import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/auth";
 import { eq } from "drizzle-orm";
 
 import { schema } from "@velachess/db";
@@ -70,6 +70,10 @@ describe("bootstrap", () => {
 
     const rows = await harness.db.select().from(schema.users);
     expect(rows).toHaveLength(1);
+    // Better Auth's own sign-up writes emailVerified: false; bootstrapUser
+    // corrects it, or this account can never link a Google sign-in on the
+    // same email (Better Auth refuses with account_not_linked, always).
+    expect(rows[0]!.emailVerified).toBe(true);
   });
 
   it("does nothing when the env is not configured", async () => {
@@ -218,6 +222,52 @@ describe("the closed surfaces", () => {
       expect([401, 404], path).toContain(response.status);
       expect(response.headers.get("set-cookie"), path).toBeNull();
     }
+  });
+});
+
+describe("Google sign-in", () => {
+  it("sends the user to Google, and asks to be returned to /auth/callback", async () => {
+    const googleAuth = createAuth({
+      db: harness.db,
+      baseUrl: "https://chess.example.com",
+      secret: "test-secret-at-least-32-characters-long",
+      secureCookies: true,
+      google: { clientId: "client-id", clientSecret: "client-secret" },
+    });
+
+    const response = await googleAuth.handler(
+      new Request("https://chess.example.com/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://chess.example.com",
+        },
+        body: JSON.stringify({ provider: "google", callbackURL: "/" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+
+    const { url } = (await response.json()) as { url: string };
+    const authorize = new URL(url);
+    expect(authorize.origin).toBe("https://accounts.google.com");
+    expect(authorize.searchParams.get("client_id")).toBe("client-id");
+    // Pinned deliberately: an explicit redirectURI (auth.ts) keeps the
+    // OAuth return leg on the same /api/* proxy contract every other auth
+    // call already uses — no second proxy rule to remember.
+    expect(authorize.searchParams.get("redirect_uri")).toBe(
+      `https://chess.example.com${GOOGLE_CALLBACK_PATH}`,
+    );
+    // PKCE, not an implicit flow.
+    expect(authorize.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+
+  it("is not offered when no credentials are configured", async () => {
+    const response = await harness.app.request("/auth/sign-in/social", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "google", callbackURL: "/" }),
+    });
+    expect(response.ok).toBe(false);
   });
 });
 
