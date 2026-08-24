@@ -4,7 +4,7 @@ Organized using [Diátaxis](https://diataxis.fr/start-here/): four kinds of
 content, each answering a different question about the same subject.
 
 - **Reference** — "what is X, exactly?" Lookup-oriented, e.g.
-  `reference/glossary.md` and `reference/repository-layout.md`.
+  `reference/glossary.md` and `reference/analysis.md`.
 - **Explanation** — "why does this work this way?" Understanding-oriented,
   e.g. `explanation/modules/chess.md`.
 - **How-to guides** — "how do I do X?" Task-oriented, e.g.
@@ -13,6 +13,22 @@ content, each answering a different question about the same subject.
 
 If a term needs defining, it goes in reference. If a module's design needs
 justifying, it goes in explanation.
+
+## Reference
+
+Exact rules, configuration and data contracts as they ship today. Each page
+pairs with the explanation module doc that carries the reasoning.
+
+- [Analysis](reference/analysis.md) — engine configuration, classification
+  thresholds, persisted shapes, cache behavior
+- [Opening data](reference/opening-data.md) — what opening information is
+  stored, how names are derived, who consumes them
+- [Repertoire](reference/repertoire.md) — extraction parameters, judgment
+  types and contracts, adherence floors
+- [Drills](reference/drills.md) — origins, eligibility and selection rules,
+  queue contract, FSRS configuration
+- [Glossary](reference/glossary.md) — the chess domain vocabulary
+- [Repository layout](reference/repository-layout.md)
 
 ## How-to
 

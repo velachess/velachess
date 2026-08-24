@@ -6,6 +6,9 @@ classification, plus one game runner that drives an `EngineSession` the
 caller provides. The caller wires db and transport — same boundary rule as
 `libs/repertoire`.
 
+Exact values — engine configuration, thresholds, persisted shapes — live in
+`docs/reference/analysis.md`. This document is the reasoning.
+
 ## Flow
 
 ```
@@ -55,7 +58,7 @@ pins it to Lichess's public implementation, same inputs, same expected
 outputs:
 
 | What                                                       | Reference source                                                                                                                            |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Win% formula + cp ceiling + mate mapping                   | `scalachess core/src/main/scala/eval.scala` (`WinPercent.winningChances`, `fromCentiPawns`, `fromMate`); prose at lichess.org/page/accuracy |
 | Judgment thresholds (.1/.2/.3 win-chance drop)             | `lila modules/tree/src/main/Advice.scala` (`CpAdvice.winningChanceJudgements`)                                                              |
 | Move accuracy curve (exact constants, +1 bonus)            | `lila modules/analyze/src/main/AccuracyPercent.scala` (`fromWinPercents`)                                                                   |
@@ -65,6 +68,11 @@ outputs:
 Lichess's constants come from a regression over real games
 (lichess-org/lila#11148) — the empirical grounding the classifier
 inherits by matching the implementation exactly.
+
+The accuracy half of this port (`moveAccuracy`, `gameAccuracy`) is fully
+tested and not yet wired into any product surface — it exists so an accuracy
+number, when the product wants one, matches what players already know from
+the reference site.
 
 ## Classification
 
@@ -76,7 +84,10 @@ zero). `toEngineCategory` collapses the five report categories into the
 `deviations` table's four-value severity enum (`best`/`good` → `ok`).
 
 No rating-based adjustment — a deliberate cut, revisited only with real
-user data to calibrate against.
+user data to calibrate against. Two consequences of the win-chance curve
+worth knowing when reading reports: losing ground in an already-decided
+position barely moves the number (the curve is flat far from zero), while
+the same centipawn swing near equality can cross two thresholds.
 
 ## Game runner
 
@@ -85,6 +96,12 @@ one search per ply, and yields a `position` event as each ply completes —
 the streaming shape a future transport (SSE route handler or otherwise)
 can forward as-is — then `done` with the full report. A terminal final
 position (mate/stalemate) gets a saturated eval directly, no search.
+
+In production the worker runs this at **depth 12** — set in
+`process-analysis.ts`, not here; `analyzeGame`'s own default (14) is never
+used in production. Depth is the single biggest lever on classification
+quality: the engine at depth 12 with no MultiPV can only compare the played
+move against one principal variation.
 
 Failure policy: each search runs under a watchdog
 (`3000 + depth·400` ms, clamped to [5s, 30s]). On timeout the engine is
@@ -95,22 +112,32 @@ a second failure throws. `EngineSession.init` itself has a handshake
 timeout for the same reason: a hung engine must fail loudly, not stall a
 queue.
 
-## Persistence (lives in libs/infra/db, not here)
+## Persistence and execution (lives in libs/infra, not here)
 
 `game_analyses` stores the full per-ply report as jsonb, one row per game
 with a unique index — **row existence is the analyzed/not-analyzed
 distinction**, and the row doubles as the whole-report cache
 (re-enqueueing an analyzed game is a no-op). Category counters are
-derivable from the jsonb and deliberately not materialized.
+derivable from the jsonb and deliberately not materialized. The cache has
+no invalidation: a report produced under yesterday's engine settings stays
+until someone decides otherwise, which is why `depth` and `engine_version`
+ride on every row.
 
-`analysis_jobs` and `sync_jobs` are two separate queues on the same
-`job_status` enum — analysis is CPU-bound on the engine, sync is I/O-bound
-on third-party APIs, and they retry differently. Claiming uses
-`FOR UPDATE SKIP LOCKED`, so two workers never take the same job, with no
-queue infrastructure beyond Postgres itself.
+Delivery is pg-boss (`libs/infra/queue`): the HTTP route only enqueues, the
+worker consumer invokes `completeAnalysis`, and pg-boss owns retry, backoff
+and concurrency. Execution ownership is the session advisory lock in
+`libs/infra/db/advisory-lock.ts` — an application invariant covering
+HTTP-vs-worker races, not queue dedup; both layers are needed.
+
+While a run is live, each graded ply is committed immediately as an
+`analysis_progress` row under the run's own `run_id` — a progress row inside
+the final transaction would be invisible to the connection streaming it. The
+completion transaction writes the report and fills every existing judgment's
+severity together; the progress rows are then deleted. A crashed run's
+leftovers stay under their dead `run_id` and readers only follow the newest.
 
 `applyEngineSignal` fills the `cp_loss`/`engine_category` columns cycle 0
-created nullable — the severity signal cycle 3's triage rule consumes.
+created nullable — the severity signal drill triage consumes.
 
 ## Testing
 
@@ -128,9 +155,10 @@ above against a real database.
 
 ```
 winchance.ts          cp → win chance (±1000 ceiling, mate via ceiling), winPercent
-accuracy.ts           moveAccuracy, gameAccuracy — reference port
+accuracy.ts           moveAccuracy, gameAccuracy — reference port (no product callers yet)
 score.ts              side-to-move POV → white POV, once
 classify.ts           5 categories, reference thresholds, toEngineCategory, cpLoss
+phase.ts              gamePhaseOf — opening/middlegame/endgame heuristic (insights only)
 uci.ts                Move → UCI string (bestmove comparison)
 analyze-game.ts       analyzeGame — events, watchdog, retry-once
 deviation-signal.ts   engineSignalForDeviation — analysis × judgment

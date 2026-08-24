@@ -38,7 +38,7 @@ apps/web            TanStack Start SPA — behavior slices per area, no componen
 libs/application    what the system does: one vertical slice per request/use case
                     accounts/{connect-account,sync-account}  games/{list-games,get-game? via db,judge-games}
                     analysis/{request-analysis,process-analysis,get-analysis,watch-analysis}
-                    drills/{seed-exercises,get-drill-queue,get-next-drill,submit-answer}
+                    drills/{seed-exercises,get-next-drill,submit-answer}
                     repertoires/{extract-repertoire,list-repertoires,…}  insights/  overview/  deviations/  auth/
 libs/infra          technical mechanisms, one package each
                     db (drizzle schema/migrations/shared queries/advisory lock), queue (pg-boss behind ports),

@@ -222,10 +222,11 @@ at read time, never stored as its own flag.
 
 **DRILLABLE**: A judged deviation that deserves to become a drilling
 exercise: the player's own move (not the opponent's), with a prepared
-answer to recall, and confirmed by engine analysis to have actually hurt
-the position. Deviations to equally good moves and deviations not yet
-analyzed are excluded — a review queue full of non-mistakes teaches
-nothing.
+answer to recall. Engine severity is deliberately not required — leaving a
+prepared line for an equally sound move is still a broken decision worth
+retraining, and the engine cannot see it. The engine-mistake drill origin
+covers the "did it hurt" question separately, with its own severity floor
+and per-game budget.
 
 **ADHERENCE**: How faithfully a player follows their own prepared
 repertoire in real games. A game is unfaithful only when the player
@@ -236,6 +237,27 @@ games; games below a minimum ply floor are skipped as too short to say
 anything. A companion pair of win rates — inside vs. outside book —
 answers the separate question of whether the preparation is actually
 helping.
+
+**JUDGMENT (VelaChess)**: The persisted outcome of comparing one game with
+one repertoire, exactly one of: "deviation" (the owner's own move left the
+prepared line), "gap" (the opponent played an unprepared reply),
+"book-ended" (the game continued past everything prepared), "completed"
+(the whole game stayed inside the tree), or "unmatched" (no chapter could
+judge the game). One judgment row per (game, repertoire); the walk stops at
+the first mismatch. See `docs/reference/repertoire.md`.
+
+**EXERCISE / DRILL (VelaChess)**: An exercise is one position (keyed by
+EPD, per user) with one or more accepted answers in SAN; a drill is the act
+of practising it. An exercise can carry several provenance records
+(origins): a repertoire deviation, an engine-flagged mistake, or a
+repertoire line's decision position. Scheduling is per exercise, through
+one FSRS card. See `docs/reference/drills.md`.
+
+**DECISION POSITION (VelaChess)**: A position in a repertoire chapter where
+it is the owner's turn and the tree prepares at least one response.
+Decision positions are the trainable unit of a chapter: each one seeds an
+exercise the moment the chapter lands. Transposing branches collapse into
+one decision position with the union of prepared responses.
 
 ## Engines and analysis
 
@@ -269,6 +291,13 @@ engine evaluations, historically 100 centipawns to one pawn. Modern
 Stockfish normalizes this scale around expected winning chances, so it
 should not be interpreted as literal material difference. Source note:
 Stockfish FAQ.
+
+**WIN CHANCE**: A win-probability scale derived from an engine evaluation,
+used instead of raw centipawn loss so that the same eval swing counts less
+in already-decided positions. General concept; VelaChess uses the Lichess
+regression model (centipawns ceiled at ±1000, mate scores mapped through
+the same ceiling) and classifies moves by win-chance loss thresholds
+0.10/0.20/0.30. See `docs/reference/analysis.md` for the exact rules.
 
 **WDL — Win/Draw/Loss**: A probability-based evaluation output (percentage
 chance of winning, drawing, or losing under the engine's model) offered
