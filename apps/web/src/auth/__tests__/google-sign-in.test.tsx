@@ -137,6 +137,22 @@ describe("coming back from Google without a session", () => {
     expect(await screen.findByText("Google sign-in was cancelled.")).toBeInTheDocument();
   });
 
+  it("points to the password form when the email is already a password account", async () => {
+    sessionInactive();
+    signInMethodsAre({ google: true });
+
+    // account_not_linked is Better Auth's code for an existing password
+    // account at that email — retrying Google never helps, so it must not
+    // get the generic "didn't complete, try again" copy.
+    await renderApp({ path: "/login?error=account_not_linked" });
+
+    expect(
+      await screen.findByText(
+        "An account already exists with that email. Sign in with your password instead.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("says something went wrong for every other reason, without echoing the code", async () => {
     sessionInactive();
     signInMethodsAre({ google: true });

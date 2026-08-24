@@ -107,6 +107,11 @@ msgstr ""
 msgid "{rate} of {count, plural, one {# game} other {# games}}"
 msgstr ""
 
+#: src/games/import/sync-games-button.tsx:31
+#: src/games/request-analysis/analysis-status.tsx:19
+msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+msgstr ""
+
 #: src/games/open-game/game-analysis.tsx:30
 msgid "{white} vs {black}"
 msgstr ""
@@ -128,6 +133,10 @@ msgstr ""
 
 #: src/games/import/sync-games-button.tsx:20
 msgid "Already up to date"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:52
+msgid "An account already exists with that email. Sign in with your password instead."
 msgstr ""
 
 #: src/shared/ui/route-error.tsx:15
@@ -1107,11 +1116,6 @@ msgstr ""
 
 #: src/shared/ui/route-error.tsx:16
 msgid "Try again"
-msgstr ""
-
-#: src/games/import/sync-games-button.tsx:31
-#: src/games/request-analysis/analysis-status.tsx:19
-msgid "Try again in {seconds} seconds."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:25

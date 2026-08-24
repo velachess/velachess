@@ -26,7 +26,7 @@ const loginSearchSchema = z.object({
   error: z
     .string()
     .max(64)
-    .regex(/^[a-z_]+$/i, { message: "error must be an OAuth error code" })
+    .regex(/^[a-z0-9_-]+$/i, { message: "error must be an OAuth error code" })
     .optional()
     .catch(undefined),
 });

@@ -1,7 +1,8 @@
 /**
  * Social sign-in. OAuth itself (state, PKCE, secrets) is Better Auth's,
- * server-side; the return lands on `/auth/callback/google` — the API's
- * route, not the SPA's. This file only decides where the person ends up.
+ * server-side; the return lands on `/api/auth/callback/google` — the
+ * API's route, not the SPA's. This file only decides where the person
+ * ends up.
  */
 
 import { authClient } from "../client.ts";

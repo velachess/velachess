@@ -107,6 +107,11 @@ msgstr "{rate} adherence over {games} judged games · prep runs {depth} moves de
 msgid "{rate} of {count, plural, one {# game} other {# games}}"
 msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 
+#: src/games/import/sync-games-button.tsx:31
+#: src/games/request-analysis/analysis-status.tsx:19
+msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+
 #: src/games/open-game/game-analysis.tsx:30
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
@@ -129,6 +134,10 @@ msgstr "Across {games, plural, one {# analysed game} other {# analysed games}}."
 #: src/games/import/sync-games-button.tsx:20
 msgid "Already up to date"
 msgstr "Already up to date"
+
+#: src/auth/sign-in/sign-in-screen.tsx:52
+msgid "An account already exists with that email. Sign in with your password instead."
+msgstr "An account already exists with that email. Sign in with your password instead."
 
 #: src/shared/ui/route-error.tsx:15
 msgid "An unexpected error interrupted this screen."
@@ -1108,11 +1117,6 @@ msgstr "Training"
 #: src/shared/ui/route-error.tsx:16
 msgid "Try again"
 msgstr "Try again"
-
-#: src/games/import/sync-games-button.tsx:31
-#: src/games/request-analysis/analysis-status.tsx:19
-msgid "Try again in {seconds} seconds."
-msgstr "Try again in {seconds} seconds."
 
 #: src/games/import/sync-games-button.tsx:25
 msgid "Try again in a moment."

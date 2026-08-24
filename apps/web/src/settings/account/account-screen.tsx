@@ -37,6 +37,7 @@ const ACCOUNT_COPY = {
   name: msg`Name`,
   nameHint: msg`How you're shown in the app.`,
   nameRequired: msg`Enter a name.`,
+  nameTooLong: msg`Keep it under 100 characters.`,
   email: msg`Email`,
   emailFixed: msg`Your email is tied to how you signed up and can't be changed here.`,
   save: msg`Save`,
@@ -105,7 +106,11 @@ export function AccountScreen() {
               <form.Field
                 name="name"
                 validators={{
-                  onSubmit: z.string().trim().min(1, i18n._(ACCOUNT_COPY.nameRequired)),
+                  onSubmit: z
+                    .string()
+                    .trim()
+                    .min(1, i18n._(ACCOUNT_COPY.nameRequired))
+                    .max(100, i18n._(ACCOUNT_COPY.nameTooLong)),
                 }}
               >
                 {(field) => {
@@ -124,7 +129,12 @@ export function AccountScreen() {
                         aria-invalid={isInvalid}
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
+                        onChange={(event) => {
+                          field.handleChange(event.target.value);
+                          // Otherwise "Saved." (or a stale error) outlives
+                          // the edit it no longer describes.
+                          rename.reset();
+                        }}
                         disabled={rename.isPending}
                       />
                       <FieldDescription>{i18n._(ACCOUNT_COPY.nameHint)}</FieldDescription>

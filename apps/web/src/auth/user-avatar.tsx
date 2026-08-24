@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@velachess/ui/components/av
 
 import type { SessionUser } from "./client.ts";
 
-/** First and last initial; falls back to the email's first letter. */
 function initialsOf(user: Pick<SessionUser, "name" | "email">): string {
   const words = user.name.trim().split(/\s+/).filter(Boolean);
   const letters = [words[0], words.length > 1 ? words.at(-1) : undefined]
@@ -27,7 +26,9 @@ export function UserAvatar({
 }) {
   return (
     <Avatar size={size} {...(className ? { className } : {})}>
-      {user.image ? <AvatarImage src={user.image} alt="" /> : null}
+      {user.image ? (
+        <AvatarImage src={user.image} alt="" referrerPolicy="no-referrer" />
+      ) : null}
       <AvatarFallback>{initialsOf(user)}</AvatarFallback>
     </Avatar>
   );

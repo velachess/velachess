@@ -25,23 +25,15 @@ export default defineConfig({
     // a container (VS Code's Dev Container port forwarding needs a real
     // listening interface, not the container's internal loopback).
     host: true,
-    // The API has no CORS middleware by design — the browser only ever talks
-    // to this origin, and /api is rewritten onto the API in dev.
+    // The browser only ever talks to this origin; /api is rewritten onto
+    // the API in dev. The Google OAuth return leg lands here too — the
+    // provider is configured with an explicit redirectURI under /api
+    // (libs/infra/auth/auth.ts), so it needs no second proxy rule.
     proxy: {
       "/api": {
         target: API_TARGET,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
-      },
-      // The OAuth return leg — the one request the browser does not choose
-      // the URL for. Better Auth builds its redirect_uri from its own
-      // baseURL and basePath, so Google sends the user to
-      // `<origin>/auth/callback/google`, with no /api prefix to rewrite
-      // away. Forwarded verbatim, since the API already mounts auth at
-      // /auth/*. A production reverse proxy needs the same location.
-      "/auth": {
-        target: API_TARGET,
-        changeOrigin: true,
       },
     },
   },

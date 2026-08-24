@@ -16,7 +16,7 @@ const STATUS_COPY = {
 const analyzingLabel = (graded: number, total: number) =>
   msg`Analyzing move ${graded} of ${total}…`;
 
-const rateLimitedRetry = msg`Try again in {seconds} seconds.`;
+const rateLimitedRetry = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 export interface AnalysisStatusProps {
   graded: number;
@@ -51,7 +51,9 @@ export function AnalysisStatus({
             <AlertDescription>
               {i18n._({
                 ...rateLimitedRetry,
-                values: { seconds: i18n.number(retryAfterSeconds) },
+                // Raw, not i18n.number()'d: the plural rule itself picks
+                // the category from the number, and `#` formats it.
+                values: { seconds: retryAfterSeconds },
               })}
             </AlertDescription>
           </Alert>

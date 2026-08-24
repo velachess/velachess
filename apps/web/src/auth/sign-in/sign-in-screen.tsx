@@ -49,6 +49,7 @@ const SIGN_IN_COPY = {
   or: msg`Or continue with`,
   googleCancelled: msg`Google sign-in was cancelled.`,
   googleFailed: msg`Google sign-in didn't complete. Try again.`,
+  googleAccountNotLinked: msg`An account already exists with that email. Sign in with your password instead.`,
 } as const;
 
 const FAILURE_COPY: Record<
@@ -59,12 +60,18 @@ const FAILURE_COPY: Record<
   unavailable: SIGN_IN_COPY.unavailable,
 };
 
-// access_denied is OAuth's "the person said no"; everything else reads
-// as a retryable failure. The raw code is never rendered.
+/** OAuth's own "the person said no". */
+const OAUTH_ERROR_ACCESS_DENIED = "access_denied";
+/** Better Auth refusing to attach Google to an existing password account —
+ * retrying never succeeds, so it gets its own copy. */
+const OAUTH_ERROR_ACCOUNT_NOT_LINKED = "account_not_linked";
+
+// Everything else reads as a retryable failure. The raw code is never
+// rendered.
 function oauthErrorCopy(code: string) {
-  return code === "access_denied"
-    ? SIGN_IN_COPY.googleCancelled
-    : SIGN_IN_COPY.googleFailed;
+  if (code === OAUTH_ERROR_ACCESS_DENIED) return SIGN_IN_COPY.googleCancelled;
+  if (code === OAUTH_ERROR_ACCOUNT_NOT_LINKED) return SIGN_IN_COPY.googleAccountNotLinked;
+  return SIGN_IN_COPY.googleFailed;
 }
 
 /**
@@ -118,9 +125,11 @@ export function SignInScreen({
     setGooglePending(true);
     try {
       await signInWithGoogle({ callbackURL: redirect ?? "/", redirect });
+      // No `finally`: on success the browser is navigating away, and
+      // re-enabling the button here would let a click race that navigation
+      // and start a second flow before it lands.
     } catch {
       setGoogleFailed(true);
-    } finally {
       setGooglePending(false);
     }
   };

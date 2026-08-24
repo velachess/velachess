@@ -1,7 +1,7 @@
 /** Account reads/writes — Better Auth's own endpoints, never our API. */
 
 import { authClient } from "../../auth/client.ts";
-import { fetchSession, sessionQueryKey } from "../../auth/session.ts";
+import { sessionQueryKey } from "../../auth/session.ts";
 import {
   queryOptions,
   useMutation,
@@ -39,9 +39,11 @@ export function useRenameSelf() {
       const { error } = await authClient.updateUser({ name });
       if (error) throw new Error(`could not update profile (${error.status})`);
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       // The shell reads the name from the session query — refresh it.
-      queryClient.setQueryData(sessionQueryKey, await fetchSession());
+      // Invalidate rather than refetch-then-set: a network blip here must
+      // not turn a rename that already succeeded into a shown failure.
+      return queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     },
   });
 }

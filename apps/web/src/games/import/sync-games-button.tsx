@@ -28,7 +28,7 @@ const SYNC_COPY = {
 // Parameterised, so it lives outside the const table the way the insights
 // coverage line does. The wait is the one fact that makes this toast
 // actionable — "a moment" invites an immediate retry; a number does not.
-const retryIn = msg`Try again in {seconds} seconds.`;
+const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 export function SyncGamesButton() {
   const { i18n } = useLingui();
@@ -42,7 +42,9 @@ export function SyncGamesButton() {
           title: i18n._(SYNC_COPY.tooSoon),
           description: i18n._({
             ...retryIn,
-            values: { seconds: i18n.number(outcome.retryAfterSeconds) },
+            // Raw, not i18n.number()'d: the plural rule itself picks the
+            // category from the number, and `#` formats it.
+            values: { seconds: outcome.retryAfterSeconds },
           }),
         });
         return;
