@@ -11,10 +11,26 @@ import { describe, expect, it } from "vitest";
 
 import {
   countryCodeFromUrl,
-  EMPTY_PROFILE,
+  type ProfileFetch,
   fetchChessComProfile,
   fetchLichessProfile,
 } from "../providers/profile.ts";
+
+/** Narrows the union for field assertions — a failed ask fails loudly here
+ * instead of producing misleading undefined-field mismatches below. */
+function fetchedProfile(result: ProfileFetch) {
+  if (result.status !== "fetched")
+    throw new Error(`expected fetched, got ${result.status}`);
+  return result.profile;
+}
+
+async function fetchedChessCom(username: string, fetch: typeof globalThis.fetch) {
+  return fetchedProfile(await fetchChessComProfile(username, { fetch }));
+}
+
+async function fetchedLichess(username: string, fetch: typeof globalThis.fetch) {
+  return fetchedProfile(await fetchLichessProfile(username, { fetch }));
+}
 
 function respondWith(body: unknown, ok = true): typeof globalThis.fetch {
   return (async () =>
@@ -72,9 +88,7 @@ describe("countryCodeFromUrl", () => {
 
 describe("fetchChessComProfile", () => {
   it("reads the avatar and the country off a real response", async () => {
-    const profile = await fetchChessComProfile("yurimutti", {
-      fetch: respondWith(CHESS_COM_REAL),
-    });
+    const profile = await fetchedChessCom("yurimutti", respondWith(CHESS_COM_REAL));
 
     expect(profile.avatarUrl).toBe(CHESS_COM_REAL.avatar);
     expect(profile.countryCode).toBe("BR");
@@ -85,39 +99,39 @@ describe("fetchChessComProfile", () => {
   it("does not mistake `location` for the country", async () => {
     // The captured account declares BR and sits in Spain. Reading
     // `location` would fly a Spanish flag over a Brazilian player.
-    const profile = await fetchChessComProfile("yurimutti", {
-      fetch: respondWith({ ...CHESS_COM_REAL, country: undefined }),
-    });
+    const profile = await fetchedChessCom(
+      "yurimutti",
+      respondWith({ ...CHESS_COM_REAL, country: undefined }),
+    );
 
     expect(profile.countryCode).toBeNull();
   });
 
-  it("comes back empty for an account with neither", async () => {
-    const profile = await fetchChessComProfile("someone", {
-      fetch: respondWith({ username: "someone" }),
-    });
+  it("answers an empty profile for an account with neither — an answer, not a failure", async () => {
+    const profile = await fetchedChessCom(
+      "someone",
+      respondWith({ username: "someone" }),
+    );
 
     expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
-  it("comes back empty rather than throwing on a 404", async () => {
+  it("reports failed on a 404 rather than throwing", async () => {
     // A profile decorates a name; failing here would take the game down
-    // with it.
-    const profile = await fetchChessComProfile("nobody", {
+    // with it. Failed — not an empty answer — so cached identity stands.
+    const result = await fetchChessComProfile("nobody", {
       fetch: respondWith(null, false),
     });
 
-    expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
+    expect(result).toEqual({ status: "failed" });
   });
 
   it("does not call out at all for a username that cannot exist", async () => {
     let called = false;
-    const profile = await fetchChessComProfile("!!bad!!", {
-      fetch: (async () => {
-        called = true;
-        return {} as Response;
-      }) as typeof globalThis.fetch,
-    });
+    const profile = await fetchedChessCom("!!bad!!", (async () => {
+      called = true;
+      return {} as Response;
+    }) as typeof globalThis.fetch);
 
     expect(called).toBe(false);
     expect(profile.avatarUrl).toBeNull();
@@ -126,17 +140,16 @@ describe("fetchChessComProfile", () => {
 
 describe("fetchLichessProfile", () => {
   it("has no avatar to report, because Lichess has none", async () => {
-    const profile = await fetchLichessProfile("yurimutti", {
-      fetch: respondWith(LICHESS_REAL_EMPTY),
-    });
+    const profile = await fetchedLichess("yurimutti", respondWith(LICHESS_REAL_EMPTY));
 
     expect(profile.avatarUrl).toBeNull();
   });
 
   it("reads the flag once the person has set one", async () => {
-    const profile = await fetchLichessProfile("someone", {
-      fetch: respondWith({ id: "someone", profile: { flag: "br" } }),
-    });
+    const profile = await fetchedLichess(
+      "someone",
+      respondWith({ id: "someone", profile: { flag: "br" } }),
+    );
 
     expect(profile.countryCode).toBe("BR");
   });
@@ -144,42 +157,42 @@ describe("fetchLichessProfile", () => {
   it("reads the flair off a real response, where it sits at the top level", async () => {
     // Captured off DrNykterstein: `flair` is a sibling of `profile`, not
     // inside it, and it is an asset id rather than an image URL.
-    const profile = await fetchLichessProfile("DrNykterstein", {
-      fetch: respondWith(LICHESS_REAL_FLAIRED),
-    });
+    const profile = await fetchedLichess(
+      "DrNykterstein",
+      respondWith(LICHESS_REAL_FLAIRED),
+    );
 
     expect(profile.flair).toBe("people.santa-claus-light-skin-tone");
     expect(profile.avatarUrl).toBeNull();
   });
 
   it("comes back without a flair when none is set", async () => {
-    const profile = await fetchLichessProfile("yurimutti", {
-      fetch: respondWith(LICHESS_REAL_EMPTY),
-    });
+    const profile = await fetchedLichess("yurimutti", respondWith(LICHESS_REAL_EMPTY));
 
     expect(profile.flair).toBeNull();
   });
 
   it("ignores a flag that is not a country code", async () => {
     // Lichess also accepts region and custom flags like `_lichess`.
-    const profile = await fetchLichessProfile("someone", {
-      fetch: respondWith({ id: "someone", profile: { flag: "_lichess" } }),
-    });
+    const profile = await fetchedLichess(
+      "someone",
+      respondWith({ id: "someone", profile: { flag: "_lichess" } }),
+    );
 
     expect(profile.countryCode).toBeNull();
   });
 
   it("fails soft when fetch rejects (network error)", async () => {
-    const profile = await fetchChessComProfile("someone", {
+    const result = await fetchChessComProfile("someone", {
       fetch: async () => {
         throw new Error("network error");
       },
     });
-    expect(profile).toEqual(EMPTY_PROFILE);
+    expect(result).toEqual({ status: "failed" });
   });
 
-  it("fails soft when response body is invalid JSON", async () => {
-    const profile = await fetchChessComProfile("someone", {
+  it("treats an unreadable body as failed, not as an empty answer", async () => {
+    const result = await fetchChessComProfile("someone", {
       fetch: async () =>
         Object.assign(
           {
@@ -191,15 +204,15 @@ describe("fetchLichessProfile", () => {
           {} as Response,
         ),
     });
-    expect(profile).toEqual(EMPTY_PROFILE);
+    expect(result).toEqual({ status: "failed" });
   });
 
-  it("fails soft when request is aborted", async () => {
-    const profile = await fetchLichessProfile("someone", {
+  it("reports failed when request is aborted", async () => {
+    const result = await fetchLichessProfile("someone", {
       fetch: async () => {
         throw new DOMException("Aborted", "AbortError");
       },
     });
-    expect(profile).toEqual(EMPTY_PROFILE);
+    expect(result).toEqual({ status: "failed" });
   });
 });

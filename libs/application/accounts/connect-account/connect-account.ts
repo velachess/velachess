@@ -42,11 +42,13 @@ async function warmProfileCache(
   if (cached && isProfileFresh(cached.fetchedAt)) return;
 
   const opts = deps.fetch ? { fetch: deps.fetch } : {};
-  const profile =
+  const fetched =
     platform === "chess_com"
       ? await fetchChessComProfile(username, opts)
       : await fetchLichessProfile(username, opts);
-  await upsertProviderProfile(db, { platform, username }, profile);
+  // The write-through decides what a failed ask keeps versus what an
+  // answer overwrites; connecting only needs the side effect.
+  await upsertProviderProfile(db, { platform, username }, fetched);
 }
 
 /**

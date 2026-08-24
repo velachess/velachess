@@ -18,7 +18,11 @@ import {
   type ProviderSeat,
 } from "@velachess/db";
 import type { FetchFn } from "@velachess/platforms";
-import { fetchChessComProfile, fetchLichessProfile } from "@velachess/platforms";
+import {
+  fetchChessComProfile,
+  fetchLichessProfile,
+  type ProfileFetch,
+} from "@velachess/platforms";
 
 type CachedProfile = Awaited<ReturnType<typeof findProviderProfiles>>[number];
 
@@ -31,21 +35,22 @@ export interface SeatIdentity {
 
 const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null };
 
+/** Ask the provider once. The fetchers fail soft by contract — a dead
+ * provider answers `failed`, never throws — so an outage costs the
+ * decoration, never the game. */
 async function fetchProfile(
   seat: ProviderSeat,
   doFetch: FetchFn | undefined,
-): Promise<SeatIdentity> {
+): Promise<ProfileFetch> {
   const opts = doFetch ? { fetch: doFetch } : {};
-  // Fail soft by contract — the fetchers answer an empty profile rather
-  // than throw, so a dead provider costs the decoration, never the game.
-  const profile =
-    seat.platform === "chess_com"
-      ? await fetchChessComProfile(seat.username, opts)
-      : await fetchLichessProfile(seat.username, opts);
-  return { avatarUrl: profile.avatarUrl, flair: profile.flair };
+  return seat.platform === "chess_com"
+    ? fetchChessComProfile(seat.username, opts)
+    : fetchLichessProfile(seat.username, opts);
 }
 
-/** Cache first; on miss or staleness, ask the provider once and keep the answer. */
+/** Cache first; on miss or staleness, ask the provider once and serve
+ * what the write-through actually kept — after a failed ask that is the
+ * stored identity, not the emptiness the outage produced. */
 async function resolveSeatIdentity(
   db: Database,
   seat: ProviderSeat,
@@ -56,9 +61,8 @@ async function resolveSeatIdentity(
     return { avatarUrl: cached.avatarUrl, flair: cached.flair };
   }
 
-  const fresh = await fetchProfile(seat, doFetch);
-  await upsertProviderProfile(db, seat, fresh);
-  return fresh;
+  const stored = await upsertProviderProfile(db, seat, await fetchProfile(seat, doFetch));
+  return { avatarUrl: stored.avatarUrl, flair: stored.flair };
 }
 
 export async function getGameForReview(

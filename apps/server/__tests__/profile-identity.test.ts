@@ -32,6 +32,9 @@ const LICHESS_FLAIR = "people.santa-claus-light-skin-tone";
 function fakeSyncFetch() {
   const base = chessComFixtureFetch();
   let profilesUp = true;
+  /** 200 OK without an `avatar` key — the "answer says there is none" case,
+   * distinct from a failed request. */
+  let avatarless = false;
   const profileRequests: string[] = [];
 
   const doFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -41,6 +44,12 @@ function fakeSyncFetch() {
       const username = url.split("/").pop()!.toLowerCase();
       profileRequests.push(`chess_com:${username}`);
       if (!profilesUp) return new Response("unavailable", { status: 503 });
+      if (avatarless) {
+        return Response.json({
+          username,
+          country: "https://api.chess.com/pub/country/BR",
+        });
+      }
       return Response.json({
         username,
         avatar: username === "rival" ? RIVAL_AVATAR : CHESS_COM_AVATAR,
@@ -76,6 +85,7 @@ function fakeSyncFetch() {
   return {
     fetch: doFetch,
     setProfilesUp: (up: boolean) => void (profilesUp = up),
+    setAvatarless: (value: boolean) => void (avatarless = value),
     profileRequests,
   };
 }
@@ -146,6 +156,8 @@ describe("provider profile identity on game review", () => {
     expect(response.status).toBe(200);
 
     const body = (await response.json()) as GameView;
+    console.log("PROBE-BODY:", JSON.stringify(body));
+    console.log("PROBE-REQS:", JSON.stringify(sync.profileRequests));
     expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
     expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
 
@@ -224,26 +236,31 @@ describe("provider profile identity on game review", () => {
     }
   });
 
-  it("a dead profile endpoint costs the decoration, not the game", async () => {
-    // Forget the cache so both seats are cold, then blackhole the provider.
-    await harness.db.delete(providerProfiles);
+  it("a failed ask keeps serving the stored identity", async () => {
+    // The cache holds real values from the tests above; an outage must age
+    // the refresh window without blanking them — and the response must say
+    // what the database kept, not what the outage produced.
     sync.setProfilesUp(false);
     try {
+      const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      await harness.db.update(providerProfiles).set({ fetchedAt: stale });
+
       const game = await firstGameId(owner, "chess_com", "looper");
       const response = await openGame(owner, game);
       expect(response.status).toBe(200);
 
       const body = (await response.json()) as GameView;
-      expect(body.whiteIdentity).toEqual({ avatarUrl: null, flair: null });
-      expect(body.blackIdentity).toEqual({ avatarUrl: null, flair: null });
+      expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
+      expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
     } finally {
       sync.setProfilesUp(true);
     }
   });
 
   it("an entry past its refresh window is asked for again", async () => {
-    // The failed attempts above wrote negative entries — they age out
-    // like any other, instead of pinning initials for a refresh cycle.
+    // The outage above re-stamped both rows while keeping their values —
+    // aging them past the window must ask again, and a healthy provider
+    // writes its answers through.
     const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
     await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
@@ -257,5 +274,26 @@ describe("provider profile identity on game review", () => {
     expect(body.blackIdentity.avatarUrl).toBe(RIVAL_AVATAR);
     // One request per seat, both seats asked.
     expect(sync.profileRequests.slice(before)).toHaveLength(2);
+  });
+
+  it("a successful answer with no avatar clears the stored one", async () => {
+    // Removal is a real event: once the provider answers OK without an
+    // avatar, the cached picture must go — unlike a failed ask, which
+    // preserves it. Initials until the player uploads one again.
+    sync.setAvatarless(true);
+    try {
+      const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+      await harness.db.update(providerProfiles).set({ fetchedAt: stale });
+
+      const game = await firstGameId(owner, "chess_com", "looper");
+      const response = await openGame(owner, game);
+      expect(response.status).toBe(200);
+
+      const body = (await response.json()) as GameView;
+      expect(body.whiteIdentity).toEqual({ avatarUrl: null, flair: null });
+      expect(body.blackIdentity).toEqual({ avatarUrl: null, flair: null });
+    } finally {
+      sync.setAvatarless(false);
+    }
   });
 });

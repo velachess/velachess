@@ -53,27 +53,41 @@ export async function findProviderProfiles(db: Database, seats: readonly Provide
 }
 
 /**
- * Write-through for one handle. `fetchedAt` is stamped on EVERY attempt —
- * a provider outage must cost one try per refresh window, not one per
- * game open — while an answer that came back without a field leaves the
- * stored value alone: decoration that failed to load once must not erase
- * an identity that was already read.
+ * Write-through for one handle, returning the row as it now stands.
+ *
+ * The two outcomes of a read persist differently: `fetched` is an answer
+ * and overwrites the identity fields — nulls included, because avatars do
+ * get removed — while `failed` only ages the refresh window and whatever
+ * was stored stands until a successful read speaks. `fetchedAt` is
+ * stamped on EVERY attempt either way, so an outage costs one try per
+ * window, not one per game open.
  */
 export async function upsertProviderProfile(
   db: Database,
   seat: ProviderSeat,
-  profile: { avatarUrl: string | null; flair: string | null },
-): Promise<void> {
+  fetched:
+    | { status: "fetched"; profile: { avatarUrl: string | null; flair: string | null } }
+    | { status: "failed" },
+) {
   const username = normalize(seat.username);
-  await db
+  const [row] = await db
     .insert(providerProfiles)
-    .values({ platform: seat.platform, username, ...profile })
+    .values({
+      platform: seat.platform,
+      username,
+      ...(fetched.status === "fetched"
+        ? { avatarUrl: fetched.profile.avatarUrl, flair: fetched.profile.flair }
+        : {}),
+    })
     .onConflictDoUpdate({
       target: [providerProfiles.platform, providerProfiles.username],
       set: {
         fetchedAt: new Date(),
-        ...(profile.avatarUrl !== null ? { avatarUrl: profile.avatarUrl } : {}),
-        ...(profile.flair !== null ? { flair: profile.flair } : {}),
+        ...(fetched.status === "fetched"
+          ? { avatarUrl: fetched.profile.avatarUrl, flair: fetched.profile.flair }
+          : {}),
       },
-    });
+    })
+    .returning();
+  return row!;
 }
