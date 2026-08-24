@@ -16,6 +16,13 @@ export interface ResolvedAuthEnv {
   secureCookies: boolean;
   /** The baseUrl origin plus any VELACHESS_TRUSTED_ORIGINS entries. */
   trustedOrigins: string[];
+  /** Google OAuth credentials, when both are present. Absent means the
+   * provider is simply not offered. */
+  google?: { clientId: string; clientSecret: string };
+  /** Addresses of the reverse proxies in front of the API, from
+   * VELACHESS_TRUSTED_PROXIES. Absent behind a proxy collapses every
+   * client into one rate-limit bucket — see AuthConfig.trustedProxies. */
+  trustedProxies?: string[];
   /** Production served over plain http — legal for a LAN self-host, but
    * main.ts warns loudly: session cookies ride unencrypted. */
   insecureProductionTransport: boolean;
@@ -97,11 +104,40 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     }
   }
 
+  // Google OAuth is optional, but half-configured is not: one variable
+  // without the other means somebody intended to enable sign-in with
+  // Google and stopped halfway. Better Auth would accept the empty
+  // credential and only fail at the redirect, as a broken button in
+  // production — so it fails here, at boot, where it is legible.
+  const googleId = env["GOOGLE_CLIENT_ID"]?.trim();
+  const googleSecret = env["GOOGLE_CLIENT_SECRET"]?.trim();
+  if (Boolean(googleId) !== Boolean(googleSecret)) {
+    throw new Error(
+      "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together — " +
+        "set both to enable Google sign-in, or neither to disable it",
+    );
+  }
+  const google =
+    googleId && googleSecret
+      ? { clientId: googleId, clientSecret: googleSecret }
+      : undefined;
+
+  // Reverse-proxy addresses, so Better Auth trusts X-Forwarded-For from
+  // them and only them. Left unset on a direct-to-internet deployment,
+  // where the socket address is already the client's.
+  const rawProxies = env["VELACHESS_TRUSTED_PROXIES"];
+  const trustedProxies = rawProxies
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
   return {
     secret,
     baseUrl,
     secureCookies,
     trustedOrigins,
+    ...(google ? { google } : {}),
+    ...(trustedProxies?.length ? { trustedProxies } : {}),
     insecureProductionTransport: production && !secureCookies,
   };
 }

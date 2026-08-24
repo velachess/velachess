@@ -65,11 +65,23 @@ it("GET /openapi.json serves the document", async () => {
 it("system routes are registered before the identity middleware", () => {
   // Liveness and documentation must answer even when the db is down —
   // their registration order IS the guarantee (middleware applies only
-  // to routes registered after it).
-  const order = harness.app.routes.map((r) => `${r.method} ${r.path}`);
-  const middleware = order.indexOf("ALL /*");
-  expect(middleware).toBeGreaterThan(order.indexOf("GET /health"));
-  expect(middleware).toBeGreaterThan(order.indexOf("GET /openapi.json"));
+  // to routes registered after it). The gate is found by handler name
+  // rather than by "the first ALL /*", because the edge middleware
+  // (headers, body limit, CSRF) is deliberately registered above these
+  // routes and would otherwise be mistaken for it.
+  const order = harness.app.routes.map((r) => `${r.method} ${r.path} ${r.handler.name}`);
+  const at = (needle: string) => order.findIndex((entry) => entry.includes(needle));
+
+  const gate = at("ALL /* sessionGate");
+  expect(gate).toBeGreaterThan(-1);
+  expect(gate).toBeGreaterThan(at("GET /health"));
+  expect(gate).toBeGreaterThan(at("GET /openapi.json"));
+  // Signing in happens without a session, definitionally.
+  expect(gate).toBeGreaterThan(at("ALL /auth/*"));
+
+  // And the limiter sits below the gate, because every policy is keyed by
+  // the userId the gate resolves — above it there would be nothing to key.
+  expect(at("rateLimited")).toBeGreaterThan(gate);
 });
 
 it("error responses honor the documented { error } contract", async () => {

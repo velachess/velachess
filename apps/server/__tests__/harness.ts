@@ -40,6 +40,10 @@ export interface ApiHarness extends LoopHarness {
   ) => Promise<{ userId: string; cookie: string; app: AuthedApp }>;
 }
 
+/** The origin the harness app is served on — its own baseUrl, and so the
+ * one origin its CSRF check trusts. */
+export const ORIGIN = "http://localhost";
+
 export async function createApiHarness(
   /** The archive GET /games reads through to. Defaults to the looper one. */
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
@@ -51,7 +55,7 @@ export async function createApiHarness(
   // cookies off: the test server has no TLS to be secure on.
   const authConfig = {
     db: harness.db,
-    baseUrl: "http://localhost",
+    baseUrl: ORIGIN,
     secret: "test-secret-at-least-32-characters-long",
     secureCookies: false,
   };
@@ -63,6 +67,7 @@ export async function createApiHarness(
   const deps: ApiDeps = {
     db: harness.db,
     auth,
+    trustedOrigins: [ORIGIN],
     analysisQueue: harness.analysisQueue,
     // A short interval: the suite should not wait out a production poll.
     watchers: createWatchers({
@@ -84,6 +89,22 @@ export async function createApiHarness(
   };
 
   const app = createApp(deps);
+
+  // A browser attaches `Origin` to every unsafe request; `app.request`
+  // attaches nothing. The CSRF middleware reads a missing Content-Type as
+  // `text/plain` — i.e. as something a form element could have sent — so
+  // without this every bodyless POST in the suite would meet a 403 that no
+  // real client would ever see. Patched once, here, so the suite exercises
+  // the real middleware chain rather than a chain with a hole in it. A test
+  // that wants to look cross-site passes its own `origin`, which wins.
+  type AppRequest = typeof app.request;
+  const honoRequest: AppRequest = app.request.bind(app);
+  app.request = ((...args: Parameters<AppRequest>) => {
+    const [input, init, ...rest] = args;
+    const headers = new Headers(init?.headers);
+    if (!headers.has("origin")) headers.set("origin", ORIGIN);
+    return honoRequest(input, { ...init, headers }, ...rest);
+  }) as AppRequest;
 
   const signIn = async (email: string, password: string): Promise<string> => {
     const response = await app.request("/auth/sign-in/email", {

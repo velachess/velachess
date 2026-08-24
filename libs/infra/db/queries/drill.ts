@@ -188,14 +188,6 @@ export async function listExercisesByUser(db: Database, userId: string) {
   return db.select().from(exercises).where(eq(exercises.userId, userId));
 }
 
-export async function getExercise(db: Database, exerciseId: string) {
-  const [exercise] = await db
-    .select()
-    .from(exercises)
-    .where(eq(exercises.id, exerciseId));
-  return exercise ?? null;
-}
-
 /**
  * Scoped by owner — the HTTP shape. An answer writes a response row and
  * reschedules an FSRS card, so the exercise id in a request body is a

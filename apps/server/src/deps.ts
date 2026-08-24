@@ -17,6 +17,10 @@ export interface ApiDeps {
   db: Database;
   /** Answers exactly one question: who is making this request. */
   auth: Auth;
+  /** Origins the CSRF check accepts on unsafe methods. The same list the
+   * auth config resolves from VELACHESS_BASE_URL, so a request the session
+   * would accept and a request CSRF would accept cannot disagree. */
+  trustedOrigins: string[];
   analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
   scheduler: Scheduler;

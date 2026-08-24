@@ -131,3 +131,70 @@ describe("trusted origins", () => {
     ).toThrowError(/VELACHESS_TRUSTED_ORIGINS.*not-an-origin/);
   });
 });
+
+describe("Google sign-in", () => {
+  it("is simply absent when unconfigured", () => {
+    expect(resolveAuthEnv({ VELACHESS_AUTH_SECRET: STRONG }).google).toBeUndefined();
+  });
+
+  it("is present when both halves are set", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "client-secret",
+    });
+    expect(resolved.google).toEqual({
+      clientId: "id.apps.googleusercontent.com",
+      clientSecret: "client-secret",
+    });
+  });
+
+  it("refuses to boot half-configured", () => {
+    // Better Auth would accept an empty credential and fail later, at the
+    // redirect — a broken button in production instead of a refusal here.
+    for (const half of [
+      { GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com" },
+      { GOOGLE_CLIENT_SECRET: "client-secret" },
+    ]) {
+      expect(() =>
+        resolveAuthEnv({ VELACHESS_AUTH_SECRET: STRONG, ...half }),
+      ).toThrowError(/GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together/);
+    }
+  });
+
+  it("never echoes the client secret in the refusal", () => {
+    try {
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        GOOGLE_CLIENT_SECRET: "leak-canary-google",
+      });
+      expect.unreachable("half-configured Google must throw");
+    } catch (error) {
+      expect((error as Error).message).not.toContain("leak-canary");
+    }
+  });
+});
+
+describe("trusted proxies", () => {
+  it("is absent unless declared — a direct deployment has no proxy", () => {
+    expect(
+      resolveAuthEnv({ VELACHESS_AUTH_SECRET: STRONG }).trustedProxies,
+    ).toBeUndefined();
+  });
+
+  it("parses a comma-separated list of addresses and ranges", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_TRUSTED_PROXIES: " 127.0.0.1 , 10.0.0.0/8 ",
+    });
+    expect(resolved.trustedProxies).toEqual(["127.0.0.1", "10.0.0.0/8"]);
+  });
+
+  it("treats an empty value as unset rather than as an empty proxy", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_TRUSTED_PROXIES: " , ",
+    });
+    expect(resolved.trustedProxies).toBeUndefined();
+  });
+});

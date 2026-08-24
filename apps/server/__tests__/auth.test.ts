@@ -221,6 +221,55 @@ describe("the closed surfaces", () => {
   });
 });
 
+describe("Google sign-in", () => {
+  it("sends the user to Google, and asks to be returned to /auth/callback", async () => {
+    const googleAuth = createAuth({
+      db: harness.db,
+      baseUrl: "https://chess.example.com",
+      secret: "test-secret-at-least-32-characters-long",
+      secureCookies: true,
+      google: { clientId: "client-id", clientSecret: "client-secret" },
+    });
+
+    const response = await googleAuth.handler(
+      new Request("https://chess.example.com/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://chess.example.com",
+        },
+        body: JSON.stringify({ provider: "google", callbackURL: "/" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+
+    const { url } = (await response.json()) as { url: string };
+    const authorize = new URL(url);
+    expect(authorize.origin).toBe("https://accounts.google.com");
+    expect(authorize.searchParams.get("client_id")).toBe("client-id");
+    // Pinned deliberately. Better Auth derives this from its own baseURL
+    // and basePath, so it carries NO /api prefix — while the browser
+    // reaches every other auth call under /api. Whatever serves the app
+    // must therefore route /auth/* to this API as well, in production and
+    // in the dev proxy (apps/web/vite.config.ts), or the return leg of
+    // every Google sign-in lands on the SPA and 404s.
+    expect(authorize.searchParams.get("redirect_uri")).toBe(
+      "https://chess.example.com/auth/callback/google",
+    );
+    // PKCE, not an implicit flow.
+    expect(authorize.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+
+  it("is not offered when no credentials are configured", async () => {
+    const response = await harness.app.request("/auth/sign-in/social", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "google", callbackURL: "/" }),
+    });
+    expect(response.ok).toBe(false);
+  });
+});
+
 describe("secure cookies behind TLS", () => {
   it("an https deployment sets Secure on the session cookie", async () => {
     // The same database, configured the way an https production is —

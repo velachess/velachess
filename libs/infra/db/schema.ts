@@ -16,6 +16,7 @@ import {
 } from "@velachess/platforms/schema";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -160,6 +161,45 @@ export const verifications = pgTable(
   },
   (table) => [index("verifications_identifier").on(table.identifier)],
 );
+
+/**
+ * Better Auth's own rate-limit store, for `rateLimit.storage: "database"`.
+ *
+ * The shape is not ours to choose — it is what @better-auth/core declares in
+ * `db/get-tables.mjs` for the `rateLimit` model: `key` (unique string),
+ * `count` (number) and `lastRequest` (number, **bigint**, epoch millis, not a
+ * timestamp). Getting the type wrong here fails at runtime, inside the
+ * library, on the first throttled request — so it is written to match rather
+ * than to look like the rest of this file.
+ *
+ * One row per key, updated in place: Better Auth also prunes it itself
+ * (`deleteExpiredRows` inside its `consume`), so nothing here needs a
+ * cleanup job.
+ */
+export const authRateLimits = pgTable("auth_rate_limits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
+
+/**
+ * The API's own rate limiter — separate from Better Auth's on purpose.
+ *
+ * Better Auth owns `/auth/*` and throttles it with its own table above;
+ * this one covers the authenticated application routes, keyed by user.
+ * Same storage shape deliberately: one row per key, updated in place, so
+ * the row count is bounded by users rather than by elapsed time and there
+ * is nothing to prune.
+ *
+ * `lastRequest` here IS a timestamp, unlike Better Auth's — this table is
+ * ours, and Postgres comparing intervals beats comparing epoch integers.
+ */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  lastRequest: timestamp("last_request", { withTimezone: true }).notNull(),
+});
 
 /**
  * A chess.com or Lichess handle this user follows.

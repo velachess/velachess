@@ -33,6 +33,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      // The OAuth return leg — the one request the browser does not choose
+      // the URL for. Better Auth builds its redirect_uri from its own
+      // baseURL and basePath, so Google sends the user to
+      // `<origin>/auth/callback/google`, with no /api prefix to rewrite
+      // away. Forwarded verbatim, since the API already mounts auth at
+      // /auth/*. A production reverse proxy needs the same location.
+      "/auth": {
+        target: API_TARGET,
+        changeOrigin: true,
+      },
     },
   },
 });
