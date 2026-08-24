@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   countryCodeFromUrl,
+  EMPTY_PROFILE,
   fetchChessComProfile,
   fetchLichessProfile,
 } from "../providers/profile.ts";
@@ -166,5 +167,39 @@ describe("fetchLichessProfile", () => {
     });
 
     expect(profile.countryCode).toBeNull();
+  });
+
+  it("fails soft when fetch rejects (network error)", async () => {
+    const profile = await fetchChessComProfile("someone", {
+      fetch: async () => {
+        throw new Error("network error");
+      },
+    });
+    expect(profile).toEqual(EMPTY_PROFILE);
+  });
+
+  it("fails soft when response body is invalid JSON", async () => {
+    const profile = await fetchChessComProfile("someone", {
+      fetch: async () =>
+        Object.assign(
+          {
+            ok: true,
+            json: async () => {
+              throw new Error("bad json");
+            },
+          },
+          {} as Response,
+        ),
+    });
+    expect(profile).toEqual(EMPTY_PROFILE);
+  });
+
+  it("fails soft when request is aborted", async () => {
+    const profile = await fetchLichessProfile("someone", {
+      fetch: async () => {
+        throw new DOMException("Aborted", "AbortError");
+      },
+    });
+    expect(profile).toEqual(EMPTY_PROFILE);
   });
 });
