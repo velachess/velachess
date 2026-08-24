@@ -9,6 +9,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY libs ./libs
 COPY apps ./apps
 RUN pnpm install --frozen-lockfile
+# A real global binary replaces the corepack shim, which would otherwise
+# download pnpm from npmjs on first boot — a hard dependency on container
+# DNS that has nothing to do with running an API.
+RUN corepack disable pnpm && npm install -g pnpm@10.28.0
 
 # Migrations run as a release step, not at boot:
 #   pnpm --filter @velachess/db exec drizzle-kit migrate

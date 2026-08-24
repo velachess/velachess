@@ -16,6 +16,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY libs ./libs
 COPY apps ./apps
 RUN pnpm install --frozen-lockfile
+# Same as the api image: bake pnpm so first boot never needs the network.
+RUN corepack disable pnpm && npm install -g pnpm@10.28.0
 
 ENV NODE_ENV=production
 RUN chown -R 1000:1000 /app
