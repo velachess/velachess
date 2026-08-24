@@ -8,7 +8,7 @@
  * which treats an unset NODE_ENV as production — this repo's opposite.
  */
 
-import { cleanEnv, EnvError, makeValidator, str } from "envalid";
+import { cleanEnv, EnvError, makeValidator, str, url } from "envalid";
 
 /** The .env.example placeholder — booting production with it means the
  * file was copied verbatim, which is indistinguishable from no secret. */
@@ -44,14 +44,6 @@ const authSecret = makeValidator<string>((input) => {
   return input;
 });
 
-/** envalid's default reporter logs and calls process.exit(1); this
- * throws the first underlying error instead, so a bad env is provable
- * without a process. */
-function throwFirstError({ errors }: { errors: Record<string, Error> }): void {
-  const [firstError] = Object.values(errors);
-  if (firstError) throw firstError;
-}
-
 export function resolveAuthEnv(env: Record<string, string | undefined>): ResolvedAuthEnv {
   const production = env["NODE_ENV"] === "production";
 
@@ -65,13 +57,27 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
       }),
       // A bare default, not devDefault: whether production may rely on
       // it is the policy check below, not a shape one.
-      VELACHESS_BASE_URL: str({ default: "http://localhost:3000" }),
+      VELACHESS_BASE_URL: url({ default: "http://localhost:3000" }),
       VELACHESS_TRUSTED_ORIGINS: str({ default: undefined }),
       GOOGLE_CLIENT_ID: str({ default: undefined }),
       GOOGLE_CLIENT_SECRET: str({ default: undefined }),
       VELACHESS_TRUSTED_PROXIES: str({ default: undefined }),
     },
-    { reporter: throwFirstError },
+    {
+      // envalid's default reporter logs and calls process.exit(1); this
+      // throws instead, so a bad env is provable without a process.
+      // VELACHESS_BASE_URL gets its own message — url()'s own doesn't
+      // name the variable.
+      reporter: ({ errors }) => {
+        if (errors["VELACHESS_BASE_URL"]) {
+          throw new Error(
+            `VELACHESS_BASE_URL is not a valid URL: ${env["VELACHESS_BASE_URL"]}`,
+          );
+        }
+        const [firstError] = Object.values(errors);
+        if (firstError) throw firstError;
+      },
+    },
   );
 
   if (production && cleaned.VELACHESS_AUTH_SECRET === EXAMPLE_SECRET) {
@@ -91,13 +97,9 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     );
   }
 
+  // url() only checks that it parses — the scheme restriction is ours.
   const baseUrl = cleaned.VELACHESS_BASE_URL;
-  let parsed: URL;
-  try {
-    parsed = new URL(baseUrl);
-  } catch {
-    throw new Error(`VELACHESS_BASE_URL is not a valid URL: ${baseUrl}`);
-  }
+  const parsed = new URL(baseUrl);
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new Error(`VELACHESS_BASE_URL must be http:// or https://, got: ${baseUrl}`);
   }
