@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import type { ApplyGlobalResponse } from "hono/client";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
@@ -153,5 +154,26 @@ export function createApp(deps: ApiDeps) {
   return app;
 }
 
+/**
+ * Every status a route's own handler chain never declares, because it
+ * comes from onError/notFound or from middleware mounted via `.use()`
+ * rather than a route's own `.get`/`.post` chain (401 the session gate,
+ * 403 csrf, 404 unknown paths, 413 the body ceiling, 429 the rate
+ * limiter, 500 unhandled) — hono's RPC inference can't see any of these
+ * on its own, so a client reading `res.status === 429` would get `never`
+ * for the body without this.
+ */
+type GlobalErrorResponses = {
+  401: { json: { error: string } };
+  403: { json: { error: string } };
+  404: { json: { error: string } };
+  413: { json: { error: string } };
+  429: { json: { error: string; retryAfterSeconds: number } };
+  500: { json: { error: string } };
+};
+
 /** Type-only contract for clients (hono/client). Never import the value. */
-export type AppType = ReturnType<typeof createApp>;
+export type AppType = ApplyGlobalResponse<
+  ReturnType<typeof createApp>,
+  GlobalErrorResponses
+>;
