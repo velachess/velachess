@@ -134,7 +134,7 @@ msgstr ""
 msgid "An unexpected error interrupted this screen."
 msgstr ""
 
-#: src/games/request-analysis/analysis-status.tsx:16
+#: src/games/request-analysis/analysis-status.tsx:17
 msgid "Analyzing move {graded} of {total}…"
 msgstr ""
 
@@ -1079,6 +1079,10 @@ msgstr ""
 msgid "too few moves to judge"
 msgstr ""
 
+#: src/games/request-analysis/analysis-status.tsx:13
+msgid "Too many analyses at once."
+msgstr ""
+
 #: src/insights/finding-views.tsx:98
 msgid "Train the moves you missed"
 msgstr ""
@@ -1095,6 +1099,11 @@ msgstr ""
 
 #: src/shared/ui/route-error.tsx:16
 msgid "Try again"
+msgstr ""
+
+#: src/games/import/sync-games-button.tsx:31
+#: src/games/request-analysis/analysis-status.tsx:19
+msgid "Try again in {seconds} seconds."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:25

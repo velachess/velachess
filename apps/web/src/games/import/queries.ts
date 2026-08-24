@@ -1,15 +1,10 @@
-import {
-  api,
-  DetailedError,
-  parseResponse,
-  type InferResponseType,
-} from "../../shared/api/client.ts";
+import { api, parseResponse, type InferResponseType } from "../../shared/api/client.ts";
+import { isRateLimitedError } from "../../shared/api/errors.ts";
 import {
   queryOptions,
   useMutation,
   useQueryClient,
 } from "../../shared/libs/query/index.ts";
-import { z } from "../../shared/libs/zod.ts";
 import { useMyAccounts, type RememberedAccount } from "./my-accounts.ts";
 import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
@@ -74,8 +69,6 @@ export type SyncOutcome =
   | { status: "refreshed"; saved: number }
   | { status: "too-soon"; retryAfterSeconds: number };
 
-const tooSoonSchema = z.object({ retryAfterSeconds: z.number() });
-
 /** Pulls fresh games for every account the server tracks. Server ids,
  * never the device's remembered ones: a browser can hold an id from a
  * database that no longer exists, and syncing it 404s forever. */
@@ -102,14 +95,15 @@ export function useSyncGames(handlers: {
           );
           saved += result.saved;
         } catch (error) {
-          if (error instanceof DetailedError && error.statusCode === 429) {
-            const tooSoon = tooSoonSchema.safeParse(error.detail?.data);
-            if (tooSoon.success) {
-              return {
-                status: "too-soon",
-                retryAfterSeconds: tooSoon.data.retryAfterSeconds,
-              };
-            }
+          // Either throttle — the domain cooldown or the API rate limit —
+          // arrives as the same class with the same wait, so "come back in
+          // a moment" is one outcome, not two. A 429 that somehow carried
+          // no wait falls back to the cooldown's own window.
+          if (isRateLimitedError(error)) {
+            return {
+              status: "too-soon",
+              retryAfterSeconds: error.retryAfterSeconds ?? 60,
+            };
           }
           throw error;
         }

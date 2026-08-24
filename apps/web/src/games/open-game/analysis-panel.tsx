@@ -36,6 +36,8 @@ export interface AnalysisPanelProps {
   onShowBest: (san: string) => void;
   isAnalyzing: boolean;
   hasFailed: boolean;
+  /** The wait, when the failure is the rate limit and not a defect. */
+  retryAfterSeconds: number | null;
 }
 
 /**
@@ -63,6 +65,7 @@ export function AnalysisPanel({
   onShowBest,
   isAnalyzing,
   hasFailed,
+  retryAfterSeconds,
 }: AnalysisPanelProps) {
   const { i18n } = useLingui();
   const breakdown = summarize(graded);
@@ -78,6 +81,7 @@ export function AnalysisPanel({
         totalPlies={replay.totalPlies}
         isAnalyzing={isAnalyzing}
         hasFailed={hasFailed}
+        retryAfterSeconds={retryAfterSeconds}
       />
 
       {/*

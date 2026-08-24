@@ -42,13 +42,22 @@ describe("rate limiting", () => {
 
     const refused = await limited.app.request(sync(), { method: "POST" });
     expect(refused.status).toBe(429);
-    expect(await refused.json()).toEqual({ error: "too many requests" });
 
-    // The standard header, in whole seconds, and never 0 — a client told
-    // to wait zero seconds retries immediately.
-    const retryAfter = Number(refused.headers.get("retry-after"));
-    expect(retryAfter).toBeGreaterThan(0);
-    expect(retryAfter).toBeLessThanOrEqual(POLICIES.import.windowSeconds);
+    // The wait lives in the body as well as the header, because the SPA's
+    // client can only read the body of a rejection — same contract as the
+    // sync cooldown. Never 0: a client told to wait zero seconds retries
+    // immediately, which is the behaviour the refusal exists to prevent.
+    const body = (await refused.json()) as {
+      error: string;
+      retryAfterSeconds: number;
+    };
+    expect(body.error).toBe("too many requests");
+    expect(body.retryAfterSeconds).toBeGreaterThan(0);
+    expect(body.retryAfterSeconds).toBeLessThanOrEqual(POLICIES.import.windowSeconds);
+
+    // And the header says the same number — two answers that disagree
+    // would teach clients to trust neither.
+    expect(Number(refused.headers.get("retry-after"))).toBe(body.retryAfterSeconds);
   });
 
   it("is one budget per user, not one for the API", async () => {

@@ -17,7 +17,6 @@
  */
 
 import { createMiddleware } from "hono/factory";
-import { HTTPException } from "hono/http-exception";
 
 import { consumeRateLimit, type RateLimitPolicy } from "@velachess/db";
 
@@ -46,15 +45,24 @@ export function rateLimit(deps: ApiDeps, policy: RateLimitPolicy) {
     const verdict = await consumeRateLimit(deps.db, c.get("userId"), policy);
 
     if (!verdict.allowed) {
-      // The standard header, in seconds. Better Auth answers its own
-      // throttling with `X-Retry-After` instead — that asymmetry is the
-      // library's, not a slip here, and "fixing" one of the two would
-      // break whichever client learned to read it.
-      c.header("Retry-After", String(verdict.retryAfterSeconds));
-      // HTTPException so `onError` renders the same `{ error }` shape as
-      // every other rejection — a throttled request is not a special
-      // wire format.
-      throw new HTTPException(429, { message: "too many requests" });
+      // Returned, not thrown — the same pattern as the sync cooldown in
+      // routes/accounts.ts, and for the same reason: the wait belongs in
+      // the BODY. The SPA's client (hono's `parseResponse`) surfaces only
+      // status and body of a rejection, never headers, so a wait that
+      // lived in `Retry-After` alone would be invisible to the UI.
+      //
+      // The header is still sent for everything that is not our SPA —
+      // it is the standard, and curl and proxies read it. Better Auth
+      // answers its own throttling with `X-Retry-After` instead; that
+      // asymmetry is the library's, not a slip here.
+      return c.json(
+        {
+          error: "too many requests",
+          retryAfterSeconds: verdict.retryAfterSeconds,
+        },
+        429,
+        { "Retry-After": String(verdict.retryAfterSeconds) },
+      );
     }
 
     await next();
