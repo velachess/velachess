@@ -13,6 +13,7 @@ import type { Database } from "@velachess/db";
 import {
   findProviderProfiles,
   getGameForUser,
+  isProfileFresh,
   upsertProviderProfile,
   type ProviderSeat,
 } from "@velachess/db";
@@ -29,17 +30,6 @@ export interface SeatIdentity {
 }
 
 const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null };
-
-/**
- * Profiles change rarely and games every session; a week keeps an open
- * cheap while capping how long a changed picture stays stale. Stamped on
- * every attempt, so an outage retries next window rather than every open.
- */
-const PROFILE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function isFresh(fetchedAt: Date): boolean {
-  return Date.now() - fetchedAt.getTime() < PROFILE_TTL_MS;
-}
 
 async function fetchProfile(
   seat: ProviderSeat,
@@ -62,7 +52,7 @@ async function resolveSeatIdentity(
   cached: CachedProfile | null,
   doFetch: FetchFn | undefined,
 ): Promise<SeatIdentity> {
-  if (cached && isFresh(cached.fetchedAt)) {
+  if (cached && isProfileFresh(cached.fetchedAt)) {
     return { avatarUrl: cached.avatarUrl, flair: cached.flair };
   }
 

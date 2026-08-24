@@ -7,7 +7,9 @@
  */
 import type { Database } from "@velachess/db";
 import {
+  findProviderProfiles,
   getTrackedAccount,
+  isProfileFresh,
   upsertProviderProfile,
   upsertTrackedAccount,
 } from "@velachess/db";
@@ -20,11 +22,11 @@ import { syncAccount } from "../sync-account/sync-account.ts";
 export type Platform = "chess_com" | "lichess";
 
 /**
- * Read the provider's picture of this handle, once, at the moment the
- * connection is made — warming the shared `provider_profiles` cache so
- * this handle's first game review needs no provider request. Profiles
- * change rarely and games every session; later refreshes ride the cache's
- * own TTL in get-game.
+ * Read the provider's picture of this handle at the moment the connection
+ * is made — warming the shared `provider_profiles` cache so this handle's
+ * first game review needs no provider request. A row another user (or an
+ * earlier connect) already asked for within the refresh window is reused,
+ * not re-asked: connecting is not a refresh button.
  *
  * The read is decoration around the name and fails soft by contract
  * (the fetchers answer an empty profile rather than throw), so a provider
@@ -36,6 +38,9 @@ async function warmProfileCache(
   username: string,
   deps: SyncDeps,
 ) {
+  const [cached] = await findProviderProfiles(db, [{ platform, username }]);
+  if (cached && isProfileFresh(cached.fetchedAt)) return;
+
   const opts = deps.fetch ? { fetch: deps.fetch } : {};
   const profile =
     platform === "chess_com"
@@ -66,8 +71,8 @@ export async function importAccount(
   deps: SyncDeps = {},
 ) {
   // The cache write lands before the upsert, so the handle's identity
-  // exists before its connection — and a re-import refreshes it in the
-  // same breath that finds the connection.
+  // exists before its connection — unless a still-fresh row already
+  // carries it, in which case connecting costs no request at all.
   await warmProfileCache(db, platform, username, deps);
   const tracked = await upsertTrackedAccount(db, userId, platform, username);
   if (tracked.lastSyncedAt === null) {

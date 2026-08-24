@@ -23,6 +23,19 @@ function normalize(username: string): string {
   return username.toLowerCase();
 }
 
+/**
+ * Profiles change rarely and games every session; a week keeps an open
+ * cheap while capping how long a changed picture stays stale. The policy
+ * lives beside the table it governs because two behaviors read this
+ * cache (connect-time warming, game-review resolution) and slices do not
+ * import each other — one definition here beats two that can drift.
+ */
+const PROFILE_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function isProfileFresh(fetchedAt: Date): boolean {
+  return Date.now() - fetchedAt.getTime() < PROFILE_REFRESH_MS;
+}
+
 export async function findProviderProfiles(db: Database, seats: readonly ProviderSeat[]) {
   if (seats.length === 0) return [];
 

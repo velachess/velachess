@@ -193,6 +193,18 @@ describe("provider profile identity on game review", () => {
     expect(sync.profileRequests.slice(before)).toEqual([]);
   });
 
+  it("reconnecting a handle whose profile is already fresh asks nothing", async () => {
+    // Looper was warmed at this user's first connect; connecting again
+    // reuses that row instead of spending a request on it.
+    const before = sync.profileRequests.length;
+    const created = await owner.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "Looper" }),
+    );
+    expect(created.status).toBe(201);
+    expect(sync.profileRequests.slice(before)).toEqual([]);
+  });
+
   it("reads a Lichess flair for either seat, and never an avatar", async () => {
     const created = await owner.request(
       "/accounts",
