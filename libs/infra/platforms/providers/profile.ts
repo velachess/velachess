@@ -59,9 +59,18 @@ const lichessProfileSchema = z.object({
   profile: z.object({ flag: z.string().optional() }).optional(),
 });
 
+/** A profile is decoration around a name; a provider that accepts the
+ * request but never answers must not hold a game open (or a connection
+ * hostage). Five seconds covers every real provider and routes a hung
+ * socket into the same empty-profile path as any other failure. */
+const FETCH_TIMEOUT_MS = 5000;
+
 async function fetchJson(url: string, doFetch: FetchFn): Promise<unknown | null> {
   try {
-    const res = await doFetch(url, { headers: HEADERS });
+    const res = await doFetch(url, {
+      headers: HEADERS,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
     // A profile is decoration around a name. A missing or broken one leaves
     // the initials in place; it must never fail a game from loading.
     if (!res.ok) return null;
