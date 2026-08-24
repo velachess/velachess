@@ -14,8 +14,14 @@ export interface Credentials {
 export type SignInFailure = "invalid-credentials" | "unavailable";
 
 // The code, not the status: a bare 401 can also be a proxy or an
-// outage, which must not read as "wrong password".
-const CREDENTIAL_REJECTION_CODES = new Set(["INVALID_EMAIL_OR_PASSWORD"]);
+// outage, which must not read as "wrong password". INVALID_EMAIL is
+// Better Auth's genuine 400 for a malformed address — a real answer,
+// not an outage — and gets the same copy without saying which half of
+// the form was wrong.
+const CREDENTIAL_REJECTION_CODES = new Set([
+  "INVALID_EMAIL_OR_PASSWORD",
+  "INVALID_EMAIL",
+]);
 
 class SignInError extends Error {
   readonly reason: SignInFailure;

@@ -156,6 +156,28 @@ describe("signing in", () => {
     expect(router.state.location.pathname).toBe("/login");
   });
 
+  it("says what is wrong on a malformed email, not that the server is down", async () => {
+    sessionInactive();
+    server.use(
+      http.post("/api/auth/sign-in/email", () =>
+        HttpResponse.json(
+          { code: "INVALID_EMAIL", message: "Invalid email" },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    const { user } = await renderApp({ path: "/login" });
+    await signIn(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Invalid email or password.",
+    );
+    expect(
+      screen.queryByText("Couldn't reach the server. Try again in a moment."),
+    ).not.toBeInTheDocument();
+  });
+
   it("tells a failed request apart from a rejected password", async () => {
     sessionInactive();
     server.use(
