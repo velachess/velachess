@@ -69,11 +69,35 @@ describe("packages/db (games + tracked accounts)", () => {
   afterAll(() => close());
 
   it("saveGames twice with the same Chess.com game inserts it once", async () => {
-    const first = await saveGames(db, [chessComGame()]);
-    const second = await saveGames(db, [chessComGame()]);
+    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const first = await saveGames(db, [chessComGame()], { accountId: account.id });
+    const second = await saveGames(db, [chessComGame()], { accountId: account.id });
 
     expect(first.inserted).toBe(1);
     expect(second.inserted).toBe(0);
+  });
+
+  it("two accounts tracking the same real game both keep their own copy", async () => {
+    // The bug this constraint fixes: two different tracked accounts (any
+    // two users, or the same user twice) independently sync the same
+    // real chess.com game. Each must get its own complete history —
+    // dedup happens within an account, never across accounts.
+    const other = (await createUser(db)).id;
+    const accountA = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const accountB = await upsertTrackedAccount(db, other, "chess_com", "Test-Player");
+
+    const first = await saveGames(db, [chessComGame()], { accountId: accountA.id });
+    const second = await saveGames(db, [chessComGame()], { accountId: accountB.id });
+
+    expect(first.inserted).toBe(1);
+    expect(second.inserted).toBe(1);
+
+    const [rowsA, rowsB] = await Promise.all([
+      listGames(db, { accountId: accountA.id }),
+      listGames(db, { accountId: accountB.id }),
+    ]);
+    expect(rowsA).toHaveLength(1);
+    expect(rowsB).toHaveLength(1);
   });
 
   it("the same pasted PGN twice with no account inserts it once — proves NULLS NOT DISTINCT is applied", async () => {

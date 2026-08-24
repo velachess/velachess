@@ -285,12 +285,13 @@ export const games = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("games_source_external_id")
-      .on(table.source, table.externalId)
+    // Both scoped to the tracked account: each account owns a complete,
+    // independent copy of whatever it imports, and dedup only ever
+    // happens within one account — never across two accounts tracking
+    // the same real provider handle.
+    uniqueIndex("games_account_source_external_id")
+      .on(table.accountId, table.source, table.externalId)
       .where(sql`${table.externalId} is not null`),
-    // One game = one row, keyed by whoever imports first. A game_accounts
-    // join table is the upgrade path if tracking both sides of the same
-    // game ever becomes real.
     unique("games_account_movetext")
       .on(table.accountId, table.movetextHash)
       .nullsNotDistinct(),
