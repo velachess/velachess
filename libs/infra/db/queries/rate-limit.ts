@@ -19,6 +19,7 @@
 import { sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
+import { rateLimits } from "../schema.ts";
 
 export interface RateLimitPolicy {
   /** Namespaces the key, so one user's budgets never share a counter. */
@@ -33,11 +34,6 @@ export interface RateLimitVerdict {
   retryAfterSeconds: number;
 }
 
-interface Row {
-  count: number;
-  retry_after: number;
-}
-
 export async function consumeRateLimit(
   db: Database,
   subject: string,
@@ -49,51 +45,55 @@ export async function consumeRateLimit(
   // cheaper than remembering that it must not be.
   const window = sql`make_interval(secs => ${policy.windowSeconds})`;
 
-  // A single statement so concurrent requests cannot all read a stale count
-  // before any increment lands. The CASE arms are, in order: the window
-  // expired (start over), there is budget left (spend it), or we are over
-  // the limit (touch nothing, so the wait is measured from the last
-  // request we actually accepted).
+  // The query builder, not db.execute(): its .returning() normalizes the
+  // row shape across drivers (postgres-js vs PGlite) on its own, which is
+  // the ORM's job, not this function's. Unqualified column references in
+  // the CASE arms below (rateLimits.count etc.) already mean "the row
+  // before this statement" — that's Postgres's ON CONFLICT DO UPDATE
+  // semantics, not something the query needs to alias for.
+  //
+  // The CASE arms are, in order: the window expired (start over), there is
+  // budget left (spend it), or we are over the limit (touch nothing, so the
+  // wait is measured from the last request we actually accepted).
   //
   // The counter saturates at `max + 1`, one past the budget, and that extra
   // step is what makes the verdict readable: a count that stopped AT `max`
   // is indistinguishable from a request that just spent the last unit.
   // `last_request` advances only on an accepted request, so a client that
   // keeps hammering never extends its own lockout.
-  const result = await db.execute(sql`
-    INSERT INTO rate_limits AS r (key, count, last_request)
-    VALUES (${key}, 1, now())
-    ON CONFLICT (key) DO UPDATE SET
-      count = CASE
-        WHEN r.last_request < now() - ${window} THEN 1
-        WHEN r.count <= ${policy.max}           THEN r.count + 1
-        ELSE r.count
-      END,
-      last_request = CASE
-        WHEN r.last_request < now() - ${window} OR r.count < ${policy.max} THEN now()
-        ELSE r.last_request
-      END
-    RETURNING
-      count,
-      GREATEST(
+  const [row] = await db
+    .insert(rateLimits)
+    .values({ key, count: 1, lastRequest: sql`now()` })
+    .onConflictDoUpdate({
+      target: rateLimits.key,
+      set: {
+        count: sql`CASE
+          WHEN ${rateLimits.lastRequest} < now() - ${window} THEN 1
+          WHEN ${rateLimits.count} <= ${policy.max}          THEN ${rateLimits.count} + 1
+          ELSE ${rateLimits.count}
+        END`,
+        lastRequest: sql`CASE
+          WHEN ${rateLimits.lastRequest} < now() - ${window} OR ${rateLimits.count} < ${policy.max}
+            THEN now()
+          ELSE ${rateLimits.lastRequest}
+        END`,
+      },
+    })
+    .returning({
+      count: rateLimits.count,
+      // A blocked caller is told when the window frees up; an allowed one
+      // has nothing to wait for, and saying otherwise would invite a
+      // client to sleep for no reason.
+      retryAfterSeconds: sql<number>`GREATEST(
         0,
-        CEIL(EXTRACT(EPOCH FROM (last_request + ${window} - now())))
-      )::int AS retry_after
-  `);
+        CEIL(EXTRACT(EPOCH FROM (${rateLimits.lastRequest} + ${window} - now())))
+      )::int`,
+    });
 
-  // The drivers disagree on the shape of a raw result: postgres-js returns
-  // the rows themselves, PGlite returns `{ rows }`. Normalized here so the
-  // limiter behaves identically under the test database and under
-  // production's — a silent `undefined` would read as "allowed".
-  const rows = Array.isArray(result) ? result : (result as { rows: Row[] }).rows;
-  const row = (rows as Row[])[0] ?? { count: 1, retry_after: 0 };
-  const allowed = Number(row.count) <= policy.max;
+  const allowed = row!.count <= policy.max;
 
   return {
     allowed,
-    // A blocked caller is told when the window frees up; an allowed one has
-    // nothing to wait for, and saying otherwise would invite a client to
-    // sleep for no reason.
-    retryAfterSeconds: allowed ? 0 : Math.max(1, Number(row.retry_after)),
+    retryAfterSeconds: allowed ? 0 : Math.max(1, row!.retryAfterSeconds),
   };
 }
