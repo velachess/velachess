@@ -16,11 +16,11 @@ its provenance row and does not change the expected answers.
 
 ## Origins (`drill_origin` enum)
 
-| Origin                 | Source                          | Rule                                                                    | Required columns on `exercise_sources` |
-| ---------------------- | ------------------------------- | ----------------------------------------------------------------------- | -------------------------------------- |
-| `repertoire-deviation` | `deviations` rows               | `type === "deviation"` and non-empty `expected_sans`. **No severity or analysis requirement** | `deviation_id`                         |
-| `engine-blunder`       | `game_analyses` jsonb plies     | user's side only; category floor `inaccuracy` (`severeEnough`); ranked by `winChanceLoss` desc, ply asc; **budget 5 per game** (`selectDrillCandidates`); engine's UCI best converted to SAN in the ply's FEN, illegal → no exercise | `game_id` + `ply`                      |
-| `repertoire-line`      | chapter decision positions      | every decision position, seeded when the chapter lands                   | `chapter_id`                           |
+| Origin                 | Source                      | Rule                                                                                                                                                                                                                                 | Required columns on `exercise_sources` |
+| ---------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| `repertoire-deviation` | `deviations` rows           | `type === "deviation"` and non-empty `expected_sans`. **No severity or analysis requirement**                                                                                                                                        | `deviation_id`                         |
+| `engine-blunder`       | `game_analyses` jsonb plies | user's side only; category floor `inaccuracy` (`severeEnough`); ranked by `winChanceLoss` desc, ply asc; **budget 5 per game** (`selectDrillCandidates`); engine's UCI best converted to SAN in the ply's FEN, illegal → no exercise | `game_id` + `ply`                      |
+| `repertoire-line`      | chapter decision positions  | every decision position, seeded when the chapter lands                                                                                                                                                                               | `chapter_id`                           |
 
 Per-origin idempotency comes from partial unique indexes; the
 `exercise_sources_origin_shape` CHECK ties each origin to exactly its columns.
