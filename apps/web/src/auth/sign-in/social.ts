@@ -1,15 +1,18 @@
 /**
- * Social sign-in. OAuth itself (state, PKCE, secrets) is Better Auth's,
- * server-side; the return lands on `/api/auth/callback/google` — the
- * API's route, not the SPA's. This file only decides where the person
- * ends up.
+ * Starts social sign-in through Better Auth.
+ *
+ * Better Auth owns the OAuth flow and the provider callback
+ * (`/api/auth/callback/google` — Google's return leg, not this file's
+ * concern). This module only defines where the user lands after that:
+ * `successURL` on success, `errorCallbackOf(redirect)` on failure.
  */
 
 import { authClient } from "../client.ts";
 
 interface SocialSignInTargets {
-  /** Where to land once the session cookie is set. */
-  callbackURL: string;
+  /** Where to land once the session cookie is set — not the OAuth
+   * provider callback, which Better Auth builds itself. */
+  successURL: string;
   /** Interrupted destination, kept through the failure leg too. */
   redirect?: string | undefined;
 }
@@ -25,12 +28,12 @@ function errorCallbackOf(redirect: string | undefined): string {
  * on success the browser has already left this document.
  */
 export async function signInWithGoogle({
-  callbackURL,
+  successURL,
   redirect,
 }: SocialSignInTargets): Promise<void> {
   const { error } = await authClient.signIn.social({
     provider: "google",
-    callbackURL,
+    callbackURL: successURL,
     errorCallbackURL: errorCallbackOf(redirect),
   });
 

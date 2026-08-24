@@ -124,7 +124,7 @@ export function SignInScreen({
     setGoogleFailed(false);
     setGooglePending(true);
     try {
-      await signInWithGoogle({ callbackURL: redirect ?? "/", redirect });
+      await signInWithGoogle({ successURL: redirect ?? "/", redirect });
       // No `finally`: on success the browser is navigating away, and
       // re-enabling the button here would let a click race that navigation
       // and start a second flow before it lands.
