@@ -184,7 +184,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, conventions, and contribution 
 Thanks to everyone helping make VelaChess better ❤️
 
 <a href="https://github.com/velachess/velachess/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=velachess/velachess&columns=8" />
+  <img src="https://stg.contrib.rocks/image?repo=velachess/velachess&columns=8" />
 </a>
 
 ## Security
