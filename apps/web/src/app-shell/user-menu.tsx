@@ -9,19 +9,31 @@ import {
   PopoverTrigger,
 } from "@velachess/ui/components/popover";
 import { Separator } from "@velachess/ui/components/separator";
-import { UserRoundIcon } from "@velachess/ui/icons";
+import { SettingsIcon } from "@velachess/ui/icons";
 
 import { useSignOut } from "../auth/sign-out/use-sign-out.ts";
 import { sessionQuery } from "../auth/session.ts";
+import { UserAvatar } from "../auth/user-avatar.tsx";
 import { useQuery } from "../shared/libs/query/index.ts";
 
 const USER_MENU_COPY = {
   open: msg`Account`,
+  settings: msg`Settings`,
   signOut: msg`Sign out`,
   signingOut: msg`Signing out…`,
 } as const;
 
-/** Reads the same session query the route guard already resolved — no loading state needed here. */
+/**
+ * The account entry point in the shell: who is signed in, the way into
+ * Settings, and the way out.
+ *
+ * Managing the account happens behind the Settings link, not in here — a
+ * popover you can rename yourself in is a popover you rename yourself in
+ * by accident. What stays is what has to be one click: signing out.
+ *
+ * Reads the same session query the route guard already resolved, so there
+ * is no loading state to render.
+ */
 export function UserMenu() {
   const { i18n } = useLingui();
   const navigate = useNavigate();
@@ -34,17 +46,41 @@ export function UserMenu() {
     <Popover>
       <PopoverTrigger
         render={
-          <Button variant="ghost" size="icon" aria-label={i18n._(USER_MENU_COPY.open)} />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={i18n._(USER_MENU_COPY.open)}
+            className="rounded-full"
+          />
         }
       >
-        <UserRoundIcon />
+        {/* The person's own picture is the affordance. A generic user
+            glyph reads as "account" to whoever built the page and as
+            nothing in particular to whoever is looking for themselves. */}
+        <UserAvatar user={user} size="sm" />
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-56">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{user.name}</span>
-          <span className="text-muted-foreground truncate text-xs">{user.email}</span>
+        <div className="flex items-center gap-2">
+          <UserAvatar user={user} />
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-medium">{user.name}</span>
+            <span className="text-muted-foreground truncate text-xs">{user.email}</span>
+          </div>
         </div>
+
+        <Separator className="my-3" />
+
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={async () => {
+            await navigate({ to: "/settings/account" });
+          }}
+        >
+          <SettingsIcon />
+          {i18n._(USER_MENU_COPY.settings)}
+        </Button>
 
         <Separator className="my-3" />
 

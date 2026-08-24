@@ -160,15 +160,59 @@ describe("the request edge", () => {
   });
 });
 
+describe("CORS", () => {
+  it("answers a preflight from a trusted origin, with credentials", async () => {
+    const response = await harness.app.request("/overview", {
+      method: "OPTIONS",
+      headers: {
+        origin: ORIGIN,
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "content-type",
+      },
+    });
+    expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    // Without this the browser drops the session cookie on a cross-origin
+    // request, and the deployment fails in a way that looks like "logged out".
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(response.headers.get("access-control-allow-headers")).toContain(
+      "Content-Type",
+    );
+  });
+
+  it("declines to name an untrusted origin", async () => {
+    const response = await harness.app.request("/overview", {
+      method: "OPTIONS",
+      headers: { origin: "https://evil.example", "access-control-request-method": "GET" },
+    });
+    // Hono answers the preflight either way; what matters is that it never
+    // echoes an origin it was not told to trust, so the browser refuses.
+    expect(response.headers.get("access-control-allow-origin")).not.toBe(
+      "https://evil.example",
+    );
+  });
+
+  it("never widens to a wildcard", async () => {
+    const response = await harness.app.request("/health", {
+      headers: { origin: ORIGIN },
+    });
+    expect(response.headers.get("access-control-allow-origin")).not.toBe("*");
+  });
+});
+
 describe("what sits above the session gate", () => {
   it("is exactly health, the spec, and Better Auth", async () => {
     // Anything else answering without a cookie would be a route mounted
     // above the gate by accident — the failure this test exists to catch.
-    for (const path of ["/health", "/openapi.json"]) {
+    for (const path of ["/health", "/config", "/openapi.json"]) {
       // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(200);
     }
+
+    // /config is public on purpose, so what it carries matters: capability
+    // flags, and nothing that could identify a person or a credential.
+    const config = await (await harness.app.request("/config")).json();
+    expect(config).toEqual({ signInMethods: { password: true, google: false } });
 
     // Auth answers without a session (that is what signing in is), but it
     // is Better Auth answering, not one of our routes.

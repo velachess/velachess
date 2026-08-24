@@ -107,7 +107,7 @@ msgstr ""
 msgid "{rate} of {count, plural, one {# game} other {# games}}"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:22
+#: src/games/open-game/game-analysis.tsx:30
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -115,7 +115,10 @@ msgstr ""
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:19
+#: src/app-shell/user-menu.tsx:20
+#: src/routes/_app/settings/account.tsx:7
+#: src/settings/account/account-screen.tsx:34
+#: src/test/routes.tsx:175
 msgid "Account"
 msgstr ""
 
@@ -215,6 +218,10 @@ msgstr ""
 msgid "Chapter"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:53
+msgid "Chess.com and Lichess are game sources, not sign-in methods. They live under Import."
+msgstr ""
+
 #: src/games/import/sources.ts:58
 msgid "Chess.com username"
 msgstr ""
@@ -241,9 +248,17 @@ msgstr ""
 msgid "Connect an account"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:50
+msgid "Connected — you can sign in with Google."
+msgstr ""
+
 #: src/drill/drill.tsx:55
 #: src/repertoire/repertoire-practice.tsx:65
 msgid "Continue"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:44
+msgid "Continue with Google"
 msgstr ""
 
 #: src/repertoire/repertoire-practice.tsx:62
@@ -254,7 +269,7 @@ msgstr ""
 msgid "Correspondence"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:21
+#: src/games/open-game/game-analysis.tsx:29
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr ""
@@ -287,12 +302,20 @@ msgstr ""
 msgid "Couldn't load your repertoire."
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:48
+msgid "Couldn't load your sign-in methods."
+msgstr ""
+
 #: src/games/import/sync-games-button.tsx:24
 msgid "Couldn't reach that account"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:40
 msgid "Couldn't reach the server. Try again in a moment."
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:45
+msgid "Couldn't save that. Try again."
 msgstr ""
 
 #: src/repertoire/chapter-study.tsx:71
@@ -314,7 +337,7 @@ msgid "Draw"
 msgstr ""
 
 #: src/drill/drill.tsx:44
-#: src/test/routes.tsx:101
+#: src/test/routes.tsx:102
 msgid "Drill"
 msgstr ""
 
@@ -338,8 +361,13 @@ msgstr ""
 msgid "Due now"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:30
+#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/settings/account/account-screen.tsx:40
 msgid "Email"
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:51
+msgid "Email and password"
 msgstr ""
 
 #: src/drill/drill.tsx:56
@@ -350,11 +378,15 @@ msgstr ""
 msgid "endgame"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/settings/account/account-screen.tsx:39
+msgid "Enter a name."
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Enter your email."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:38
+#: src/auth/sign-in/sign-in-screen.tsx:43
 msgid "Enter your password."
 msgstr ""
 
@@ -423,7 +455,7 @@ msgstr ""
 #: src/dashboard/dashboard.tsx:23
 #: src/games/games-list.tsx:20
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:75
+#: src/test/routes.tsx:76
 msgid "Games"
 msgstr ""
 
@@ -435,8 +467,24 @@ msgstr ""
 msgid "Good"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:49
+msgid "Google"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:47
+msgid "Google sign-in didn't complete. Try again."
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:46
+msgid "Google sign-in was cancelled."
+msgstr ""
+
 #: src/games/import/sources.ts:81
 msgid "Got them — opening your games."
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:38
+msgid "How you're shown in the app."
 msgstr ""
 
 #: src/games/import/sources.ts:79
@@ -464,11 +512,11 @@ msgid "Inaccuracy"
 msgstr ""
 
 #: src/insights/insights.tsx:40
-#: src/test/routes.tsx:143
+#: src/test/routes.tsx:144
 msgid "Insights"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:34
+#: src/auth/sign-in/sign-in-screen.tsx:39
 msgid "Invalid email or password."
 msgstr ""
 
@@ -528,7 +576,7 @@ msgstr ""
 msgid "Loading the chapter…"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:20
+#: src/games/open-game/game-analysis.tsx:28
 msgid "Loading the game…"
 msgstr ""
 
@@ -589,6 +637,10 @@ msgstr ""
 #: src/games/open-game/replay-controls.tsx:11
 #: src/repertoire/chapter-study.tsx:57
 msgid "Move navigation"
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:37
+msgid "Name"
 msgstr ""
 
 #: src/drill/drill-queue-panel.tsx:19
@@ -703,7 +755,11 @@ msgstr ""
 msgid "Opponent plays:"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:31
+#: src/auth/sign-in/sign-in-screen.tsx:45
+msgid "or"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:36
 msgid "Password"
 msgstr ""
 
@@ -772,6 +828,10 @@ msgstr ""
 msgid "Previous move"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:36
+msgid "Profile"
+msgstr ""
+
 #: src/drill/drill.tsx:57
 #: src/repertoire/repertoire-practice.tsx:71
 msgid "Progress"
@@ -801,7 +861,7 @@ msgstr ""
 
 #: src/repertoire/repertoire-landing.tsx:27
 #: src/routes/_app/repertoire.tsx:9
-#: src/test/routes.tsx:111
+#: src/test/routes.tsx:112
 msgid "Repertoire"
 msgstr ""
 
@@ -834,6 +894,18 @@ msgstr ""
 msgid "Right."
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:42
+msgid "Save"
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:44
+msgid "Saved."
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:43
+msgid "Saving…"
+msgstr ""
+
 #: src/insights/finding-views.tsx:502
 msgid "Score"
 msgstr ""
@@ -855,27 +927,41 @@ msgstr ""
 msgid "Session complete"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:52
+msgid "Set — you can sign in with your email and password."
+msgstr ""
+
+#: src/app-shell/user-menu.tsx:21
+#: src/routes/_app/settings.tsx:10
+#: src/test/routes.tsx:160
+msgid "Settings"
+msgstr ""
+
 #: src/games/view-analysis/move-insight.tsx:25
 msgid "Show the engine's move on the board"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:32
+#: src/auth/sign-in/sign-in-screen.tsx:37
 msgid "Sign in"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:29
+#: src/auth/sign-in/sign-in-screen.tsx:34
 msgid "Sign in to your VelaChess instance."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:20
+#: src/app-shell/user-menu.tsx:22
 msgid "Sign out"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:33
+#: src/settings/account/account-screen.tsx:46
+msgid "Sign-in methods"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:38
 msgid "Signing in…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:21
+#: src/app-shell/user-menu.tsx:23
 msgid "Signing out…"
 msgstr ""
 
@@ -925,7 +1011,7 @@ msgstr ""
 msgid "Syncing…"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
+#: src/auth/sign-in/sign-in-screen.tsx:42
 msgid "That doesn't look like an email address."
 msgstr ""
 
@@ -1053,7 +1139,11 @@ msgstr ""
 msgid "waiting for you today"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:28
+#: src/settings/account/account-screen.tsx:47
+msgid "Ways you can get into this account."
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:33
 msgid "Welcome back"
 msgstr ""
 
@@ -1157,6 +1247,10 @@ msgstr ""
 msgid "Your book, from your own play"
 msgstr ""
 
+#: src/settings/account/account-screen.tsx:41
+msgid "Your email is tied to how you signed up and can't be changed here."
+msgstr ""
+
 #: src/onboarding/steps.tsx:18
 msgid "Your games are the syllabus"
 msgstr ""
@@ -1167,6 +1261,10 @@ msgstr ""
 
 #: src/onboarding/onboarding-dialog.tsx:26
 msgid "Your handle is all it takes. We read the public archive and stop there."
+msgstr ""
+
+#: src/settings/account/account-screen.tsx:35
+msgid "Your identity on this instance, and how you sign in to it."
 msgstr ""
 
 #: src/insights/finding-views.tsx:498

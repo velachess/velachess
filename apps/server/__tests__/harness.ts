@@ -68,6 +68,10 @@ export async function createApiHarness(
     db: harness.db,
     auth,
     trustedOrigins: [ORIGIN],
+    // Google is not configured in the harness — the suite proves the flag is
+    // reported honestly, and auth.test.ts builds its own configured instance
+    // where the provider matters.
+    signInMethods: { password: true, google: false },
     analysisQueue: harness.analysisQueue,
     // A short interval: the suite should not wait out a production poll.
     watchers: createWatchers({

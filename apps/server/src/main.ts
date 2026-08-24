@@ -102,6 +102,10 @@ const app = createApp({
   db,
   auth,
   trustedOrigins: authEnv.trustedOrigins,
+  // Password sign-in is always available; Google appears only where it is
+  // configured. Derived from the same resolved env the auth instance is built
+  // from, so the screen and the server cannot disagree about what exists.
+  signInMethods: { password: true, google: Boolean(authEnv.google) },
   analysisQueue,
   watchers: createWatchers({ db, analysisQueue }),
   syncQueue: makeSyncQueue(boss, db),

@@ -13,6 +13,7 @@ import { GameAnalysis } from "../games/open-game/game-analysis.tsx";
 import { GamesList } from "../games/games-list.tsx";
 import { ImportGames } from "../games/import/import-games.tsx";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
+import { AccountScreen } from "../settings/account/account-screen.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { gamesSearchSchema } from "../games/list/filters.ts";
 import { drillSearchSchema } from "../drill/queries.ts";
@@ -150,6 +151,31 @@ const importRoute = createRoute({
   component: ImportGames,
 });
 
+// Nested for real, like /games and /repertoire: the account screen is
+// reached from the shell's user menu, so the link has to resolve against
+// the same tree the menu renders inside.
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/settings",
+  staticData: { crumb: msg`Settings` },
+  component: Outlet,
+});
+
+const settingsIndexRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/",
+  beforeLoad: () => {
+    throw redirect({ to: "/settings/account", replace: true });
+  },
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/account",
+  staticData: { crumb: msg`Account` },
+  component: AccountScreen,
+});
+
 // Public, and the mirror image of the guard above: already signed in
 // means there is nothing to do here.
 const loginRoute = createRoute({
@@ -157,6 +183,9 @@ const loginRoute = createRoute({
   path: "/login",
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search["redirect"] === "string" ? search["redirect"] : undefined,
+    // Mirrors the real route: an OAuth failure comes back on the address
+    // bar, and the screen renders a message rather than the raw code.
+    error: typeof search["error"] === "string" ? search["error"] : undefined,
   }),
   beforeLoad: async ({ context, search }) => {
     const session = await resolveSession(context.queryClient);
@@ -168,8 +197,13 @@ const loginRoute = createRoute({
 });
 
 function TestLoginRoute() {
-  const { redirect: destination } = loginRoute.useSearch();
-  return <SignInScreen {...(destination ? { redirect: destination } : {})} />;
+  const { redirect: destination, error } = loginRoute.useSearch();
+  return (
+    <SignInScreen
+      {...(destination ? { redirect: destination } : {})}
+      {...(error ? { oauthError: error } : {})}
+    />
+  );
 }
 
 let crashRouteThrows = false;
@@ -206,6 +240,7 @@ export const testRouteTree = rootRoute.addChildren([
     drillRoute,
     insightsRoute,
     importRoute,
+    settingsRoute.addChildren([settingsIndexRoute, accountRoute]),
   ]),
   loginRoute,
   crashRoute,

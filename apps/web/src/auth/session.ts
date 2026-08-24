@@ -19,8 +19,11 @@ export async function fetchSession(): Promise<SessionUser | null> {
   }
 
   if (!data?.user) return null;
-  const { id, email, name } = data.user;
-  return { id, email, name };
+  const { id, email, name, image } = data.user;
+  // `image` is optional in Better Auth's type and absent for a
+  // password-only account; normalized to null so consumers branch on one
+  // shape instead of two.
+  return { id, email, name, image: image ?? null };
 }
 
 export const sessionQuery = queryOptions({

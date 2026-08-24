@@ -7,6 +7,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { except } from "hono/combine";
+import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
@@ -51,6 +52,28 @@ export function createApp(deps: ApiDeps) {
     // proxy in front of the SPA, not here. What matters for an API is
     // nosniff and a referrer policy, which are the middleware's defaults.
     .use("*", secureHeaders())
+    // Declared before every route, as hono's docs require ("should be called
+    // before the route"), and mirroring Better Auth's Hono guide: an explicit
+    // origin list rather than a wildcard, `credentials: true` because the
+    // session rides in a cookie, and the very same list Better Auth trusts —
+    // one source of truth, so CORS and the session cannot disagree about who
+    // is allowed to talk to this API.
+    //
+    // Today that list is the app's own origin, and a same-origin request
+    // carries no Origin header worth answering, so this middleware is
+    // effectively inert. It exists for the deployment that puts the SPA on a
+    // separate host, and it fails closed until that host is declared.
+    .use(
+      "*",
+      cors({
+        origin: deps.trustedOrigins,
+        credentials: true,
+        // What the SPA actually sends. Anything else is not a request this
+        // API knows how to serve.
+        allowHeaders: ["Content-Type"],
+        maxAge: 600,
+      }),
+    )
     // Refuse an oversized body before anything spends effort parsing it.
     .use(
       "*",
@@ -73,6 +96,9 @@ export function createApp(deps: ApiDeps) {
     // System routes — liveness and documentation answer even when the
     // database is down; identity never touches them.
     .get("/health", (c) => c.json({ ok: true }))
+    // Public because the sign-in screen consumes it before there is anyone to
+    // authenticate. Capability flags only — see SignInMethods in deps.ts.
+    .get("/config", (c) => c.json({ signInMethods: deps.signInMethods }))
     .get("/openapi.json", (c) => c.json(openApiSpec))
     // Better Auth owns everything under /auth/* — sign-in, sign-out,
     // session, sign-up. Mounted before the session gate because logging

@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 
 import { Button } from "@velachess/ui/components/button";
 import {
@@ -16,12 +17,16 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
-import { VelaChessMark } from "@velachess/ui/icons";
+import { GoogleIcon, VelaChessMark } from "@velachess/ui/icons";
 
 import { signInFailureOf, type SignInFailure } from "./sign-in.ts";
+import { signInWithGoogle } from "./social.ts";
 import { useSignIn } from "./use-sign-in.ts";
+import { signInMethodsQuery } from "../sign-in-methods.ts";
+import { useQuery } from "../../shared/libs/query/index.ts";
 import { z } from "../../shared/libs/zod.ts";
 
 const SIGN_IN_COPY = {
@@ -36,6 +41,10 @@ const SIGN_IN_COPY = {
   emailRequired: msg`Enter your email.`,
   emailInvalid: msg`That doesn't look like an email address.`,
   passwordRequired: msg`Enter your password.`,
+  google: msg`Continue with Google`,
+  or: msg`or`,
+  googleCancelled: msg`Google sign-in was cancelled.`,
+  googleFailed: msg`Google sign-in didn't complete. Try again.`,
 } as const;
 
 const FAILURE_COPY: Record<
@@ -47,26 +56,52 @@ const FAILURE_COPY: Record<
 };
 
 /**
+ * Two ways a Google attempt comes back here, and they are not the same
+ * event: the person said no, or something broke. Better Auth puts the
+ * reason in `?error=`; `access_denied` is OAuth's own code for a refused
+ * consent screen, and everything else — a stale state, a provider
+ * timeout, a misconfigured client — reads as a failure worth retrying.
+ *
+ * The provider's raw code is never rendered. It is written for whoever
+ * reads a log, not for someone who just wanted to sign in.
+ */
+function oauthErrorCopy(code: string) {
+  return code === "access_denied"
+    ? SIGN_IN_COPY.googleCancelled
+    : SIGN_IN_COPY.googleFailed;
+}
+
+/**
  * The one screen reachable without a session.
  *
  * Laid out as shadcn's login block: a muted full-height page, the brand
  * lockup centred above a `max-w-sm` card, a centred card header, and the
  * form as one `FieldGroup`.
  *
- * What the block ships that this build does not: OAuth buttons and their
- * separator, "forgot your password", and a sign-up link. None of the
- * three exists on the server — `/auth/sign-up/email` answers 400 and the
- * first user is provisioned at startup (docs/how-to/self-host.md) — and
- * a control that cannot do anything is worse than an absent one.
+ * Which methods appear is the server's answer, not this file's guess:
+ * `signInMethodsQuery` reads `GET /config`, so a self-host without Google
+ * credentials renders no Google button. A control that cannot do anything
+ * is worse than an absent one — the same reason there is still no
+ * "forgot your password" or sign-up link: `/auth/sign-up/email` answers
+ * 400 by design and password recovery needs an SMTP dependency this build
+ * does not have. Public sign-up, where it is wanted, is Google's path.
  *
  * Where it lands afterwards is the router's business, not this form's:
  * `redirect` carries where the person was headed before the guard
- * intervened.
+ * intervened, and it is the same destination for both methods.
  */
-export function SignInScreen({ redirect }: { redirect?: string }) {
+export function SignInScreen({
+  redirect,
+  oauthError,
+}: {
+  redirect?: string;
+  /** `?error=` as Better Auth returned it after a Google attempt. */
+  oauthError?: string;
+}) {
   const { i18n } = useLingui();
   const navigate = useNavigate();
   const signIn = useSignIn();
+  const { data: methods } = useQuery(signInMethodsQuery);
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -88,6 +123,29 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
   });
 
   const failure = signIn.isError ? signInFailureOf(signIn.error) : null;
+  const [googlePending, setGooglePending] = useState(false);
+  const [googleFailed, setGoogleFailed] = useState(false);
+
+  // Two sources, one message: a code Better Auth handed back through the
+  // URL, or a request that never reached the provider at all.
+  const oauthMessage = googleFailed
+    ? SIGN_IN_COPY.googleFailed
+    : oauthError
+      ? oauthErrorCopy(oauthError)
+      : null;
+
+  const startGoogle = async () => {
+    setGoogleFailed(false);
+    setGooglePending(true);
+    try {
+      await signInWithGoogle({ callbackURL: redirect ?? "/" });
+      // Reached only if the browser did not navigate away.
+    } catch {
+      setGoogleFailed(true);
+    } finally {
+      setGooglePending(false);
+    }
+  };
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
@@ -122,6 +180,40 @@ export function SignInScreen({ redirect }: { redirect?: string }) {
                 }}
               >
                 <FieldGroup>
+                  {/* Rendered whether or not the button below is, and
+                      that is the point: if the provider was switched off
+                      between the redirect out and the return, the person
+                      still gets told why they are back here instead of
+                      inside the app. */}
+                  {oauthMessage !== null && (
+                    <Field>
+                      <FieldError>{i18n._(oauthMessage)}</FieldError>
+                    </Field>
+                  )}
+
+                  {/* Above the password fields, because it is the faster
+                      path for anyone who has it, and because a provider
+                      button below a submit button reads as a second
+                      submit. Rendered only where the server says the
+                      provider exists. */}
+                  {methods?.google && (
+                    <>
+                      <Field>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={googlePending || signIn.isPending}
+                          onClick={() => void startGoogle()}
+                        >
+                          <GoogleIcon className="size-4" />
+                          {i18n._(SIGN_IN_COPY.google)}
+                        </Button>
+                      </Field>
+
+                      <FieldSeparator>{i18n._(SIGN_IN_COPY.or)}</FieldSeparator>
+                    </>
+                  )}
+
                   <form.Field
                     name="email"
                     validators={{
