@@ -43,7 +43,7 @@ apps/server, apps/worker -> libs/application -> libs/infra + domain libs
 Nothing under `libs/` imports from `apps/`. Application imports ports, not
 Hono or pg-boss. Infra does not import application. The enforced boundary and
 documented exceptions live in `docs/explanation/architecture.md` and
-`__tests__/architecture.test.ts`.
+`.dependency-cruiser.cjs`.
 
 ## Principles
 
@@ -87,9 +87,11 @@ documented exceptions live in `docs/explanation/architecture.md` and
 ## Commands
 
 ```bash
-pnpm check       # typecheck + lint + knip
+pnpm check       # typecheck + lint + architecture + knip
+pnpm architecture # dependency and cycle boundaries
 pnpm fmt:check   # formatting gate
-pnpm test        # all Vitest projects through Turbo
+pnpm test        # unit and integration projects through Turbo
+pnpm e2e         # root cross-system acceptance flows
 pnpm build       # deployable apps
 ```
 

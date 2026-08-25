@@ -9,7 +9,7 @@ the only place transport concerns belong.
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
 details? }` contract.
 - Every route must be represented in `src/openapi.ts`; the anti-drift suite in
-  `__tests__/openapi.test.ts` checks both directions.
+  `tests/openapi.test.ts` checks both directions.
 - Better Auth owns `/auth/*`. Session middleware resolves `userId`; downstream
   routes and slices never infer identity from a chess handle.
 - Composition reads environment and constructs dependencies. Libraries receive

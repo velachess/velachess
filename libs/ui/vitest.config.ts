@@ -12,7 +12,7 @@ export default defineConfig({
     name: "ui",
     environment: "jsdom",
     globals: true,
-    include: ["src/**/*.test.tsx"],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
   resolve: { alias: aliases },
 });

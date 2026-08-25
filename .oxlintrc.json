@@ -43,9 +43,9 @@
     },
     {
       "files": [
-        "**/*.test.{ts,tsx}",
-        "**/__tests__/**/*.{ts,tsx}",
-        "**/__e2e__/**/*.{ts,tsx}"
+        "**/*.{test,spec}.{ts,tsx}",
+        "**/tests/**/*.{ts,tsx}",
+        "**/e2e/**/*.{ts,tsx}"
       ],
       "rules": {
         "no-unused-vars": "off",
@@ -258,7 +258,7 @@
       "files": [
         "libs/infra/engine/session.ts",
         "libs/infra/engine/transport-worker.ts",
-        "libs/infra/engine/__tests__/fake-transport.ts"
+        "libs/infra/engine/tests/fake-transport.ts"
       ],
       "rules": {
         "no-await-in-loop": "off",
@@ -294,7 +294,7 @@
       }
     },
     {
-      "files": ["libs/infra/db/__tests__/**/*.ts"],
+      "files": ["libs/infra/db/tests/**/*.ts"],
       "rules": {
         "no-restricted-imports": "off"
       }

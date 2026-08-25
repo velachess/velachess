@@ -228,11 +228,11 @@ assertion checks the `game_source` enum's values against
 `gameSourceSchema.options` directly — the test that would have caught a
 schema drift bug outright.
 
-Everything else runs against a real Postgres via `__tests__/test-db.ts`:
+Everything else runs against a real Postgres via `tests/test-db.ts`:
 `DATABASE_URL` when set (the docker-compose instance), PGlite (in-process
 Postgres) otherwise — either way the suite applies the real migrations
 from `./migrations` first, so the schema under test is the schema that
-ships, and no environment skips the suite. `__tests__/repertoire-flow.test.ts`
+ships, and no environment skips the suite. `tests/repertoire-flow.test.ts`
 is the cycle's acceptance test: user → repertoire → chapter PGN → read
 back → `buildRepertoire` → `findDeviation` → `upsertJudgment` → read
 back, plus every constraint above exercised for real (partial-unique
@@ -265,7 +265,7 @@ drizzle.config.ts            schema/out paths, dbCredentials from DATABASE_URL
 migrations/                  0000 sync · 0001 users · 0002 repertoires · 0003 deviations
                              0004 analysis · 0005 adherence · 0006 drill · 0007 scheduler
                              0008 pgboss — drops the SQL job queues (pg-boss owns delivery)
-__tests__/
+tests/
   test-db.ts                 DATABASE_URL or PGlite — real migrations either way
 index.ts                     public surface
 ```

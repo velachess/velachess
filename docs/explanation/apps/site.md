@@ -25,7 +25,7 @@ already had the correct owner, while TanStack navigation and product
 screens remain framework-specific.
 
 The screenshots are produced from deterministic fixtures inside the real
-`apps/web` game-analysis and drill slices. `apps/web/__e2e__/marketing`
+`apps/web` game-analysis and drill slices. `apps/web/e2e/marketing`
 uses Playwright's own `webServer`, routing, viewport and screenshot APIs;
 `pnpm site:capture` writes only the final WebP files into
 `apps/site/public/product`.

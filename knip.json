@@ -23,7 +23,7 @@
         "**/*.test.{ts,tsx}",
         "**/*.spec.{ts,tsx}"
       ],
-      "project": ["src/**/*.{ts,tsx,css}", "__e2e__/**/*.{ts,tsx}"]
+      "project": ["src/**/*.{ts,tsx,css}", "e2e/**/*.{ts,tsx}"]
     },
     "apps/site": {
       "entry": [
@@ -38,34 +38,34 @@
       "ignoreDependencies": ["@lingui/swc-plugin", "tailwindcss"]
     },
     "libs/chess": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/fixtures": {
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/engine": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/platforms": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/db": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/repertoire": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/analysis": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/scheduler": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     }
   }

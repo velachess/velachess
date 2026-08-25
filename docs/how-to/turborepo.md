@@ -11,14 +11,16 @@ truth over this guide.
 Package tasks come from each workspace's `package.json`. Root-only tasks use
 Turbo's `//#<task>` form because they do not belong to a workspace.
 
-| Root command                          | Turbo tasks                                   | Repository role                                                            |
-| ------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
-| `pnpm test`                           | package `test`, `//#test:root`, `//#test:e2e` | Every workspace test project plus root boundaries and cross-app acceptance |
-| `pnpm typecheck`                      | package `typecheck`, `//#typecheck:root`      | Workspace-specific compilation plus the repository TypeScript project      |
-| `pnpm lint`                           | `//#lint:root`                                | One repository-wide oxlint run                                             |
-| `pnpm build`                          | package `build`                               | Deployable application builds                                              |
-| `pnpm dev`                            | package `dev`                                 | Persistent local development processes                                     |
-| `pnpm db:generate`, `pnpm db:migrate` | package database tasks                        | Generated migrations and external database state                           |
+| Root command                          | Task ownership                           | Repository role                                                       |
+| ------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| `pnpm test`                           | package `test`, `//#test:root`           | Workspace unit/integration projects plus root repository checks       |
+| `pnpm e2e`                            | direct root Vitest project               | Cross-system acceptance under `e2e/`                                  |
+| `pnpm architecture`                   | direct root dependency-cruiser command   | Import, package, slice, auth, app and cycle boundaries                |
+| `pnpm typecheck`                      | package `typecheck`, `//#typecheck:root` | Workspace-specific compilation plus the repository TypeScript project |
+| `pnpm lint`                           | `//#lint:root`                           | One repository-wide oxlint run                                        |
+| `pnpm build`                          | package `build`                          | Deployable application builds                                         |
+| `pnpm dev`                            | package `dev`                            | Persistent local development processes                                |
+| `pnpm db:generate`, `pnpm db:migrate` | package database tasks                   | Generated migrations and external database state                      |
 
 The public site adds a `lighthouse` task. Its test depends on its build, and
 Lighthouse depends on the site test. Web and site typechecks depend on their
@@ -58,7 +60,7 @@ CI uses affected-package selection only where skipping unaffected work is part
 of that workflow's contract. Site quality runs `lighthouse --affected` with
 explicit `TURBO_SCM_BASE` and `TURBO_SCM_HEAD`; React Doctor uses
 `turbo ls --affected` to choose among the three React workspaces. Full CI still
-runs the root test and build commands.
+runs architecture, unit/integration, E2E and build commands.
 
 ## Add or change a task
 

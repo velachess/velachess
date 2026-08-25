@@ -1,7 +1,7 @@
 /**
  * [AUTH] — who is making this request, nothing else. Owns Better Auth
  * config/sessions/bootstrap; authorization ("may this user touch this
- * game") lives in application/db instead (__tests__/architecture.test.ts
+ * game") lives in application/db instead (.dependency-cruiser.cjs
  * enforces the direction). generateId: "uuid" matches users.id's type;
  * modelName/fields map onto this schema's existing table/column names.
  */

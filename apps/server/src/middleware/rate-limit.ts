@@ -28,7 +28,7 @@ export function rateLimit(
   // traffic exhausting every other resource's budget.
   subject: (c: Context<ApiEnv>) => string = (c) => c.get("userId"),
 ) {
-  // Named so __tests__/openapi.test.ts can assert it is registered below
+  // Named so tests/openapi.test.ts can assert it is registered below
   // the session gate, since every policy is keyed by the userId it resolves.
   return createMiddleware<ApiEnv>(async function rateLimited(c, next) {
     const verdict = await consumeRateLimit(deps.db, subject(c), policy);

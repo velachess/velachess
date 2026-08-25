@@ -108,7 +108,7 @@ export function createApp(deps: ApiDeps) {
     .use("*", sessionMiddleware(deps.auth))
     // Every policy is keyed by userId, so this sits below the gate. No
     // `/health` exemption needed: it's registered above the gate, so a
-    // request to it never reaches this line (__tests__/openapi.test.ts
+    // request to it never reaches this line (tests/openapi.test.ts
     // asserts the ordering).
     .use("*", rateLimit(deps, POLICIES.authenticated))
     // Costlier actions get their own budget on top of the general one.

@@ -10,7 +10,7 @@ dead-letter handling.
 A library on purpose: the server produces jobs, the worker consumes them, and
 the test harness runs both — so this cannot live inside either app without
 one importing the other. Handlers, registration and concurrency belong to
-`apps/worker` and are kept out by `__tests__/architecture.test.ts`.
+`apps/worker` and are kept out by `tests/ownership.test.ts`.
 
 ## Dependencies
 

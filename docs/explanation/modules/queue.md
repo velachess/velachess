@@ -34,7 +34,7 @@ consumer's constraints, written down where both sides can honour them.
 Two architecture tests hold the line — `apps/server` and `apps/worker` may
 never import each other (tests included), and `boss.work` may not appear
 outside `apps/worker`. An acceptance test that needs both apps lives at
-`__e2e__/`, belonging to neither.
+`e2e/`, belonging to neither.
 
 ## Why a queue in Postgres
 

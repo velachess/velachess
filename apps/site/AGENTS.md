@@ -21,7 +21,7 @@ changing its structure or rendering model.
 - User-facing copy uses Lingui. Run
   `pnpm --filter @velachess/site i18n:extract` after changing it.
 - Product screenshots come from the deterministic capture flow in
-  `apps/web/__e2e__/marketing`; do not replace them with hand-made fixture
+  `apps/web/e2e/marketing`; do not replace them with hand-made fixture
   state in this app.
 
 ## Verification

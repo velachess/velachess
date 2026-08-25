@@ -4,7 +4,7 @@ Two halves of this repository are tested through different seams, and
 using the wrong one produces a suite that is green and blind. Read the
 half you are working in.
 
-Both run under vitest, both are in `pnpm test`, and neither mocks the
+Both run under Vitest, both are in `pnpm test`, and neither mocks the
 thing it is meant to be checking.
 
 ## The seam, by half
@@ -36,9 +36,21 @@ matcher, hook, mock, timer, fixture, or configuration option, use the
 [official Vitest documentation](https://vitest.dev/) for the installed version
 and verify version-sensitive behavior against the installed exports and types.
 
+## Where a test lives
+
+Keep unit and integration tests with the app, library, area, or slice that owns
+the behavior. Use an explicit `tests/` directory when the owner has several
+tests or helpers; use a colocated `*.test.ts` or `*.test.tsx` when that is
+clearer. App-specific browser specs stay with their app.
+
+Root `tests/` is only for repository-owned checks with no package owner. Root
+`e2e/` is only for `*.spec.ts` flows that compose multiple apps or libraries and
+verify VelaChess as a whole. Static import and dependency boundaries are not
+Vitest tests; `.dependency-cruiser.cjs` owns them through `pnpm architecture`.
+
 ## Backend
 
-Go in through the route. `apps/server/__tests__/harness.ts` gives you an app
+Go in through the route. `apps/server/tests/harness.ts` gives you an app
 with a real database behind it.
 
 ```ts
@@ -148,8 +160,8 @@ to each test.
 ## Running
 
 ```bash
-pnpm test                                   # all projects, including root and e2e
-pnpm test:e2e                               # only the cross-app acceptance project
+pnpm test                                   # unit and integration projects
+pnpm e2e                                    # only cross-app acceptance flows
 pnpm exec vitest run --project server       # one backend project
 pnpm exec vitest run --project web          # apps/web
 ```

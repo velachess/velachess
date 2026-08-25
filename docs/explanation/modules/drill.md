@@ -113,7 +113,7 @@ about.
 The eligibility and selection rules run as pure unit tests (type gate,
 prepared-answer gate, harmless-deviation and unanalysed-deviation cases,
 ranking, budget, tie-break determinism). The e2e in
-`libs/infra/db/__tests__/drill-flow.test.ts` chains the real pipeline —
+`libs/infra/db/tests/drill-flow.test.ts` chains the real pipeline —
 judgment → engine signal → triage → deduped exercise with provenance →
 right and wrong answers → graded responses read back. Queue counting,
 context precedence and scheduling have their own suites

@@ -22,7 +22,7 @@ export const aliases = {
   "@velachess/application": path.resolve(import.meta.dirname, "./libs/application"),
   "@velachess/test-utils": path.resolve(import.meta.dirname, "./libs/test-utils"),
   "@velachess/ui": path.resolve(import.meta.dirname, "./libs/ui/src"),
-  // Reached from __e2e__/, which belongs to neither app and so has no
+  // Reached from e2e/, which belongs to neither app and so has no
   // package.json declaring these as real dependencies on its behalf.
   "@velachess/logger": path.resolve(import.meta.dirname, "./libs/infra/logger/src"),
   "@velachess/auth": path.resolve(import.meta.dirname, "./libs/infra/auth"),

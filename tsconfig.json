@@ -57,8 +57,8 @@
     "libs/**/*.tsx",
     "libs/**/*.mts",
     "apps/**/*.ts",
-    "__tests__/**/*.ts",
-    "__e2e__/**/*.ts"
+    "tests/**/*.ts",
+    "e2e/**/*.ts"
   ],
   "exclude": ["node_modules", "**/node_modules", "apps/web", "apps/site"]
 }

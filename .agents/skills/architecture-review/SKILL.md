@@ -29,7 +29,7 @@ length, two implementations, or visual consistency do not earn an abstraction.
 ## Place behavior in the existing architecture
 
 Read the nearest `AGENTS.md`, `docs/explanation/architecture.md`, and
-`__tests__/architecture.test.ts`, then:
+`.dependency-cruiser.cjs`, then:
 
 1. Name the request, user action, or system event that executes the behavior.
 2. Keep behavior that changes with it in the owning
@@ -56,8 +56,8 @@ Route specialized questions instead of reproducing their rules:
 Do not change domain behavior inside a readability refactor. Report a proven
 bug separately with the smallest correction and an observable test.
 
-Verify enforced dependency and slice boundaries with:
+Verify enforced dependency, slice, and cycle boundaries with:
 
 ```bash
-pnpm exec vitest run --project root __tests__/architecture.test.ts
+pnpm architecture
 ```

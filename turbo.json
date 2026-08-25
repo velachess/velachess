@@ -3,9 +3,6 @@
   "tasks": {
     "test": {},
     "//#test:root": {},
-    "//#test:e2e": {
-      "env": ["DATABASE_URL"]
-    },
     "@velachess/db#test": {
       "env": ["DATABASE_URL"]
     },

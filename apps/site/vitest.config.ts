@@ -25,7 +25,7 @@ export default defineConfig({
     name: "site",
     environment: "jsdom",
     globals: true,
-    include: ["src/**/*.test.{ts,tsx}", "__tests__/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
     // Rendering the complete landing page can cross Vitest's 5s default when
     // every workspace test runs concurrently.

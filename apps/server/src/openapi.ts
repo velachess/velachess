@@ -1,6 +1,6 @@
 /**
  * Hand-authored OpenAPI 3.1 document, served at GET /openapi.json.
- * Anti-drift: __tests__/openapi.test.ts fails if any registered Hono route is
+ * Anti-drift: tests/openapi.test.ts fails if any registered Hono route is
  * missing here (or vice versa) — the spec cannot silently rot.
  */
 

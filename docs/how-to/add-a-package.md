@@ -77,7 +77,7 @@ exists separately, and which decisions inside it are deliberate. This is
 where a future reader — human or agent — learns not to "fix" something
 on purpose.
 
-**7. Tests beside the code**, in `packages/<name>/__tests__/`. They run
+**7. Tests beside the code**, in `packages/<name>/tests/`. They run
 in the package's own project (step 4a) automatically.
 
 ## Dependency direction

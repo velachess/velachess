@@ -3,18 +3,20 @@
 Read this first. Every other guide ends here, and "green" in this repo
 means more than one command.
 
-## The four gates
+## The gates
 
 ```bash
 pnpm typecheck    # tsc --noEmit at the root
-pnpm test         # turbo, every app/library project plus root and e2e
 pnpm lint         # oxlint
+pnpm architecture # dependency-cruiser boundaries and cycles
 pnpm fmt:check    # oxfmt
 pnpm knip         # unused files, exports and dependencies
+pnpm test         # unit and integration projects
+pnpm e2e          # cross-system acceptance flows
 pnpm build        # when apps/web or apps/site moved
 ```
 
-`pnpm check` runs typecheck, lint and knip together — the fast static
+`pnpm check` runs typecheck, lint, architecture and knip together — the fast static
 gate. Formatting is its own check because `pnpm fmt` is the fixer and
 pre-commit formats staged files automatically.
 
@@ -30,8 +32,8 @@ warns you — `prepare` reports the miss and carries on so that a Docker
 build without a `.git` still installs. Check with
 `pnpm exec lefthook validate`.
 
-`pnpm test` runs **one vitest project per app and library**, plus the root and
-cross-app acceptance projects. The root
+`pnpm test` runs **one Vitest project per app and library**, plus the root
+repository checks. The root
 `vitest.config.ts` discovers each `vitest.config.ts` under `apps/*` and
 `libs/**`, so running one proves nothing about another:
 
@@ -39,11 +41,7 @@ cross-app acceptance projects. The root
   `apps/worker`, over PGlite with the real migrations and real Stockfish
   at shallow depth. Slow (about a minute) and worth every second: nothing
   is mocked away.
-- **`root`** — `__tests__/`: the architecture and auth-boundary suites,
-  which read the whole repo and belong to no single workspace.
-- **`e2e`** — `__e2e__/`: the acceptance loop through both `apps/server`
-  and `apps/worker`, composed at the repo root because it belongs to
-  neither app (see `docs/explanation/architecture.md`).
+- **`root`** — `tests/`: repository-owned checks that belong to no workspace.
 - **`ui`** — `libs/ui` alone, jsdom + Testing Library, no Lingui
   transform.
 - **`web`** — `apps/web` alone, because it compiles Lingui macros and
@@ -51,8 +49,11 @@ cross-app acceptance projects. The root
 - **`site`** — `apps/site` alone, with the same Lingui transform and its
   Next.js landing composition.
 
-To run one: `pnpm exec vitest run --project db` (or any project name —
-`server`, `e2e`, `root`, `web`, `ui`, and so on).
+To run one: `pnpm exec vitest run --project db` (or any unit/integration
+project name — `server`, `root`, `web`, `ui`, and so on).
+
+`pnpm e2e` runs only `e2e/*.spec.ts`. These flows compose `apps/server` and
+`apps/worker` at the repository root because they belong to neither app.
 
 The `web` project renders screens: Testing Library drives them and MSW
 answers the network, so a test there exercises the app's own fetch rather

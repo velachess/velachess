@@ -30,7 +30,7 @@ libraries.
 Queries used by one behavior stay in that slice. Multi-consumer queries may
 live in `libs/infra/db/queries` when the shared ownership is real and documented.
 Slices do not call one another except for the allowlisted event-reaction paths
-enforced by `__tests__/architecture.test.ts`.
+enforced by `.dependency-cruiser.cjs`.
 
 ## Account sync and judgment
 
@@ -70,6 +70,6 @@ one scheduled FSRS event.
 ## Verification
 
 The package test project uses real migrations and, where required, real
-Stockfish at shallow depth. Cross-app behavior belongs in root `__e2e__`; the
-architecture rules belong in the root architecture test. See
+Stockfish at shallow depth. Cross-app behavior belongs in root `e2e`; the
+dependency rules belong in `.dependency-cruiser.cjs`. See
 `docs/how-to/verify-a-change.md`.

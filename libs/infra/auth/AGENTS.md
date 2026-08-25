@@ -8,7 +8,7 @@ states what is different or additional for the authentication library.
 Owns Better Auth config, session bootstrap, and process-scoped auth
 instance construction. Authorization ("may this user touch this game")
 lives in `libs/application`/`libs/infra/db`, not here —
-`__tests__/architecture.test.ts` enforces the direction. No dedicated
+`.dependency-cruiser.cjs` enforces the direction. No dedicated
 `docs/explanation` page exists; this file is the source for this library's
 durable conventions. Verify the live config and its tests before changing a
 current Better Auth option.

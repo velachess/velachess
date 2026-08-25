@@ -140,13 +140,23 @@ definition site:
 apps/*  →  libs/application  →  libs/infra + domain libs
 ```
 
-Forbidden, and failing the build via `__tests__/architecture.test.ts`:
+Forbidden, and failing `pnpm architecture` via `.dependency-cruiser.cjs`:
 
 - anything under `libs/` importing from `apps/`
 - `libs/application` importing `hono` or `pg-boss` (transports belong to
   the apps; the queue is reached through `@velachess/queue/ports`)
 - `libs/infra/db` importing application code
-- domain logic importing Better Auth (see `__tests__/auth-boundaries.test.ts`)
+- domain logic importing Better Auth
+
+Cross-app imports are forbidden except for the web client's type-only
+`AppType` contract from `apps/server/src/server.ts`; it preserves Hono's typed
+transport without creating a runtime dependency between deployables.
+
+The repository currently runs TypeScript 7, while dependency-cruiser 18's
+TypeScript extractor supports versions below 7. `package.json` therefore gives
+dependency-cruiser its own TypeScript 6 through pnpm `packageExtensions`; keep
+that compatibility dependency until the installed cruiser supports the root
+compiler, because type-only boundary checks depend on its extractor.
 
 HTTP-shape validation (zod at the route) stays in `apps/server`: it is
 transport translation, and it is what keeps the `hc<AppType>` client

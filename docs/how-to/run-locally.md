@@ -71,7 +71,7 @@ the file supplying the value differs:
 
 `.env.local` is git-ignored and never committed.
 
-**Tests read neither file.** `libs/infra/db/__tests__/test-db.ts` falls
+**Tests read neither file.** `libs/infra/db/tests/test-db.ts` falls
 back to an isolated in-process PGlite per run when `DATABASE_URL` is absent
 from the environment, which is what every suite is written against. That is
 also why the Dev Container does not set it container-wide — only the

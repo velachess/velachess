@@ -31,7 +31,7 @@ import {
   createApiHarness,
   type ApiHarness,
   type AuthedApp,
-} from "../apps/server/__tests__/harness.ts";
+} from "../apps/server/tests/harness.ts";
 
 let harness: ApiHarness;
 let owner: AuthedApp;

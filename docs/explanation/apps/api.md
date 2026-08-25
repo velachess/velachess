@@ -68,4 +68,4 @@ Internal exception details are logged rather than returned.
 Server tests call the real Hono app over the package harness with migrations,
 queue, and engine dependencies appropriate to the behavior. OpenAPI tests pin
 surface and error-shape drift. Cross-server/worker acceptance behavior lives in
-root `__e2e__`. See `docs/how-to/write-a-test.md`.
+root `e2e`. See `docs/how-to/write-a-test.md`.

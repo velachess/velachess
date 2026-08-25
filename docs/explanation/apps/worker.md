@@ -48,7 +48,7 @@ auto-refreshes heartbeats).
 
 ## Tests
 
-`__tests__/worker.test.ts` over the real harness: the background loop (one
+`tests/worker.test.ts` over the real harness: the background loop (one
 sync job → games → judgments, with the engine untouched), a deliberately
 enqueued analysis producing a real report, analysis
 idempotence on an already-analyzed game, the throw-to-retry path for a

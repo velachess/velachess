@@ -38,7 +38,7 @@ nobody reads. Queries live in `libs/infra/db/queries/`, grouped by concern
 **6. Test it over the real migrations.** The `db` project boots PGlite
 and runs every migration before the first assertion, so a test that
 passes has exercised your SQL. Add the case to the matching file in
-`libs/infra/db/__tests__/`.
+`libs/infra/db/tests/`.
 
 ## Conventions
 

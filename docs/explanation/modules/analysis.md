@@ -53,7 +53,7 @@ classify as a blunder.
 
 ## Reference grounding
 
-This module is not validated by intuition — `__tests__/lichess-reference.test.ts`
+This module is not validated by intuition — `tests/lichess-reference.test.ts`
 pins it to Lichess's public implementation, same inputs, same expected
 outputs:
 
@@ -148,7 +148,7 @@ Stockfish the repo already ships for engine tests: a four-ply mating game
 must produce the losing move flagged as a blunder and a saturated terminal
 eval; the failure policy is tested with a mute transport (retry once, then
 fail, exactly two sessions created). The queue/cache/acceptance e2e lives
-in `libs/infra/db/__tests__/analysis-flow.test.ts` and runs the whole diagram
+in `libs/infra/db/tests/analysis-flow.test.ts` and runs the whole diagram
 above against a real database.
 
 ## Layout
@@ -163,5 +163,5 @@ uci.ts                Move → UCI string (bestmove comparison)
 analyze-game.ts       analyzeGame — events, watchdog, retry-once
 deviation-signal.ts   engineSignalForDeviation — analysis × judgment
 index.ts              public surface
-__tests__/lichess-reference.test.ts   the grounding suite — see table above
+tests/lichess-reference.test.ts   the grounding suite — see table above
 ```
