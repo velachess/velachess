@@ -38,6 +38,7 @@
     "@velachess/server": "workspace:*",
     "@lingui/babel-plugin-lingui-macro": "^6.6.0",
     "@lingui/cli": "^6.6.0",
+    "@lingui/conf": "^6.6.0",
     "@lingui/vite-plugin": "^6.6.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/vite": "^4.3.3",

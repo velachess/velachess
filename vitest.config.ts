@@ -5,8 +5,8 @@ import { aliases, backendTest } from "./vitest.shared.ts";
 /**
  * Root aggregator only — every project owns its environment, aliases and
  * globs in its own `vitest.config.ts`, next to the code it tests. Glob
- * entries discover one project per app/package; `__tests__/` and
- * `__e2e__/` are inline because they belong to no single package: the
+ * entries discover one project per app/library; `__tests__/` and
+ * `__e2e__/` are inline because they belong to no single workspace: the
  * architecture/auth-boundary suites read the whole repo, and the
  * acceptance suite composes both `apps/server` and `apps/worker` — a
  * cross-app test living inside either app would make that app import the

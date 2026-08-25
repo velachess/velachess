@@ -1,6 +1,6 @@
 # @velachess/scheduler
 
-The spaced-repetition scheduler package. It wraps FSRS over plain card state
+The spaced-repetition scheduler library. It wraps FSRS over plain card state
 and exposes review, preview, due-status, and forecast behavior; it should not
 know about chess, exercises, database tables, or UI wording.
 
@@ -13,8 +13,8 @@ know about chess, exercises, database tables, or UI wording.
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Package lint: `pnpm --filter @velachess/scheduler lint`
-- Package format check: `pnpm --filter @velachess/scheduler fmt:check`
+- Workspace lint: `pnpm --filter @velachess/scheduler lint`
+- Workspace format check: `pnpm --filter @velachess/scheduler fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation

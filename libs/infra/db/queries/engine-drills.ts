@@ -30,7 +30,8 @@ export interface EngineDrillCandidate {
 /**
  * Analyses of the user's games, with already-seeded plies marked.
  * Deliberately skips the drill rule (severity/budget/ordering) — that's
- * `selectDrillCandidates` in `packages/drill`, pure and DB-free. Fetch only.
+ * `selectDrillCandidates` in the application drill slice, pure and DB-free.
+ * Fetch only.
  */
 export async function listEngineDrillCandidates(
   db: Database,

@@ -16,7 +16,7 @@ deployables is a reusable boundary, not organizational tidiness.
 
 Folding it into `apps/worker` would make `apps/server` import worker
 internals to send a job — the one dependency the two-process split exists
-to prevent. So the line is drawn by role, not by package:
+to prevent. So the line is drawn by responsibility, not by package:
 
 | Lives here (`libs/infra/queue`)           | Lives in `apps/worker`         |
 | ----------------------------------------- | ------------------------------ |
@@ -34,7 +34,7 @@ consumer's constraints, written down where both sides can honour them.
 Two architecture tests hold the line — `apps/server` and `apps/worker` may
 never import each other (tests included), and `boss.work` may not appear
 outside `apps/worker`. An acceptance test that needs both apps lives at
-`tests/acceptance/`, belonging to neither.
+`__e2e__/`, belonging to neither.
 
 ## Why a queue in Postgres
 
@@ -54,7 +54,7 @@ in-process: PGlite runs both the domain schema and the `pgboss` schema.
   recovery is a fresh enqueue, which stately permits once nothing is
   queued or active.
 - **Execution** — owning an analysis run is decided by a session advisory
-  lock in `libs/application`, not by the queue. A job being delivered
+  lock in `libs/infra/db`, invoked by application rather than by the queue. A job being delivered
   twice (crash-retry) or a user clicking while a worker runs can never
   produce two engine runs.
 

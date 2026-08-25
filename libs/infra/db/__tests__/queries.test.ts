@@ -56,7 +56,7 @@ function pastedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
-describe("packages/db (games + tracked accounts)", () => {
+describe("libs/infra/db (games + tracked accounts)", () => {
   let ownerId: string;
 
   beforeEach(async () => {

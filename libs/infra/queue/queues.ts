@@ -9,7 +9,7 @@
  *
  * What is NOT here, and must never arrive: handlers, registration
  * (`boss.work`) and consumer concurrency. Those are the worker's — they
- * live in apps/worker/src/worker.ts, and tests/architecture.test.ts fails
+ * live in apps/worker/src/worker.ts, and __tests__/architecture.test.ts fails
  * the build if they drift back into a library.
  */
 

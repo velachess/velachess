@@ -131,8 +131,9 @@ to each test.
 ## Running
 
 ```bash
-pnpm test                                   # both projects
-pnpm exec vitest run --project core         # backend and packages
+pnpm test                                   # all projects, including root and e2e
+pnpm test:e2e                               # only the cross-app acceptance project
+pnpm exec vitest run --project server       # one backend project
 pnpm exec vitest run --project web          # apps/web
 ```
 

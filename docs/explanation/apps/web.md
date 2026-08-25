@@ -15,20 +15,25 @@ folder: those group by technical type, which puts `useTheme` next to
 
 ```
 src/
-  api/          the typed door to the backend (transport, not a domain)
   app-shell/    frame assembly: navigation as data, the layout routes use
+  auth/         session, sign-in, sign-out and user presentation
   i18n/         locale resolution and catalogue activation
   dashboard/    the overview
   games/        everything you do to games
     import/       connect an account and pull games in
-  mistakes/     where you left your repertoire, and what it cost
+    list/         filter and page owned games
+    open-game/    load the playable game record
+    request-analysis/ view-analysis/ watch-analysis/
+  insights/     findings derived from owned games and analysis
   repertoire/   the lines you actually play
   drill/        spaced repetition over your worst mistakes
+  settings/     account and product preferences
   routes/       routing only — a route imports a slice and mounts it
+  shared/       cross-vertical transport/query/error infrastructure only
 ```
 
-Importing and reviewing are things you do _to games_, so they nest under
-`games/` rather than sitting beside it — the URL says what the thing
+Importing and analysis are things you do _to games_, so they nest under
+`games/` rather than sitting beside it — the folder says what the behavior
 belongs to, not merely that it exists.
 
 A slice owns its data (`queries.ts`), its screen, its constants and its
@@ -71,78 +76,42 @@ the Review badge from the stats cache. Nothing to desync, and no
 content as children. Region budgets and the responsive contract live in
 `libs/ui`, next to the components that implement them.
 
-`_app` is the product: every screen under it needs games to exist. The
-check is a `beforeLoad` on that layout route which throws `redirect()` —
-the pattern from TanStack Router's authenticated-routes guide. A layout
-route's `beforeLoad` runs before any child's, and throwing stops the
-children loading at all, so a private screen is never reachable by URL,
-by preload, or by a stale link.
+`_app` is the authenticated product. Its layout `beforeLoad` resolves the
+Better Auth session through the query cache and redirects unauthenticated
+visitors to `/login`, preserving the requested path. `/login` mirrors the
+guard and sends an authenticated visitor back to the product.
 
-Guards run before components exist, so they read through the query cache:
-the `queryClient` is on the router context and `beforeLoad` calls
-`ensureQueryData` — the arrangement from the external-data-loading guide.
+Guards run before components exist, so session resolution returns a defined
+authenticated/unauthenticated state instead of leaking a rejected query. The
+login redirect search value accepts only an on-site path; `//host` and absolute
+URLs are rejected so it cannot become an open redirect.
 
-`/import` sits outside `_app`, as a page rather than an overlay, with the
-inverse guard: someone who already has games is sent to the product. That
-placement is what makes sign-in additive later — an `_auth` group joins it
-at the public level, and `_app` gains a session check ahead of the data
-one, session first, then data.
+Onboarding is an overlay at the authenticated layout boundary, not a second
+identity system. `/import` stays reachable inside the product so a user can add
+another tracked account.
 
-## Identity: three layers, two of them built
+## Identity
 
-Who "you" are is three different facts, and the app keeps them apart:
+Three facts stay separate:
 
-1. **The platform username** — public. `tracked_accounts` and `games` are
-   keyed by `platform+username` with an upsert; two browsers importing the
-   same username share the same server rows. Nobody owns `yurimutti` —
-   chess.com's archive is public data.
-2. **The device** — the anonymous "me". Which accounts are _mine_ lives in
-   a persisted store (`games/import/my-accounts.ts`), written on import,
-   the way a session cookie would be. Clearing site data means starting
-   over, exactly like signing out; re-importing is cheap because the
-   upsert lands back on the already-synced account.
-3. **The user** — not built yet. Sign-in replaces the api's
-   single-user middleware (services already take `userId` explicitly, so
-   that swap is one function), the first signed-in session claims the
-   device's remembered accounts (`linkAccountToUser` exists), and the
-   store keeps its interface while its backing moves from localStorage to
-   the server. `_app` gains a session check ahead of the data one.
+1. **Session user** — established by Better Auth and authoritative for every
+   product request.
+2. **Tracked account** — a chess.com/Lichess handle connected to that user.
+   Uniqueness and sync cursor are user-scoped, so two users may independently
+   track the same public handle.
+3. **Provider profile** — public avatar/flair metadata cached by provider and
+   handle. It is shared public data, not ownership or authentication.
 
-Chesslume is the reference for this shape: there, the username travels in
-the URL, the games endpoint ignores identity entirely, and login is
-orthogonal to viewing. We keep import as an explicit act because ours
-triggers real compute (engine analysis, judging) — but ownership is
-device-side all the same.
-
-`importStatus` answers `ready` or `empty` from the device store alone —
-no arguments from the network, no `await`. That is a consequence of
-importing being one synchronous read: an account is remembered only after
-a response that already carried games, so there is no delivery state left
-to verify and no reason to reach the network to decide where someone
-belongs.
-
-It matters that the guard can't fail. A guard runs before any component
-exists, so a rejected query there has nothing to catch it and blanks the
-whole app. This one never leaves the browser; a test pins that by making
-`fetch` throw.
-
-The earlier design asked the server on every navigation — `GET /accounts`
-carried `syncState` so the client could tell "still syncing" from "gave
-up". That machinery existed because importing was a queued job, and it
-went away with the job.
-
-`/import` has no inverse guard: importing is idempotent, so the page stays
-reachable and is where a second account gets added. Bouncing people out of
-it turned an empty product into a dead end. On success the screen
-navigates to `/games` — `beforeLoad` only re-runs on navigation, and
-importing _is_ the listing.
+React Query owns session and account data. A 401 clears the cached session and
+returns the browser to login; local storage does not claim identity. Account
+authorization remains server-side and user-scoped in database queries.
 
 ## Tables
 
 `DataTable` in `@velachess/ui` is the reusable half only — TanStack Table
 stays headless and the component renders what it hands back. Columns,
 filters and copy belong to the screen, which is why `games/list` owns its
-`columns.tsx` and the package owns none of it.
+`columns.tsx` and the library owns none of it.
 
 Everything runs in manual mode: the server filters and pages, so the table
 is told the row count instead of deriving one. TanStack Table v9 tree-shakes
@@ -207,7 +176,7 @@ than two appearances.
 
 ## Tests
 
-`pnpm test` runs one vitest project per app and package (the root
+`pnpm test` runs one Vitest project per app and library (the root
 `vitest.config.ts` discovers them via `apps/*/vitest.config.ts` and
 `libs/*/vitest.config.ts`). `web` is its own project, not layered on a
 shared backend config, because the app compiles Lingui macros and its

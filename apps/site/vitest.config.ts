@@ -1,15 +1,26 @@
-import { lingui } from "@lingui/vite-plugin";
+import { getConfig } from "@lingui/conf";
+import { lingui, linguiTransformerBabelPreset } from "@lingui/vite-plugin";
 import babel from "@rolldown/plugin-babel";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-process.env["LINGUI_CONFIG"] ??= new URL("lingui.config.ts", import.meta.url).pathname;
+// Each Vitest project is loaded in the root process. Passing the config to
+// the plugin keeps the site and web catalogs independent of load order.
+const linguiConfig = new URL("lingui.config.ts", import.meta.url).pathname;
+const resolvedLinguiConfig = getConfig({ configPath: linguiConfig });
 
-const linguiMacro = await babel({ plugins: ["@lingui/babel-plugin-lingui-macro"] });
+const linguiMacro = await babel({
+  presets: [
+    linguiTransformerBabelPreset(
+      { linguiConfig: resolvedLinguiConfig },
+      { configPath: linguiConfig },
+    ),
+  ],
+});
 
 export default defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [lingui(), linguiMacro, react()],
+  plugins: [lingui({ configPath: linguiConfig }), linguiMacro, react()],
   test: {
     name: "site",
     environment: "jsdom",

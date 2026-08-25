@@ -1,6 +1,6 @@
 # @velachess/fixtures
 
-The shared test-data package. It contains named PGNs, positions, provider
+The shared test-data library. It contains named PGNs, positions, provider
 payloads, and scenarios used by tests; behavior, harnesses, mocks, and
 production code should not live here.
 
@@ -13,8 +13,8 @@ production code should not live here.
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Package lint: `pnpm --filter @velachess/fixtures lint`
-- Package format check: `pnpm --filter @velachess/fixtures fmt:check`
+- Workspace lint: `pnpm --filter @velachess/fixtures lint`
+- Workspace format check: `pnpm --filter @velachess/fixtures fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation

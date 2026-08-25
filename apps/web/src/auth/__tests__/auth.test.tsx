@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 
 import { renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
@@ -285,7 +285,9 @@ describe("a session that ends mid-visit", () => {
     // The next request the screen makes, rather than a synthetic event:
     // the 401 has to travel the real path — api client, query cache,
     // the single owner in router.tsx — to prove that path exists.
-    await queryClient.invalidateQueries({ queryKey: ["games"] });
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["games"] });
+    });
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();

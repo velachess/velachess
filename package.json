@@ -2,6 +2,7 @@
   "name": "velachess",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Open-source, evidence-grounded post-game chess review and coaching platform.",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -33,7 +34,7 @@
     "knip": "knip",
     "check": "pnpm typecheck && pnpm lint && pnpm knip",
     "test:root": "vitest run --project root",
-    "test": "turbo run test test:root",
+    "test": "turbo run test test:root test:e2e",
     "test:watch": "vitest",
     "test:e2e": "vitest run --project e2e",
     "site:capture": "pnpm --filter @velachess/web capture:site",

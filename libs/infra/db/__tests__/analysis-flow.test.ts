@@ -1,7 +1,7 @@
 // @vitest-environment node
 /**
- * Analysis cache + deviation severity, engine-real. Queue lifecycle moved
- * to pg-boss in cycle 5 — its tests live in packages/queue.
+ * Analysis cache + deviation severity, engine-real. Queue lifecycle belongs
+ * to pg-boss and is tested in `libs/infra/queue`.
  */
 import { createRequire } from "node:module";
 

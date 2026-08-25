@@ -1,10 +1,10 @@
 import path from "node:path";
 
 /**
- * The one place a package's `@velachess/*` specifier is registered for
- * tests. pnpm's strict linking means a package only sees the workspace
+ * The one place a workspace's `@velachess/*` specifier is registered for
+ * tests. pnpm's strict linking means an app or library sees only the workspace
  * dependencies it declares — bare `@velachess/x` imports fail to resolve
- * from a package's own `node_modules` otherwise, including test-only
+ * from its own `node_modules` otherwise, including test-only
  * imports (`@velachess/test-utils`, `@velachess/fixtures`) that aren't
  * always declared as real dependencies. `tsconfig.json`'s `paths` cover
  * the same names for type-checking; this is the runtime counterpart.
@@ -29,7 +29,7 @@ export const aliases = {
 };
 
 /**
- * Every backend package (apps/server, apps/worker, libs/*) shares this:
+ * Every backend app/library (apps/server, apps/worker, libs/*) shares this:
  * node environment, the alias map above, and the 120s budget the db/
  * engine/e2e harnesses need to boot PGlite, run real migrations and start
  * Stockfish before the first assertion. `libs/ui` and `apps/web` are the

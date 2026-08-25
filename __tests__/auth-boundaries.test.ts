@@ -3,7 +3,7 @@
  * The auth boundary, as failures instead of prose.
  *
  * Authentication answers one question — who is making this request — and
- * everything downstream receives a userId. The moment a domain package
+ * everything downstream receives a userId. The moment a domain library
  * imports Better Auth, authorization decisions start hiding inside code
  * that cannot be tested without a session, and the single seam that made
  * this refactor cheap is gone. A comment saying so is a hope; this file
@@ -51,7 +51,7 @@ function offenders(
 }
 
 describe("auth boundaries", () => {
-  it("keeps Better Auth out of application and the domain packages", () => {
+  it("keeps Better Auth out of application and the domain libraries", () => {
     // The application layer receives userId from the API middleware and
     // never learns where it came from — that indirection is what lets the
     // worker resolve identity from a trusted row instead, and what keeps
@@ -87,8 +87,8 @@ describe("auth boundaries", () => {
     ).toEqual([]);
   });
 
-  it("keeps the auth package out of the domain — it may know db, nothing else", () => {
-    // libs/auth owns "who is this" and its storage. The day it
+  it("keeps the auth library out of the domain — it may know db, nothing else", () => {
+    // libs/infra/auth owns "who is this" and its storage. The day it
     // imports repertoire or drill, authorization has moved into it.
     const sources = sourcesOf("libs/infra/auth/**/*.ts");
 
@@ -97,7 +97,6 @@ describe("auth boundaries", () => {
         [
           "@velachess/application",
           "@velachess/repertoire",
-          "@velachess/drill",
           "@velachess/analysis",
           "@velachess/scheduler",
           "@velachess/queue",

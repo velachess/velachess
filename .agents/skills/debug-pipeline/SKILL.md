@@ -1,75 +1,31 @@
 ---
 name: debug-pipeline
-description: Root-cause investigation of VelaChess's sync → judge → analysis → triage → review pipeline. Use when data looks inconsistent — zero triage candidates, deviations without severity, games never re-judged, queue jobs stuck or dead-lettered.
+description: Diagnose inconsistent VelaChess state across account sync, normalization, repertoire judgment, Stockfish analysis, queue delivery, exercise seeding, and drill scheduling. Use for missing or stale judgments, stalled or failed analysis, unexpected null severity, duplicate or missing games, or an unexpectedly empty drill queue.
 ---
 
-# Debug the pipeline
+# Debug a cross-boundary inconsistency
 
-Evidence before hypothesis. Never conclude a component is broken because
-an intermediate endpoint returned zero.
+Find the first boundary where an expected fact is absent. Start from a concrete
+user, account, game, repertoire, or exercise identifier; do not diagnose from
+an aggregate or queue state alone.
 
-## 1. Reconstruct the real path (function + file)
+1. Read [references/pipeline-map.md](references/pipeline-map.md) for the current
+   producer/consumer split, then confirm its paths in live code.
+2. Load only the domain skills involved in the symptom: `game-ingestion`,
+   `chess-domain`, `engine-analysis`, or `repertoire-training`.
+3. Trace one identity outward through inputs, persistence, delivery, and derived
+   records. Find the earliest missing or contradictory fact.
+4. Use [references/probes.md](references/probes.md) only when database or queue
+   evidence is needed. Confirm schema names before adapting a query and do not
+   mutate production data during diagnosis.
+5. Separate delivery evidence from domain truth and report confidence:
 
-```
-POST /accounts/:id/sync → worker consumeSyncJob → processAccountSync (application/sync.ts)
-  → syncAccount → saveGames → judgeGamesForUser (application/judge.ts)
-    → listUnjudgedGames(userId, repertoireId)   PER REPERTOIRE — a game is
-      pending for repertoire R until R judged it
-    → upsertJudgment + enqueue analysis (one tx); if a cached analysis
-      exists, severity fills in the SAME tx and nothing is enqueued
-worker consumeAnalysisJob → completeAnalysis (application/analyze.ts)
-  → tryStartAnalysis (advisory lock owns execution) → saveAnalysis +
-    applyEngineSignal for existing judgments (one tx)
-judge / analysis complete → triageAndSeed → listTriageCandidates
-                                              + listEngineDrillCandidates
-  (REQUIRES engine_category NOT NULL and a live repertoire join)
-```
-
-## 2. Known traps (all hit in production before)
-
-- Judge ran before chapters existed → everything skipped, zero rows.
-- `engine_category` null on every deviation → triage sees zero. Ordering
-  matters: judgments created AFTER a cached analysis are filled by the
-  judge; judgments existing at completion time are filled by completion.
-- Deleting a repertoire orphans its judgments (`repertoire_id` → null);
-  triage's inner join ignores orphans by design.
-- Deviation at ply 1 with a sound alternative move → `ok` → not drillable
-  (by design: harmless deviations don't drill).
-- Shell quoting: `curl .../judge\; echo` sends the `;` in the URL → 404.
-
-## 3. Diagnostic queries (psql via compose)
-
-```sql
--- deviations × analysis × severity, by type
-select d.type, count(*) total, count(a.id) with_analysis,
-       count(*) filter (where d.engine_category is not null) with_severity
-from deviations d join games g on g.id=d.game_id
-left join game_analyses a on a.game_id=d.game_id group by d.type;
-
--- delivery truth (pg-boss)
-select state, count(*) from pgboss.job where name='analysis' group by state;
-select count(*) from pgboss.job where name='analysis-dlq' and state != 'completed';
-
--- severity distribution (distinguishes "all ok" from "never filled")
-select engine_category, count(*) from deviations
-where type='deviation' group by engine_category;
+```text
+CONFIRMED  supported by a named code path, test, log, or query
+LIKELY     best explanation, one named verification away
+POSSIBLE   plausible but not checked
+RULED OUT  contradicted by named evidence
 ```
 
-## 4. Classify every conclusion
-
-```
-CONFIRMADO   backed by code read or query result — cite it
-PROVÁVEL     best explanation, one verification away
-POSSÍVEL     plausible, not yet checked
-DESCARTADO   ruled out — say by what evidence
-```
-
-## 5. Close with
-
-```
-ROOT CAUSE / EVIDENCE (numbered) / PIPELINE BREAKS HERE (diagram with [X])
-/ FIX (smallest possible) / VERIFICATION (command → expected → endpoint)
-```
-
-No fix without a confirmed cause. YAGNI: no new abstractions to fix a
-localized bug.
+Close with the symptom, first broken boundary, evidence, and alternatives ruled
+out. Diagnose only unless the user also requested a fix.

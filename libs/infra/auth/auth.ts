@@ -63,7 +63,7 @@ export interface AuthConfig {
 export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
 
 /** One Better Auth instance per process, built from injected deps the way
- * apps/api builds everything else — never from ambient env reads here. */
+ * apps/server builds everything else — never from ambient env reads here. */
 export function createAuth(config: AuthConfig) {
   return betterAuth({
     baseURL: config.baseUrl,

@@ -1,6 +1,6 @@
 # @velachess/chess
 
-The chess-rules package. It exposes typed entry points for FEN, PGN, SAN,
+The chess-rules library. It exposes typed entry points for FEN, PGN, SAN,
 legal moves, position replay, and chess vocabulary; it should not evaluate
 positions, talk to engines, persist games, or know application workflows.
 
@@ -14,8 +14,8 @@ positions, talk to engines, persist games, or know application workflows.
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Package lint: `pnpm --filter @velachess/chess lint`
-- Package format check: `pnpm --filter @velachess/chess fmt:check`
+- Workspace lint: `pnpm --filter @velachess/chess lint`
+- Workspace format check: `pnpm --filter @velachess/chess fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation

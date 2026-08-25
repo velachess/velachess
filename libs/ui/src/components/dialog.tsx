@@ -1,8 +1,7 @@
 /**
  * Written against the same Base UI primitive the rest of this package
- * wraps, in `popover.tsx`'s shape — the shadcn registry was unreachable
- * from where this was added. Re-sync with
- * `pnpm dlx shadcn@latest add @base-nova/dialog` to take the canonical file.
+ * wraps, in `popover.tsx`'s shape. Compare local changes with
+ * `pnpm exec shadcn add dialog --diff` from `libs/ui` before updating it.
  */
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";

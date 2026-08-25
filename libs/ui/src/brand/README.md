@@ -15,8 +15,8 @@ social/ og-image.svg (1200x630)
 - Below ~24px use the micro mark (`velachess-micro-*.svg`): star dropped, pawn only.
 - Clear space on all sides = height of the pawn base. Minimum icon size 20px.
 - Never recolour the pawn, never add a gradient, never add a second star.
-- The product accent is **Vela Indigo #5B6CFF** (`--primary` in
-  `styles/globals.css`, Brand Guide v3). It belongs to the interface, not to
+- The product accent is **Vela Indigo #5B6CFF** (`--brand` in
+  `styles/theme.css`, Brand Guide v3). It belongs to the interface, not to
   the mark — a pawn tinted with the accent is exactly the divergence the rule
   above prevents. A tile _behind_ the mark may carry it; the pawn stays Moon
   White on top.

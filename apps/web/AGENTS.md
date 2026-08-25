@@ -13,7 +13,7 @@ does not restate it.
 
 ## Frontend Conventions
 
-- `libs/ui` owns every design token; this package inherits the theme and
+- `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
 - Two vocabularies, one boundary. Data keeps the domain's name (a
   `deviation` is a deviation, `engineCategory` stays `engineCategory`);
@@ -52,14 +52,13 @@ consistently avoid them, this makes it explicit:
   `src/dashboard/dashboard.tsx`'s `Counters`/`CounterCardValue`/
   `CounterValue` (each a 2-3-way branch via sequential early returns) for
   the pattern to follow.
-- A single-level, two-way ternary — either in JSX or as a value — is fine
-  as-is. Don't force short-circuit or extraction onto something already
-  simple and readable.
+- A ternary in a prop or a plain non-JSX expression is fine. JSX branches
+  use the patterns above, and nested ternaries are never acceptable.
 
 ## Skills
 
 - `.agents/skills/ui-before-you-build` (root) — read before writing any
   UI here: where components live, what to check before hand-rolling one.
-- `libs/ui/.agents/skills/shadcn` — the CLI and registry themselves; this
-  package only consumes `@velachess/ui`, it does not own the shadcn
-  install.
+- `libs/ui/.agents/skills/shadcn` — read it explicitly when changing the
+  registry-owned component in `libs/ui`; this app only consumes
+  `@velachess/ui` and does not own the shadcn installation.

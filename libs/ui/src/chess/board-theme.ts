@@ -1,12 +1,12 @@
 /**
  * [UI] Style values for react-chessboard, which takes CSSProperties (not
  * classNames) for squares/notation/frame. Values come from CSS custom
- * properties in globals.css — no literal colours here.
+ * properties in `styles/theme.css` — no literal colours here.
  */
 
 import type { CSSProperties } from "react";
 
-/** Custom properties this module reads. Declared in `styles/globals.css`. */
+/** Custom properties this module reads. Declared in `styles/theme.css`. */
 const TOKEN = {
   lightSquare: "--board-light",
   darkSquare: "--board-dark",
@@ -26,7 +26,7 @@ function cssVar(name: (typeof TOKEN)[keyof typeof TOKEN]): string {
 
 /**
  * Badge tones — not chess move categories. Four grade colours plus "book",
- * matching globals.css; callers map their own vocabulary onto these.
+ * matching `styles/theme.css`; callers map their own vocabulary onto these.
  */
 export const BADGE_TONES = ["ok", "inaccuracy", "mistake", "blunder", "book"] as const;
 

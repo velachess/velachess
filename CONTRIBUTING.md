@@ -48,8 +48,8 @@ pnpm dev          # Vite on :5173, /api proxied to the API on :3000
 ```
 
 UI components come from the registry into `libs/ui`, never into the
-app — run `pnpm dlx shadcn@latest add <component>` from `apps/web` and the
-CLI places the file in `libs/ui/src/components`.
+app. Run `pnpm exec shadcn add <component>` from `libs/ui`, review the
+generated source, then export it through that package.
 
 Frontend text is translated: declare strings as Lingui messages with the
 `msg` macro next to where they're used, and run

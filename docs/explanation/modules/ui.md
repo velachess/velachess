@@ -8,10 +8,10 @@ comes back empty; it imports no router, so it works in any app.
 
 ## Where components come from
 
-shadcn's registry, style `base-nova`, installed _into_ this package. The
-CLI is run from `apps/web` and the monorepo contract in both
-`components.json` files routes the files here — so third-party component
-code is ours: versioned, editable, and re-exported through `exports`.
+shadcn's registry, style `base-nova`, installed _into_ this package. Run
+the local CLI from `libs/ui`; its `components.json` routes files here, so
+third-party component code is ours: versioned, editable, reviewed, and
+re-exported through `exports`.
 
 The Trophy registry is declared too, so gamification components would land
 here as well. None are installed: there is no screen for them yet.

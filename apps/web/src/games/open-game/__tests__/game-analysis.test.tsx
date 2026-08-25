@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -276,7 +276,7 @@ describe("game analysis", () => {
     });
 
     // The drop, then the reconnection the EventSource makes on its own.
-    await vi.waitFor(() => expect(watchCount()).toBeGreaterThan(1), { timeout: 10_000 });
+    await waitFor(() => expect(watchCount()).toBeGreaterThan(1), { timeout: 10_000 });
     await screen.findByRole("button", { name: blunderButton });
 
     // And the replay did not double anything: six good, one blunder.
@@ -296,7 +296,9 @@ describe("game analysis", () => {
     await screen.findByRole("button", { name: blunderButton });
 
     expect(watchCount()).toBe(1);
-    await new Promise((resolve) => setTimeout(resolve, 4000));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    });
     expect(watchCount()).toBe(1);
   }, 15_000);
 

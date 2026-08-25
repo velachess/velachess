@@ -4,8 +4,9 @@
 where it left the prepared lines — no engine involved.** This is tree
 comparison, not move evaluation: "did the player follow what they prepared,"
 not "was the move good." Judging move quality is a different axis entirely
-(would live in an analysis package, evaluations supplied by
-`@velachess/engine`) and doesn't touch this package at all.
+(would live in an analysis library, with evaluations supplied by the
+`libs/infra/engine` workspace imported as `@velachess/engine`) and does not
+touch `libs/repertoire` at all.
 
 Exact parameters, judgment types and persisted shapes live in
 `docs/reference/repertoire.md`. This document is the reasoning.

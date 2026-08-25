@@ -1,8 +1,8 @@
 # @velachess/logger
 
-The shared logging package. It centralizes the pino logger used by runtime
-processes; application logic, transport concerns, and package-specific logging
-policy should stay with their owning package.
+The shared logging library. It centralizes the pino logger used by runtime
+processes; application logic, transport concerns, and area-specific logging
+policy stay with their owner.
 
 ## Dependencies
 
@@ -14,7 +14,7 @@ policy should stay with their owning package.
 Bootstrap from the monorepo root with `pnpm install`.
 
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
-- This package has no standalone runtime script.
+- This library has no standalone runtime script.
 
 ## Documentation
 

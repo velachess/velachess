@@ -7,7 +7,7 @@ means more than one command.
 
 ```bash
 pnpm typecheck    # tsc --noEmit at the root
-pnpm test         # turbo, one vitest project per app/package
+pnpm test         # turbo, every app/library project plus root and e2e
 pnpm lint         # oxlint
 pnpm fmt:check    # oxfmt
 pnpm knip         # unused files, exports and dependencies
@@ -30,16 +30,17 @@ warns you — `prepare` reports the miss and carries on so that a Docker
 build without a `.git` still installs. Check with
 `pnpm exec lefthook validate`.
 
-`pnpm test` runs **one vitest project per app and package** — the root
+`pnpm test` runs **one vitest project per app and library**, plus the root and
+cross-app acceptance projects. The root
 `vitest.config.ts` discovers each `vitest.config.ts` under `apps/*` and
 `libs/**`, so running one proves nothing about another:
 
-- Every `libs/*` and `libs/infra/*` package, plus `apps/server` and
+- Every `libs/*` and `libs/infra/*` library, plus `apps/server` and
   `apps/worker`, over PGlite with the real migrations and real Stockfish
   at shallow depth. Slow (about a minute) and worth every second: nothing
   is mocked away.
 - **`root`** — `__tests__/`: the architecture and auth-boundary suites,
-  which read the whole repo and belong to no single package.
+  which read the whole repo and belong to no single workspace.
 - **`e2e`** — `__e2e__/`: the acceptance loop through both `apps/server`
   and `apps/worker`, composed at the repo root because it belongs to
   neither app (see `docs/explanation/architecture.md`).
@@ -58,12 +59,12 @@ answers the network, so a test there exercises the app's own fetch rather
 than a client written to be testable. What to reach for, and what never
 to assert on, is `docs/how-to/write-a-test.md`.
 
-## Typecheck the package you touched
+## Typecheck the workspace you touched
 
-The root `tsc --noEmit` covers the workspace, but a package with its own
+The root `tsc --noEmit` covers the workspace, but an app or library with its own
 `tsconfig.json` can still be wrong in isolation — `apps/web` once
 compiled zero files because it inherited an `exclude` that matched
-itself, and the root pass said nothing. When you change one package:
+itself, and the root pass said nothing. When you change one app or library:
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit

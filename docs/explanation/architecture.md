@@ -45,13 +45,13 @@ job   → apps/worker → libs/application/<area>/<slice>
 
 ```
 libs/
-  application/      behavior, as vertical slices        (one workspace package)
-  infra/            technical mechanisms, one package each
+  application/      behavior, as vertical slices        (one workspace library)
+  infra/            technical mechanisms, one library each
     db/             drizzle client, schema, migrations, shared queries, advisory lock
     queue/          pg-boss behind ports
-    stockfish/      the engine session          (package name @velachess/engine)
-    observability/  the pino logger             (package name @velachess/logger)
-    providers/      chess.com/Lichess clients   (package name @velachess/platforms)
+    engine/         the Stockfish session       (workspace import @velachess/engine)
+    logger/         structured logging          (workspace import @velachess/logger)
+    platforms/      chess.com/Lichess clients   (workspace import @velachess/platforms)
     auth/           Better Auth configuration   (identity mechanism, not behavior)
   chess/            rules, PGN, FEN — shared by many slices AND apps/web
   analysis/         move classification math — shared by process-analysis AND apps/web
@@ -61,13 +61,10 @@ libs/
   fixtures/, test-utils/   test infrastructure
 ```
 
-The domain libraries are the audited survivors of the old `packages/*`
-layer: each is a stable domain concept used across several slices (and,
-for chess and analysis, by the frontend), which is the one justification
-this document accepts for shared business code. Anything that turned out
-to be single-slice moved into its slice — the old `packages/drill` no longer
-exists; its eligibility, selection and seeding rules live in
-`drills/seed-exercises/`, its answer grading in `drills/submit-answer/`.
+Each domain library is a stable concept used across several slices and, for
+chess and analysis, by the frontend. Single-slice drill behavior stays with its
+request: eligibility, selection, and seeding live in `drills/seed-exercises/`;
+answer grading lives in `drills/submit-answer/`.
 
 ## A slice
 
@@ -76,7 +73,7 @@ libs/application/
   accounts/   connect-account/  sync-account/
   games/      list-games/  judge-games/
   analysis/   request-analysis/  process-analysis/  get-analysis/  watch-analysis/
-  drills/     seed-exercises/  get-drill-queue/  get-next-drill/  submit-answer/
+  drills/     seed-exercises/  get-next-drill/  submit-answer/
   repertoires/ extract-repertoire/  list-repertoires/ …
   insights/   get-insights/
   overview/   get-overview/

@@ -6,6 +6,10 @@ import { useMyAccounts, type RememberedAccount } from "../my-accounts.ts";
 import { importArchive, importStatus } from "../queries.ts";
 import { INPUT_KINDS, SOURCE_IDS } from "../sources.ts";
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 const remembered = (overrides: Partial<RememberedAccount> = {}): RememberedAccount => ({
   accountId: "a1",
   platform: "chess_com",
@@ -44,8 +48,6 @@ describe("what the device remembers", () => {
     useMyAccounts.setState({ accounts: [remembered()] });
     expect(importStatus(useMyAccounts.getState().accounts)).toBe("ready");
     expect(fetchSpy).not.toHaveBeenCalled();
-
-    vi.unstubAllGlobals();
   });
 });
 
@@ -64,10 +66,6 @@ const archiveResponse = (body: unknown, status = 200) =>
 describe("importing", () => {
   beforeEach(() => {
     useMyAccounts.setState({ accounts: [] });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   const account = {
