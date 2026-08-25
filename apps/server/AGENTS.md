@@ -18,5 +18,5 @@ details? }` contract.
   order, analysis endpoints, or stream behavior.
 
 Use `security-review` for auth, CORS, redirects, cookies, authorization, rate
-limits, or outbound URLs. Use `vertical-slice-architecture` when a route needs
-new behavior rather than transport translation.
+limits, or outbound URLs. Use `architecture-review` when a route needs new
+behavior rather than transport translation.

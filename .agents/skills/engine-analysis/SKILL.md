@@ -12,17 +12,19 @@ Keep three concerns separate:
 - `libs/application/analysis` owns execution, locking, persistence, progress,
   and the meaning of completion.
 
-Read only the detail needed:
-
-- [references/evaluation.md](references/evaluation.md) for score POV, mate,
-  win-chance loss, and categories.
-- [references/lifecycle.md](references/lifecycle.md) for trigger, queue, lock,
-  persistence, retries, and progress.
-
 Prefer Stockfish/UCI and pg-boss primitives over local schedulers, polling,
 timeouts, or retry frameworks. Keep classification pure and reproducible from
-its explicit inputs. Do not make import or refresh an engine trigger.
+its explicit inputs.
 
-When changing a current engine option, depth, watchdog, transport, or dependency
-API, verify live code and `docs/reference/analysis.md`; those operational values
-may change faster than this procedure.
+Trace score point of view explicitly across UCI, normalization,
+classification, persistence, and presentation. Preserve mate as a distinct
+score shape. Delivery deduplication does not replace the database execution
+lock, and queue state does not replace a persisted report as completion truth.
+Do not make import or refresh an engine trigger. Preserve the transactional
+pairs named in root `AGENTS.md`.
+
+Canonical detail lives in `docs/reference/analysis.md`,
+`docs/explanation/modules/analysis.md`, `docs/explanation/modules/engine.md`,
+`docs/explanation/modules/queue.md`, and the live code/tests. Verify those
+owners before changing an option, threshold, watchdog, retry, or persisted
+shape.

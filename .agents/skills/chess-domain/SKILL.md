@@ -14,7 +14,7 @@ Use the references only for the concept touched:
 - Read [references/player-perspective.md](references/player-perspective.md)
   when deciding who “you” are, the opponent, or win/loss/draw.
 - Read [references/notation-and-positions.md](references/notation-and-positions.md)
-  for PGN/FEN/EPD, SAN/UCI, ply, turn, and position identity.
+  for VelaChess notation boundaries, replay, and position identity.
 
 Prefer `libs/chess` and chessops primitives over new parsers or move models.
 Keep pure chess rules independent of accounts, providers, UI, database, and

@@ -19,4 +19,4 @@ Bootstrap from the monorepo root with `pnpm install`.
 
 ## Documentation
 
-No dedicated `/docs` page exists for `@velachess/platforms` yet.
+See [Ingestion](../../../docs/reference/ingestion.md).

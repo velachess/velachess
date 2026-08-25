@@ -10,15 +10,8 @@ Skills may add `references/` for conditional detail, `scripts/` for repeated
 deterministic work, and `assets/` only for material used in an output. Do not
 create empty resource directories.
 
-Use this ownership rule:
-
-```text
-always relevant in a subtree       -> nearest AGENTS.md
-sometimes relevant procedure       -> skill
-detailed conditional knowledge     -> skill reference
-mechanically enforceable behavior  -> code, test, schema, lint, or tooling
-feature behavior                   -> production code and normal docs
-```
+The `skill-creator` skill owns the decision between these surfaces and normal
+docs or mechanical enforcement.
 
 Root `.agents/skills` is canonical for procedures shared across repository areas.
 A procedure used only by one subtree may live in that subtree's
@@ -52,15 +45,7 @@ procedures (`architecture-review` and `code-review`); implementation is normal
 agent behavior. Add a role only when a persistent responsibility changes how
 work is performed beyond what an `AGENTS.md` or skill can express.
 
-## Skill lifecycle
-
-Treat guidance like code. When architecture, workflow, terminology,
-dependencies, or domain semantics change, ask whether any instruction became
-false, redundant, misleading, or unnecessary. Update or delete it in the same
-change.
-
 Use `skill-creator` when creating, restructuring, merging, or retiring guidance.
-It owns the classification and validation procedure; this README does not
-duplicate it. There is deliberately no agent config registry, sync generator,
-or marketplace. Adapters are added or removed manually with their current
-consumer.
+There is deliberately no agent config registry, sync generator, or marketplace.
+The root test suite validates canonical skill structure, links, and shared
+vendor adapters.

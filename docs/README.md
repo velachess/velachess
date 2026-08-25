@@ -21,6 +21,8 @@ pairs with the explanation module doc that carries the reasoning.
 
 - [Analysis](reference/analysis.md) — engine configuration, classification
   thresholds, persisted shapes, cache behavior
+- [Ingestion](reference/ingestion.md) — tracked-account ownership, provider
+  synchronization, cursors, and game deduplication
 - [Opening data](reference/opening-data.md) — what opening information is
   stored, how names are derived, who consumes them
 - [Repertoire](reference/repertoire.md) — extraction parameters, judgment
@@ -43,6 +45,10 @@ guide ends there, and "green" here means more than one command.
   read before committing
 - [Add a package](how-to/add-a-package.md) — and why you probably
   shouldn't
+- [Work with Turborepo](how-to/turborepo.md) — VelaChess task ownership,
+  caching, filters, affected packages, and CI
+- [Verify the public site](how-to/site-quality.md) — static export, SEO,
+  screenshots, and Lighthouse
 
 Each one is grounded in something that has actually bitten. When a guide
 would have to invent a step, it doesn't exist yet.

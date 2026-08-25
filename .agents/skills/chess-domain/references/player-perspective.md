@@ -10,12 +10,15 @@ current shared TypeScript rule is `libs/application/perspective.ts`; SQL
 consumers restate the same expression where importing application code would
 break a boundary.
 
-Every consumer must preserve the same semantics:
+Every consumer of an owner-derived fact must preserve the same semantics:
 
 - stored `white` or `black` wins when present;
 - otherwise compare the tracked handle case-insensitively with both seats;
 - unresolved perspective remains `null`, never guessed;
-- the opponent and owner outcome are derived only after perspective resolves.
+- owner outcome and owner-relative move selection require resolved perspective.
+
+An unattributed PGN may still need a stable seat label for presentation. Such a
+fallback is UI behavior, not a resolved opponent or evidence about the owner.
 
 PGN result is seat-relative:
 

@@ -1,34 +1,21 @@
-# Current pipeline map
+# Pipeline search map
 
-Verify these names against live code before acting; this reference is a search
-map, not authority over implementation.
+Use this only to find the next boundary. Canonical behavior lives in the linked
+normal docs, live code, schema, and tests.
 
 ```text
 account refresh
-  apps/server account route or apps/worker account consumer
   -> libs/application/accounts/sync-account
   -> libs/infra/platforms normalization
-  -> libs/infra/db game persistence
-  -> candidate repertoire extraction
-  -> repertoire judgment
-  -> exercise seeding from already-known severity
+  -> game persistence -> repertoire extraction/judgment -> exercise seeding
 
 interactive game analysis
-  apps/server game analyze route
-  -> libs/application/analysis/request-analysis
-  -> libs/infra/queue delivery
-  -> apps/worker analysis consumer
-  -> libs/application/analysis/process-analysis
-  -> libs/infra/engine Stockfish session
-  -> report + severity transaction
-  -> exercise seeding
+  -> request-analysis -> queue -> worker consumer -> process-analysis
+  -> Stockfish -> report/severity transaction -> exercise seeding
 
 training
-  repertoire deviation or engine-classified ply
-  -> exercise source
-  -> card
-  -> next drill
-  -> answer + FSRS reschedule
+  repertoire or engine evidence -> exercise source -> exercise/card
+  -> next drill -> answer + FSRS reschedule
 ```
 
 Import and refresh do not run Stockfish. Queue history is delivery evidence;
@@ -46,3 +33,11 @@ Useful starting points:
 - `libs/infra/db/queries/engine-drills.ts`
 - `libs/infra/queue/`
 - `apps/worker/src/consumers/`
+
+Canonical detail:
+
+- `docs/reference/ingestion.md`
+- `docs/reference/analysis.md`
+- `docs/reference/repertoire.md`
+- `docs/reference/drills.md`
+- `docs/explanation/modules/queue.md`

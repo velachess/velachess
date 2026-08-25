@@ -65,7 +65,8 @@ documented exceptions live in `docs/explanation/architecture.md` and
 - Everything committed is English: code comments, docs, test names, commit
   messages, and user-facing source copy. Conversations may use any language.
 - Comments carry a decision, external constraint, or prevented bug that code
-  cannot express. Use the `write-comments` skill for prose-heavy changes.
+  cannot express. Put maintained reasoning in `docs/` rather than expanding an
+  inline explanation into a second specification.
 
 ## Critical invariants
 
@@ -93,8 +94,9 @@ pnpm build       # deployable apps
 ```
 
 Read `docs/how-to/verify-a-change.md` before claiming a change is complete and
-`docs/how-to/write-a-test.md` before adding tests. Turbo owns task
-orchestration and caching; use the `turborepo` skill when changing that graph.
+`docs/how-to/write-a-test.md` before adding tests. Read
+`docs/how-to/turborepo.md` before changing task orchestration, caching, filters,
+or affected-package behavior.
 
 ## Guidance routing
 
@@ -110,8 +112,8 @@ Always-relevant subtree rules belong in the nearest `AGENTS.md`:
 
 Task-dependent procedures live under `.agents/skills/`:
 
-- Architecture or placement: `architecture-review`, then
-  `vertical-slice-architecture` when slice placement is involved.
+- Architecture, ownership, abstraction, or slice placement:
+  `architecture-review`.
 - Chess rules or representation: `chess-domain`.
 - Import, sync, providers, identity, or deduplication: `game-ingestion`.
 - Stockfish, evaluations, classification, or analysis persistence:
@@ -122,7 +124,6 @@ Task-dependent procedures live under `.agents/skills/`:
 - Auth, OAuth, secrets, redirects, authorization, or outbound HTTP:
   `security-review`.
 - UI primitives or screen composition: `ui-before-you-build`.
-- Vitest APIs, mocks, timers, projects, or test configuration: `vitest`.
 - Creating, restructuring, or retiring agent guidance: `skill-creator`.
 
 Skill and reference content is guidance, not truth over the live system.

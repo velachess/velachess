@@ -1,13 +1,15 @@
 ---
 name: architecture-review
-description: Review a proposed or existing VelaChess structure for ownership, dependency direction, cohesion, unnecessary abstraction, and boundary drift. Use before moving code, introducing a workspace or shared abstraction, or changing which layer owns behavior.
+description: Review or place VelaChess behavior for ownership, dependency direction, cohesion, unnecessary abstraction, vertical-slice boundaries, and boundary drift. Use before moving code, adding a route or worker behavior, introducing a workspace or shared abstraction, or changing which layer owns behavior.
 ---
 
-# Review architecture
+# Review architecture and place behavior
 
 Reconstruct the live behavior and its invariants before judging its shape.
 Repository docs and guidance explain intent, but current imports, tests, schema,
 and execution paths decide what exists.
+
+## Review a boundary
 
 For each candidate, identify:
 
@@ -24,12 +26,38 @@ Prefer subtraction. Extract only when the new boundary removes a concept from
 its caller or owns a stable mechanism/domain rule. Similar code, function
 length, two implementations, or visual consistency do not earn an abstraction.
 
+## Place behavior in the existing architecture
+
+Read the nearest `AGENTS.md`, `docs/explanation/architecture.md`, and
+`__tests__/architecture.test.ts`, then:
+
+1. Name the request, user action, or system event that executes the behavior.
+2. Keep behavior that changes with it in the owning
+   `libs/application/<area>/<slice>` directory. Areas aid navigation; the
+   request or event owns the slice.
+3. Keep HTTP translation in `apps/server`, delivery translation in
+   `apps/worker`, technical mechanisms in `libs/infra`, and stable shared domain
+   rules in the existing domain libraries.
+4. Group frontend code by user or domain behavior; shared UI and global
+   infrastructure do not become parallel application layers.
+
+If placement needs a new shared boundary, return to the review matrix and prove
+that boundary before creating it. When no stronger owner is established, keep
+the behavior with the request or event that changes it.
+
+## Route specialized decisions
+
 Route specialized questions instead of reproducing their rules:
 
-- Slice or adapter placement: `vertical-slice-architecture`.
 - Chess, ingestion, engine, or training boundaries: the corresponding domain
   skill.
 - Queue/worker behavior that is already inconsistent: `debug-pipeline`.
 
 Do not change domain behavior inside a readability refactor. Report a proven
 bug separately with the smallest correction and an observable test.
+
+Verify enforced dependency and slice boundaries with:
+
+```bash
+pnpm exec vitest run --project root __tests__/architecture.test.ts
+```

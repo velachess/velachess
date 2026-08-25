@@ -18,19 +18,7 @@ Use this decision order:
 3. Registry component installed into `libs/ui` after previewing its diff.
 4. New generic primitive only when repeated product use has earned it.
 
-Preserve these boundaries:
-
-- `libs/ui` owns tokens and generic presentation; apps own product vocabulary,
-  routing, translation, server state, and behavior.
-- User-visible and accessibility copy is Lingui-owned by the app. UI primitives
-  receive already-resolved labels through props.
-- Use semantic tokens from `libs/ui/src/styles/theme.css`; do not add hex values,
-  app-local themes, dynamic Tailwind class construction, or screen-level
-  `dark:` variants.
-- A skeleton represents absent data. Keep meaningful content visible while
-  progress continues.
-- Derive state at render/query boundaries instead of synchronizing duplicate
-  state with effects.
-
-When writing a new primitive, record in the change what existing component or
-registry item was checked and why it did not fit.
+The app and UI `AGENTS.md` files own tokens, translation, state, and composition
+boundaries. Two hazards need an explicit check during the choice: a skeleton is
+for absent data, not progress over meaningful content; and registry source must
+land in `libs/ui`, never an app.

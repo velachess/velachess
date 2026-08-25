@@ -19,6 +19,23 @@ migrations on PGlite, real Stockfish at shallow depth, real pg-boss.
 Frontend tests cannot own a server, so they own the network instead —
 and in exchange they give up looking inside the component.
 
+## Before creating test infrastructure
+
+Before creating a mock, fake, fixture, wrapper, helper, or custom test
+abstraction:
+
+1. Inspect the dependency's official testing utilities and current exports.
+2. Inspect VelaChess's existing fixtures, test utilities, harnesses, setup files,
+   and nearby helpers.
+3. Prefer those supported primitives when they solve the requirement.
+4. Create custom test infrastructure only when neither the dependency nor the
+   repository already provides an adequate solution.
+
+This guide owns VelaChess testing practice, not Vitest's library API. For a
+matcher, hook, mock, timer, fixture, or configuration option, use the
+[official Vitest documentation](https://vitest.dev/) for the installed version
+and verify version-sensitive behavior against the installed exports and types.
+
 ## Backend
 
 Go in through the route. `apps/server/__tests__/harness.ts` gives you an app

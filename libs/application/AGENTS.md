@@ -17,6 +17,6 @@ slice per request or use case.
   transactional invariants. Different slices do not need matching shapes.
 
 Read `docs/explanation/architecture.md` and use
-`vertical-slice-architecture` before creating, moving, or extracting behavior.
+`architecture-review` before creating, moving, or extracting behavior.
 Use the relevant domain skill when the slice depends on chess, ingestion,
 engine, or training semantics.

@@ -9,25 +9,16 @@ Trace one tracked account from provider input through normalization, cursor
 advance, persistence, and user-scoped reads. A public handle identifies provider
 data; the authenticated session owns the tracked account.
 
-Read the relevant detail:
+At each boundary, ask whether ownership, identity, completeness, and retry
+position remain explicit. Normalize provider shapes once, preserve successful
+rows from a partial pass without claiming completion, and rely on database
+constraints plus cursors for idempotency rather than prechecking existence.
 
-- [references/accounts-and-deduplication.md](references/accounts-and-deduplication.md)
-  for user ownership, game identity, independent histories, and fixtures.
-- [references/providers-and-cursors.md](references/providers-and-cursors.md)
-  for current Chess.com/Lichess fetch, cursor, failure, and rate-limit semantics.
-
-Preserve these workflow rules:
-
-- Normalize provider inputs once in `libs/infra/platforms`; do not leak provider
-  response shapes into application or UI.
-- Save successful games from a partial pass, but advance the cursor and mark the
-  account synced only after a complete pass.
-- Import and refresh do not run Stockfish. They may extract candidate
-  repertoires, judge replay, and seed from severity already persisted.
-- Keep sync idempotent through database constraints and provider cursors rather
-  than an application-side existence precheck.
-- Treat empty success, not-found, rate-limited, invalid response, unsupported
-  variant, and partial failure as distinct observable states.
+Canonical provider, cursor, ownership, and deduplication behavior lives in
+`docs/reference/ingestion.md`, live provider clients, database constraints, and
+their tests. Verify those owners before depending on a current bootstrap window,
+cooldown, response shape, or cursor value. Import and refresh do not run
+Stockfish.
 
 Use `chess-domain` for notation/perspective semantics, `security-review` for
 outbound URL/auth/rate-limit changes, and `debug-pipeline` when persisted state

@@ -24,8 +24,8 @@ changing its structure or rendering model.
   `apps/web/__e2e__/marketing`; do not replace them with hand-made fixture
   state in this app.
 
-## Local skill
+## Verification
 
-- `apps/site/.agents/skills/site-quality` — use for SEO, accessibility, performance,
-  metadata, screenshots, or static-export changes and for the associated CI
-  checks.
+Read `docs/how-to/site-quality.md` for SEO, accessibility, performance,
+metadata, deterministic screenshots, static-export verification, and the
+associated CI gate.
