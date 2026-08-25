@@ -68,7 +68,10 @@ services:
       VELACHESS_BOOTSTRAP_USER_EMAIL: ${VELACHESS_BOOTSTRAP_USER_EMAIL:-}
       VELACHESS_BOOTSTRAP_USER_PASSWORD: ${VELACHESS_BOOTSTRAP_USER_PASSWORD:-}
     ports:
-      - "3000:3000"
+      # Host side overridable — 3000 is a popular port (AdGuard, Grafana…).
+      # The container always listens on 3000; point VITE_API_TARGET at
+      # whatever host port you pick.
+      - "${VELACHESS_API_PORT:-3000}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully

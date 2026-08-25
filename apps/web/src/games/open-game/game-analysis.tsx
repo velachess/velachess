@@ -11,7 +11,7 @@ import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
 import { useMyAccounts } from "../import/my-accounts.ts";
-import { flairImageOf, trackedAccountsQuery } from "../import/queries.ts";
+import { flairImageOf } from "../import/queries.ts";
 import {
   gradeAtPly,
   previewFor,
@@ -22,7 +22,6 @@ import {
 import { BoardPane } from "./board-pane.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { useAnalysis } from "../watch-analysis/use-analysis.ts";
-import { useQuery } from "../../shared/libs/query/index.ts";
 
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
@@ -53,9 +52,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   // new array every render never compares equal, and zustand re-renders
   // until React gives up.
   const myAccounts = useMyAccounts((state) => state.accounts);
-  // Provider identity for the seats — only handles this user tracks have
-  // one, so an opponent's seat stays on initials unless imported too.
-  const tracked = useQuery(trackedAccountsQuery).data ?? [];
   /**
    * The engine's move, shown on the board.
    *
@@ -99,8 +95,13 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     );
   }
 
-  const seat = (name: string, rating: number | null) => {
-    const identity = seatIdentityOf(game.source, name, tracked);
+  // Identity rides with the game detail payload for BOTH seats — the
+  // server resolves each handle from a shared profile cache, tracked
+  // account or not.
+  const seat = (name: string, rating: number | null, side: "white" | "black") => {
+    const identity = seatIdentityOf(
+      side === "white" ? game.whiteIdentity : game.blackIdentity,
+    );
     return {
       name,
       rating: rating === null ? undefined : i18n.number(rating),
@@ -110,8 +111,8 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       flair: identity.flair ? flairImageOf(identity.flair) : undefined,
     };
   };
-  const white = seat(game.whiteName, game.whiteRating);
-  const black = seat(game.blackName, game.blackRating);
+  const white = seat(game.whiteName, game.whiteRating, "white");
+  const black = seat(game.blackName, game.blackRating, "black");
 
   const orientation = seatOf(
     game,

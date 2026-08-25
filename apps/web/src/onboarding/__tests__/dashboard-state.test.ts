@@ -9,8 +9,6 @@ const account = (syncState: "none" | "queued" | "active" | "failed") => ({
   id: "account-1",
   platform: "chess_com" as const,
   username: "looper",
-  avatarUrl: null,
-  flair: null,
   lastSyncedAt: null,
   syncState,
 });

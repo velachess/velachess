@@ -5,6 +5,7 @@ import { beforeEach, afterAll, beforeAll, describe, expect, it, vi } from "vites
 import {
   addGames,
   stageAnalysis,
+  stageSeatIdentities,
   watchCount,
   type AnalysisAnswer,
 } from "../../../test/archive.ts";
@@ -28,10 +29,14 @@ const gradedPlies = () =>
 const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
-const openGame = async (answer?: AnalysisAnswer) => {
+const openGame = async (
+  answer?: AnalysisAnswer,
+  identities?: Parameters<typeof stageSeatIdentities>[1],
+) => {
   const game = aGame();
   addGames(game);
   if (answer) stageAnalysis(game.id, answer);
+  if (identities) stageSeatIdentities(game.id, identities);
   const rendered = await renderApp({ path: `/games/${game.id}` });
   return { game, ...rendered };
 };
@@ -304,13 +309,14 @@ describe("game analysis", () => {
 });
 
 /**
- * Provider identity reaches the board: a handle this user tracks shows
- * the picture and flair its platform reported, everyone else stays on
- * initials.
+ * Provider identity reaches the board: the game detail payload carries
+ * each seat's provider picture — both players, tracked account or not —
+ * and a seat nobody could resolve stays on initials.
  */
 describe("provider identity on the board", () => {
   const MY_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/461825478.test.jpg";
   const MY_FLAIR = "people.santa-claus-light-skin-tone";
+  const OPPONENT_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/rival.jpg";
 
   beforeAll(() => {
     // jsdom loads no resources, so base-ui's Avatar waits forever on a
@@ -332,39 +338,52 @@ describe("provider identity on the board", () => {
   });
 
   beforeEach(() => {
-    deviceHasImported({ avatarUrl: MY_AVATAR, flair: MY_FLAIR });
+    deviceHasImported();
   });
 
-  it("shows the tracked handle's avatar and flair beside the name", async () => {
-    await openGame({ kind: "cached", moves: gradedPlies() });
-
-    const board = await screen.findByRole("region", { name: "Board" });
-    // White by default — my strip sits at the bottom of the board region.
-    const strip = within(board).getByText(ME).closest("div")!;
-    const sources = [...strip.querySelectorAll("img")].map((image) =>
-      image.getAttribute("src"),
+  it("shows each player's own picture beside their name", async () => {
+    await openGame(
+      { kind: "cached", moves: gradedPlies() },
+      {
+        white: { avatarUrl: MY_AVATAR, flair: MY_FLAIR },
+        black: { avatarUrl: OPPONENT_AVATAR },
+      },
     );
 
-    expect(sources).toEqual([
-      MY_AVATAR,
-      `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`,
-    ]);
+    const board = await screen.findByRole("region", { name: "Board" });
+
+    // White by default — my strip sits at the bottom of the board region.
+    const mine = within(board).getByText(ME).closest("div")!;
+    expect(
+      [...mine.querySelectorAll("img")].map((image) => image.getAttribute("src")),
+    ).toEqual([MY_AVATAR, `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`]);
+
+    // The opponent was never connected; their identity came from the
+    // profile cache all the same.
+    const theirs = within(board).getByText("gothamchess").closest("div")!;
+    const sources = [...theirs.querySelectorAll("img")].map((image) =>
+      image.getAttribute("src"),
+    );
+    expect(sources).toEqual([OPPONENT_AVATAR]);
   });
 
-  it("leaves an untracked opponent on initials alone", async () => {
+  it("leaves a seat with no resolvable profile on initials alone", async () => {
     await openGame({ kind: "cached", moves: gradedPlies() });
 
     const board = await screen.findByRole("region", { name: "Board" });
-    // Only the imported handle carries identity; gothamchess was never
-    // connected, so their seat has no picture to show.
-    const opponent = within(board).getByText("gothamchess").closest("div")!;
-    expect(opponent.querySelectorAll("img")).toHaveLength(0);
+    for (const name of [ME, "gothamchess"]) {
+      const strip = within(board).getByText(name).closest("div")!;
+      expect(strip.querySelectorAll("img")).toHaveLength(0);
+    }
   });
 
   it("hides the flair when its asset fails to load", async () => {
     // An asset that 404s must not leave a broken-image glyph where the
     // decoration stood.
-    await openGame({ kind: "cached", moves: gradedPlies() });
+    await openGame(
+      { kind: "cached", moves: gradedPlies() },
+      { white: { flair: MY_FLAIR } },
+    );
 
     const board = await screen.findByRole("region", { name: "Board" });
     const strip = within(board).getByText(ME).closest("div")!;

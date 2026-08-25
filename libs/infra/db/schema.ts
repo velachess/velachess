@@ -230,16 +230,6 @@ export const trackedAccounts = pgTable(
      * documentation of what can actually land in this column. */
     syncCursor: jsonb("sync_cursor").$type<ChessComCursor | LichessCursor>(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
-    /** Provider identity, read at connect time and then left alone:
-     * profiles change rarely and games every session, so re-reading one
-     * per sync would spend a request on nothing. Null until the first
-     * successful read; the UI falls back to initials meanwhile, and a
-     * refetch that comes back empty never erases what is here. */
-    avatarUrl: text("avatar_url"),
-    /** Lichess only — an asset id like `people.santa-claus`, not a URL.
-     * Kept apart from `avatar_url`: it decorates the name, it is not a
-     * face. */
-    flair: text("flair"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -249,6 +239,39 @@ export const trackedAccounts = pgTable(
       table.username,
     ),
     index("tracked_accounts_user_id").on(table.userId),
+  ],
+);
+
+/**
+ * Public provider metadata for ANY player — the picture and flag beside a
+ * name — cached under the handle itself, not under whoever happens to be
+ * connected to it. Tracked accounts own a sync cursor; this owns an
+ * identity. The two concerns stay apart: an opponent never becomes a row
+ * here because someone tracked them, and two users reviewing games
+ * against the same opponent share one cache entry and one refresh budget.
+ *
+ * Keyed `(platform, username)` globally — unlike `tracked_accounts`, there
+ * is no per-user ownership: usernames are public and the metadata is too.
+ */
+export const providerProfiles = pgTable(
+  "provider_profiles",
+  {
+    platform: platformEnum("platform").notNull(),
+    // Lowercase, like tracked_accounts.username — both providers'
+    // usernames are case-insensitive and the key must not fork on case.
+    username: text("username").notNull(),
+    avatarUrl: text("avatar_url"),
+    /** Lichess only — an asset id like `people.santa-claus`, not a URL.
+     * Kept apart from `avatar_url`: it decorates the name, it is not a
+     * face. */
+    flair: text("flair"),
+    /** Last time we asked the provider about this handle — stamped on
+     * every attempt, successful or not, so a dead endpoint is retried at
+     * the refresh cadence rather than on every game open. */
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("provider_profiles_platform_username").on(table.platform, table.username),
   ],
 );
 

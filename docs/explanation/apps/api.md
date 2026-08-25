@@ -16,7 +16,9 @@ POST /accounts/{id}/sync          202 — enqueue; the worker refreshes and judg
 GET  /accounts/{id}/games         games + judgment + analyzed flag, no PGNs
 GET  /games?platform=&username=   importing: a player's games, filled once
 POST /games/judge                 judge unjudged games now (interactive path)
-GET  /games/{id}                  full game, rawPgn included (board replay)
+GET  /games/{id}                  full game, rawPgn included (board replay),
+                                  both seats' provider identity from the
+                                  shared profile cache — initials when unknown
 GET  /deviations                  own deviations: verdict + context + drilled flag
 GET  /games/{id}/analysis         analysis state + a running run's progress
 GET  /games/{id}/analysis/events  SSE, EventSource-ready — watch a run (below)

@@ -8,12 +8,12 @@ MCP server process all import it the same way, no HTTP hop between them.
 
 ## Schema
 
-Eleven tables across six domains — sync (what ingest produces),
-repertoire (what the user prepares), judgment (how a game compared
-against that preparation), analysis (what the engine said), drilling
-(which mistakes became exercises and how they were answered), scheduling
-(when each exercise comes back). Job delivery is NOT here: since cycle 5
-it lives in pg-boss's own `pgboss` schema, owned by `libs/infra/queue`
+Twelve tables across seven domains — sync (what ingest produces),
+identity (public provider metadata for any player), repertoire (what the
+user prepares), judgment (how a game compared against that preparation),
+analysis (what the engine said), drilling (which mistakes became
+exercises and how they were answered), scheduling (when each exercise
+comes back). Job delivery is NOT here: since cycle 5 it lives in pg-boss's own `pgboss` schema, owned by `libs/infra/queue`
 (migration 0008 dropped `analysis_jobs`, `sync_jobs` and the
 `job_status` enum):
 
@@ -80,6 +80,18 @@ can't be one). `sync_cursor` is `jsonb`, typed `ChessComCursor |
 LichessCursor` at compile time only — the two providers' cursors are
 structurally different shapes, and this package never reads inside
 either one, only stores and returns it opaquely.
+
+`provider_profiles` holds the same kind of key but nobody's ownership:
+avatar and flair are public metadata about a _player_, so the table has
+no `user_id` — an opponent gets a row because a game was opened against
+them, not because anyone tracked them, and two users reviewing games
+against the same opponent share one row and one refresh budget. The
+columns the connection rows used to carry (migration 0016 moved them
+here) were per-connection copies of what is really a per-handle fact,
+which is why they could disagree between users tracking the same handle.
+`fetched_at` is stamped on every attempt, failed ones included: it is a
+refresh cursor, not a success log, so a dead provider is retried at the
+cadence instead of on every game open.
 
 `games` has no normalized `players`/`events`/`sites` tables. Real-world
 comparison (En Croissant's SQLite schema) normalizes those because it

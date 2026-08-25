@@ -6,7 +6,13 @@
  * front of the person who typed it.
  */
 import type { Database } from "@velachess/db";
-import { getTrackedAccount, upsertTrackedAccount } from "@velachess/db";
+import {
+  findProviderProfiles,
+  getTrackedAccount,
+  isProfileFresh,
+  upsertProviderProfile,
+  upsertTrackedAccount,
+} from "@velachess/db";
 import { fetchChessComProfile, fetchLichessProfile } from "@velachess/platforms";
 
 import { ensureCandidateRepertoires } from "../../repertoires/extract-repertoire/extract-repertoire.ts";
@@ -16,19 +22,33 @@ import { syncAccount } from "../sync-account/sync-account.ts";
 export type Platform = "chess_com" | "lichess";
 
 /**
- * Read the provider's picture of this handle, once, at the moment the
- * connection is made — profiles change rarely and games every session,
- * so a refresh cadence of their own would spend requests on nothing.
+ * Read the provider's picture of this handle at the moment the connection
+ * is made — warming the shared `provider_profiles` cache so this handle's
+ * first game review needs no provider request. A row another user (or an
+ * earlier connect) already asked for within the refresh window is reused,
+ * not re-asked: connecting is not a refresh button.
  *
  * The read is decoration around the name and fails soft by contract
  * (the fetchers answer an empty profile rather than throw), so a provider
  * outage costs the avatar, never the connection.
  */
-function fetchProfile(platform: Platform, username: string, deps: SyncDeps) {
+async function warmProfileCache(
+  db: Database,
+  platform: Platform,
+  username: string,
+  deps: SyncDeps,
+) {
+  const [cached] = await findProviderProfiles(db, [{ platform, username }]);
+  if (cached && isProfileFresh(cached.fetchedAt)) return;
+
   const opts = deps.fetch ? { fetch: deps.fetch } : {};
-  return platform === "chess_com"
-    ? fetchChessComProfile(username, opts)
-    : fetchLichessProfile(username, opts);
+  const fetched =
+    platform === "chess_com"
+      ? await fetchChessComProfile(username, opts)
+      : await fetchLichessProfile(username, opts);
+  // The write-through decides what a failed ask keeps versus what an
+  // answer overwrites; connecting only needs the side effect.
+  await upsertProviderProfile(db, { platform, username }, fetched);
 }
 
 /**
@@ -52,10 +72,11 @@ export async function importAccount(
   username: string,
   deps: SyncDeps = {},
 ) {
-  // Before the upsert, so the row is born with its identity and a
-  // re-import refreshes it in the same write that finds the connection.
-  const profile = await fetchProfile(platform, username, deps);
-  const tracked = await upsertTrackedAccount(db, userId, platform, username, profile);
+  // The cache write lands before the upsert, so the handle's identity
+  // exists before its connection — unless a still-fresh row already
+  // carries it, in which case connecting costs no request at all.
+  await warmProfileCache(db, platform, username, deps);
+  const tracked = await upsertTrackedAccount(db, userId, platform, username);
   if (tracked.lastSyncedAt === null) {
     const outcome = await syncAccount(db, tracked.id, deps);
     // The first archive is also the first chance to derive a book, and

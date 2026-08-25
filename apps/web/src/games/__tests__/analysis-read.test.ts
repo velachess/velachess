@@ -308,53 +308,32 @@ describe("seatOf", () => {
 });
 
 /**
- * Which seats carry provider identity.
+ * What a seat shows from the identity its payload carried.
  *
- * Profiles exist only for handles this user tracks, and a handle is
- * platform-scoped: the same name on both platforms may show two
- * different pictures.
+ * The server resolves both players from a shared per-handle cache; here
+ * a null means "unknown", and unknown means initials, never a broken
+ * picture.
  */
 describe("seatIdentityOf", () => {
-  const tracked = [
-    {
-      platform: "chess_com",
-      username: "yurimutti",
-      avatarUrl: "https://example.com/pic.jpg",
-      flair: null,
-    },
-    {
-      platform: "lichess",
-      username: "yurimutti",
-      avatarUrl: null,
-      flair: "people.santa-claus-light-skin-tone",
-    },
-  ];
-
-  it("returns the identity of the handle on that game's platform", () => {
-    expect(seatIdentityOf("chess_com", "yurimutti", tracked)).toEqual({
+  it("carries the picture and flair a seat resolved to", () => {
+    expect(
+      seatIdentityOf({ avatarUrl: "https://example.com/pic.jpg", flair: null }),
+    ).toEqual({
       avatarUrl: "https://example.com/pic.jpg",
     });
-    expect(seatIdentityOf("lichess", "yurimutti", tracked)).toEqual({
-      flair: "people.santa-claus-light-skin-tone",
-    });
+    expect(
+      seatIdentityOf({
+        avatarUrl: null,
+        flair: "people.santa-claus-light-skin-tone",
+      }),
+    ).toEqual({ flair: "people.santa-claus-light-skin-tone" });
   });
 
-  it("matches a username whatever its case", () => {
-    // Platforms echo back whatever casing the player typed — the same
-    // rule `seatOf` applies when finding your side of the board.
-    expect(seatIdentityOf("chess_com", "YuriMutti", tracked)).toEqual({
-      avatarUrl: "https://example.com/pic.jpg",
-    });
-  });
-
-  it("answers nothing for a handle this user does not track", () => {
-    expect(seatIdentityOf("chess_com", "gothamchess", tracked)).toEqual({});
-    expect(seatIdentityOf("lichess", "yurimutti", [])).toEqual({});
-  });
-
-  it("answers nothing for a source that has no accounts at all", () => {
-    // A pasted PGN is not any platform's handle, whoever plays it.
-    expect(seatIdentityOf("pgn", "yurimutti", tracked)).toEqual({});
+  it("answers nothing for a seat nobody could resolve", () => {
+    // Nulls collapse to absence: an initials fallback is rendered by
+    // there being no image at all, not by an empty src.
+    expect(seatIdentityOf({ avatarUrl: null, flair: null })).toEqual({});
+    expect(seatIdentityOf(undefined)).toEqual({});
   });
 });
 

@@ -187,41 +187,32 @@ export function seatOf(
 }
 
 export interface SeatIdentity {
-  /** Provider profile picture, read at connect time. Absent when the
-   * handle has none — initials stand in. */
+  /** Provider profile picture, resolved server-side from the profile
+   * cache. Absent when unknown — initials stand in. */
   avatarUrl?: string;
   /** Lichess asset id, decorated beside the name. Never an avatar. */
   flair?: string;
 }
 
 /**
- * The provider identity of one seat, when that handle is one this user
- * tracks — profiles exist only for connected accounts, so an opponent's
- * seat stays on initials unless their handle was imported too.
- *
- * Platform and username together, case-insensitively: the same handle on
- * both platforms may carry two different pictures.
+ * The provider identity of one seat, as the game detail payload carried
+ * it in — the server resolves both players from a shared per-handle
+ * cache, so an opponent needs no tracked account to have a face. Nulls
+ * become absent: initials stand in for an unknown picture.
  */
 export function seatIdentityOf(
-  source: string,
-  name: string,
-  tracked: readonly {
-    platform: string;
-    username: string;
-    avatarUrl: string | null;
-    flair: string | null;
-  }[],
+  identity:
+    | {
+        avatarUrl: string | null;
+        flair: string | null;
+      }
+    | undefined,
 ): SeatIdentity {
-  const handle = tracked.find(
-    (account) =>
-      account.platform === source &&
-      account.username.toLowerCase() === name.toLowerCase(),
-  );
-  if (!handle) return {};
+  if (!identity) return {};
 
   return {
-    ...(handle.avatarUrl !== null ? { avatarUrl: handle.avatarUrl } : {}),
-    ...(handle.flair !== null ? { flair: handle.flair } : {}),
+    ...(identity.avatarUrl !== null ? { avatarUrl: identity.avatarUrl } : {}),
+    ...(identity.flair !== null ? { flair: identity.flair } : {}),
   };
 }
 

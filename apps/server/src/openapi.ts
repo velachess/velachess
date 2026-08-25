@@ -125,18 +125,6 @@ export const openApiSpec = {
                   id: { type: "string", format: "uuid" },
                   platform: { type: "string", enum: ["chess_com", "lichess"] },
                   username: { type: "string" },
-                  avatarUrl: {
-                    type: "string",
-                    nullable: true,
-                    description:
-                      "Chess.com profile picture, read at connect time; null when the account has none or is on Lichess, which has no avatars",
-                  },
-                  flair: {
-                    type: "string",
-                    nullable: true,
-                    description:
-                      "Lichess flair asset id (e.g. people.santa-claus), read at connect time; null when unset or on Chess.com",
-                  },
                   lastSyncedAt: { type: "string", format: "date-time", nullable: true },
                   syncState: {
                     type: "string",
@@ -144,15 +132,7 @@ export const openApiSpec = {
                     description: "Delivery state of the newest non-completed sync job",
                   },
                 },
-                required: [
-                  "id",
-                  "platform",
-                  "username",
-                  "avatarUrl",
-                  "flair",
-                  "lastSyncedAt",
-                  "syncState",
-                ],
+                required: ["id", "platform", "username", "lastSyncedAt", "syncState"],
               },
             }),
           },
@@ -180,10 +160,8 @@ export const openApiSpec = {
                 id: { type: "string", format: "uuid" },
                 platform: { type: "string" },
                 username: { type: "string" },
-                avatarUrl: { type: "string", nullable: true },
-                flair: { type: "string", nullable: true },
               },
-              required: ["id", "platform", "username", "avatarUrl", "flair"],
+              required: ["id", "platform", "username"],
             }),
           },
           "400": { description: "Invalid body", ...errorResponse },
@@ -392,7 +370,7 @@ export const openApiSpec = {
       get: {
         summary: "The full game, rawPgn included",
         description:
-          "Board replay needs the movetext; the list endpoint deliberately omits it.",
+          "Board replay needs the movetext; the list endpoint deliberately omits it. Both seats carry their provider identity (avatarUrl / Lichess flair) resolved from a shared per-handle cache — fetched on the first open per refresh window, initials when unknown, and never a reason for the read to fail.",
         parameters: [
           {
             name: "id",

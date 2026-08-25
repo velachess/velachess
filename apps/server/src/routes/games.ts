@@ -6,6 +6,7 @@ import { drillSummaryFor } from "@velachess/application/analysis/get-analysis/dr
 import { getAnalysisReport } from "@velachess/application/analysis/get-analysis/get-analysis";
 import { requestAnalysis } from "@velachess/application/analysis/request-analysis/request-analysis";
 import { judgeGamesForUser } from "@velachess/application/games/judge-games/judge-games";
+import { getGameForReview } from "@velachess/application/games/get-game/get-game";
 import { openArchive } from "@velachess/application/games/list-games/list-games";
 import { getGameForUser } from "@velachess/db";
 
@@ -87,12 +88,15 @@ export function gamesRoutes(deps: ApiDeps) {
       })
       .get("/:id", validateIdParam, async (c) => {
         // The full game, rawPgn included — board replay needs the movetext.
+        // Seat identities ride along, resolved from the profile cache; a
+        // cold opponent costs one provider read on the first open only.
         // Scoped by owner: a stranger's game id and a missing one are the
         // same 404, so the route never confirms which uuids exist.
-        const game = await getGameForUser(
+        const game = await getGameForReview(
           deps.db,
           c.get("userId"),
           c.req.valid("param").id,
+          deps.sync,
         );
         if (!game) return c.json({ error: "game not found" }, 404);
         return c.json(game);
