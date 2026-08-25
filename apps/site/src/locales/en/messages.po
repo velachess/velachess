@@ -37,6 +37,10 @@ msgstr "Connect Chess.com or Lichess and bring your games together."
 msgid "Contribute"
 msgstr "Contribute"
 
+#: src/landing/landing-header.tsx:21
+msgid "Dark"
+msgstr "Dark"
+
 #: src/landing/landing-page.tsx:94
 msgid "Documentation"
 msgstr "Documentation"
@@ -73,7 +77,7 @@ msgstr "How it works"
 msgid "Import"
 msgstr "Import"
 
-#: src/app/layout.tsx:20
+#: src/app/layout.tsx:22
 msgid "Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points."
 msgstr "Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points."
 
@@ -88,6 +92,10 @@ msgstr "Inspect your games"
 #: src/landing/landing-page.tsx:95
 msgid "License"
 msgstr "License"
+
+#: src/landing/landing-header.tsx:20
+msgid "Light"
+msgstr "Light"
 
 #: src/landing/landing-page.tsx:81
 msgid "Move from a clear explanation of what changed to focused practice on the exact position."
@@ -151,16 +159,16 @@ msgid "Stockfish grades the choices that changed your winning chances."
 msgstr "Stockfish grades the choices that changed your winning chances."
 
 #: src/landing/landing-header.tsx:19
-msgid "Switch to dark theme"
-msgstr "Switch to dark theme"
-
-#: src/landing/landing-header.tsx:18
-msgid "Switch to light theme"
-msgstr "Switch to light theme"
+msgid "System"
+msgstr "System"
 
 #: src/landing/landing-page.tsx:85
 msgid "The analysis becomes a training loop."
 msgstr "The analysis becomes a training loop."
+
+#: src/landing/landing-header.tsx:18
+msgid "Toggle theme"
+msgstr "Toggle theme"
 
 #: src/landing/landing-page.tsx:78
 msgid "Train"
@@ -187,14 +195,14 @@ msgstr "Turn your games into training."
 msgid "Understand"
 msgstr "Understand"
 
-#: src/app/layout.tsx:41
+#: src/app/layout.tsx:43
 #: src/app/manifest.ts:8
 #: src/landing/landing-header.tsx:12
 #: src/landing/landing-page.tsx:58
 msgid "VelaChess"
 msgstr "VelaChess"
 
-#: src/app/layout.tsx:19
+#: src/app/layout.tsx:21
 msgid "VelaChess - Turn your games into training"
 msgstr "VelaChess - Turn your games into training"
 

@@ -1,4 +1,6 @@
 import { msg } from "@lingui/core/macro";
+import { ThemeProvider } from "@velachess/ui/lib/theme-provider";
+import { themeInitScript } from "@velachess/ui/lib/theme";
 import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
@@ -20,7 +22,7 @@ const META_COPY = {
   description: msg`Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points.`,
 } as const;
 
-const THEME_BOOTSTRAP = `(function(){var root=document.documentElement;try{var saved=localStorage.getItem("velachess-theme");var theme=saved==="light"||saved==="dark"?saved:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");root.classList.add(theme)}catch(e){root.classList.add("dark")}root.classList.remove("no-js")})()`;
+const THEME_BOOTSTRAP = `${themeInitScript({ storageKey: "velachess-theme" })};document.documentElement.classList.remove("no-js")`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://velachess.com"),
@@ -72,7 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {THEME_BOOTSTRAP}
         </Script>
-        {children}
+        <ThemeProvider storageKey="velachess-theme">{children}</ThemeProvider>
       </body>
     </html>
   );

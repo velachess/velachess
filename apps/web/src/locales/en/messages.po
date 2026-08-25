@@ -112,7 +112,7 @@ msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
-#: src/games/open-game/game-analysis.tsx:30
+#: src/games/open-game/game-analysis.tsx:29
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
@@ -120,7 +120,7 @@ msgstr "{white} vs {black}"
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 
-#: src/app-shell/user-menu.tsx:20
+#: src/app-shell/user-menu.tsx:28
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:34
 #: src/test/routes.tsx:175
@@ -146,6 +146,10 @@ msgstr "An unexpected error interrupted this screen."
 #: src/games/request-analysis/analysis-status.tsx:17
 msgid "Analyzing move {graded} of {total}…"
 msgstr "Analyzing move {graded} of {total}…"
+
+#: src/app-shell/user-menu.tsx:30
+msgid "Appearance"
+msgstr "Appearance"
 
 #: src/onboarding/onboarding-dialog.tsx:24
 msgid "Back"
@@ -227,7 +231,7 @@ msgstr "Bullet"
 msgid "Chapter"
 msgstr "Chapter"
 
-#: src/settings/account/account-screen.tsx:53
+#: src/settings/account/account-screen.tsx:54
 msgid "Chess.com and Lichess are game sources, not sign-in methods. They live under Import."
 msgstr "Chess.com and Lichess are game sources, not sign-in methods. They live under Import."
 
@@ -257,7 +261,7 @@ msgstr "Compare all phases"
 msgid "Connect an account"
 msgstr "Connect an account"
 
-#: src/settings/account/account-screen.tsx:50
+#: src/settings/account/account-screen.tsx:51
 msgid "Connected — you can sign in with Google."
 msgstr "Connected — you can sign in with Google."
 
@@ -286,7 +290,7 @@ msgstr "Correct."
 msgid "Correspondence"
 msgstr "Correspondence"
 
-#: src/games/open-game/game-analysis.tsx:29
+#: src/games/open-game/game-analysis.tsx:28
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
@@ -319,7 +323,7 @@ msgstr "Couldn't load this repertoire."
 msgid "Couldn't load your repertoire."
 msgstr "Couldn't load your repertoire."
 
-#: src/settings/account/account-screen.tsx:48
+#: src/settings/account/account-screen.tsx:49
 msgid "Couldn't load your sign-in methods."
 msgstr "Couldn't load your sign-in methods."
 
@@ -331,13 +335,17 @@ msgstr "Couldn't reach that account"
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr "Couldn't reach the server. Try again in a moment."
 
-#: src/settings/account/account-screen.tsx:45
+#: src/settings/account/account-screen.tsx:46
 msgid "Couldn't save that. Try again."
 msgstr "Couldn't save that. Try again."
 
 #: src/repertoire/chapter-study.tsx:71
 msgid "Current line"
 msgstr "Current line"
+
+#: src/app-shell/user-menu.tsx:33
+msgid "Dark"
+msgstr "Dark"
 
 #: src/dashboard/dashboard.tsx:19
 msgid "Dashboard"
@@ -379,11 +387,11 @@ msgid "Due now"
 msgstr "Due now"
 
 #: src/auth/sign-in/sign-in-screen.tsx:39
-#: src/settings/account/account-screen.tsx:40
+#: src/settings/account/account-screen.tsx:41
 msgid "Email"
 msgstr "Email"
 
-#: src/settings/account/account-screen.tsx:51
+#: src/settings/account/account-screen.tsx:52
 msgid "Email and password"
 msgstr "Email and password"
 
@@ -484,7 +492,7 @@ msgstr "Games pages"
 msgid "Good"
 msgstr "Good"
 
-#: src/settings/account/account-screen.tsx:49
+#: src/settings/account/account-screen.tsx:50
 msgid "Google"
 msgstr "Google"
 
@@ -577,6 +585,10 @@ msgstr "It hands over a real part of the advantage."
 msgid "It keeps the position healthy without giving anything away."
 msgstr "It keeps the position healthy without giving anything away."
 
+#: src/settings/account/account-screen.tsx:40
+msgid "Keep it under 100 characters."
+msgstr "Keep it under 100 characters."
+
 #: src/insights/finding-views.tsx:102
 msgid "Left the book"
 msgstr "Left the book"
@@ -589,11 +601,15 @@ msgstr "Letters, numbers, hyphen and underscore only"
 msgid "Lichess username"
 msgstr "Lichess username"
 
+#: src/app-shell/user-menu.tsx:32
+msgid "Light"
+msgstr "Light"
+
 #: src/repertoire/chapter-study.tsx:51
 msgid "Loading the chapter…"
 msgstr "Loading the chapter…"
 
-#: src/games/open-game/game-analysis.tsx:28
+#: src/games/open-game/game-analysis.tsx:27
 msgid "Loading the game…"
 msgstr "Loading the game…"
 
@@ -911,15 +927,15 @@ msgstr "Right now: {games} games imported, {analysed} deeply analysed."
 msgid "Right."
 msgstr "Right."
 
-#: src/settings/account/account-screen.tsx:42
+#: src/settings/account/account-screen.tsx:43
 msgid "Save"
 msgstr "Save"
 
-#: src/settings/account/account-screen.tsx:44
+#: src/settings/account/account-screen.tsx:45
 msgid "Saved."
 msgstr "Saved."
 
-#: src/settings/account/account-screen.tsx:43
+#: src/settings/account/account-screen.tsx:44
 msgid "Saving…"
 msgstr "Saving…"
 
@@ -944,11 +960,11 @@ msgstr "Seen before"
 msgid "Session complete"
 msgstr "Session complete"
 
-#: src/settings/account/account-screen.tsx:52
+#: src/settings/account/account-screen.tsx:53
 msgid "Set — you can sign in with your email and password."
 msgstr "Set — you can sign in with your email and password."
 
-#: src/app-shell/user-menu.tsx:21
+#: src/app-shell/user-menu.tsx:29
 #: src/routes/_app/settings.tsx:10
 #: src/test/routes.tsx:160
 msgid "Settings"
@@ -966,11 +982,11 @@ msgstr "Sign in"
 msgid "Sign in with your account credentials."
 msgstr "Sign in with your account credentials."
 
-#: src/app-shell/user-menu.tsx:22
+#: src/app-shell/user-menu.tsx:34
 msgid "Sign out"
 msgstr "Sign out"
 
-#: src/settings/account/account-screen.tsx:46
+#: src/settings/account/account-screen.tsx:47
 msgid "Sign-in methods"
 msgstr "Sign-in methods"
 
@@ -978,7 +994,7 @@ msgstr "Sign-in methods"
 msgid "Signing in…"
 msgstr "Signing in…"
 
-#: src/app-shell/user-menu.tsx:23
+#: src/app-shell/user-menu.tsx:35
 msgid "Signing out…"
 msgstr "Signing out…"
 
@@ -1027,6 +1043,10 @@ msgstr "Synced a moment ago"
 #: src/games/import/sync-games-button.tsx:19
 msgid "Syncing…"
 msgstr "Syncing…"
+
+#: src/app-shell/user-menu.tsx:31
+msgid "System"
+msgstr "System"
 
 #: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "That doesn't look like an email address."
@@ -1160,7 +1180,7 @@ msgstr "View games"
 msgid "waiting for you today"
 msgstr "waiting for you today"
 
-#: src/settings/account/account-screen.tsx:47
+#: src/settings/account/account-screen.tsx:48
 msgid "Ways you can get into this account."
 msgstr "Ways you can get into this account."
 
@@ -1264,7 +1284,7 @@ msgstr "Your {phase} is your most solid stretch"
 msgid "Your book, from your own play"
 msgstr "Your book, from your own play"
 
-#: src/settings/account/account-screen.tsx:41
+#: src/settings/account/account-screen.tsx:42
 msgid "Your email is tied to how you signed up and can't be changed here."
 msgstr "Your email is tied to how you signed up and can't be changed here."
 

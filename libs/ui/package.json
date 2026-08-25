@@ -10,7 +10,10 @@
     "./globals.css": "./src/styles/globals.css",
     "./theme.css": "./src/styles/theme.css",
     "./styles/*": "./src/styles/*.ts",
-    "./lib/*": "./src/lib/*.ts",
+    "./lib/*": [
+      "./src/lib/*.tsx",
+      "./src/lib/*.ts"
+    ],
     "./components/*": "./src/components/*.tsx",
     "./chess/*": [
       "./src/chess/*.tsx",

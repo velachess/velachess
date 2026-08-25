@@ -4,6 +4,8 @@ import type * as React from "react";
 
 import { Toaster } from "@velachess/ui/components/toast";
 import { TooltipProvider } from "@velachess/ui/components/tooltip";
+import { ThemeProvider } from "@velachess/ui/lib/theme-provider";
+import { themeInitScript } from "@velachess/ui/lib/theme";
 
 import appCss from "@velachess/ui/globals.css?url";
 
@@ -38,6 +40,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "mask-icon", href: "/safari-pinned-tab.svg", color: "#0B1020" },
       { rel: "stylesheet", href: appCss },
     ],
+    // Runs before hydration so <html> has the right theme class on first
+    // paint. Declared here (not as a raw JSX child of <head>) so
+    // TanStack Start's head-tag manager actually renders it.
+    scripts: [{ children: themeInitScript() }],
   }),
   notFoundComponent: () => (
     <main className="container mx-auto p-4 pt-16">
@@ -50,18 +56,21 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <HeadContent />
       </head>
       <body>
-        <I18nProvider i18n={i18n}>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster>{children}</Toaster>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </I18nProvider>
+        <ThemeProvider>
+          <I18nProvider i18n={i18n}>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <Toaster>{children}</Toaster>
+              </TooltipProvider>
+            </QueryClientProvider>
+          </I18nProvider>
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>

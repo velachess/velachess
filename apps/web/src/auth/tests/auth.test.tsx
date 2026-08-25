@@ -254,7 +254,7 @@ describe("signing out", () => {
     await user.click(await screen.findByRole("button", { name: "Account" }));
     expect(await screen.findByText(TEST_USER.email)).toBeInTheDocument();
 
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
 

@@ -27,7 +27,7 @@ describe("reaching the account screen", () => {
     const { router, user } = await renderApp({ path: "/" });
 
     await user.click(await screen.findByRole("button", { name: "Account" }));
-    await user.click(await screen.findByRole("button", { name: "Settings" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Settings" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/settings/account"));
     expect(await screen.findByRole("heading", { name: "Account" })).toBeInTheDocument();

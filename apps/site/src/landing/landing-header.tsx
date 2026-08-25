@@ -1,10 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { buttonVariants } from "@velachess/ui/components/button";
+import { ThemeToggle } from "@velachess/ui/components/theme-toggle";
 import { VelaChessMark } from "@velachess/ui/icons";
 
 import { i18n } from "../shared/i18n.ts";
 import { LandingHeaderNav } from "./landing-header-nav.tsx";
-import { ThemeToggle } from "./theme-toggle.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";
 
@@ -15,8 +15,10 @@ const COPY = {
   getStarted: msg`Get Started`,
   menu: msg`Open navigation`,
   closeMenu: msg`Close navigation`,
-  switchLight: msg`Switch to light theme`,
-  switchDark: msg`Switch to dark theme`,
+  themeToggle: msg`Toggle theme`,
+  themeSystem: msg`System`,
+  themeLight: msg`Light`,
+  themeDark: msg`Dark`,
 } as const;
 
 const NAVIGATION = [
@@ -50,8 +52,12 @@ export function LandingHeader() {
       }))}
       themeToggle={
         <ThemeToggle
-          switchToLightLabel={i18n._(COPY.switchLight)}
-          switchToDarkLabel={i18n._(COPY.switchDark)}
+          labels={{
+            toggle: i18n._(COPY.themeToggle),
+            system: i18n._(COPY.themeSystem),
+            light: i18n._(COPY.themeLight),
+            dark: i18n._(COPY.themeDark),
+          }}
         />
       }
       cta={
