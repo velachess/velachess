@@ -3,7 +3,7 @@
     "collect": {
       "staticDistDir": "./out",
       "url": ["http://localhost/"],
-      "numberOfRuns": 3,
+      "numberOfRuns": 5,
       "settings": {
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"]
       }
@@ -25,7 +25,7 @@
         "categories:seo": ["error", { "minScore": 1, "aggregationMethod": "median-run" }],
         "largest-contentful-paint": [
           "error",
-          { "maxNumericValue": 2500, "aggregationMethod": "median-run" }
+          { "maxNumericValue": 2500, "aggregationMethod": "median" }
         ],
         "cumulative-layout-shift": [
           "error",
