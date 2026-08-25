@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { globSync } from "node:fs";
 import path from "node:path";
 import { expect, it } from "vitest";
