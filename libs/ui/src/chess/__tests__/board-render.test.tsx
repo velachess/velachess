@@ -27,6 +27,12 @@ const KNIGHT_OPENINGS = [
 const squareAt = (container: HTMLElement, name: string) =>
   container.querySelector(`#chessboard-square-${name}`);
 
+// react-chessboard's first mount is real DOM work over 64 squares, and a
+// cold/throttled CI runner has occasionally pushed this past the default
+// 5s (a synchronous test — nothing here is actually slow on a normal
+// machine, confirmed by 5 consecutive local runs finishing in ~500ms).
+// Second line of defense: give this one test more room rather than
+// raising the file's default for every test.
 it("paints a legal destination once a piece is picked up", () => {
   const { container } = render(
     <Board fen={START} legalTargetsOf={() => KNIGHT_OPENINGS} />,
@@ -36,14 +42,18 @@ it("paints a legal destination once a piece is picked up", () => {
   expect(before?.innerHTML).not.toContain("radial-gradient");
 
   const knight = container.querySelector("#chessboard-piece-wN-b1");
+  // Fails here, clearly, if the library's id scheme ever changes —
+  // instead of a click silently doing nothing and the assertion below
+  // reading like a timing flake it is not.
+  expect(knight).not.toBeNull();
   act(() => {
-    (knight as HTMLElement | null)?.click();
+    (knight as HTMLElement).click();
   });
 
   // The mark lands on the child this component renders, because that is
   // where a squareRenderer puts it.
   expect(squareAt(container, "a3")?.innerHTML).toContain("radial-gradient");
-});
+}, 10_000);
 
 it("renders a square for every one of the sixty-four", () => {
   // Cheap smoke test that the library mounted at all: without it a
