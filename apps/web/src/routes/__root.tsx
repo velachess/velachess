@@ -1,6 +1,6 @@
 import { I18nProvider } from "@lingui/react";
 import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-import type * as React from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { Toaster } from "@velachess/ui/components/toast";
 import { TooltipProvider } from "@velachess/ui/components/tooltip";
@@ -9,7 +9,9 @@ import { themeInitScript } from "@velachess/ui/lib/theme";
 
 import appCss from "@velachess/ui/globals.css?url";
 
-import { i18n } from "../i18n/index.ts";
+import { activateLocale, i18n } from "../i18n/index.ts";
+import { resolveLocale } from "../i18n/locale.ts";
+import { useLocaleStore } from "../i18n/locale-store.ts";
 import { queryClient } from "../shared/query/query-client.ts";
 import { QueryClientProvider, type QueryClientType } from "../shared/libs/query/index.ts";
 
@@ -54,11 +56,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   shellComponent: RootDocument,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootDocument({ children }: { children: ReactNode }) {
+  const storedLocale = useLocaleStore((state) => state.locale);
+
+  useEffect(() => {
+    const resolved = resolveLocale(storedLocale, navigator.languages);
+    if (resolved !== i18n.locale) void activateLocale(resolved);
+  }, [storedLocale]);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <HeadContent />
       </head>
       <body>

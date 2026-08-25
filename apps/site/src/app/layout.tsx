@@ -4,7 +4,6 @@ import { themeInitScript } from "@velachess/ui/lib/theme";
 import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { i18n } from "../shared/i18n.ts";
@@ -71,9 +70,13 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en" className={`${spaceGrotesk.variable} no-js`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <Script id="theme-bootstrap" strategy="beforeInteractive">
-          {THEME_BOOTSTRAP}
-        </Script>
+        {/* next/script's beforeInteractive is for third-party scripts; a
+            first-party FOUC-prevention snippet is a plain inline script,
+            same as next-themes' own approach. */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
+        />
         <ThemeProvider storageKey="velachess-theme">{children}</ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 
 import { Button } from "@velachess/ui/components/button";
@@ -10,6 +10,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -80,14 +81,10 @@ export function UserMenu() {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={async () => {
-              await navigate({ to: "/settings/account" });
-            }}
-          >
+          <DropdownMenuLinkItem render={<Link to="/settings/account" />}>
             <SettingsIcon />
             {i18n._(USER_MENU_COPY.settings)}
-          </DropdownMenuItem>
+          </DropdownMenuLinkItem>
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger ref={appearanceTriggerRef}>

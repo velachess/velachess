@@ -188,14 +188,10 @@ describe("sign-in methods", () => {
     await renderApp({ path: "/settings/account" });
 
     expect(await screen.findByText("Google")).toBeInTheDocument();
-    // Chess.com and Lichess are where games come from, not ways in.
+    // Chess.com and Lichess are where games come from, not ways in — that
+    // list lives at Settings → Connections instead.
     expect(screen.queryByText("Chess.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Lichess")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Chess.com and Lichess are game sources, not sign-in methods. They live under Import.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("says so when the list cannot be loaded, without hiding the profile", async () => {

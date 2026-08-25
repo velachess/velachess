@@ -14,6 +14,11 @@ import { GamesList } from "../games/games-list.tsx";
 import { ImportGames } from "../games/import/import-games.tsx";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { AccountScreen } from "../settings/account/account-screen.tsx";
+import { AppearanceScreen } from "../settings/appearance/appearance-screen.tsx";
+import { ConnectionsScreen } from "../settings/connections/connections-screen.tsx";
+import { GameplayScreen } from "../settings/gameplay/gameplay-screen.tsx";
+import { LanguageRegionScreen } from "../settings/language-region/language-region-screen.tsx";
+import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { gamesSearchSchema } from "../games/list/filters.ts";
 import { drillSearchSchema } from "../drill/queries.ts";
@@ -158,7 +163,7 @@ const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/settings",
   staticData: { crumb: msg`Settings` },
-  component: Outlet,
+  component: SettingsLayout,
 });
 
 const settingsIndexRoute = createRoute({
@@ -174,6 +179,34 @@ const accountRoute = createRoute({
   path: "/account",
   staticData: { crumb: msg`Account` },
   component: AccountScreen,
+});
+
+const connectionsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/connections",
+  staticData: { crumb: msg`Connections` },
+  component: ConnectionsScreen,
+});
+
+const languageRegionRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/language-region",
+  staticData: { crumb: msg`Language & region` },
+  component: LanguageRegionScreen,
+});
+
+const appearanceRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/appearance",
+  staticData: { crumb: msg`Appearance` },
+  component: AppearanceScreen,
+});
+
+const gameplayRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/gameplay",
+  staticData: { crumb: msg`Gameplay` },
+  component: GameplayScreen,
 });
 
 // Public, and the mirror image of the guard above: already signed in
@@ -240,7 +273,14 @@ export const testRouteTree = rootRoute.addChildren([
     drillRoute,
     insightsRoute,
     importRoute,
-    settingsRoute.addChildren([settingsIndexRoute, accountRoute]),
+    settingsRoute.addChildren([
+      settingsIndexRoute,
+      accountRoute,
+      connectionsRoute,
+      languageRegionRoute,
+      appearanceRoute,
+      gameplayRoute,
+    ]),
   ]),
   loginRoute,
   crashRoute,

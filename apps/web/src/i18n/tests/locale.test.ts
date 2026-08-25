@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { activateLocale, i18n } from "../i18n.ts";
 import { isLocale, resolveLocale } from "../locale.ts";
 
 describe("resolveLocale", () => {
@@ -30,5 +31,21 @@ describe("resolveLocale", () => {
   it("narrows a plain string to a locale", () => {
     expect(isLocale("pt-BR")).toBe(true);
     expect(isLocale("de")).toBe(false);
+  });
+});
+
+describe("activateLocale", () => {
+  it("activates the already-bundled English catalogue", async () => {
+    await activateLocale("es");
+    await activateLocale("en");
+
+    expect(i18n.locale).toBe("en");
+  });
+
+  it("loads and activates a locale that isn't bundled yet", async () => {
+    await activateLocale("pt-BR");
+
+    expect(i18n.locale).toBe("pt-BR");
+    expect(Object.keys(i18n.messages).length).toBeGreaterThan(0);
   });
 });

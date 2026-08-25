@@ -109,6 +109,7 @@ msgstr ""
 
 #: src/games/import/sync-games-button.tsx:31
 #: src/games/request-analysis/analysis-status.tsx:19
+#: src/settings/connections/connections-screen.tsx:49
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
@@ -120,10 +121,11 @@ msgstr ""
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:28
+#: src/app-shell/user-menu.tsx:29
 #: src/routes/_app/settings/account.tsx:7
-#: src/settings/account/account-screen.tsx:34
-#: src/test/routes.tsx:175
+#: src/settings/account/account-screen.tsx:12
+#: src/settings/layout/navigation.ts:29
+#: src/test/routes.tsx:180
 msgid "Account"
 msgstr ""
 
@@ -132,6 +134,7 @@ msgid "Across {games, plural, one {# analysed game} other {# analysed games}}."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:20
+#: src/settings/connections/connections-screen.tsx:41
 msgid "Already up to date"
 msgstr ""
 
@@ -147,8 +150,16 @@ msgstr ""
 msgid "Analyzing move {graded} of {total}…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:30
+#: src/app-shell/user-menu.tsx:31
+#: src/routes/_app/settings/appearance.tsx:7
+#: src/settings/appearance/appearance-screen.tsx:11
+#: src/settings/layout/navigation.ts:32
+#: src/test/routes.tsx:201
 msgid "Appearance"
+msgstr ""
+
+#: src/settings/appearance/appearance-screen.tsx:13
+msgid "Application theme"
 msgstr ""
 
 #: src/onboarding/onboarding-dialog.tsx:24
@@ -217,6 +228,14 @@ msgstr ""
 msgid "Board"
 msgstr ""
 
+#: src/settings/gameplay/gameplay-screen.tsx:8
+msgid "Board interaction preferences."
+msgstr ""
+
+#: src/settings/gameplay/gameplay-screen.tsx:10
+msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
+msgstr ""
+
 #: src/repertoire/repertoire-landing.tsx:39
 msgid "Built from your games"
 msgstr ""
@@ -229,10 +248,6 @@ msgstr ""
 
 #: src/repertoire/chapter-study.tsx:54
 msgid "Chapter"
-msgstr ""
-
-#: src/settings/account/account-screen.tsx:54
-msgid "Chess.com and Lichess are game sources, not sign-in methods. They live under Import."
 msgstr ""
 
 #: src/games/import/sources.ts:58
@@ -258,11 +273,19 @@ msgid "Compare all phases"
 msgstr ""
 
 #: src/onboarding/onboarding-dialog.tsx:25
+#: src/settings/connections/connections-screen.tsx:38
 msgid "Connect an account"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:51
+#: src/settings/account/sign-in-methods.tsx:24
 msgid "Connected — you can sign in with Google."
+msgstr ""
+
+#: src/routes/_app/settings/connections.tsx:7
+#: src/settings/connections/connections-screen.tsx:33
+#: src/settings/layout/navigation.ts:30
+#: src/test/routes.tsx:187
+msgid "Connections"
 msgstr ""
 
 #: src/drill/drill.tsx:55
@@ -319,15 +342,20 @@ msgstr ""
 msgid "Couldn't load this repertoire."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:35
+msgid "Couldn't load your connected accounts."
+msgstr ""
+
 #: src/repertoire/repertoire-landing.tsx:29
 msgid "Couldn't load your repertoire."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:49
+#: src/settings/account/sign-in-methods.tsx:22
 msgid "Couldn't load your sign-in methods."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:24
+#: src/settings/connections/connections-screen.tsx:45
 msgid "Couldn't reach that account"
 msgstr ""
 
@@ -335,7 +363,7 @@ msgstr ""
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:46
+#: src/settings/account/profile-form.tsx:31
 msgid "Couldn't save that. Try again."
 msgstr ""
 
@@ -343,7 +371,8 @@ msgstr ""
 msgid "Current line"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:33
+#: src/app-shell/user-menu.tsx:34
+#: src/settings/appearance/appearance-screen.tsx:17
 msgid "Dark"
 msgstr ""
 
@@ -362,7 +391,7 @@ msgid "Draw"
 msgstr ""
 
 #: src/drill/drill.tsx:44
-#: src/test/routes.tsx:102
+#: src/test/routes.tsx:107
 msgid "Drill"
 msgstr ""
 
@@ -387,11 +416,11 @@ msgid "Due now"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:39
-#: src/settings/account/account-screen.tsx:41
+#: src/settings/account/profile-form.tsx:26
 msgid "Email"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:52
+#: src/settings/account/sign-in-methods.tsx:25
 msgid "Email and password"
 msgstr ""
 
@@ -403,7 +432,7 @@ msgstr ""
 msgid "endgame"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:39
+#: src/settings/account/profile-form.tsx:24
 msgid "Enter a name."
 msgstr ""
 
@@ -477,10 +506,17 @@ msgstr ""
 msgid "Game phases"
 msgstr ""
 
+#: src/routes/_app/settings/gameplay.tsx:7
+#: src/settings/gameplay/gameplay-screen.tsx:7
+#: src/settings/layout/navigation.ts:33
+#: src/test/routes.tsx:208
+msgid "Gameplay"
+msgstr ""
+
 #: src/dashboard/dashboard.tsx:23
 #: src/games/games-list.tsx:20
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:76
+#: src/test/routes.tsx:81
 msgid "Games"
 msgstr ""
 
@@ -492,7 +528,7 @@ msgstr ""
 msgid "Good"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:50
+#: src/settings/account/sign-in-methods.tsx:23
 msgid "Google"
 msgstr ""
 
@@ -508,7 +544,11 @@ msgstr ""
 msgid "Got them — opening your games."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:38
+#: src/settings/appearance/appearance-screen.tsx:12
+msgid "How VelaChess looks on this device."
+msgstr ""
+
+#: src/settings/account/profile-form.tsx:23
 msgid "How you're shown in the app."
 msgstr ""
 
@@ -537,7 +577,7 @@ msgid "Inaccuracy"
 msgstr ""
 
 #: src/insights/insights.tsx:40
-#: src/test/routes.tsx:144
+#: src/test/routes.tsx:149
 msgid "Insights"
 msgstr ""
 
@@ -585,8 +625,19 @@ msgstr ""
 msgid "It keeps the position healthy without giving anything away."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:40
+#: src/settings/account/profile-form.tsx:25
 msgid "Keep it under 100 characters."
+msgstr ""
+
+#: src/settings/language-region/language-region-screen.tsx:20
+msgid "Language"
+msgstr ""
+
+#: src/routes/_app/settings/language-region.tsx:7
+#: src/settings/language-region/language-region-screen.tsx:18
+#: src/settings/layout/navigation.ts:31
+#: src/test/routes.tsx:194
+msgid "Language & region"
 msgstr ""
 
 #: src/insights/finding-views.tsx:102
@@ -601,7 +652,8 @@ msgstr ""
 msgid "Lichess username"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:32
+#: src/app-shell/user-menu.tsx:33
+#: src/settings/appearance/appearance-screen.tsx:16
 msgid "Light"
 msgstr ""
 
@@ -616,6 +668,10 @@ msgstr ""
 #: src/drill/drill.tsx:46
 #: src/repertoire/repertoire-practice.tsx:53
 msgid "Loading…"
+msgstr ""
+
+#: src/settings/language-region/language-region-screen.tsx:19
+msgid "Locale preferences for this device."
 msgstr ""
 
 #: src/insights/finding-views.tsx:99
@@ -637,6 +693,14 @@ msgstr ""
 
 #: src/repertoire/chapter-study.tsx:74
 msgid "Main line"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:34
+msgid "Manage the chess accounts VelaChess imports games from."
+msgstr ""
+
+#: src/settings/layout/settings-layout.tsx:11
+msgid "Manage your account and application preferences."
 msgstr ""
 
 #: src/insights/finding-views.tsx:77
@@ -672,7 +736,7 @@ msgstr ""
 msgid "Move navigation"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:37
+#: src/settings/account/profile-form.tsx:22
 msgid "Name"
 msgstr ""
 
@@ -681,6 +745,7 @@ msgid "new"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:22
+#: src/settings/connections/connections-screen.tsx:43
 msgid "New games imported"
 msgstr ""
 
@@ -725,11 +790,16 @@ msgid "No games match these filters."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:21
+#: src/settings/connections/connections-screen.tsx:42
 msgid "No new games since your last sync."
 msgstr ""
 
 #: src/games/view-analysis/move-insight.tsx:22
 msgid "Not graded yet"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:36
+msgid "Not synced yet"
 msgstr ""
 
 #: src/drill/drill.tsx:52
@@ -746,6 +816,10 @@ msgstr ""
 
 #: src/games/view-analysis/move-insight.tsx:39
 msgid "Nothing in the position was worth more."
+msgstr ""
+
+#: src/settings/gameplay/gameplay-screen.tsx:9
+msgid "Nothing to configure yet"
 msgstr ""
 
 #: src/repertoire/repertoire-practice.tsx:66
@@ -835,6 +909,10 @@ msgstr ""
 msgid "Practice repertoire"
 msgstr ""
 
+#: src/settings/layout/navigation.ts:36
+msgid "Preferences"
+msgstr ""
+
 #: src/repertoire/repertoire-detail.tsx:42
 msgid "Prep gaps"
 msgstr ""
@@ -861,7 +939,7 @@ msgstr ""
 msgid "Previous move"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:36
+#: src/settings/account/profile-form.tsx:21
 msgid "Profile"
 msgstr ""
 
@@ -894,7 +972,7 @@ msgstr ""
 
 #: src/repertoire/repertoire-landing.tsx:27
 #: src/routes/_app/repertoire.tsx:9
-#: src/test/routes.tsx:112
+#: src/test/routes.tsx:117
 msgid "Repertoire"
 msgstr ""
 
@@ -927,15 +1005,15 @@ msgstr ""
 msgid "Right."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:43
+#: src/settings/account/profile-form.tsx:28
 msgid "Save"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:45
+#: src/settings/account/profile-form.tsx:30
 msgid "Saved."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:44
+#: src/settings/account/profile-form.tsx:29
 msgid "Saving…"
 msgstr ""
 
@@ -960,13 +1038,14 @@ msgstr ""
 msgid "Session complete"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:53
+#: src/settings/account/sign-in-methods.tsx:26
 msgid "Set — you can sign in with your email and password."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:29
-#: src/routes/_app/settings.tsx:10
-#: src/test/routes.tsx:160
+#: src/app-shell/user-menu.tsx:30
+#: src/routes/_app/settings.tsx:12
+#: src/settings/layout/settings-layout.tsx:10
+#: src/test/routes.tsx:165
 msgid "Settings"
 msgstr ""
 
@@ -982,11 +1061,11 @@ msgstr ""
 msgid "Sign in with your account credentials."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:34
+#: src/app-shell/user-menu.tsx:35
 msgid "Sign out"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:47
+#: src/settings/account/sign-in-methods.tsx:20
 msgid "Sign-in methods"
 msgstr ""
 
@@ -994,7 +1073,7 @@ msgstr ""
 msgid "Signing in…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:35
+#: src/app-shell/user-menu.tsx:36
 msgid "Signing out…"
 msgstr ""
 
@@ -1033,19 +1112,36 @@ msgid "Stockfish confirms what leaving your book was worth. The ones that hurt c
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:18
+#: src/settings/connections/connections-screen.tsx:39
 msgid "Sync games"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:23
+#: src/settings/connections/connections-screen.tsx:44
 msgid "Synced a moment ago"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:19
+#: src/settings/connections/connections-screen.tsx:37
+#: src/settings/connections/connections-screen.tsx:40
 msgid "Syncing…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:31
+#: src/app-shell/user-menu.tsx:32
+#: src/settings/appearance/appearance-screen.tsx:15
 msgid "System"
+msgstr ""
+
+#: src/settings/language-region/language-region-screen.tsx:22
+msgid "System default"
+msgstr ""
+
+#: src/settings/language-region/language-region-screen.tsx:21
+msgid "System default follows your browser's language."
+msgstr ""
+
+#: src/settings/appearance/appearance-screen.tsx:14
+msgid "System follows your operating system's setting."
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:46
@@ -1139,6 +1235,7 @@ msgid "Try again"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:25
+#: src/settings/connections/connections-screen.tsx:46
 msgid "Try again in a moment."
 msgstr ""
 
@@ -1180,7 +1277,7 @@ msgstr ""
 msgid "waiting for you today"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:48
+#: src/settings/account/sign-in-methods.tsx:21
 msgid "Ways you can get into this account."
 msgstr ""
 
@@ -1284,7 +1381,7 @@ msgstr ""
 msgid "Your book, from your own play"
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:42
+#: src/settings/account/profile-form.tsx:27
 msgid "Your email is tied to how you signed up and can't be changed here."
 msgstr ""
 
@@ -1300,7 +1397,7 @@ msgstr ""
 msgid "Your handle is all it takes. We read the public archive and stop there."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:35
+#: src/settings/account/account-screen.tsx:13
 msgid "Your identity on this instance, and how you sign in to it."
 msgstr ""
 
