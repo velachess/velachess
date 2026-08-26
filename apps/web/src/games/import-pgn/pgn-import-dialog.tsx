@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@velachess/ui/components/dialog";
 import { Field, FieldError, FieldLabel } from "@velachess/ui/components/field";
+import { Input } from "@velachess/ui/components/input";
 import { toast } from "@velachess/ui/components/toast";
 import { FileText } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
@@ -122,9 +123,9 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     >
       <Field data-invalid={playerNameInvalid}>
         <FieldLabel htmlFor="pgn-player-name">{i18n._(COPY.playerName)}</FieldLabel>
-        <input
+        <Input
           id="pgn-player-name"
-          className={inputClassName(playerNameInvalid)}
+          aria-label={i18n._(COPY.playerName)}
           value={playerName}
           aria-invalid={playerNameInvalid}
           onChange={(event) => setPlayerName(event.target.value)}
@@ -141,11 +142,11 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
 
       <Field data-invalid={pgnInvalid}>
         <FieldLabel htmlFor="pgn-file">{i18n._(COPY.file)}</FieldLabel>
-        <input
+        <Input
           id="pgn-file"
           type="file"
           accept=".pgn,text/plain"
-          className={inputClassName(false)}
+          aria-label={i18n._(COPY.file)}
           onChange={(event) => void readFile(event.target.files?.[0])}
           disabled={importPgn.isPending}
         />
