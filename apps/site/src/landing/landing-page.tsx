@@ -198,6 +198,7 @@ function Hero() {
           height={900}
           sizes="100vw"
           priority
+          fetchPriority="high"
           className="h-auto w-full rounded-md border shadow-lg"
         />
       </div>
