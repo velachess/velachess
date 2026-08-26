@@ -228,11 +228,11 @@ msgstr "Blunders per game"
 msgid "Board"
 msgstr "Board"
 
-#: src/settings/gameplay/gameplay-screen.tsx:8
+#: src/settings/gameplay/gameplay-screen.tsx:13
 msgid "Board interaction preferences."
 msgstr "Board interaction preferences."
 
-#: src/settings/gameplay/gameplay-screen.tsx:10
+#: src/settings/gameplay/gameplay-screen.tsx:15
 msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
 msgstr "Board preferences like coordinates, move animation, and sound will land here once they exist."
 
@@ -384,6 +384,10 @@ msgstr "Dashboard"
 msgid "Date"
 msgstr "Date"
 
+#: src/dashboard/dashboard.tsx:24
+msgid "Deviations"
+msgstr "Deviations"
+
 #: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:41
 #: src/games/open-game/game-result.tsx:11
@@ -507,7 +511,7 @@ msgid "Game phases"
 msgstr "Game phases"
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:7
+#: src/settings/gameplay/gameplay-screen.tsx:12
 #: src/settings/layout/navigation.ts:33
 #: src/test/routes.tsx:208
 msgid "Gameplay"
@@ -711,10 +715,6 @@ msgstr "middlegame"
 msgid "Mistake"
 msgstr "Mistake"
 
-#: src/dashboard/dashboard.tsx:24
-msgid "Mistakes"
-msgstr "Mistakes"
-
 #: src/insights/finding-views.tsx:368
 msgid "Mistakes keep landing in your {phase}"
 msgstr "Mistakes keep landing in your {phase}"
@@ -818,7 +818,7 @@ msgstr "Nothing due today"
 msgid "Nothing in the position was worth more."
 msgstr "Nothing in the position was worth more."
 
-#: src/settings/gameplay/gameplay-screen.tsx:9
+#: src/settings/gameplay/gameplay-screen.tsx:14
 msgid "Nothing to configure yet"
 msgstr "Nothing to configure yet"
 
