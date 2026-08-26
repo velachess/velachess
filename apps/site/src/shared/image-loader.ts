@@ -19,5 +19,7 @@ export default function productImageLoader({ src, width }: ImageLoaderProps) {
   if (variants === undefined) return src;
   if (width <= SMALL_IMAGE_WIDTH) return variants.small;
   if (width <= MEDIUM_IMAGE_WIDTH) return variants.medium;
-  return src;
+  // Next probes the loader with the image's intrinsic width to confirm it
+  // varies output by width; a bare `src` at that width looks unimplemented.
+  return `${src}?w=${width}`;
 }
