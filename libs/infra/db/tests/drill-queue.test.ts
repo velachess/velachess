@@ -57,6 +57,7 @@ async function aGame(): Promise<string> {
   const [game] = await db
     .insert(games)
     .values({
+      userId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",

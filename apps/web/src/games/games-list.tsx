@@ -7,19 +7,18 @@ import { useMemo } from "react";
 import { DataTable, DataTablePagination } from "@velachess/ui/components/data-table";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
-import { ImportGames } from "./import/import-games.tsx";
-import { useMyAccounts } from "./import/my-accounts.ts";
+import { PgnImportButton } from "./import-pgn/pgn-import-dialog.tsx";
 import { SyncGamesButton } from "./import/sync-games-button.tsx";
 import { gamesColumns } from "./list/columns.tsx";
 import { activeFilterCount, PAGE_SIZE, type GamesSearch } from "./list/filters.ts";
 import { GamesFilters } from "./list/games-filters.tsx";
-import { archiveQuery, type Game } from "./list/queries.ts";
+import { libraryQuery, type Game } from "./list/queries.ts";
 import { useQuery } from "../shared/libs/query/index.ts";
 
 const GAMES_COPY = {
   title: msg`Games`,
   description: msg`Every game you've imported, and how it went.`,
-  emptyArchive: msg`No games imported yet.`,
+  emptyArchive: msg`No games yet. Connect Chess.com or Lichess, or import a PGN.`,
   emptyFilters: msg`No games match these filters.`,
   loadError: msg`Couldn't load games.`,
   pagination: msg`Games pages`,
@@ -54,8 +53,8 @@ export function GamesList() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
 
-  const account = useMyAccounts((state) => state.accounts[0]);
-  const query = useQuery(archiveQuery(account, search));
+  // One library, every source: no account has to exist for this read.
+  const query = useQuery(libraryQuery(search));
 
   const setSearch = (next: Partial<GamesSearch>) =>
     navigate({ search: (previous) => ({ ...previous, ...next }) });
@@ -76,19 +75,10 @@ export function GamesList() {
   const actions = (
     <div className="flex items-center gap-2">
       <GamesFilters search={search} onChange={setSearch} />
+      <PgnImportButton />
       <SyncGamesButton />
     </div>
   );
-  // Import form here, not a redirect — an empty table with no way to fill it is a dead end.
-  if (!account) {
-    return (
-      <GamesScreen actions={null}>
-        <div className="mx-auto w-full max-w-lg">
-          <ImportGames />
-        </div>
-      </GamesScreen>
-    );
-  }
 
   const emptyMessage =
     activeFilterCount(search) === 0

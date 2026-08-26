@@ -48,6 +48,7 @@ async function gameWith(positions: StoredGradedPly[]): Promise<string> {
   const [game] = await db
     .insert(games)
     .values({
+      userId,
       accountId: account.id,
       source: "lichess",
       whiteName: "player",
@@ -126,10 +127,14 @@ describe("drillSummaryFor", () => {
     expect((await drillSummaryFor(db, gameId)).eligible).toBe(1);
   });
 
-  it("has nothing to offer for a game nobody claimed", async () => {
-    const [orphan] = await db
+  it("offers nothing for an imported game nobody was named in", async () => {
+    // A PGN upload without a player name imports fine — perspective null,
+    // no account provenance. Ownership is direct, so the summary answers
+    // for it instead of treating it as nobody's.
+    const [imported] = await db
       .insert(games)
       .values({
+        userId,
         source: "pgn",
         whiteName: "a",
         blackName: "b",
@@ -140,7 +145,7 @@ describe("drillSummaryFor", () => {
       })
       .returning();
 
-    expect(await drillSummaryFor(db, orphan!.id)).toEqual({
+    expect(await drillSummaryFor(db, imported!.id)).toEqual({
       eligible: 0,
       seeded: 0,
       triaged: true,
@@ -152,6 +157,7 @@ describe("drillSummaryFor", () => {
     const [unanalyzed] = await db
       .insert(games)
       .values({
+        userId,
         accountId: account.id,
         source: "lichess",
         whiteName: "player",

@@ -54,7 +54,7 @@ Go in through the route. `apps/server/tests/harness.ts` gives you an app
 with a real database behind it.
 
 ```ts
-const response = await harness.app.request("/games?platform=chess_com&username=alice");
+const response = await harness.app.request("/games");
 expect(response.status).toBe(200);
 ```
 

@@ -14,7 +14,8 @@ const { games, gameAnalyses, trackedAccounts } = schema;
  * Oldest first, because the trend source windows over time. The analysis
  * rides along as a left join — a game without one still counts for
  * results and openings, and its `plies` are honestly null rather than
- * empty.
+ * empty. So does the provenance account: a synced game needs its
+ * username for perspective derivation; a PGN import has none and stays.
  */
 export async function listInsightGames(
   db: Database,
@@ -37,9 +38,9 @@ export async function listInsightGames(
       positions: gameAnalyses.positions,
     })
     .from(games)
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
+    .leftJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
     .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
-    .where(eq(trackedAccounts.userId, userId))
+    .where(eq(games.userId, userId))
     .orderBy(asc(games.playedAt), asc(games.id));
 
   return rows.map((row) => ({

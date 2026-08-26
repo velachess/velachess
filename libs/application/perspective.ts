@@ -1,8 +1,9 @@
 /**
- * Which side is "you" in a game. Stored perspective wins (pasted PGNs can
- * declare it); synced games derive it from the tracked account username
- * vs the player names — the normalizer can't know who "you" are, the
- * tracked account can. Null = not determinable, not judgeable.
+ * Which side is "you" in a game. Stored perspective wins (a manual PGN
+ * import resolved it per game); synced games derive it from the tracked
+ * account username vs the player names — the normalizer can't know who
+ * "you" are, the tracked account can. Null = not determinable, not
+ * judgeable.
  */
 
 export interface PerspectiveSource {
@@ -10,7 +11,8 @@ export interface PerspectiveSource {
   perspective: string | null;
   whiteName: string;
   blackName: string;
-  accountUsername: string;
+  /** Absent on manually imported games — there is no handle behind them. */
+  accountUsername: string | null;
 }
 
 export function resolveGamePerspective(
@@ -18,7 +20,8 @@ export function resolveGamePerspective(
 ): "white" | "black" | null {
   if (game.perspective === "white" || game.perspective === "black")
     return game.perspective;
-  const username = game.accountUsername.toLowerCase();
+  const username = game.accountUsername?.toLowerCase();
+  if (!username) return null;
   if (game.whiteName.toLowerCase() === username) return "white";
   if (game.blackName.toLowerCase() === username) return "black";
   return null;

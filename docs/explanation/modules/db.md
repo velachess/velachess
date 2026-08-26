@@ -120,7 +120,8 @@ is a full table scan). The delete policies encode product decisions:
 
 | FK                                       | onDelete | Why                                                                                              |
 | ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `games.account_id`                       | set null | untracking an account keeps its games                                                            |
+| `games.user_id`                          | cascade  | a game without an owner is unreadable — ownership is direct, not inferred                        |
+| `games.account_id`                       | set null | untracking an account keeps its games (provenance only, null for manual imports)                 |
 | `tracked_accounts.user_id`               | set null | deleting a user keeps sync data                                                                  |
 | `repertoires.user_id`                    | cascade  | a repertoire without an owner is meaningless                                                     |
 | `repertoire_chapters.repertoire_id`      | cascade  | a chapter without its repertoire is meaningless                                                  |
@@ -164,27 +165,29 @@ runtime coupling). `libs/repertoire` never imports this package; the
 orchestration layer that reads a chapter's PGN and feeds
 `buildRepertoire` lives above both.
 
+## Ownership
+
+Games hang directly from their user (`games.user_id`, not null) — a manual
+PGN import has no account to infer ownership from, so every read scopes on
+the column instead of joining through `tracked_accounts`. The account is
+provenance: which connected handle produced the row.
+
 ## Dedup
 
-Both constraints are scoped to the tracked account, not global: a
-partial unique index on `(account_id, source, external_id) WHERE
-external_id IS NOT NULL` catches every Chess.com/Lichess re-sync for
-free, no hashing, within that account. A table-level unique constraint
-on `(account_id, movetext_hash)` with `NULLS NOT DISTINCT` catches a
-pasted PGN re-pasted with no linked account — Postgres treats `NULL` as
+External-id dedup stays scoped to the tracked account: a partial unique
+index on `(account_id, source, external_id) WHERE external_id IS NOT NULL`
+catches every Chess.com/Lichess re-sync for free, no hashing, within that
+account — and each account still owns an independent copy of whatever it
+imports, so two accounts tracking the same real handle keep both histories.
+A table-level unique constraint on `(user_id, account_id, movetext_hash)`
+with `NULLS NOT DISTINCT` is the PGN half: `NULL` account ids compare equal
+within one user, so re-uploading the same file inserts nothing, while
+another user importing it keeps their own row. Postgres treats `NULL` as
 distinct from itself by default, which would silently defeat this exact
 case without that clause. `saveGames` inserts with a bare
 `onConflictDoNothing()` (no target), which lets one statement satisfy
 both constraints at once, and reads the actual inserted count off what
 Postgres returns rather than pre-selecting to check.
-
-Each tracked account owns a complete, independent copy of whatever it
-imports. Two accounts (any two users, or the same user twice) tracking
-the same real chess.com/Lichess handle each get their own full history
-— dedup only ever happens within one account, never across two. This
-duplicates storage when that happens, deliberately: simple, correct
-isolation over global storage dedup. A `game_accounts` join table is
-the upgrade path if duplication ever becomes a measured problem.
 
 ## Client
 

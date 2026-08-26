@@ -42,8 +42,15 @@ handle. `POST /accounts/:id/sync` performs an interactive refresh, enforces the
 per-account cooldown, and returns `Retry-After` when called too soon. The worker
 entry point remains available for refresh work no person is waiting on.
 
-Both paths fetch, persist, update candidate repertoires, judge, and seed. They do
-not run Stockfish.
+`POST /games/import` is the manual source: PGN text uploaded without any
+connected account. It normalizes in-request, resolves the named player's seat
+per game, persists with user-scoped conflict-ignore (a duplicate-only upload
+succeeds with counts), and runs the same judge-and-seed tail — never Stockfish.
+`GET /games` is the unified library: one filtered page of every game the caller
+owns across all sources, ownership read straight off `games.user_id`.
+
+All import paths persist, update candidate repertoires, judge, and seed. None of
+them run Stockfish.
 
 ## Analysis and progress
 

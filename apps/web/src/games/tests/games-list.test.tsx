@@ -119,10 +119,14 @@ describe("games list", () => {
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
 
-  it("says there are no imported games when the archive is empty", async () => {
+  it("says there are no imported games when the library is empty", async () => {
     await renderApp();
 
-    expect(await screen.findByText("No games imported yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "No games yet. Connect Chess.com or Lichess, or import a PGN.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("says the filters matched nothing rather than showing a blank table", async () => {
@@ -184,14 +188,15 @@ describe("games list", () => {
     expect(link).toHaveAttribute("href", "/games/game-1");
   });
 
-  it("offers the import form when no account is connected", async () => {
-    // No redirect: being signed in is enough to be here, and a table with
-    // no rows and no way to fill it is a dead end. The form is the empty
-    // state.
+  it("lists the library and offers both import paths with no account connected", async () => {
+    // The unified read does not depend on a remembered handle: a manual
+    // import alone is a first-class way to have a library, and both ways
+    // to fill it stay reachable from the header.
     resetDevice();
     const { router } = await renderApp();
 
     expect(router.state.location.pathname).toBe("/games");
-    expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import PGN" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sync games" })).toBeInTheDocument();
   });
 });

@@ -23,22 +23,26 @@ import {
   users,
 } from "@velachess/db";
 
-import { createTestDb } from "./test-db.ts";
+import { createTestDb, createUserRow } from "./test-db.ts";
 
 const { db, close } = await createTestDb();
 
 afterAll(() => close());
 
+let userId: string;
+
 beforeEach(async () => {
   await db.delete(analysisProgress);
   await db.delete(games);
   await db.delete(users);
+  userId = await createUserRow(db);
 });
 
 function insertGame(database: Database) {
   return database
     .insert(games)
     .values({
+      userId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",

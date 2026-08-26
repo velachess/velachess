@@ -77,7 +77,7 @@ beforeAll(async () => {
   const account = await upsertTrackedAccount(db, userId, "chess_com", "looper");
   accountId = account.id;
 
-  await saveGames(db, [syncedGame("1001")], { accountId });
+  await saveGames(db, [syncedGame("1001")], { userId, accountId });
   const [game] = await listGamesWithStatus(db, accountId);
   gameId = game!.id;
 

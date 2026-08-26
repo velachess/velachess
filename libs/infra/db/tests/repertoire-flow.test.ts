@@ -27,7 +27,7 @@ import {
   users,
 } from "@velachess/db";
 
-import { createTestDb } from "./test-db.ts";
+import { createTestDb, createUserRow } from "./test-db.ts";
 
 const CHAPTER_PGN = "1. e4 e6 2. d4 d5 3. Nc3 *";
 
@@ -35,6 +35,7 @@ function insertGame(db: Database, movetextHash: string) {
   return db
     .insert(games)
     .values({
+      userId: ownerId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",
@@ -58,6 +59,8 @@ const { db, close } = await createTestDb();
 
 afterAll(() => close());
 
+let ownerId: string;
+
 beforeEach(async () => {
   await db.delete(deviations);
   await db.delete(repertoireChapters);
@@ -65,6 +68,7 @@ beforeEach(async () => {
   await db.delete(games);
   await db.delete(trackedAccounts);
   await db.delete(users);
+  ownerId = await createUserRow(db);
 });
 
 describe("users", () => {

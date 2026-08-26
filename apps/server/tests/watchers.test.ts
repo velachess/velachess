@@ -27,9 +27,9 @@ beforeAll(async () => {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ platform: "chess_com", username: "looper" }),
   });
-  const games = (await (
-    await owner.request("/games?platform=chess_com&username=looper")
-  ).json()) as { games: { id: string }[] };
+  const games = (await (await owner.request("/games")).json()) as {
+    games: { id: string }[];
+  };
   gameId = games.games[0]!.id;
 });
 

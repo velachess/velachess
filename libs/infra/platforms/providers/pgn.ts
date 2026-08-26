@@ -6,13 +6,27 @@
  */
 
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
+import type { NormalizedGame, Perspective, SyncFailure, SyncResult } from "../schema.ts";
 import { splitPgnGames } from "../split.ts";
-import type { Perspective, SyncFailure, SyncResult } from "../schema.ts";
 
 export interface ImportPgnOptions {
-  /** Which side is "you", if the caller already knows. Never guessed here —
-   * absent means every game in this text carries `perspective: null`. */
-  perspective?: Perspective;
+  /**
+   * The player these games belong to, as their name appears in the PGN
+   * headers. Resolved per game against White/Black, so one file can mix
+   * colors; a game naming them on neither side stays `perspective: null`
+   * — present in the library, not attributable. Absent means every game
+   * carries `perspective: null`. Never guessed here.
+   */
+  playerName?: string | undefined;
+}
+
+/** Case-insensitive header match: PGN names are free text, not handles. */
+function sideOf(game: NormalizedGame, playerName: string): Perspective | null {
+  const name = playerName.trim().toLowerCase();
+  if (!name) return null;
+  if (game.white.name.trim().toLowerCase() === name) return "white";
+  if (game.black.name.trim().toLowerCase() === name) return "black";
+  return null;
 }
 
 export function importPgn(text: string, options: ImportPgnOptions = {}): SyncResult {
@@ -24,14 +38,17 @@ export function importPgn(text: string, options: ImportPgnOptions = {}): SyncRes
       origin: "pgn",
       externalId: null,
       externalUrl: null,
-      perspective: options.perspective ?? null,
     });
 
     if (isSyncFailure(result)) {
       failures.push({ ...result, ref: `game-${index}` });
       continue;
     }
-    games.push(result);
+    games.push(
+      options.playerName
+        ? { ...result, perspective: sideOf(result, options.playerName) }
+        : result,
+    );
   }
 
   return { games, failures, cursor: null, complete: failures.length === 0 };

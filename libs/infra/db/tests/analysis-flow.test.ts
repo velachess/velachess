@@ -29,7 +29,7 @@ import {
   users,
 } from "@velachess/db";
 
-import { createTestDb } from "./test-db.ts";
+import { createTestDb, createUserRow } from "./test-db.ts";
 
 const require = createRequire(import.meta.url);
 const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");
@@ -46,6 +46,8 @@ const { db, close } = await createTestDb();
 
 afterAll(() => close());
 
+let ownerId: string;
+
 beforeEach(async () => {
   await db.delete(gameAnalyses);
   await db.delete(deviations);
@@ -53,6 +55,7 @@ beforeEach(async () => {
   await db.delete(repertoires);
   await db.delete(games);
   await db.delete(users);
+  ownerId = await createUserRow(db);
 });
 
 function firstGame(pgn: string): Game<PgnNodeData> {
@@ -65,6 +68,7 @@ function insertGame(database: Database, rawPgn: string, movetextHash: string) {
   return database
     .insert(games)
     .values({
+      userId: ownerId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",

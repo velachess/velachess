@@ -74,6 +74,7 @@ describe("judgeGamesForUser", () => {
     const [game] = await db
       .insert(games)
       .values({
+        userId: user.id,
         accountId: account.id,
         source: "lichess",
         whiteName: "booked",

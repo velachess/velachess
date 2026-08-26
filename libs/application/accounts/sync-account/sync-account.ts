@@ -63,7 +63,12 @@ export async function syncAccount(
           opts,
         );
 
-  const { inserted } = await saveGames(db, result.games, { accountId });
+  // Ownership is direct (the account's user); the account rides along as
+  // provenance and dedup scope.
+  const { inserted } = await saveGames(db, result.games, {
+    userId: account.userId,
+    accountId,
+  });
 
   if (result.complete) {
     // Two facts, two writes: where to resume, and that a pass finished.

@@ -247,33 +247,29 @@ describe("api routes", () => {
     expect(overview.games).toBe(0);
   });
 
-  it("reading an archive is a GET — and it neither imports nor starts an engine", async () => {
-    expect((await owner.request("/games?platform=nope&username=x")).status).toBe(400);
-    expect((await owner.request("/games?platform=chess_com")).status).toBe(400);
+  it("GET /games is the unified library — a read that never imports nor starts an engine", async () => {
+    expect((await owner.request("/games?page=0")).status).toBe(400);
+    expect((await owner.request("/games?outcome=nope")).status).toBe(400);
 
-    // A handle the caller does not track answers 404 — reads stopped
-    // creating connections; POST /accounts is where importing lives now.
-    expect(
-      (await owner.request("/games?platform=lichess&username=untracked")).status,
-    ).toBe(404);
-
-    const response = await owner.request(
-      `/games?platform=chess_com&username=${LOOPER_USERNAME}`,
-    );
+    // The library lists every game the caller owns — synced accounts and
+    // manual imports together — without needing to name either.
+    const response = await owner.request("/games");
     expect(response.status).toBe(200);
 
-    const archive = (await response.json()) as {
-      account: { id: string; username: string; lastSyncedAt: string | null };
-      games: { id: string; analyzed: boolean }[];
+    const library = (await response.json()) as {
+      games: { id: string; source: string; analyzed: boolean }[];
+      total: number;
+      page: number;
+      pageSize: number;
     };
-    expect(archive.account.id).toBe(accountId); // the upsert found the tracked row
-    expect(archive.account.username).toBe(LOOPER_USERNAME);
-    expect(archive.account.lastSyncedAt).not.toBeNull();
-    expect(archive.games).toHaveLength(2);
+    expect(library.games).toHaveLength(2);
+    expect(library.total).toBe(2);
+    expect(library.page).toBe(1);
+    expect(library.games.every((game) => game.source === "chess_com")).toBe(true);
 
-    // Reading an archive never reaches Stockfish. That is what opening one
-    // game is for — importing hundreds must not queue hundreds of runs.
-    for (const game of archive.games) {
+    // Reading the library never reaches Stockfish. That is what opening
+    // one game is for — importing hundreds must not queue hundreds of runs.
+    for (const game of library.games) {
       expect(game.analyzed).toBe(false);
       expect(await harness.deps.analysisQueue.getState(game.id)).toBe("none");
     }

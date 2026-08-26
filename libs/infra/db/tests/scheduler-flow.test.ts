@@ -34,11 +34,13 @@ import {
   users,
 } from "@velachess/db";
 
-import { createTestDb } from "./test-db.ts";
+import { createTestDb, createUserRow } from "./test-db.ts";
 
 const { db, close } = await createTestDb();
 
 afterAll(() => close());
+
+let ownerId: string;
 
 beforeEach(async () => {
   await db.delete(cards);
@@ -49,6 +51,7 @@ beforeEach(async () => {
   await db.delete(repertoires);
   await db.delete(games);
   await db.delete(users);
+  ownerId = await createUserRow(db);
 });
 
 const CHAPTER_PGN = "1. e4 e6 2. d4 d5 3. Nc3 *";
@@ -83,6 +86,7 @@ async function setupExercise(database: Database) {
   const [game] = await database
     .insert(games)
     .values({
+      userId: ownerId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",

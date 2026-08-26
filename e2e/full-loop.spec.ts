@@ -80,15 +80,18 @@ it("full loop: HTTP in, worker in the background, a drilled exercise out", async
     json({ platform: "chess_com", username: "looper" }),
   );
   expect(imported.status).toBe(201);
-  const archive = (await (
-    await app.request("/games?platform=chess_com&username=looper")
-  ).json()) as { account: { id: string }; games: { id: string; analyzed: boolean }[] };
-  expect(archive.games).toHaveLength(2);
-  expect(archive.games.every((g) => !g.analyzed)).toBe(true);
+  const account = (await imported.json()) as { id: string };
+  const library = (await (await app.request("/games")).json()) as {
+    total: number;
+    games: { id: string; analyzed: boolean }[];
+  };
+  expect(library.games).toHaveLength(2);
+  expect(library.total).toBe(2);
+  expect(library.games.every((g) => !g.analyzed)).toBe(true);
 
   // 3. Refreshing now is refused: the import synced a moment ago, and the
   //    platforms answer 429 to bursts.
-  const tooSoon = await app.request(`/accounts/${archive.account.id}/sync`, {
+  const tooSoon = await app.request(`/accounts/${account.id}/sync`, {
     method: "POST",
   });
   expect(tooSoon.status).toBe(429);
@@ -103,9 +106,7 @@ it("full loop: HTTP in, worker in the background, a drilled exercise out", async
   };
   expect(judged).toMatchObject({ judged: 2, enqueuedForAnalysis: 0 });
 
-  const games = (await (
-    await app.request(`/accounts/${archive.account.id}/games`)
-  ).json()) as {
+  const games = (await (await app.request(`/accounts/${account.id}/games`)).json()) as {
     id: string;
     judgmentType: string | null;
     analyzed: boolean;

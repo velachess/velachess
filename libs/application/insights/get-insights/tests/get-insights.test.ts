@@ -56,6 +56,7 @@ beforeAll(async () => {
     const [game] = await harness.db
       .insert(schema.games)
       .values({
+        userId,
         accountId: account.id,
         source: "chess_com",
         perspective: null,
