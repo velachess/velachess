@@ -4,6 +4,7 @@ import { themeInitScript } from "@velachess/ui/lib/theme";
 import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { i18n } from "../shared/i18n.ts";
@@ -70,11 +71,17 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en" className={`${spaceGrotesk.variable} no-js`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        {/* next/script's beforeInteractive is for third-party scripts; a
-            first-party FOUC-prevention snippet is a plain inline script,
-            same as next-themes' own approach. */}
-        <script
-          suppressHydrationWarning
+        {/* beforeInteractive runs before hydration, same timing a raw
+            <script> gets from the browser — needed here to avoid a
+            flash of the wrong theme. React 19 logs a dev-only warning
+            for any rendered <script> node ("Encountered a script tag
+            while rendering React component"); it is a known upstream
+            false positive (next-themes#387) with no clean fix yet — the
+            script still runs correctly, and the warning never ships to
+            production. */}
+        <Script
+          id="theme-bootstrap"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
         />
         <ThemeProvider storageKey="velachess-theme">{children}</ThemeProvider>
