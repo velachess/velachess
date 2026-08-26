@@ -197,8 +197,7 @@ function Hero() {
           width={1440}
           height={900}
           sizes="100vw"
-          preload
-          fetchPriority="high"
+          priority
           className="h-auto w-full rounded-md border shadow-lg"
         />
       </div>
