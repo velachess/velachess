@@ -170,10 +170,64 @@ describe("game analysis", () => {
       "href",
       "/games",
     );
-    expect(within(nav).getByText("yurimutti vs gothamchess")).toBeInTheDocument();
+    expect(
+      within(nav).getByText(/gothamchess vs you.*Chess\.com.*1-0/),
+    ).toBeInTheDocument();
 
     await user.click(within(nav).getByRole("link", { name: "Games" }));
     expect(await screen.findByRole("heading", { name: "Games" })).toBeInTheDocument();
+  });
+
+  it("shows the breadcrumb with user as Black", async () => {
+    const game = aGame({ perspective: "black", whiteName: "magnus", blackName: ME });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    await renderApp({ path: `/games/${game.id}` });
+
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    expect(within(nav).getByText(/magnus vs you.*Chess\.com.*1-0/)).toBeInTheDocument();
+  });
+
+  it("shows Lichess as source for lichess games", async () => {
+    const game = aGame({ source: "lichess" });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    await renderApp({ path: `/games/${game.id}` });
+
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    expect(within(nav).getByText(/Lichess/)).toBeInTheDocument();
+  });
+
+  it("shows PGN as source for pasted games", async () => {
+    const game = aGame({ source: "pgn" });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    await renderApp({ path: `/games/${game.id}` });
+
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    expect(within(nav).getByText(/PGN/)).toBeInTheDocument();
+  });
+
+  it("shows a dash when playedAt is missing", async () => {
+    const game = aGame({ playedAt: null });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    await renderApp({ path: `/games/${game.id}` });
+
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    expect(
+      within(nav).getByText(/gothamchess vs you · — · Chess\.com/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the result as-is for unfinished games", async () => {
+    const game = aGame({ result: "*" });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    await renderApp({ path: `/games/${game.id}` });
+
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    expect(within(nav).getByText(/\*$/)).toBeInTheDocument();
   });
 
   it("shows a contextual message when the game itself cannot be loaded", async () => {
