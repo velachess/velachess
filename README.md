@@ -68,8 +68,7 @@ opening a public issue.
 
 ## All Contributors
 
-Thank you to everyone who has contributed code, reported issues, and helped
-shape VelaChess.
+Thanks to everyone who helps make VelaChess better.
 
 <a href="https://github.com/velachess/velachess/graphs/contributors">
   <img src="https://stg.contrib.rocks/image?repo=velachess/velachess&columns=8" alt="VelaChess contributors">
