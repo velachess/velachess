@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { playMove } from "../move.ts";
-import { landingDrill, landingDrillAnswer } from "../__fixtures__/landing-drill.ts";
+import { landingDrill, landingDrillAnswer } from "./fixtures/landing-drill.ts";
 
 describe("landing drill fixture", () => {
   it("replays the presented mistake and accepts the expected alternative", () => {

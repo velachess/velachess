@@ -1,4 +1,4 @@
-import type { GradedPly } from "../../analysis-contract.ts";
+import type { GradedPly } from "../../../analysis-contract.ts";
 
 export const LANDING_PLAYER = "vela_player";
 export const LANDING_OPPONENT = "night_shift";

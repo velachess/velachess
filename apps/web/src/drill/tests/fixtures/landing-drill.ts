@@ -1,5 +1,5 @@
-import type { DrillAnswer, DrillItem, DrillQueue } from "../queries.ts";
-import { LANDING_OPPONENT } from "../../games/open-game/__fixtures__/landing-game-analysis.ts";
+import type { DrillAnswer, DrillItem, DrillQueue } from "../../queries.ts";
+import { LANDING_OPPONENT } from "../../../games/open-game/tests/fixtures/landing-game-analysis.ts";
 
 export const landingDrillQueue = {
   due: 6,

@@ -4,13 +4,13 @@ import {
   landingDrill,
   landingDrillAnswer,
   landingDrillQueue,
-} from "../../src/drill/__fixtures__/landing-drill.ts";
+} from "../../src/drill/tests/fixtures/landing-drill.ts";
 import {
   LANDING_GAME_ID,
   LANDING_PLAYER,
   landingCompletedAnalysis,
   landingGame,
-} from "../../src/games/open-game/__fixtures__/landing-game-analysis.ts";
+} from "../../src/games/open-game/tests/fixtures/landing-game-analysis.ts";
 
 const FIXED_NOW = "2026-08-21T12:00:00.000Z";
 

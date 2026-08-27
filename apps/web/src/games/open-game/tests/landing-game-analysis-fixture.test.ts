@@ -1,10 +1,7 @@
 import { parsePgn, replayMainline } from "@velachess/chess";
 import { describe, expect, it } from "vitest";
 
-import {
-  LANDING_GAME_PGN,
-  landingAnalysis,
-} from "../__fixtures__/landing-game-analysis.ts";
+import { LANDING_GAME_PGN, landingAnalysis } from "./fixtures/landing-game-analysis.ts";
 
 describe("landing game analysis fixture", () => {
   it("grades every legal move from its actual position", () => {
