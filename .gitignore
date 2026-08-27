@@ -21,7 +21,7 @@ dist/
 .next/
 .turbo/
 apps/site/out/
-apps/web/.playwright/
+.playwright/
 apps/site/.lighthouseci/
 apps/site/src/locales/*/messages.ts
 

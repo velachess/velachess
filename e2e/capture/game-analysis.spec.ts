@@ -1,14 +1,14 @@
 import path from "node:path";
 
-import { LANDING_GAME_ID } from "../../src/games/open-game/tests/fixtures/landing-game-analysis.ts";
-import { expect, settle, test } from "./marketing.fixture.ts";
+import { LANDING_GAME_ID } from "../../apps/web/src/games/open-game/tests/fixtures/landing-game-analysis.ts";
+import { expect, settle, test } from "./staged-product.fixture.ts";
 
 const output = path.resolve(
   import.meta.dirname,
-  "../../../site/public/product/game-analysis.webp",
+  "../../apps/site/public/product/game-analysis.webp",
 );
 
-test("captures the game analysis blunder", async ({ marketingPage: page }) => {
+test("captures the game analysis blunder", async ({ productPage: page }) => {
   await page.goto(`/games/${LANDING_GAME_ID}`);
 
   const blunder = page.getByRole("button", { name: /g4.*\?\?/ });
