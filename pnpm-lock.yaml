@@ -534,8 +534,8 @@ importers:
         specifier: ^1.31.0
         version: 1.31.0(react@19.2.8)
       react-chessboard:
-        specifier: ^5.12.0
-        version: 5.12.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^5.12.1
+        version: 5.12.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       recharts:
         specifier: 3.10.1
         version: 3.10.1(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@18.3.1)(react@19.2.8)(redux@5.0.1)
@@ -5846,8 +5846,8 @@ packages:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
 
-  react-chessboard@5.12.0:
-    resolution: {integrity: sha512-7NLyBDjvka5bHAnIQI3Rq4Eh85CTBZr1+FHDa+js50WiNkElnbBrzzBcHSDjjbpwrHbpnE8imv7aWFF/4nuhBw==}
+  react-chessboard@5.12.1:
+    resolution: {integrity: sha512-ZrIdtazeHobAhRpoqvePM8K+kiEehqixlVVY1+y83KkutIkZuest3bVzBPlPRWVra71QuNgHgvgrfIMbz1DpQA==}
     engines: {node: '>=20.11.0', pnpm: '>=9.4.0'}
     peerDependencies:
       react: ^19.0.0
@@ -11845,7 +11845,7 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
-  react-chessboard@5.12.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  react-chessboard@5.12.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
