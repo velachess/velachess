@@ -1,4 +1,6 @@
 import { scoreToWinChance } from "@velachess/analysis/winchance";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type { MoveSquares } from "@velachess/chess";
 import { makeSan, parseUci, positionFromFen, squaresOfSan } from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
@@ -149,6 +151,15 @@ export function badgeForCategory(
   if (!tone) return null;
   return { tone, label: glyphOf(category) ?? BEST_MOVE_GLYPH };
 }
+
+/** Translated category names for UI display. */
+export const CATEGORY_LABELS: Record<MoveCategory, MessageDescriptor> = {
+  best: msg`Best`,
+  good: msg`Good`,
+  inaccuracy: msg`Inaccuracy`,
+  mistake: msg`Mistake`,
+  blunder: msg`Blunder`,
+};
 
 export interface EvalPoint {
   ply: number;

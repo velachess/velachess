@@ -2,16 +2,17 @@ import { useCallback, useMemo } from "react";
 // react-doctor-disable-next-line react-doctor/prefer-dynamic-import
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import type { BadgeTone } from "../chess/board-theme.ts";
+import { BADGE_TONE_COLOR } from "../chess/board-theme.ts";
 import { cn } from "../lib/utils.ts";
-
-export type MoveCategory = "best" | "good" | "inaccuracy" | "mistake" | "blunder";
 
 export interface EvaluationPoint {
   ply: number;
   value: number;
-  category?: MoveCategory;
-  san?: string;
-  score?: string;
+  tone?: BadgeTone | undefined;
+  label?: string | undefined;
+  san?: string | undefined;
+  score?: string | undefined;
 }
 
 export interface EvaluationChartProps {
@@ -24,19 +25,11 @@ export interface EvaluationChartProps {
   onSelectPly?: ((ply: number) => void) | undefined;
 }
 
-const CATEGORY_COLORS: Record<MoveCategory, string> = {
-  best: "var(--move-ok)",
-  good: "var(--move-ok)",
-  inaccuracy: "var(--move-inaccuracy)",
-  mistake: "var(--move-mistake)",
-  blunder: "var(--move-blunder)",
-};
-
 function getPointColor(
-  category?: MoveCategory,
+  tone?: BadgeTone,
   defaultColor: string = "var(--primary)",
 ): string {
-  return category ? CATEGORY_COLORS[category] : defaultColor;
+  return tone ? BADGE_TONE_COLOR[tone] : defaultColor;
 }
 
 function CustomDot({
@@ -57,8 +50,8 @@ function CustomDot({
   if (cx === undefined || cy === undefined) return null;
 
   const isSelected = selectedPly === payload.ply;
-  const color = getPointColor(payload.category, defaultColor);
-  const radius = isSelected ? 4 : payload.category ? 3 : 2;
+  const color = getPointColor(payload.tone, defaultColor);
+  const radius = isSelected ? 4 : payload.tone ? 3 : 2;
   const strokeWidth = isSelected ? 2 : 0;
 
   return (
@@ -92,18 +85,16 @@ function CustomTooltip({
   if (!active || !payload?.length) return null;
 
   const point = payload[0]?.payload;
-  if (!point) return null;
+  if (!point?.san) return null;
 
-  const color = getPointColor(point.category);
+  const color = getPointColor(point.tone);
 
   return (
     <div className="rounded border bg-background p-2 text-sm shadow-md">
       <div className="font-medium" style={{ color }}>
-        {point.san ?? `Ply ${point.ply}`}
+        {point.san}
       </div>
-      {point.category && (
-        <div className="capitalize text-muted-foreground">{point.category}</div>
-      )}
+      {point.label && <div className="text-muted-foreground">{point.label}</div>}
       {point.score && (
         <div className="font-mono text-xs text-muted-foreground">{point.score}</div>
       )}
