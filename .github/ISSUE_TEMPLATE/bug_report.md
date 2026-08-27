@@ -28,4 +28,5 @@ this is by far the fastest way to get a fix.
 
 **Additional context**
 
-Screenshots, logs, anything else useful.
+Evidence: screenshots or a screen recording, the failing `curl`
+request/response, worker or server logs, the PGN involved.
