@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  FOOLS_MATE_PGN,
+  ILLEGAL_MOVE_PGN,
+  IMPORTED_PLAYER_NAME,
+  MIXED_COLOR_PGN,
+  MULTI_GAME_PGN,
+} from "@velachess/fixtures";
 import { importPgn } from "@velachess/platforms";
-import { FOOLS_MATE_PGN, MULTI_GAME_PGN, ILLEGAL_MOVE_PGN } from "@velachess/fixtures";
 
 describe("importPgn", () => {
   it("normalizes a single pasted game with no provenance and no perspective", () => {
@@ -19,9 +25,21 @@ describe("importPgn", () => {
     expect(result.games).toHaveLength(2);
   });
 
-  it("carries an explicit perspective onto every normalized game", () => {
-    const result = importPgn(MULTI_GAME_PGN, { perspective: "white" });
-    expect(result.games.every((g) => g.perspective === "white")).toBe(true);
+  it("resolves the named player's seat in each game of a mixed-color file", () => {
+    const result = importPgn(MIXED_COLOR_PGN, { playerName: IMPORTED_PLAYER_NAME });
+    expect(result.games.map((game) => game.perspective)).toEqual(["white", "black"]);
+  });
+
+  it("matches the player's name case-insensitively", () => {
+    const result = importPgn(MIXED_COLOR_PGN, {
+      playerName: IMPORTED_PLAYER_NAME.toLowerCase(),
+    });
+    expect(result.games.map((game) => game.perspective)).toEqual(["white", "black"]);
+  });
+
+  it("leaves games without the named player unattributed instead of guessing", () => {
+    const result = importPgn(MIXED_COLOR_PGN, { playerName: "Someone Else" });
+    expect(result.games.every((game) => game.perspective === null)).toBe(true);
   });
 
   it("normalizeGame still accepts a PGN with an illegal move — legality is not this package's job", () => {

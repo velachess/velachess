@@ -27,11 +27,13 @@ import {
   users,
 } from "@velachess/db";
 
-import { createTestDb } from "./test-db.ts";
+import { createTestDb, createUserRow } from "./test-db.ts";
 
 const { db, close } = await createTestDb();
 
 afterAll(() => close());
+
+let ownerId: string;
 
 beforeEach(async () => {
   await db.delete(deviations);
@@ -39,6 +41,7 @@ beforeEach(async () => {
   await db.delete(repertoires);
   await db.delete(games);
   await db.delete(users);
+  ownerId = await createUserRow(db);
 });
 
 const ITALIAN = "1. e4 e5 2. Nf3 Nc6 3. Bc4 *";
@@ -60,6 +63,7 @@ function insertGame(
   return database
     .insert(games)
     .values({
+      userId: ownerId,
       source: "pgn",
       whiteName: "w",
       blackName: "b",

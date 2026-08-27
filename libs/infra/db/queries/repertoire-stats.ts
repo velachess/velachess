@@ -8,7 +8,7 @@
 import { and, count, eq, notExists, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { deviations, games, repertoireChapters, trackedAccounts } from "../schema.ts";
+import { deviations, games, repertoireChapters } from "../schema.ts";
 
 /** Judgment rows per outcome type, one count each. */
 export async function countJudgmentsByType(db: Database, repertoireId: string) {
@@ -71,10 +71,9 @@ export async function countUnjudgedGames(db: Database, userId: string) {
   const [row] = await db
     .select({ n: count() })
     .from(games)
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
     .where(
       and(
-        eq(trackedAccounts.userId, userId),
+        eq(games.userId, userId),
         notExists(
           db
             .select({ one: deviations.id })

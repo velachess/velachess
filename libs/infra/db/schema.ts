@@ -279,9 +279,19 @@ export const games = pgTable(
   "games",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * The owner. Direct, not inferred through a tracked account: a PGN
+     * upload has no account to hang ownership from, and every read would
+     * otherwise need an inner join that silently drops it. `account_id`
+     * stays as provenance only — which connected handle produced the row.
+     */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     source: gameSourceEnum("source").notNull(),
     externalId: text("external_id"),
     externalUrl: text("external_url"),
+    /** Provider provenance — null for manually imported PGNs. */
     accountId: uuid("account_id").references(() => trackedAccounts.id, {
       onDelete: "set null",
     }),
@@ -308,19 +318,26 @@ export const games = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    // Both scoped to the tracked account: each account owns a complete,
-    // independent copy of whatever it imports, and dedup only ever
-    // happens within one account — never across two accounts tracking
-    // the same real provider handle.
+    // One platform game is one row per account: each account owns a
+    // complete, independent copy of whatever it imports, and external-id
+    // dedup never crosses two accounts — even two tracking the same real
+    // provider handle.
     uniqueIndex("games_account_source_external_id")
       .on(table.accountId, table.source, table.externalId)
       .where(sql`${table.externalId} is not null`),
-    unique("games_account_movetext")
-      .on(table.accountId, table.movetextHash)
+    // Movetext dedup is user-scoped. `nullsNotDistinct` makes a NULL
+    // account_id equal to itself within the composite: two pasted PGNs of
+    // one user with the same moves collapse to a no-op (the re-import is
+    // idempotent), while another user importing the very same file keeps
+    // their own row — ownership is per user, not global.
+    unique("games_user_account_movetext")
+      .on(table.userId, table.accountId, table.movetextHash)
       .nullsNotDistinct(),
+    // The unified library read: every game the user owns, newest first.
+    index("games_user_played_at").on(table.userId, table.playedAt.desc()),
     // Doubles as the account_id FK index — a composite index also serves
     // lookups/joins on just its leftmost column, so this covers both the
-    // game-list query and the account_id FK, no separate index needed.
+    // account-scoped game-list query and the account_id FK.
     index("games_account_played_at").on(table.accountId, table.playedAt.desc()),
   ],
 );

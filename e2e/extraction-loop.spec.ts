@@ -60,11 +60,13 @@ it("extraction loop: games in, book derived, blunder inside the book drilled", a
     json({ platform: "chess_com", username: "looper" }),
   );
   expect(imported.status).toBe(201);
-  const archive = (await (
-    await app.request("/games?platform=chess_com&username=looper")
-  ).json()) as { account: { id: string }; games: unknown[] };
-  expect(archive.games).toHaveLength(3);
-  const account = archive.account;
+  const account = (await imported.json()) as { id: string };
+  const library = (await (await app.request("/games")).json()) as {
+    total: number;
+    games: unknown[];
+  };
+  expect(library.games).toHaveLength(3);
+  expect(library.total).toBe(3);
 
   // 2. Extract the book from the games themselves.
   const extractRes = await app.request(

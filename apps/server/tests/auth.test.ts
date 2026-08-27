@@ -409,10 +409,10 @@ describe("ownership isolation", () => {
   });
 
   it("a stranger's game is unreadable, unanalyzable and unwatchable", async () => {
-    const archive = (await (
-      await alice.request("/games?platform=chess_com&username=looper")
-    ).json()) as { games: { id: string }[] };
-    const gameId = archive.games[0]!.id;
+    const library = (await (await alice.request("/games")).json()) as {
+      games: { id: string }[];
+    };
+    const gameId = library.games[0]!.id;
 
     // The owner reads it fine; the stranger gets the same 404 a missing
     // id would produce — the route never confirms which uuids exist.

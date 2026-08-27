@@ -97,14 +97,14 @@ describe("the wall", () => {
 
   it("keeps a signed-in visitor in, with no chess account selected", async () => {
     // The inverse: identity is enough to be inside the app. The games
-    // screen offers the import form instead of bouncing anyone out.
+    // screen offers the imports instead of bouncing anyone out.
     sessionActive();
     resetDevice();
 
     const { router } = await renderApp({ path: "/games" });
 
     expect(router.state.location.pathname).toBe("/games");
-    expect(await screen.findByRole("button", { name: "Import" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Import PGN" })).toBeInTheDocument();
   });
 
   it("does not leave a rejected promise when the session lookup fails", async () => {

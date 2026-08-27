@@ -3,18 +3,20 @@
 A PGN records white, black, and the scoresheet result. It does not identify the
 current VelaChess user.
 
-`games.perspective` is explicit only when an imported PGN declared a side.
-Provider-synced games normally store `null`; VelaChess derives the side by
-matching the tracked account username to the normalized player names. The
-current shared TypeScript rule is `libs/application/perspective.ts`; SQL
-consumers restate the same expression where importing application code would
-break a boundary.
+`games.perspective` is explicit for manually imported PGNs: the import slice
+resolves the named player's seat per game against the White/Black headers
+(case-insensitively), so one file may mix colors, and a game naming them on
+neither side stores `null`. Provider-synced games store `null`; VelaChess
+derives the side by matching the provenance account's username (left join —
+absent on manual rows) to the normalized player names. The current shared
+TypeScript rule is `libs/application/perspective.ts`; SQL consumers restate
+the same expression where importing application code would break a boundary.
 
 Every consumer of an owner-derived fact must preserve the same semantics:
 
 - stored `white` or `black` wins when present;
-- otherwise compare the tracked handle case-insensitively with both seats;
-- unresolved perspective remains `null`, never guessed;
+- otherwise compare the provenance account handle case-insensitively with both seats;
+- no account (manual import) or an unresolved match remains `null`, never guessed;
 - owner outcome and owner-relative move selection require resolved perspective.
 
 An unattributed PGN may still need a stable seat label for presentation. Such a

@@ -124,17 +124,14 @@ interface GameView {
   blackIdentity: SeatIdentity;
 }
 
-/** First imported game of an archive — any one will do for seat reads. */
-async function firstGameId(
-  app: AuthedApp,
-  platform: string,
-  username: string,
-): Promise<string> {
-  const page = (await (
-    await app.request(`/games?platform=${platform}&username=${username}`)
-  ).json()) as { games: { id: string }[] };
-  expect(page.games.length).toBeGreaterThan(0);
-  return page.games[0]!.id;
+/** First game of the caller's library from one source — any will do for seat reads. */
+async function firstGameId(app: AuthedApp, source = "chess_com"): Promise<string> {
+  const page = (await (await app.request("/games")).json()) as {
+    games: { id: string; source: string }[];
+  };
+  const pick = page.games.find((game) => game.source === source);
+  expect(pick, `no ${source} game in the library`).toBeDefined();
+  return pick!.id;
 }
 
 async function openGame(app: AuthedApp, gameId: string): Promise<Response> {
@@ -151,7 +148,7 @@ describe("provider profile identity on game review", () => {
 
     // Connect-time warmed my handle; the opponent's is a cold miss here.
     const before = sync.profileRequests.length;
-    const game = await firstGameId(owner, "chess_com", "looper");
+    const game = await firstGameId(owner);
     const response = await openGame(owner, game);
     expect(response.status).toBe(200);
 
@@ -166,7 +163,7 @@ describe("provider profile identity on game review", () => {
   });
 
   it("reopening the same game spends no further provider request", async () => {
-    const game = await firstGameId(owner, "chess_com", "looper");
+    const game = await firstGameId(owner);
     const before = sync.profileRequests.length;
 
     const response = await openGame(owner, game);
@@ -190,7 +187,7 @@ describe("provider profile identity on game review", () => {
     expect(connected.status).toBe(201);
 
     const before = sync.profileRequests.length;
-    const game = await firstGameId(second, "chess_com", "lister");
+    const game = await firstGameId(second);
     const response = await openGame(second, game);
     expect(response.status).toBe(200);
     const body = (await response.json()) as GameView;
@@ -224,7 +221,7 @@ describe("provider profile identity on game review", () => {
     );
     expect(created.status).toBe(201);
 
-    const game = await firstGameId(owner, "lichess", "sea-lion");
+    const game = await firstGameId(owner, "lichess");
     const response = await openGame(owner, game);
     expect(response.status).toBe(200);
 
@@ -245,7 +242,7 @@ describe("provider profile identity on game review", () => {
       const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
       await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
-      const game = await firstGameId(owner, "chess_com", "looper");
+      const game = await firstGameId(owner);
       const response = await openGame(owner, game);
       expect(response.status).toBe(200);
 
@@ -265,7 +262,7 @@ describe("provider profile identity on game review", () => {
     await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
     const before = sync.profileRequests.length;
-    const game = await firstGameId(owner, "chess_com", "looper");
+    const game = await firstGameId(owner);
     const response = await openGame(owner, game);
     expect(response.status).toBe(200);
 
@@ -285,7 +282,7 @@ describe("provider profile identity on game review", () => {
       const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
       await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
-      const game = await firstGameId(owner, "chess_com", "looper");
+      const game = await firstGameId(owner);
       const response = await openGame(owner, game);
       expect(response.status).toBe(200);
 

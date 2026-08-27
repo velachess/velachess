@@ -70,8 +70,14 @@ describe("libs/infra/db (games + tracked accounts)", () => {
 
   it("saveGames twice with the same Chess.com game inserts it once", async () => {
     const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    const first = await saveGames(db, [chessComGame()], { accountId: account.id });
-    const second = await saveGames(db, [chessComGame()], { accountId: account.id });
+    const first = await saveGames(db, [chessComGame()], {
+      userId: ownerId,
+      accountId: account.id,
+    });
+    const second = await saveGames(db, [chessComGame()], {
+      userId: ownerId,
+      accountId: account.id,
+    });
 
     expect(first.inserted).toBe(1);
     expect(second.inserted).toBe(0);
@@ -86,8 +92,14 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     const accountA = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
     const accountB = await upsertTrackedAccount(db, other, "chess_com", "Test-Player");
 
-    const first = await saveGames(db, [chessComGame()], { accountId: accountA.id });
-    const second = await saveGames(db, [chessComGame()], { accountId: accountB.id });
+    const first = await saveGames(db, [chessComGame()], {
+      userId: ownerId,
+      accountId: accountA.id,
+    });
+    const second = await saveGames(db, [chessComGame()], {
+      userId: other,
+      accountId: accountB.id,
+    });
 
     expect(first.inserted).toBe(1);
     expect(second.inserted).toBe(1);
@@ -100,22 +112,40 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(rowsB).toHaveLength(1);
   });
 
-  it("the same pasted PGN twice with no account inserts it once — proves NULLS NOT DISTINCT is applied", async () => {
-    const first = await saveGames(db, [pastedGame()]);
-    const second = await saveGames(db, [pastedGame()]);
+  it("a pasted PGN re-imported by the same user inserts it once", async () => {
+    const first = await saveGames(db, [pastedGame()], { userId: ownerId });
+    const second = await saveGames(db, [pastedGame()], { userId: ownerId });
 
     expect(first.inserted).toBe(1);
     expect(second.inserted).toBe(0);
   });
 
+  it("two users importing the same pasted PGN each keep their own copy", async () => {
+    // Ownership is per user: movetext dedup must not leak one user's
+    // paste into another's library as an invisible skip.
+    const other = (await createUser(db)).id;
+    const mine = await saveGames(db, [pastedGame()], { userId: ownerId });
+    const theirs = await saveGames(db, [pastedGame()], { userId: other });
+
+    expect(mine.inserted).toBe(1);
+    expect(theirs.inserted).toBe(1);
+    expect(await listGames(db, { userId: ownerId })).toHaveLength(1);
+    expect(await listGames(db, { userId: other })).toHaveLength(1);
+  });
+
   it("a batch containing an intra-statement duplicate only inserts one row", async () => {
-    const result = await saveGames(db, [pastedGame(), pastedGame()]);
+    const result = await saveGames(db, [pastedGame(), pastedGame()], {
+      userId: ownerId,
+    });
     expect(result.inserted).toBe(1);
   });
 
   it("deleting a tracked account leaves its games with account_id set to null", async () => {
     const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    await saveGames(db, [chessComGame()], { accountId: account.id });
+    await saveGames(db, [chessComGame()], {
+      userId: ownerId,
+      accountId: account.id,
+    });
 
     await db.delete(trackedAccounts).where(eq(trackedAccounts.id, account.id));
 
@@ -176,9 +206,9 @@ describe("libs/infra/db (games + tracked accounts)", () => {
           playedAt: new Date("2024-01-02T00:00:00Z"),
         }),
       ],
-      { accountId: account.id },
+      { userId: ownerId, accountId: account.id },
     );
-    await saveGames(db, [pastedGame()]); // unrelated, no account
+    await saveGames(db, [pastedGame()], { userId: ownerId }); // unrelated, no account
 
     const rows = await listGames(db, { accountId: account.id });
     expect(rows).toHaveLength(2);

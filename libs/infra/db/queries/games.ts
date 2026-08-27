@@ -1,11 +1,12 @@
 import type { NormalizedGame } from "@velachess/platforms";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, type SQL } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { games, trackedAccounts } from "../schema.ts";
+import { games } from "../schema.ts";
 
-function toRow(game: NormalizedGame, accountId: string | undefined) {
+function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
+    userId,
     source: game.source,
     externalId: game.externalId,
     externalUrl: game.externalUrl,
@@ -30,16 +31,23 @@ function toRow(game: NormalizedGame, accountId: string | undefined) {
   };
 }
 
+/**
+ * Conflict-ignore persistence: a blocked insert is deduplication, not an
+ * error — the caller reads it from the lower inserted count. Ownership is
+ * always the user's; `accountId` is provenance only (a manual PGN import
+ * has none), and the unique constraints decide what "duplicate" means per
+ * source.
+ */
 export async function saveGames(
   db: Database,
   normalizedGames: NormalizedGame[],
-  opts: { accountId?: string } = {},
+  opts: { userId: string; accountId?: string },
 ): Promise<{ inserted: number }> {
   if (normalizedGames.length === 0) return { inserted: 0 };
 
   const inserted = await db
     .insert(games)
-    .values(normalizedGames.map((game) => toRow(game, opts.accountId)))
+    .values(normalizedGames.map((game) => toRow(game, opts.userId, opts.accountId)))
     .onConflictDoNothing()
     .returning({ id: games.id });
 
@@ -75,16 +83,21 @@ const gameListColumns = {
 
 export async function listGames(
   db: Database,
-  opts: { accountId?: string; limit?: number; offset?: number } = {},
+  opts: { userId?: string; accountId?: string; limit?: number; offset?: number } = {},
 ) {
+  const scopes: SQL[] = [];
+  if (opts.userId) scopes.push(eq(games.userId, opts.userId));
+  if (opts.accountId) scopes.push(eq(games.accountId, opts.accountId));
+
   const query = db
     .select(gameListColumns)
     .from(games)
+    .where(scopes.length > 0 ? and(...scopes) : undefined)
     .orderBy(desc(games.playedAt))
     .limit(opts.limit ?? 50)
     .offset(opts.offset ?? 0);
 
-  return opts.accountId ? query.where(eq(games.accountId, opts.accountId)) : query;
+  return query;
 }
 
 /**
@@ -98,16 +111,16 @@ export async function getGame(db: Database, gameId: string) {
 }
 
 /**
- * The full row, only if the caller owns it — ownership rides through
- * `games.account_id → tracked_accounts.user_id`, scoped in the query
- * rather than checked after the fetch, so there is no window where the
- * row exists in memory for a caller it does not belong to.
+ * The full row, only if the caller owns it. Ownership is the row's own
+ * `user_id` — no join, so a manually imported PGN is scoped exactly like
+ * a synced game, and the check happens in the query rather than after
+ * the fetch: there is no window where the row exists in memory for a
+ * caller it does not belong to.
  */
 export async function getGameForUser(db: Database, userId: string, gameId: string) {
   const [row] = await db
-    .select({ game: games })
+    .select()
     .from(games)
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-    .where(and(eq(games.id, gameId), eq(trackedAccounts.userId, userId)));
-  return row?.game ?? null;
+    .where(and(eq(games.id, gameId), eq(games.userId, userId)));
+  return row ?? null;
 }

@@ -21,6 +21,10 @@ msgstr ""
 msgid "—"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:32
+msgid "[Event \"...\"] …"
+msgstr ""
+
 #: src/repertoire/repertoire-detail.tsx:30
 msgid "{color} · {chapters, plural, one {# chapter} other {# chapters}}"
 msgstr ""
@@ -45,6 +49,18 @@ msgstr ""
 
 #: src/repertoire/repertoire-detail.tsx:38
 msgid "{count, plural, one {# recall failure} other {# recall failures}}"
+msgstr ""
+
+#: src/repertoire/repertoire-detail.tsx:44
+msgid "{count, plural, one {in # game} other {in # games}}"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:41
+msgid "{count, plural, one {One game could not be read.} other {# games could not be read.}}"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:40
+msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr ""
 
 #: src/repertoire/repertoire-detail.tsx:33
@@ -158,6 +174,10 @@ msgstr ""
 msgid "Application theme"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:28
+msgid "As it appears in the White and Black headers"
+msgstr ""
+
 #: src/onboarding/onboarding-dialog.tsx:24
 msgid "Back"
 msgstr ""
@@ -201,7 +221,7 @@ msgstr ""
 msgid "Black to move"
 msgstr ""
 
-#: src/games/games-list.tsx:29
+#: src/games/games-list.tsx:28
 #: src/games/list/columns.tsx:23
 #: src/games/list/filters.ts:49
 msgid "Blitz"
@@ -236,7 +256,7 @@ msgstr ""
 msgid "Built from your games"
 msgstr ""
 
-#: src/games/games-list.tsx:28
+#: src/games/games-list.tsx:27
 #: src/games/list/columns.tsx:22
 #: src/games/list/filters.ts:48
 msgid "Bullet"
@@ -250,7 +270,7 @@ msgstr ""
 msgid "Chess.com username"
 msgstr ""
 
-#: src/games/games-list.tsx:31
+#: src/games/games-list.tsx:30
 #: src/games/list/columns.tsx:25
 #: src/games/list/filters.ts:51
 msgid "Classical"
@@ -318,7 +338,7 @@ msgstr ""
 msgid "Couldn't load drills."
 msgstr ""
 
-#: src/games/games-list.tsx:24
+#: src/games/games-list.tsx:23
 msgid "Couldn't load games."
 msgstr ""
 
@@ -357,6 +377,10 @@ msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "Couldn't reach the server. Try again in a moment."
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:43
+msgid "Couldn't reach the server. Try again."
 msgstr ""
 
 #: src/settings/account/profile-form.tsx:31
@@ -440,6 +464,10 @@ msgstr ""
 msgid "Enter your email."
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:29
+msgid "Enter your name so your games can be told apart from your opponents'."
+msgstr ""
+
 #: src/auth/sign-in/sign-in-screen.tsx:47
 msgid "Enter your password."
 msgstr ""
@@ -457,7 +485,7 @@ msgstr ""
 msgid "Evaluation over the game"
 msgstr ""
 
-#: src/games/games-list.tsx:21
+#: src/games/games-list.tsx:20
 msgid "Every game you've imported, and how it went."
 msgstr ""
 
@@ -514,13 +542,17 @@ msgid "Gameplay"
 msgstr ""
 
 #: src/dashboard/dashboard.tsx:23
-#: src/games/games-list.tsx:20
+#: src/games/games-list.tsx:19
 #: src/routes/_app/games.tsx:6
 #: src/test/routes.tsx:81
 msgid "Games"
 msgstr ""
 
-#: src/games/games-list.tsx:25
+#: src/games/import-pgn/pgn-import-dialog.tsx:39
+msgid "Games imported"
+msgstr ""
+
+#: src/games/games-list.tsx:24
 msgid "Games pages"
 msgstr ""
 
@@ -552,12 +584,25 @@ msgstr ""
 msgid "How you're shown in the app."
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:34
 #: src/games/import/sources.ts:79
 msgid "Import"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:42
+msgid "Import failed"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:25
+msgid "Import games from a PGN"
+msgstr ""
+
 #: src/drill/drill.tsx:49
 msgid "Import or analyze a game and new positions land here on their own."
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:24
+msgid "Import PGN"
 msgstr ""
 
 #: src/games/import/sources.ts:77
@@ -566,6 +611,10 @@ msgstr ""
 
 #: src/dashboard/dashboard.tsx:23
 msgid "imported from your accounts"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:35
+msgid "Importing…"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:20
@@ -745,7 +794,7 @@ msgstr ""
 msgid "New games imported"
 msgstr ""
 
-#: src/games/games-list.tsx:27
+#: src/games/games-list.tsx:26
 #: src/games/open-game/replay-controls.tsx:13
 #: src/onboarding/onboarding-dialog.tsx:23
 #: src/repertoire/chapter-study.tsx:61
@@ -773,16 +822,16 @@ msgstr ""
 msgid "No games found for that username. Check the spelling and try again."
 msgstr ""
 
-#: src/games/games-list.tsx:22
-msgid "No games imported yet."
-msgstr ""
-
 #: src/repertoire/repertoire-landing.tsx:34
 msgid "No games judged against it yet"
 msgstr ""
 
-#: src/games/games-list.tsx:23
+#: src/games/games-list.tsx:22
 msgid "No games match these filters."
+msgstr ""
+
+#: src/games/games-list.tsx:21
+msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:21
@@ -858,12 +907,24 @@ msgstr ""
 msgid "Or continue with"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:31
+msgid "Or paste the moves"
+msgstr ""
+
 #: src/auth/sign-in/sign-in-screen.tsx:40
 msgid "Password"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:26
+msgid "Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs."
+msgstr ""
+
 #: src/insights/insights.tsx:48
 msgid "Performance"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:30
+msgid "PGN file"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:21
@@ -918,7 +979,7 @@ msgstr ""
 msgid "Prev"
 msgstr ""
 
-#: src/games/games-list.tsx:26
+#: src/games/games-list.tsx:25
 msgid "Previous"
 msgstr ""
 
@@ -936,7 +997,7 @@ msgstr ""
 msgid "Progress"
 msgstr ""
 
-#: src/games/games-list.tsx:30
+#: src/games/games-list.tsx:29
 #: src/games/list/columns.tsx:24
 #: src/games/list/filters.ts:50
 msgid "Rapid"
@@ -1158,6 +1219,10 @@ msgstr ""
 
 #: src/games/view-analysis/move-insight.tsx:20
 msgid "The starting position."
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:33
+msgid "There is nothing to import yet."
 msgstr ""
 
 #: src/repertoire/repertoire-detail.tsx:41
@@ -1391,6 +1456,10 @@ msgstr ""
 
 #: src/insights/finding-views.tsx:499
 msgid "Your last {n} games have slipped"
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:27
+msgid "Your name in these games"
 msgstr ""
 
 #: src/insights/finding-views.tsx:90

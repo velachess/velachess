@@ -253,26 +253,15 @@ export const openApiSpec = {
     },
     "/games": {
       get: {
-        summary: "A player's games, by platform and username",
+        summary: "The signed-in user's unified game library",
         description:
-          "A read, and nothing but a read: one filtered page of a handle this user already tracks. An untracked handle is a 404 — importing is POST /accounts (the only place a connection is created), and keeping the archive current is POST /accounts/{id}/sync. Engine-free — analysis is triggered by opening a game, never by listing.",
+          "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis is triggered by opening a game, never by listing.",
         parameters: [
-          {
-            name: "platform",
-            in: "query",
-            required: true,
-            schema: { type: "string", enum: ["chess_com", "lichess"] },
-          },
-          {
-            name: "username",
-            in: "query",
-            required: true,
-            schema: { type: "string", maxLength: 64 },
-          },
           {
             name: "color",
             in: "query",
             schema: { type: "string", enum: ["white", "black"] },
+            description: "Which side you played, resolved per game",
           },
           {
             name: "outcome",
@@ -309,20 +298,11 @@ export const openApiSpec = {
         ],
         responses: {
           "200": {
-            description: "One page of the account's games (no PGN payloads)",
+            description:
+              "One page of the user's games across every source (no PGN payloads)",
             ...jsonOf({
               type: "object",
               properties: {
-                account: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string", format: "uuid" },
-                    platform: { type: "string", enum: ["chess_com", "lichess"] },
-                    username: { type: "string" },
-                    lastSyncedAt: { type: ["string", "null"], format: "date-time" },
-                  },
-                  required: ["id", "platform", "username", "lastSyncedAt"],
-                },
                 games: { type: "array", items: { type: "object" } },
                 total: {
                   type: "integer",
@@ -331,15 +311,66 @@ export const openApiSpec = {
                 page: { type: "integer" },
                 pageSize: { type: "integer" },
               },
-              required: ["account", "games", "total", "page", "pageSize"],
+              required: ["games", "total", "page", "pageSize"],
             }),
           },
           "400": {
-            description: "Missing or malformed platform/username",
+            description: "Malformed filter or paging parameter",
             ...errorResponse,
           },
-          "404": {
-            description: "The platform has no archive for that username",
+        },
+      },
+    },
+    "/games/import": {
+      post: {
+        summary: "Import games from a PGN upload",
+        description:
+          "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `playerName` resolves which side is theirs per game, so one file may mix White and Black, and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors. New games feed the same repertoire → judgment → seeding pass a sync runs.",
+        requestBody: {
+          required: true,
+          ...jsonOf({
+            type: "object",
+            properties: {
+              pgn: {
+                type: "string",
+                description: "One or more games in PGN format",
+              },
+              playerName: {
+                type: "string",
+                maxLength: 128,
+                description: "The player these games belong to, as named in the headers",
+              },
+            },
+            required: ["pgn"],
+          }),
+        },
+        responses: {
+          "200": {
+            description: "What landed and what didn't, all three counts at once",
+            ...jsonOf({
+              type: "object",
+              properties: {
+                imported: {
+                  type: "integer",
+                  description: "Games written for this user",
+                },
+                duplicates: {
+                  type: "integer",
+                  description: "Games this user already had — skipped as a no-op",
+                },
+                rejected: {
+                  type: "integer",
+                  description: "Chunks that failed to parse",
+                },
+                judged: { type: "integer" },
+                seeded: { type: "integer" },
+              },
+              required: ["imported", "duplicates", "rejected", "judged", "seeded"],
+            }),
+          },
+          "400": { description: "Missing or empty body", ...errorResponse },
+          "413": {
+            description: "Payload exceeds the 256 KiB server limit",
             ...errorResponse,
           },
         },

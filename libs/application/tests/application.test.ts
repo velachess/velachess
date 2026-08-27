@@ -7,6 +7,7 @@ import { makeScheduler } from "@velachess/scheduler";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "@velachess/db";
+import type { GameFilters, GamePage } from "@velachess/db";
 import {
   addChapter,
   countDrillQueue,
@@ -35,7 +36,7 @@ import { getReviewItem } from "../drills/get-next-drill/get-next-drill.ts";
 import { triageAndSeed } from "../drills/seed-exercises/seed-exercises.ts";
 import { submitAnswer } from "../drills/submit-answer/submit-answer.ts";
 import { judgeGamesForUser } from "../games/judge-games/judge-games.ts";
-import { openArchive } from "../games/list-games/list-games.ts";
+import { openLibrary } from "../games/list-games/list-games.ts";
 import {
   REPERTOIRE_NAME,
   extractRepertoire,
@@ -76,16 +77,18 @@ describe("application services (the flow, end to end)", () => {
 
   /**
    * Import (idempotent — first contact fills, later calls are no-ops)
-   * then read: the two halves of what openArchive used to be before
-   * reads stopped creating connections.
+   * then read the unified library: the write half and the read half of
+   * what one function used to do before reads stopped creating
+   * connections.
    */
   async function openImported(
     username: string,
-    view: Parameters<typeof openArchive>[4] = {},
+    view: { filters?: GameFilters; page?: GamePage } = {},
     deps: Parameters<typeof importAccount>[4] = {},
+    ownerId: string = userId,
   ) {
-    await importAccount(h.db, userId, "chess_com", username, deps);
-    return (await openArchive(h.db, userId, "chess_com", username, view))!;
+    const account = await importAccount(h.db, ownerId, "chess_com", username, deps);
+    return { account, library: await openLibrary(h.db, ownerId, view) };
   }
 
   it("a user anchors the flow", async () => {
@@ -206,6 +209,7 @@ describe("application services (the flow, end to end)", () => {
     const [game] = await h.db
       .insert(games)
       .values({
+        userId,
         source: "pgn",
         whiteName: "w",
         blackName: "b",
@@ -380,9 +384,9 @@ describe("application services (the flow, end to end)", () => {
     expect(cached.engineCategory).not.toBeNull();
   });
 
-  it("openArchive: a first read fills the account, a second one only reads", async () => {
-    // Its own movetext: games dedupe globally by hash, so reusing the
-    // looper fixture here would save nothing and prove nothing.
+  it("importAccount: a first import fills the archive, a second one only reads", async () => {
+    // Its own movetext: games dedupe per user and account, so reusing
+    // the looper fixture here would save nothing and prove nothing.
     const freshArchive: typeof fetch = (async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/archives")) {
@@ -408,30 +412,40 @@ describe("application services (the flow, end to end)", () => {
       });
     }) as typeof fetch;
 
-    const archive = await openImported("Fresh_Import", {}, { fetch: freshArchive });
+    // The unified library is per user — a fresh one, so these
+    // assertions see exactly this import and nothing earlier in the
+    // suite.
+    const ownerId = (await createUser(h.db)).id;
+    const { account, library } = await openImported(
+      "Fresh_Import",
+      {},
+      { fetch: freshArchive },
+      ownerId,
+    );
 
     // Username normalised on the way in, games listed with status.
-    expect(archive.account.username).toBe("fresh_import");
-    expect(archive.account.lastSyncedAt).not.toBeNull();
-    expect(archive.games.length).toBe(2);
+    expect(account.username).toBe("fresh_import");
+    expect(account.lastSyncedAt).not.toBeNull();
+    expect(library.games.length).toBe(2);
 
-    // Which side was you is DERIVED, not stored: the normalizer sees a PGN
-    // and no identity, so `games.perspective` is null on everything synced.
-    // Without this the list called every game unfinished and drew every
-    // player white. The fixture has one game from each seat.
-    const bySeat = Object.fromEntries(archive.games.map((g) => [g.perspective, g]));
+    // Which side was you is DERIVED for synced games, not stored: the
+    // normalizer sees a PGN and no identity, so `games.perspective` is
+    // null on everything synced. Without this derivation the list called
+    // every game unfinished and drew every player white. The fixture has
+    // one game from each seat.
+    const bySeat = Object.fromEntries(library.games.map((g) => [g.perspective, g]));
     expect(Object.keys(bySeat).toSorted()).toEqual(["black", "white"]);
     expect(bySeat.white!.whiteName).toBe("fresh_import");
     expect(bySeat.black!.blackName).toBe("fresh_import");
 
     // Importing runs no engine. Judging is replay and analysis is intent —
     // an archive of hundreds of games must not queue hundreds of runs.
-    for (const game of archive.games) {
+    for (const game of library.games) {
       expect(await h.analysisQueue.getState(game.id)).toBe("none");
       expect(game.analyzed).toBe(false);
     }
 
-    // Second read never pulls the archive again: a fetch that would throw
+    // Second import never pulls the archive again: a fetch that would throw
     // on any game request. The profile endpoint is answered instead of
     // throwing — a re-import still refreshes identity by design — and
     // returning no avatar keeps what was stored.
@@ -447,29 +461,32 @@ describe("application services (the flow, end to end)", () => {
           throw new Error("the archive was already filled");
         }) as unknown as typeof fetch,
       },
+      ownerId,
     );
-    expect(again.account.id).toBe(archive.account.id);
-    expect(again.games.length).toBe(2);
+    expect(again.account.id).toBe(account.id);
+    expect(again.library.games.length).toBe(2);
   });
 
-  it("openArchive: every field the games list renders survives the trip", async () => {
+  it("the library list: every field the games list renders survives the trip", async () => {
     // The contract test the list never had. Its columns read ratings, a
     // clock, an opening and a platform link — none of which the judging
     // fixtures carry, so a green suite said nothing about whether the
     // pipeline delivers them. This archive is tagged like a real one.
-    const archive = await openImported(
+    const { library } = await openImported(
       LISTER_USERNAME,
       {},
       { fetch: chessComListingFixtureFetch() },
+      // Same isolation: this user's library holds only what it imports.
+      (await createUser(h.db)).id,
     );
 
-    expect(archive.games).toHaveLength(2);
-    const asWhite = archive.games.find((game) => game.perspective === "white")!;
-    const asBlack = archive.games.find((game) => game.perspective === "black")!;
+    expect(library.games).toHaveLength(2);
+    const asWhite = library.games.find((game) => game.perspective === "white")!;
+    const asBlack = library.games.find((game) => game.perspective === "black")!;
     expect(asWhite).toBeDefined();
     expect(asBlack).toBeDefined();
 
-    for (const game of archive.games) {
+    for (const game of library.games) {
       expect(game.whiteRating, "white rating").not.toBeNull();
       expect(game.blackRating, "black rating").not.toBeNull();
       expect(game.playedAt, "played at").not.toBeNull();
@@ -489,55 +506,52 @@ describe("application services (the flow, end to end)", () => {
     expect(asBlack.timeControlIncrementSeconds).toBe(2);
   });
 
-  it("openArchive: filtering by outcome reads the derived seat, not the stored column", async () => {
+  it("library filters read the derived seat, not the stored column", async () => {
     // The filter and the column have to agree. Pointed at the stored
     // `perspective` (null on everything synced) this returns nothing while
     // the list happily shows wins.
-    const won = await openImported(
+    const ownerId = (await createUser(h.db)).id;
+    await openImported(
       LISTER_USERNAME,
-      { filters: { outcome: "win" } },
+      {},
       { fetch: chessComListingFixtureFetch() },
+      ownerId,
     );
+
+    const won = await openLibrary(h.db, ownerId, { filters: { outcome: "win" } });
     expect(won.games).toHaveLength(1);
     expect(won.games[0]!.perspective).toBe("white");
     expect(won.total).toBe(1);
 
-    const lost = await openImported(
-      LISTER_USERNAME,
-      { filters: { outcome: "loss" } },
-      { fetch: chessComListingFixtureFetch() },
-    );
+    const lost = await openLibrary(h.db, ownerId, { filters: { outcome: "loss" } });
     expect(lost.games).toHaveLength(1);
     expect(lost.games[0]!.perspective).toBe("black");
 
-    const asBlack = await openImported(
-      LISTER_USERNAME,
-      { filters: { color: "black" } },
-      { fetch: chessComListingFixtureFetch() },
-    );
+    const asBlack = await openLibrary(h.db, ownerId, { filters: { color: "black" } });
     expect(asBlack.games).toHaveLength(1);
 
     // 10 min is rapid; 3+2 estimates to 300s, which is blitz.
-    const blitz = await openImported(
-      LISTER_USERNAME,
-      { filters: { timeClass: "blitz" } },
-      { fetch: chessComListingFixtureFetch() },
-    );
+    const blitz = await openLibrary(h.db, ownerId, { filters: { timeClass: "blitz" } });
     expect(blitz.games).toHaveLength(1);
     expect(blitz.games[0]!.timeControlInitialSeconds).toBe(180);
   });
 
-  it("openArchive: a page is a slice of the whole, and total ignores it", async () => {
-    const first = await openImported(
+  it("a page is a slice of the whole, and total ignores it", async () => {
+    // Fresh owner again: the pager's totals must count one import, not
+    // everything the suite has accumulated.
+    const ownerId = (await createUser(h.db)).id;
+    await openImported(
       LISTER_USERNAME,
-      { page: { page: 1, pageSize: 1 } },
+      {},
       { fetch: chessComListingFixtureFetch() },
+      ownerId,
     );
-    const second = await openImported(
-      LISTER_USERNAME,
-      { page: { page: 2, pageSize: 1 } },
-      { fetch: chessComListingFixtureFetch() },
-    );
+    const first = await openLibrary(h.db, ownerId, {
+      page: { page: 1, pageSize: 1 },
+    });
+    const second = await openLibrary(h.db, ownerId, {
+      page: { page: 2, pageSize: 1 },
+    });
 
     expect(first.games).toHaveLength(1);
     expect(second.games).toHaveLength(1);
@@ -670,6 +684,7 @@ describe("the repertoire → deviations → training loop", () => {
     const [gapGame] = await loop.db
       .insert(games)
       .values({
+        userId,
         accountId,
         source: "chess_com",
         perspective: null,
@@ -683,6 +698,7 @@ describe("the repertoire → deviations → training loop", () => {
       })
       .returning();
     await loop.db.insert(games).values({
+      userId,
       accountId,
       source: "chess_com",
       perspective: null,
@@ -813,6 +829,7 @@ describe("the repertoire → deviations → training loop", () => {
 
     // A NEW game fails the same prepared position (2.h4 instead of d4).
     await loop.db.insert(games).values({
+      userId,
       accountId,
       source: "chess_com",
       perspective: null,

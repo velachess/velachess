@@ -71,6 +71,7 @@ let state: ArchiveState = fresh();
 
 export function resetArchive(): void {
   state = fresh();
+  pgnImportState = freshImportPlan();
   resetGameIds();
 }
 
@@ -136,6 +137,42 @@ export function countWatch(): number {
 
 export function analysisAnswerFor(gameId: string): AnalysisAnswer | undefined {
   return state.analyses.get(gameId);
+}
+
+/**
+ * What the next PGN upload does. Success lands its games in the library;
+ * `refuses` answers like an unreachable server. Reset with the archive.
+ */
+export interface PgnImportPlan {
+  incoming: Game[];
+  duplicates: number;
+  rejected: number;
+  refuses: boolean;
+}
+
+function freshImportPlan(): PgnImportPlan {
+  return { incoming: [], duplicates: 0, rejected: 0, refuses: false };
+}
+
+let pgnImportState: PgnImportPlan = freshImportPlan();
+
+export const pgnImport = {
+  get incoming() {
+    return pgnImportState.incoming;
+  },
+  get duplicates() {
+    return pgnImportState.duplicates;
+  },
+  get rejected() {
+    return pgnImportState.rejected;
+  },
+  get refuses() {
+    return pgnImportState.refuses;
+  },
+};
+
+export function stagePgnImport(plan: Partial<PgnImportPlan>): void {
+  pgnImportState = { ...freshImportPlan(), ...plan };
 }
 
 /** Unknown player -> 404, not an empty archive — how a test tells "no such user" from "no games yet". */
