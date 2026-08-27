@@ -23,6 +23,6 @@
     "./*": "./*.ts"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.5"
+    "@electric-sql/pglite": "^0.5.7"
   }
 }
