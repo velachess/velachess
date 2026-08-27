@@ -22,7 +22,7 @@ export async function getOverview(db: Database, userId: string, now: Date = new 
     .from(deviations)
     .innerJoin(games, eq(deviations.gameId, games.id))
     .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-    .where(eq(trackedAccounts.userId, userId));
+    .where(and(eq(trackedAccounts.userId, userId), eq(deviations.type, "deviation")));
   const [exercisesRow] = await db
     .select({ n: count() })
     .from(exercises)

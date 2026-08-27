@@ -453,14 +453,44 @@ describe("api routes", () => {
   });
 
   it("the dashboard reflects the loop so far", async () => {
-    const overview = (await (await owner.request("/overview")).json()) as Record<
+    const dashboard = (await harness.signUp("overview@api.test")).app;
+    const imported = await dashboard.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "Looper" }),
+    );
+    expect(imported.status).toBe(201);
+    const account = (await imported.json()) as { id: string };
+    const created = await dashboard.request(
+      "/repertoires",
+      json({ name: "White e4", color: "white" }),
+    );
+    expect(created.status).toBe(201);
+    const repertoire = (await created.json()) as { id: string };
+    const chapter = await dashboard.request(
+      `/repertoires/${repertoire.id}/chapters`,
+      json({ name: "French", pgn: LOOPER_REPERTOIRE_PGN }),
+    );
+    expect(chapter.status).toBe(201);
+    expect((await dashboard.request("/games/judge", { method: "POST" })).status).toBe(
+      200,
+    );
+
+    const games = (await (
+      await dashboard.request(`/accounts/${account.id}/games`)
+    ).json()) as { judgmentType: string }[];
+    expect(games.map((game) => game.judgmentType).toSorted()).toEqual([
+      "completed",
+      "deviation",
+    ]);
+
+    const overview = (await (await dashboard.request("/overview")).json()) as Record<
       string,
       number
     >;
     // Three exercises already: judging seeds the repertoire deviation
     // without waiting for the engine, and the chapter's own decision
     // positions seed as repertoire-line the moment the chapter lands.
-    expect(overview).toEqual({ games: 2, deviations: 2, exercises: 3, dueCards: 0 });
+    expect(overview).toEqual({ games: 2, deviations: 1, exercises: 3, dueCards: 0 });
   });
 
   it("GET /games/:id returns the full game with rawPgn for board replay", async () => {
