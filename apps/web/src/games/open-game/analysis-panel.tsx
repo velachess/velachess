@@ -73,7 +73,12 @@ export function AnalysisPanel({
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>
       <div className="shrink-0 border-b p-3">
-        <EvalGraph points={evalCurve(graded)} totalPlies={replay.totalPlies} />
+        <EvalGraph
+          points={evalCurve(graded)}
+          totalPlies={replay.totalPlies}
+          selectedPly={replay.ply}
+          onSelectPly={replay.goTo}
+        />
       </div>
 
       <AnalysisStatus

@@ -155,6 +155,10 @@ export interface EvalPoint {
   /** White's winning chances, 0–1. The graph's only vertical input. */
   winChance: number;
   category: MoveCategory;
+  /** The played move in SAN notation. */
+  san: string;
+  /** The evaluation after the move, from White's perspective. */
+  evalAfter: GradedPly["evalAfter"];
 }
 
 /** Delegates cp→win-chance to `@velachess/analysis`: an earlier local copy disagreed on mate handling. */
@@ -163,6 +167,8 @@ export function evalCurve(moves: GradedPly[]): EvalPoint[] {
     ply: move.ply,
     winChance: whiteShareOf(move.evalAfter),
     category: move.category,
+    san: move.san,
+    evalAfter: move.evalAfter,
   }));
 }
 
