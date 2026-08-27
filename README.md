@@ -71,7 +71,7 @@ opening a public issue.
 Thanks to everyone who helps make VelaChess better.
 
 <a href="https://github.com/velachess/velachess/graphs/contributors">
-  <img src="https://stg.contrib.rocks/image?repo=velachess/velachess&columns=8" alt="VelaChess contributors">
+  <img src="https://contrib.rocks/image?repo=velachess/velachess&columns=8" alt="VelaChess contributors">
 </a>
 
 ## License
