@@ -20,6 +20,22 @@ Please do not paste code from a project under an incompatible licence, and
 be careful with generated code whose provenance you cannot vouch for. A
 contribution nobody can trace is one we may have to remove later.
 
+## First contribution
+
+Issues labelled
+[`good first issue`](https://github.com/velachess/velachess/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+are scoped to one package and describe the fix in full.
+[`help wanted`](https://github.com/velachess/velachess/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+issues are open to anyone but may need more context.
+
+1. Comment on the issue before starting so work is not duplicated.
+2. Follow [Setup](#setup), then [Checks](#checks) before opening the PR.
+3. Read [`docs/how-to/verify-a-change.md`](docs/how-to/verify-a-change.md)
+   and, when adding tests,
+   [`docs/how-to/write-a-test.md`](docs/how-to/write-a-test.md).
+4. Open the PR with the [evidence](#pull-request-evidence) the change calls
+   for.
+
 ## Participation
 
 This project follows a [Code of Conduct](CODE_OF_CONDUCT.md). Security
