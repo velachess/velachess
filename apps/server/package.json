@@ -19,7 +19,7 @@
     "@velachess/logger": "workspace:*",
     "@velachess/queue": "workspace:*",
     "@velachess/scheduler": "workspace:*",
-    "hono": "^4.13.2",
+    "hono": "^4.13.3",
     "postgres": "^3.4.0",
     "zod": "^4.4.3"
   },
