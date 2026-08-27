@@ -4,13 +4,13 @@ import {
   landingDrill,
   landingDrillAnswer,
   landingDrillQueue,
-} from "../../src/drill/tests/fixtures/landing-drill.ts";
+} from "../../apps/web/src/drill/tests/fixtures/landing-drill.ts";
 import {
   LANDING_GAME_ID,
   LANDING_PLAYER,
   landingCompletedAnalysis,
   landingGame,
-} from "../../src/games/open-game/tests/fixtures/landing-game-analysis.ts";
+} from "../../apps/web/src/games/open-game/tests/fixtures/landing-game-analysis.ts";
 
 const FIXED_NOW = "2026-08-21T12:00:00.000Z";
 
@@ -90,7 +90,7 @@ async function handleApi(route: Route) {
     return;
   }
 
-  throw new Error(`Unexpected marketing capture request: ${method} ${pathname}`);
+  throw new Error(`Unexpected capture request: ${method} ${pathname}`);
 }
 
 async function preparePage(page: Page) {
@@ -122,8 +122,8 @@ async function settle(page: Page) {
   });
 }
 
-export const test = base.extend<{ marketingPage: Page }>({
-  marketingPage: async ({ page }, use) => {
+export const test = base.extend<{ productPage: Page }>({
+  productPage: async ({ page }, use) => {
     const errors: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());

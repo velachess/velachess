@@ -1,13 +1,13 @@
 import path from "node:path";
 
-import { expect, settle, test } from "./marketing.fixture.ts";
+import { expect, settle, test } from "./staged-product.fixture.ts";
 
 const output = path.resolve(
   import.meta.dirname,
-  "../../../site/public/product/drill.webp",
+  "../../apps/site/public/product/drill.webp",
 );
 
-test("captures the drill feedback loop", async ({ marketingPage: page }) => {
+test("captures the drill feedback loop", async ({ productPage: page }) => {
   await page.goto("/drill");
   await page.getByRole("button", { name: "Start drilling" }).click();
 

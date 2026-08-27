@@ -25,7 +25,8 @@ export default defineConfig({
         test: {
           ...backendTest,
           name: "e2e",
-          include: ["e2e/**/*.spec.ts"],
+          // `e2e/capture/` is Playwright, not Vitest: it stays out of this project.
+          include: ["e2e/*.spec.ts"],
         },
         resolve: { alias: aliases },
       },

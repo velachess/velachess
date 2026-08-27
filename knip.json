@@ -17,13 +17,8 @@
     // filesystem rather than through an import, so knip has to be told the
     // same thing the plugin already knows.
     "apps/web": {
-      "entry": [
-        "src/routes/**/*.tsx",
-        "lingui.config.ts",
-        "**/*.test.{ts,tsx}",
-        "**/*.spec.{ts,tsx}"
-      ],
-      "project": ["src/**/*.{ts,tsx,css}", "e2e/**/*.{ts,tsx}"]
+      "entry": ["src/routes/**/*.tsx", "lingui.config.ts", "**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx,css}"]
     },
     "apps/site": {
       "entry": [
