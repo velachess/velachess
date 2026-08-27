@@ -47,10 +47,6 @@ msgstr "{count, plural, one {# prep gap} other {# prep gaps}}"
 msgid "{count, plural, one {# recall failure} other {# recall failures}}"
 msgstr "{count, plural, one {# recall failure} other {# recall failures}}"
 
-#: src/repertoire/repertoire-detail.tsx:44
-msgid "{count, plural, one {in # game} other {in # games}}"
-msgstr "{count, plural, one {in # game} other {in # games}}"
-
 #: src/repertoire/repertoire-detail.tsx:33
 msgid "{count} due"
 msgstr "{count} due"
@@ -854,10 +850,6 @@ msgstr "Openings"
 msgid "Opponent"
 msgstr "Opponent"
 
-#: src/repertoire/repertoire-detail.tsx:43
-msgid "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-msgstr "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-
 #: src/repertoire/chapter-study.tsx:69
 msgid "Opponent plays:"
 msgstr "Opponent plays:"
@@ -912,10 +904,6 @@ msgstr "Practice repertoire"
 #: src/settings/layout/navigation.ts:36
 msgid "Preferences"
 msgstr "Preferences"
-
-#: src/repertoire/repertoire-detail.tsx:42
-msgid "Prep gaps"
-msgstr "Prep gaps"
 
 #: src/repertoire/chapter-study.tsx:64
 msgid "Prepared move"
@@ -1020,10 +1008,6 @@ msgstr "Saving…"
 #: src/insights/finding-views.tsx:502
 msgid "Score"
 msgstr "Score"
-
-#: src/repertoire/repertoire-detail.tsx:45
-msgid "See a game"
-msgstr "See a game"
 
 #: src/games/view-analysis/drill-cta.tsx:14
 msgid "See your patterns"

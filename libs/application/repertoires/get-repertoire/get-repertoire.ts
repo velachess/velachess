@@ -1,8 +1,8 @@
 /**
  * The repertoire opened: header, chapters in order, and the statistics
  * the shared deviation model can derive — outcome counts in the product
- * vocabulary, per-chapter adherence, the most frequent preparation gaps,
- * and what the book never even spoke to.
+ * vocabulary, per-chapter adherence, and what the book never even spoke
+ * to.
  *
  * All of it is read from judgment rows; nothing here replays a game or
  * re-derives a comparison. `/insights` interprets the same rows — the
@@ -17,7 +17,6 @@ import {
   getJudgmentRows,
   getRepertoireWithChapters,
   listUnmatchedGames,
-  topPreparationGaps,
 } from "@velachess/db";
 import { openingFamily } from "@velachess/platforms";
 import type { AdherenceMetrics } from "@velachess/repertoire";
@@ -53,19 +52,6 @@ const OUTCOME_OF_TYPE: Record<string, keyof OutcomeCounts> = {
   unmatched: "unmatched",
 };
 
-export interface PreparationGap {
-  /** EPD of the position you were still in book at. */
-  positionKey: string;
-  /** The uncovered opponent move. */
-  san: string;
-  /** How many games hit this exact gap. */
-  games: number;
-  /** 1-indexed ply of the uncovered move in the most recent occurrence. */
-  ply: number | null;
-  /** One game that hit it, so the gap can be opened as evidence. */
-  sampleGameId: string | null;
-}
-
 /**
  * A chapter row as the detail screen lists it — everything a row renders
  * and nothing it doesn't: no PGN (the tree ships on the chapter detail
@@ -98,8 +84,6 @@ export interface RepertoireStats {
   unmatchedGames: number;
   outcomes: OutcomeCounts;
   adherence: AdherenceMetrics | null;
-  /** Opponent moves preparation has no answer to, most frequent first. */
-  gaps: PreparationGap[];
   /** What the unmatched games opened as — the coverage worth adding next. */
   uncoveredOpenings: UncoveredOpening[];
 }
@@ -121,11 +105,10 @@ export async function getRepertoireDetail(
   const repertoire = await getRepertoireWithChapters(db, userId, repertoireId);
   if (!repertoire) return null;
 
-  const [byType, byChapterRows, gapRows, unmatched, judgmentRows, trainingRows] =
+  const [byType, byChapterRows, unmatched, judgmentRows, trainingRows] =
     await Promise.all([
       countJudgmentsByType(db, repertoireId),
       countJudgmentsByChapter(db, repertoireId),
-      topPreparationGaps(db, repertoireId),
       listUnmatchedGames(db, repertoireId),
       getJudgmentRows(db, repertoireId),
       countTrainingByChapter(db, userId, repertoireId),
@@ -192,13 +175,6 @@ export async function getRepertoireDetail(
       unmatchedGames: outcomes.unmatched,
       outcomes,
       adherence: judgmentRows.length === 0 ? null : adherenceMetrics(judgmentRows),
-      gaps: gapRows.map((row) => ({
-        positionKey: row.positionKey ?? "",
-        san: row.san ?? "",
-        games: row.games,
-        ply: row.ply,
-        sampleGameId: row.sampleGameId,
-      })),
       uncoveredOpenings,
     },
   };

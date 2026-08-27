@@ -47,10 +47,6 @@ msgstr ""
 msgid "{count, plural, one {# recall failure} other {# recall failures}}"
 msgstr ""
 
-#: src/repertoire/repertoire-detail.tsx:44
-msgid "{count, plural, one {in # game} other {in # games}}"
-msgstr ""
-
 #: src/repertoire/repertoire-detail.tsx:33
 msgid "{count} due"
 msgstr ""
@@ -854,10 +850,6 @@ msgstr ""
 msgid "Opponent"
 msgstr ""
 
-#: src/repertoire/repertoire-detail.tsx:43
-msgid "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-msgstr ""
-
 #: src/repertoire/chapter-study.tsx:69
 msgid "Opponent plays:"
 msgstr ""
@@ -911,10 +903,6 @@ msgstr ""
 
 #: src/settings/layout/navigation.ts:36
 msgid "Preferences"
-msgstr ""
-
-#: src/repertoire/repertoire-detail.tsx:42
-msgid "Prep gaps"
 msgstr ""
 
 #: src/repertoire/chapter-study.tsx:64
@@ -1019,10 +1007,6 @@ msgstr ""
 
 #: src/insights/finding-views.tsx:502
 msgid "Score"
-msgstr ""
-
-#: src/repertoire/repertoire-detail.tsx:45
-msgid "See a game"
 msgstr ""
 
 #: src/games/view-analysis/drill-cta.tsx:14

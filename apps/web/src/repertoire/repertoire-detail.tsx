@@ -39,10 +39,6 @@ const DETAIL_COPY = {
   chapterGaps: msg`{count, plural, one {# prep gap} other {# prep gaps}}`,
   emptyTitle: msg`No chapters yet`,
   emptyBody: msg`This repertoire is derived from your games. Sync a few more and its chapters appear here on their own.`,
-  gapsTitle: msg`Prep gaps`,
-  gapsBody: msg`Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter.`,
-  gapGames: msg`{count, plural, one {in # game} other {in # games}}`,
-  seeGame: msg`See a game`,
 } as const;
 
 export function RepertoireDetail() {
@@ -104,10 +100,6 @@ function RepertoireDetailContent({ repertoireId }: { repertoireId: string }) {
         </div>
 
         <ChapterList repertoireId={repertoire.id} chapters={repertoire.chapters} />
-
-        {repertoire.stats.gaps.length > 0 && (
-          <PreparationGaps gaps={repertoire.stats.gaps} />
-        )}
       </div>
     </>
   );
@@ -181,50 +173,6 @@ function ChapterListRow({
 
 /** The opponent-left loop's surface: what to prepare next, as a quiet
  * secondary list — never a move added automatically. */
-function PreparationGaps({
-  gaps,
-}: {
-  gaps: {
-    positionKey: string;
-    san: string;
-    games: number;
-    sampleGameId: string | null;
-  }[];
-}) {
-  const { i18n } = useLingui();
-
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-        {i18n._(DETAIL_COPY.gapsTitle)}
-      </h2>
-      <p className="text-muted-foreground text-sm">{i18n._(DETAIL_COPY.gapsBody)}</p>
-      <ul className="flex flex-col gap-1">
-        {gaps.map((gap) => (
-          <li
-            key={`${gap.positionKey}:${gap.san}`}
-            className="flex items-baseline gap-2 text-sm"
-          >
-            <code className="text-foreground">{gap.san}</code>
-            <span className="text-muted-foreground">
-              {i18n._({ ...DETAIL_COPY.gapGames, values: { count: gap.games } })}
-            </span>
-            {gap.sampleGameId !== null && (
-              <Link
-                to="/games/$gameId"
-                params={{ gameId: gap.sampleGameId }}
-                className="text-muted-foreground text-xs underline underline-offset-2"
-              >
-                {i18n._(DETAIL_COPY.seeGame)}
-              </Link>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 /**
  * What the book's title line says: how faithfully it was played once
  * games have been judged against it, and what it is before that.
