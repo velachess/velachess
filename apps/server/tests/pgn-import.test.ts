@@ -130,6 +130,12 @@ describe("POST /games/import", () => {
     expect((await owner.request("/games/import", json({ pgn: "" }))).status).toBe(400);
     expect((await owner.request("/games/import", json({}))).status).toBe(400);
   });
+
+  it("rejects a body exceeding the server's 256 KiB limit", async () => {
+    const owner = (await harness.signUp("pgn-oversized@api.test")).app;
+    const huge = "x".repeat(300 * 1024);
+    expect((await owner.request("/games/import", json({ pgn: huge }))).status).toBe(413);
+  });
 });
 
 describe("imported games join the existing flow", () => {

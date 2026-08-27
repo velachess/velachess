@@ -10,6 +10,22 @@ import { renderApp } from "../../../test/render.tsx";
  * opens a form, a receipt naming every pile, and rows that actually land
  * in the library underneath.
  */
+
+async function openDialog() {
+  const { user } = await renderApp();
+  await screen.findByText("gothamchess");
+
+  await user.click(screen.getByRole("button", { name: "Import PGN" }));
+  return user;
+}
+
+/** Pasted, not typed: user.type reads bracket notation as keystrokes. */
+const paste = (text: string) => {
+  fireEvent.change(screen.getByLabelText("Or paste the moves"), {
+    target: { value: text },
+  });
+};
+
 describe("pgn import", () => {
   beforeEach(() => {
     // One row already in the library, so every test opens from a rendered
@@ -17,21 +33,6 @@ describe("pgn import", () => {
     addGames(aGame());
     stagePgnImport({ incoming: [aGame({ source: "pgn", blackName: "from-the-file" })] });
   });
-
-  async function openDialog() {
-    const { user } = await renderApp();
-    await screen.findByText("gothamchess");
-
-    await user.click(screen.getByRole("button", { name: "Import PGN" }));
-    return user;
-  }
-
-  /** Pasted, not typed: user.type reads bracket notation as keystrokes. */
-  const paste = (text: string) => {
-    fireEvent.change(screen.getByLabelText("Or paste the moves"), {
-      target: { value: text },
-    });
-  };
 
   it("imports a pasted file and shows the new game in the library", async () => {
     const user = await openDialog();

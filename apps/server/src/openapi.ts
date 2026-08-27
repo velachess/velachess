@@ -333,7 +333,6 @@ export const openApiSpec = {
             properties: {
               pgn: {
                 type: "string",
-                maxLength: 2000000,
                 description: "One or more games in PGN format",
               },
               playerName: {
@@ -369,7 +368,11 @@ export const openApiSpec = {
               required: ["imported", "duplicates", "rejected", "judged", "seeded"],
             }),
           },
-          "400": { description: "Missing or oversized body", ...errorResponse },
+          "400": { description: "Missing or empty body", ...errorResponse },
+          "413": {
+            description: "Payload exceeds the 256 KiB server limit",
+            ...errorResponse,
+          },
         },
       },
     },

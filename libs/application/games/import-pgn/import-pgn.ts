@@ -18,10 +18,6 @@ import { ensureCandidateRepertoires } from "../../repertoires/extract-repertoire
 import { judgeGamesForUser } from "../judge-games/judge-games.ts";
 import { triageAndSeed } from "../../drills/seed-exercises/seed-exercises.ts";
 
-/** A single request body is not an archive: ~2MB of PGN is thousands of
- * games, far past anything one paste should carry. */
-export const MAX_PGN_LENGTH = 2_000_000;
-
 export interface ImportPgnInput {
   pgn: string;
   /**
@@ -62,24 +58,21 @@ export async function importPgnForUser(
   const result = importPgn(input.pgn, { playerName: input.playerName });
   const { inserted } = await saveGames(db, result.games, { userId });
 
-  let judged = 0;
-  let seeded = 0;
-  if (inserted > 0) {
-    // Same tail as a sync: derived repertoires grow first so the fresh
-    // book judges this pass, judging replays against it, seeding reads
-    // the judgments. All replay — nothing here costs Stockfish.
-    await ensureCandidateRepertoires(db, userId, { newGames: inserted });
-    const outcome = await judgeGamesForUser(db, userId, queue);
-    const triaged = await triageAndSeed(db, userId);
-    judged = outcome.judged;
-    seeded = triaged.seeded;
-  }
+  // Same tail as a sync: derived repertoires grow first so the fresh
+  // book judges this pass, judging replays against it, seeding reads
+  // the judgments. All replay — nothing here costs Stockfish.
+  //
+  // Runs unconditionally (not gated on inserted > 0) so that a retry
+  // after a partial failure still judges games the first pass missed.
+  await ensureCandidateRepertoires(db, userId, { newGames: inserted });
+  const outcome = await judgeGamesForUser(db, userId, queue);
+  const triaged = await triageAndSeed(db, userId);
 
   return {
     imported: inserted,
     duplicates: result.games.length - inserted,
     rejected: result.failures.length,
-    judged,
-    seeded,
+    judged: outcome.judged,
+    seeded: triaged.seeded,
   };
 }

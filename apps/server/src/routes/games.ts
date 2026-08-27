@@ -5,10 +5,7 @@ import { z } from "zod";
 import { drillSummaryFor } from "@velachess/application/analysis/get-analysis/drill-summary";
 import { getAnalysisReport } from "@velachess/application/analysis/get-analysis/get-analysis";
 import { requestAnalysis } from "@velachess/application/analysis/request-analysis/request-analysis";
-import {
-  MAX_PGN_LENGTH,
-  importPgnForUser,
-} from "@velachess/application/games/import-pgn/import-pgn";
+import { importPgnForUser } from "@velachess/application/games/import-pgn/import-pgn";
 import { judgeGamesForUser } from "@velachess/application/games/judge-games/judge-games";
 import { getGameForReview } from "@velachess/application/games/get-game/get-game";
 import { openLibrary } from "@velachess/application/games/list-games/list-games";
@@ -36,7 +33,7 @@ const libraryQuery = z.object({
  * still land, just unattributed and unjudgeable.
  */
 const importPgnSchema = z.object({
-  pgn: z.string().min(1).max(MAX_PGN_LENGTH),
+  pgn: z.string().min(1),
   playerName: z.string().min(1).max(128).optional(),
 });
 
