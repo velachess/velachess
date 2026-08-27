@@ -198,7 +198,7 @@ msgstr ""
 msgid "Backend unavailable · Retrying automatically"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:17
+#: src/games/analysis-read.ts:157
 msgid "Best"
 msgstr ""
 
@@ -227,7 +227,7 @@ msgstr ""
 msgid "Blitz"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:21
+#: src/games/analysis-read.ts:161
 msgid "Blunder"
 msgstr ""
 
@@ -481,7 +481,7 @@ msgstr ""
 msgid "Evaluation"
 msgstr ""
 
-#: src/games/view-analysis/eval-graph.tsx:10
+#: src/games/view-analysis/eval-graph.tsx:12
 msgid "Evaluation over the game"
 msgstr ""
 
@@ -556,7 +556,7 @@ msgstr ""
 msgid "Games pages"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:18
+#: src/games/analysis-read.ts:158
 msgid "Good"
 msgstr ""
 
@@ -621,7 +621,7 @@ msgstr ""
 msgid "In the game, you played"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:19
+#: src/games/analysis-read.ts:159
 msgid "Inaccuracy"
 msgstr ""
 
@@ -756,7 +756,7 @@ msgstr ""
 msgid "middlegame"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:20
+#: src/games/analysis-read.ts:160
 msgid "Mistake"
 msgstr ""
 
@@ -1197,7 +1197,7 @@ msgstr ""
 msgid "That username is too long"
 msgstr ""
 
-#: src/games/view-analysis/eval-graph.tsx:11
+#: src/games/view-analysis/eval-graph.tsx:13
 msgid "The curve appears as the analysis lands."
 msgstr ""
 

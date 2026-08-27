@@ -198,7 +198,7 @@ msgstr "Back to the start"
 msgid "Backend unavailable · Retrying automatically"
 msgstr "Backend unavailable · Retrying automatically"
 
-#: src/games/view-analysis/game-report.tsx:17
+#: src/games/analysis-read.ts:157
 msgid "Best"
 msgstr "Best"
 
@@ -227,7 +227,7 @@ msgstr "Black to move"
 msgid "Blitz"
 msgstr "Blitz"
 
-#: src/games/view-analysis/game-report.tsx:21
+#: src/games/analysis-read.ts:161
 msgid "Blunder"
 msgstr "Blunder"
 
@@ -481,7 +481,7 @@ msgstr "Enter your username"
 msgid "Evaluation"
 msgstr "Evaluation"
 
-#: src/games/view-analysis/eval-graph.tsx:10
+#: src/games/view-analysis/eval-graph.tsx:12
 msgid "Evaluation over the game"
 msgstr "Evaluation over the game"
 
@@ -556,7 +556,7 @@ msgstr "Games imported"
 msgid "Games pages"
 msgstr "Games pages"
 
-#: src/games/view-analysis/game-report.tsx:18
+#: src/games/analysis-read.ts:158
 msgid "Good"
 msgstr "Good"
 
@@ -621,7 +621,7 @@ msgstr "Importing…"
 msgid "In the game, you played"
 msgstr "In the game, you played"
 
-#: src/games/view-analysis/game-report.tsx:19
+#: src/games/analysis-read.ts:159
 msgid "Inaccuracy"
 msgstr "Inaccuracy"
 
@@ -756,7 +756,7 @@ msgstr "Manage your account and application preferences."
 msgid "middlegame"
 msgstr "middlegame"
 
-#: src/games/view-analysis/game-report.tsx:20
+#: src/games/analysis-read.ts:160
 msgid "Mistake"
 msgstr "Mistake"
 
@@ -1197,7 +1197,7 @@ msgstr "That doesn't look like an email address."
 msgid "That username is too long"
 msgstr "That username is too long"
 
-#: src/games/view-analysis/eval-graph.tsx:11
+#: src/games/view-analysis/eval-graph.tsx:13
 msgid "The curve appears as the analysis lands."
 msgstr "The curve appears as the analysis lands."
 

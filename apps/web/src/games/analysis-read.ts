@@ -1,4 +1,6 @@
 import { scoreToWinChance } from "@velachess/analysis/winchance";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type { MoveSquares } from "@velachess/chess";
 import { makeSan, parseUci, positionFromFen, squaresOfSan } from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
@@ -150,11 +152,24 @@ export function badgeForCategory(
   return { tone, label: glyphOf(category) ?? BEST_MOVE_GLYPH };
 }
 
+/** Translated category names for UI display. */
+export const CATEGORY_LABELS: Record<MoveCategory, MessageDescriptor> = {
+  best: msg`Best`,
+  good: msg`Good`,
+  inaccuracy: msg`Inaccuracy`,
+  mistake: msg`Mistake`,
+  blunder: msg`Blunder`,
+};
+
 export interface EvalPoint {
   ply: number;
   /** White's winning chances, 0–1. The graph's only vertical input. */
   winChance: number;
   category: MoveCategory;
+  /** The played move in SAN notation. */
+  san: string;
+  /** The evaluation after the move, from White's perspective. */
+  evalAfter: GradedPly["evalAfter"];
 }
 
 /** Delegates cp→win-chance to `@velachess/analysis`: an earlier local copy disagreed on mate handling. */
@@ -163,6 +178,8 @@ export function evalCurve(moves: GradedPly[]): EvalPoint[] {
     ply: move.ply,
     winChance: whiteShareOf(move.evalAfter),
     category: move.category,
+    san: move.san,
+    evalAfter: move.evalAfter,
   }));
 }
 
