@@ -6,7 +6,7 @@ import type { EvaluationPoint } from "@velachess/ui/charts/evaluation-chart";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 
 import type { EvalPoint } from "../analysis-read.ts";
-import { formatScore, moveNumberOf, sideOfPly } from "../analysis-read.ts";
+import { formatScore } from "../analysis-read.ts";
 
 const GRAPH_COPY = {
   title: msg`Evaluation over the game`,
@@ -55,9 +55,7 @@ export function EvalGraph({
         };
       }
 
-      const side = sideOfPly(point.ply);
-      const moveSuffix = side === "white" ? "." : "…";
-      const san = `${moveNumberOf(point.ply)}${moveSuffix} ${point.san ?? ""}`.trim();
+      const san = point.san ?? "";
 
       return {
         ply: point.ply,
