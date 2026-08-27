@@ -74,7 +74,7 @@ export function repertoiresRoutes(deps: ApiDeps) {
     .get("/:id", validateIdParam, async (c) => {
       // The repertoire opened: header, ordered chapters, and the
       // statistics the shared judgment rows derive — outcomes, adherence,
-      // per-chapter rates, preparation gaps, uncovered openings. Chapter
+      // per-chapter rates, uncovered openings. Chapter
       // *content* (tree, board data) stays on the chapter detail route.
       const repertoire = await getRepertoireDetail(
         deps.db,

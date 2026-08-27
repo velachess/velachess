@@ -5,7 +5,7 @@
  * it fetches.
  */
 
-import { and, count, desc, eq, max, notExists, sql } from "drizzle-orm";
+import { and, count, eq, notExists, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { deviations, games, repertoireChapters } from "../schema.ts";
@@ -40,32 +40,6 @@ export async function countJudgmentsByChapter(db: Database, repertoireId: string
       deviations.chapterNameSnapshot,
       deviations.type,
     );
-}
-
-/**
- * The opponent moves preparation has no answer to, most frequent first.
- * Grouped on the position AND the move — the same uncovered reply in two
- * games is one gap with two occurrences, which is what makes it worth
- * preparing. A sample game rides along so the gap can be opened.
- */
-export async function topPreparationGaps(db: Database, repertoireId: string, limit = 10) {
-  return db
-    .select({
-      positionKey: deviations.positionKey,
-      san: deviations.playedSan,
-      ply: max(deviations.ply),
-      games: count(),
-      // Not max(): Postgres has no max(uuid). The most recent occurrence
-      // is the sample worth opening anyway.
-      sampleGameId: sql<
-        string | null
-      >`(array_agg(${deviations.gameId} order by ${deviations.createdAt} desc))[1]`,
-    })
-    .from(deviations)
-    .where(and(eq(deviations.repertoireId, repertoireId), eq(deviations.type, "gap")))
-    .groupBy(deviations.positionKey, deviations.playedSan)
-    .orderBy(desc(count()), deviations.positionKey)
-    .limit(limit);
 }
 
 /**

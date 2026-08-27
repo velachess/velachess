@@ -404,6 +404,10 @@ msgstr "Dashboard"
 msgid "Date"
 msgstr "Date"
 
+#: src/dashboard/dashboard.tsx:24
+msgid "Deviations"
+msgstr "Deviations"
+
 #: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:41
 #: src/games/open-game/game-result.tsx:11
@@ -756,10 +760,6 @@ msgstr "middlegame"
 msgid "Mistake"
 msgstr "Mistake"
 
-#: src/dashboard/dashboard.tsx:24
-msgid "Mistakes"
-msgstr "Mistakes"
-
 #: src/insights/finding-views.tsx:368
 msgid "Mistakes keep landing in your {phase}"
 msgstr "Mistakes keep landing in your {phase}"
@@ -899,10 +899,6 @@ msgstr "Openings"
 msgid "Opponent"
 msgstr "Opponent"
 
-#: src/repertoire/repertoire-detail.tsx:43
-msgid "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-msgstr "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-
 #: src/repertoire/chapter-study.tsx:69
 msgid "Opponent plays:"
 msgstr "Opponent plays:"
@@ -969,10 +965,6 @@ msgstr "Practice repertoire"
 #: src/settings/layout/navigation.ts:36
 msgid "Preferences"
 msgstr "Preferences"
-
-#: src/repertoire/repertoire-detail.tsx:42
-msgid "Prep gaps"
-msgstr "Prep gaps"
 
 #: src/repertoire/chapter-study.tsx:64
 msgid "Prepared move"
@@ -1077,10 +1069,6 @@ msgstr "Saving…"
 #: src/insights/finding-views.tsx:502
 msgid "Score"
 msgstr "Score"
-
-#: src/repertoire/repertoire-detail.tsx:45
-msgid "See a game"
-msgstr "See a game"
 
 #: src/games/view-analysis/drill-cta.tsx:14
 msgid "See your patterns"

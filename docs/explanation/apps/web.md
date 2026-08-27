@@ -44,14 +44,15 @@ shell decides where that content goes.
 
 Data keeps the domain's name; screens are named after the user's job.
 
-| The API says   | The person sees | Why                                                                                 |
-| -------------- | --------------- | ----------------------------------------------------------------------------------- |
-| `deviation`    | Mistakes        | Nobody opens an app to see deviations. `deviation` is _how_ we detect it.           |
-| `review` (SRS) | Drill           | In chess products "Game Review" means analyzing a game — the collision is real.     |
-| `repertoire`   | Repertoire      | Same word on both sides, and that's fine: it's a word players use, not a mechanism. |
+| The API says   | The person sees             | Why                                                                                        |
+| -------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| `deviation`    | Deviations on the dashboard | The overview names this exact repertoire count; task-focused flows can still say Mistakes. |
+| `review` (SRS) | Drill                       | In chess products "Game Review" means analyzing a game — the collision is real.            |
+| `repertoire`   | Repertoire                  | Same word on both sides, and that's fine: it's a word players use, not a mechanism.        |
 
 The rule is not "always differ" — it is "don't ship the mechanism's word
-to the user". The mapping happens once, at the edge, inside the slice.
+to the user unless the screen names that exact metric". The mapping happens
+once, at the edge, inside the slice.
 
 ## State: four owners, no overlap
 

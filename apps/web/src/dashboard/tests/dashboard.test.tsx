@@ -21,6 +21,7 @@ describe("dashboard", () => {
     await renderApp({ path: "/" });
 
     expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Deviations")).toBeInTheDocument();
     expect(screen.getByText("14")).toBeInTheDocument();
     expect(screen.getAllByText("0")).toHaveLength(3);
   });

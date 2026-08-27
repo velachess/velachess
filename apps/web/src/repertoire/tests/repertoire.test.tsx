@@ -133,15 +133,6 @@ describe("the repertoire detail", () => {
     expect(screen.getByText("5 to practice")).toHaveAttribute("data-variant", "info");
   });
 
-  it("keeps the opponent-left loop visible as prep gaps", async () => {
-    await renderApp({ path: `/repertoire/${WHITE_REPERTOIRE_ID}` });
-
-    expect(await screen.findByText("Prep gaps")).toBeInTheDocument();
-    expect(screen.getByText("c5")).toBeInTheDocument();
-    expect(screen.getByText("in 2 games")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See a game" })).toBeInTheDocument();
-  });
-
   it("offers no way to write a line by hand", async () => {
     await renderApp({ path: `/repertoire/${WHITE_REPERTOIRE_ID}` });
     await screen.findByText("French Defense");

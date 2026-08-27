@@ -744,11 +744,6 @@ describe("the repertoire → deviations → training loop", () => {
     expect(detail!.stats.matchedGames).toBe(3);
     expect(detail!.stats.unmatchedGames).toBe(1);
 
-    // The gap names the exact uncovered move and links a game as evidence.
-    expect(detail!.stats.gaps).toHaveLength(1);
-    expect(detail!.stats.gaps[0]).toMatchObject({ san: "c5", games: 1 });
-    expect(detail!.stats.gaps[0]!.sampleGameId).toBeTruthy();
-
     // The unmatched game opened as a French — the coverage worth adding.
     expect(detail!.stats.uncoveredOpenings).toEqual([
       { opening: "French Defense", games: 1 },

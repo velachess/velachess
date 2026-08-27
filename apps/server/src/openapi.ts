@@ -726,7 +726,7 @@ export const openApiSpec = {
       get: {
         summary: "A repertoire with its chapters and statistics",
         description:
-          "Header, ordered chapters (name, pgn, order — the tree ships on the chapter detail route), and the statistics the shared judgment rows derive: one of five mutually exclusive outcomes per judged game (held, playerLeft, opponentLeft, repertoireEnded, unmatched), adherence, per-chapter rates, the most frequent preparation gaps, and what the unmatched games opened as.",
+          "Header, ordered chapters (name, pgn, order — the tree ships on the chapter detail route), and the statistics the shared judgment rows derive: one of five mutually exclusive outcomes per judged game (held, playerLeft, opponentLeft, repertoireEnded, unmatched), adherence, per-chapter rates, and what the unmatched games opened as.",
         parameters: [
           {
             name: "id",
@@ -799,25 +799,6 @@ export const openApiSpec = {
                       ],
                     },
                     adherence: { type: "object", nullable: true },
-                    gaps: {
-                      type: "array",
-                      description:
-                        "Opponent moves preparation has no answer to, most frequent first — each with a sample game as evidence. Adding a chapter that covers one is the loop closing; nothing is ever added automatically.",
-                      items: {
-                        type: "object",
-                        properties: {
-                          positionKey: { type: "string" },
-                          san: { type: "string" },
-                          games: { type: "integer" },
-                          ply: { type: "integer", nullable: true },
-                          sampleGameId: {
-                            type: "string",
-                            format: "uuid",
-                            nullable: true,
-                          },
-                        },
-                      },
-                    },
                     uncoveredOpenings: {
                       type: "array",
                       description:
@@ -836,7 +817,6 @@ export const openApiSpec = {
                     "unmatchedGames",
                     "outcomes",
                     "adherence",
-                    "gaps",
                     "uncoveredOpenings",
                   ],
                 },
