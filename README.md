@@ -66,14 +66,6 @@ conventions, and contribution guidelines.
 Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) instead of
 opening a public issue.
 
-## All Contributors
-
-Thanks to everyone who helps make VelaChess better.
-
-<a href="https://github.com/velachess/velachess/graphs/contributors">
- <img src="https://stg.contrib.rocks/image?repo=velachess/velachess&columns=8" alt="VelaChess contributors">
-</a>
-
 ## License
 
 See the [LICENSE](./LICENSE) file for licensing information.
