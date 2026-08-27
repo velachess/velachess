@@ -21,7 +21,7 @@
 ## How it works
 
 ```text
-Chess.com / Lichess games
+Chess.com / Lichess games / PGN Import 
   ├─→ Repertoire → decision positions and deviations ───────────────┐
   └─→ Open a game → Stockfish (on demand) → engine-flagged mistakes ┤
                                                                     ↓
