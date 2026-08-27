@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+// react-doctor-disable-next-line react-doctor/prefer-dynamic-import
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { cn } from "../lib/utils.ts";
