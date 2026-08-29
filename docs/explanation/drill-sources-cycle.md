@@ -421,8 +421,8 @@ Three words, each with a job:
 | ~~drill~~  | nothing. It goes.                                  |
 
 `review` was already reserved by an earlier decision — it is `ts-fsrs`'s term of
-art, with a rule in `__tests__/architecture.test.ts`. A sibling rule joins it:
-`drill` as a noun fails the build, the way `Analysed` and `Review*` already do.
+art. The product vocabulary keeps that distinction instead of introducing a
+third synonym.
 
 ## 2.1 · `/mistakes` dies; `/overview` and `/insights` split
 

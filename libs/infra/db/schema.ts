@@ -16,6 +16,7 @@ import {
 } from "@velachess/platforms/schema";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -162,6 +163,45 @@ export const verifications = pgTable(
 );
 
 /**
+ * Better Auth's own rate-limit store, for `rateLimit.storage: "database"`.
+ *
+ * The shape is not ours to choose — it is what @better-auth/core declares in
+ * `db/get-tables.mjs` for the `rateLimit` model: `key` (unique string),
+ * `count` (number) and `lastRequest` (number, **bigint**, epoch millis, not a
+ * timestamp). Getting the type wrong here fails at runtime, inside the
+ * library, on the first throttled request — so it is written to match rather
+ * than to look like the rest of this file.
+ *
+ * One row per key, updated in place: Better Auth also prunes it itself
+ * (`deleteExpiredRows` inside its `consume`), so nothing here needs a
+ * cleanup job.
+ */
+export const authRateLimits = pgTable("auth_rate_limits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
+
+/**
+ * The API's own rate limiter — separate from Better Auth's on purpose.
+ *
+ * Better Auth owns `/auth/*` and throttles it with its own table above;
+ * this one covers the authenticated application routes, keyed by user.
+ * Same storage shape deliberately: one row per key, updated in place, so
+ * the row count is bounded by users rather than by elapsed time and there
+ * is nothing to prune.
+ *
+ * `lastRequest` here IS a timestamp, unlike Better Auth's — this table is
+ * ours, and Postgres comparing intervals beats comparing epoch integers.
+ */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  lastRequest: timestamp("last_request", { withTimezone: true }).notNull(),
+});
+
+/**
  * A chess.com or Lichess handle this user follows.
  *
  * `user_id` is part of the unique key and NOT NULL, which is the whole
@@ -190,16 +230,6 @@ export const trackedAccounts = pgTable(
      * documentation of what can actually land in this column. */
     syncCursor: jsonb("sync_cursor").$type<ChessComCursor | LichessCursor>(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
-    /** Provider identity, read at connect time and then left alone:
-     * profiles change rarely and games every session, so re-reading one
-     * per sync would spend a request on nothing. Null until the first
-     * successful read; the UI falls back to initials meanwhile, and a
-     * refetch that comes back empty never erases what is here. */
-    avatarUrl: text("avatar_url"),
-    /** Lichess only — an asset id like `people.santa-claus`, not a URL.
-     * Kept apart from `avatar_url`: it decorates the name, it is not a
-     * face. */
-    flair: text("flair"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -212,13 +242,56 @@ export const trackedAccounts = pgTable(
   ],
 );
 
+/**
+ * Public provider metadata for ANY player — the picture and flag beside a
+ * name — cached under the handle itself, not under whoever happens to be
+ * connected to it. Tracked accounts own a sync cursor; this owns an
+ * identity. The two concerns stay apart: an opponent never becomes a row
+ * here because someone tracked them, and two users reviewing games
+ * against the same opponent share one cache entry and one refresh budget.
+ *
+ * Keyed `(platform, username)` globally — unlike `tracked_accounts`, there
+ * is no per-user ownership: usernames are public and the metadata is too.
+ */
+export const providerProfiles = pgTable(
+  "provider_profiles",
+  {
+    platform: platformEnum("platform").notNull(),
+    // Lowercase, like tracked_accounts.username — both providers'
+    // usernames are case-insensitive and the key must not fork on case.
+    username: text("username").notNull(),
+    avatarUrl: text("avatar_url"),
+    /** Lichess only — an asset id like `people.santa-claus`, not a URL.
+     * Kept apart from `avatar_url`: it decorates the name, it is not a
+     * face. */
+    flair: text("flair"),
+    /** Last time we asked the provider about this handle — stamped on
+     * every attempt, successful or not, so a dead endpoint is retried at
+     * the refresh cadence rather than on every game open. */
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("provider_profiles_platform_username").on(table.platform, table.username),
+  ],
+);
+
 export const games = pgTable(
   "games",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * The owner. Direct, not inferred through a tracked account: a PGN
+     * upload has no account to hang ownership from, and every read would
+     * otherwise need an inner join that silently drops it. `account_id`
+     * stays as provenance only — which connected handle produced the row.
+     */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     source: gameSourceEnum("source").notNull(),
     externalId: text("external_id"),
     externalUrl: text("external_url"),
+    /** Provider provenance — null for manually imported PGNs. */
     accountId: uuid("account_id").references(() => trackedAccounts.id, {
       onDelete: "set null",
     }),
@@ -245,18 +318,26 @@ export const games = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("games_source_external_id")
-      .on(table.source, table.externalId)
+    // One platform game is one row per account: each account owns a
+    // complete, independent copy of whatever it imports, and external-id
+    // dedup never crosses two accounts — even two tracking the same real
+    // provider handle.
+    uniqueIndex("games_account_source_external_id")
+      .on(table.accountId, table.source, table.externalId)
       .where(sql`${table.externalId} is not null`),
-    // One game = one row, keyed by whoever imports first. A game_accounts
-    // join table is the upgrade path if tracking both sides of the same
-    // game ever becomes real.
-    unique("games_account_movetext")
-      .on(table.accountId, table.movetextHash)
+    // Movetext dedup is user-scoped. `nullsNotDistinct` makes a NULL
+    // account_id equal to itself within the composite: two pasted PGNs of
+    // one user with the same moves collapse to a no-op (the re-import is
+    // idempotent), while another user importing the very same file keeps
+    // their own row — ownership is per user, not global.
+    unique("games_user_account_movetext")
+      .on(table.userId, table.accountId, table.movetextHash)
       .nullsNotDistinct(),
+    // The unified library read: every game the user owns, newest first.
+    index("games_user_played_at").on(table.userId, table.playedAt.desc()),
     // Doubles as the account_id FK index — a composite index also serves
     // lookups/joins on just its leftmost column, so this covers both the
-    // game-list query and the account_id FK, no separate index needed.
+    // account-scoped game-list query and the account_id FK.
     index("games_account_played_at").on(table.accountId, table.playedAt.desc()),
   ],
 );

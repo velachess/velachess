@@ -1,0 +1,73 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category for substantial changes that benefit from design discussion before implementation.
+
+        Explain the problem, current behavior, proposed direction, and relevant examples as clearly as possible.
+
+        Use Ideas for early suggestions and Issues for concrete implementation work.
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - Draft
+        - Ready for review
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the topic or proposed change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Explain the problem, limitation, or reason this needs discussion.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: When relevant, explain how VelaChess works today and link to canonical documentation or code.
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the proposed direction or what should be reconsidered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Add useful chess positions, flows, screenshots, APIs, concrete cases, or counterexamples.
+
+  - type: textarea
+    id: trade-offs
+    attributes:
+      label: Trade-offs
+      description: Describe benefits, complexity, risks, compatibility, migration, and maintenance impact.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe other approaches considered.
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open questions
+      description: List questions that still require feedback or a decision.

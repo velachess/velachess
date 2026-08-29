@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import { isRateLimitedError } from "../../shared/api/errors.ts";
 import { useQuery, useQueryClient } from "../../shared/libs/query/index.ts";
 import {
   analysisKey,
@@ -30,6 +31,9 @@ export interface Analysis {
   /** The run is open. `isFetching`, never `isPending`: `streamedQuery` writes each chunk via `setQueryData`, so success fires after the first graded move. */
   isAnalyzing: boolean;
   analysisFailed: boolean;
+  /** Set when the failure was the rate limit refusing the run — the one
+   * failure that is not a failure, just a wait. Null for every other. */
+  analysisRetryAfterSeconds: number | null;
 }
 
 export function useAnalysis(
@@ -74,5 +78,8 @@ export function useAnalysis(
     drills: drills.data ?? undefined,
     isAnalyzing: analysis.isFetching,
     analysisFailed: analysis.isError,
+    analysisRetryAfterSeconds: isRateLimitedError(analysis.error)
+      ? (analysis.error.retryAfterSeconds ?? 60)
+      : null,
   };
 }

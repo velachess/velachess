@@ -67,7 +67,7 @@ Pure units: the vocabulary card lifecycle (new → learning → review,
 `again` → relearning + lapse), due dates only moving forward,
 `previewIntervals` ordered easy ≥ good ≥ hard without mutating input,
 `effectiveStatus` clock cases, forecast bucketing, and the persistence
-round-trip. The e2e in `libs/infra/db/__tests__/scheduler-flow.test.ts` chains
+round-trip. The e2e in `libs/infra/db/tests/scheduler-flow.test.ts` chains
 cycles 0→3 into this one: real exercise → graded answers → persisted
 reviews → due queue → forecast.
 

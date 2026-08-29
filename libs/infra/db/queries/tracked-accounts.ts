@@ -13,26 +13,20 @@ type Cursor = ChessComCursor | LichessCursor;
  * platform+username was globally unique with a separate ownership
  * UPDATE, which let an import silently steal another user's archive.
  *
- * `profile` rides along when given, but a field the provider did not
- * return leaves the stored value alone: a refetch that comes back empty
- * (provider hiccup, avatar removed and re-added tomorrow) must not erase
- * an identity that was already read. Omitting the key on conflict does
- * exactly that.
+ * Identity does not live here: provider metadata is public and shared,
+ * so it is cached once per handle in `provider_profiles` (see
+ * provider-profiles.ts), not per connection.
  */
 export async function upsertTrackedAccount(
   db: Database,
   userId: string,
   platform: Platform,
   username: string,
-  profile: { avatarUrl: string | null; flair: string | null } = {
-    avatarUrl: null,
-    flair: null,
-  },
 ) {
   const normalized = username.toLowerCase();
   const [account] = await db
     .insert(trackedAccounts)
-    .values({ userId, platform, username: normalized, ...profile })
+    .values({ userId, platform, username: normalized })
     .onConflictDoUpdate({
       target: [
         trackedAccounts.userId,
@@ -41,8 +35,6 @@ export async function upsertTrackedAccount(
       ],
       set: {
         username: normalized,
-        ...(profile.avatarUrl !== null ? { avatarUrl: profile.avatarUrl } : {}),
-        ...(profile.flair !== null ? { flair: profile.flair } : {}),
       },
     })
     .returning();

@@ -5,7 +5,9 @@ node_modules/
 *.log
 .DS_Store
 coverage/
-.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/*
 .vscode/
 next-env.d.ts
 *.tsbuildinfo
@@ -19,7 +21,7 @@ dist/
 .next/
 .turbo/
 apps/site/out/
-apps/web/.playwright/
+.playwright/
 apps/site/.lighthouseci/
 apps/site/src/locales/*/messages.ts
 

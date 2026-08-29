@@ -1,6 +1,6 @@
 # @velachess/test-utils
 
-The shared test harness package. It provides PGlite database setup, queue
+The shared test harness library. It provides PGlite database setup, queue
 startup, Stockfish sessions, fixture fetchers, and polling helpers for tests;
 production code must not import it, and pure fixture data belongs in
 `@velachess/fixtures`.
@@ -15,8 +15,8 @@ production code must not import it, and pure fixture data belongs in
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Package lint: `pnpm --filter @velachess/test-utils lint`
-- Package format check: `pnpm --filter @velachess/test-utils fmt:check`
+- Workspace lint: `pnpm --filter @velachess/test-utils lint`
+- Workspace format check: `pnpm --filter @velachess/test-utils fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation

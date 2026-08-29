@@ -1,5 +1,5 @@
 /**
- * The interfaces packages/application consumes. Queue lifecycle concepts
+ * The interfaces `libs/application` consumes. Queue lifecycle concepts
  * (retries, DLQ, claims) never cross this boundary — application sees
  * enqueue and a coarse state, nothing else.
  */

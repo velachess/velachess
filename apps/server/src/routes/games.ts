@@ -5,16 +5,37 @@ import { z } from "zod";
 import { drillSummaryFor } from "@velachess/application/analysis/get-analysis/drill-summary";
 import { getAnalysisReport } from "@velachess/application/analysis/get-analysis/get-analysis";
 import { requestAnalysis } from "@velachess/application/analysis/request-analysis/request-analysis";
+import { importPgnForUser } from "@velachess/application/games/import-pgn/import-pgn";
 import { judgeGamesForUser } from "@velachess/application/games/judge-games/judge-games";
-import { openArchive } from "@velachess/application/games/list-games/list-games";
+import { getGameForReview } from "@velachess/application/games/get-game/get-game";
+import { openLibrary } from "@velachess/application/games/list-games/list-games";
 import { getGameForUser } from "@velachess/db";
 
 import type { ApiEnv } from "../server.ts";
 import type { ApiDeps } from "../deps.ts";
-import { validateIdParam, validateQuery } from "../validation.ts";
+import { validateIdParam, validateJson, validateQuery } from "../validation.ts";
 
 /** The largest page worth answering in one round trip. */
 const MAX_PAGE_SIZE = 100;
+
+const libraryQuery = z.object({
+  color: z.enum(["white", "black"]).optional(),
+  outcome: z.enum(["win", "loss", "draw"]).optional(),
+  verdict: z.enum(["deviation", "gap", "book-ended", "completed", "unjudged"]).optional(),
+  timeClass: z.enum(["bullet", "blitz", "rapid", "classical"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
+});
+
+/**
+ * The name is what the PGN headers call them — the one identity a
+ * hand-written file can carry. Optional at the API: without it games
+ * still land, just unattributed and unjudgeable.
+ */
+const importPgnSchema = z.object({
+  pgn: z.string().min(1),
+  playerName: z.string().min(1).max(128).optional(),
+});
 
 /** Namespaced, past-tense event names — plain `error` would collide with EventSource's own transport-failure event. */
 const STREAM_EVENTS = {
@@ -50,32 +71,33 @@ function watchDeadline() {
   return WATCH_DEADLINE_MS * (0.9 + Math.random() * 0.2);
 }
 
-const archiveQuery = z.object({
-  platform: z.enum(["chess_com", "lichess"]),
-  username: z.string().min(1).max(64),
-  color: z.enum(["white", "black"]).optional(),
-  outcome: z.enum(["win", "loss", "draw"]).optional(),
-  verdict: z.enum(["deviation", "gap", "book-ended", "completed", "unjudged"]).optional(),
-  timeClass: z.enum(["bullet", "blitz", "rapid", "classical"]).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
-});
-
 export function gamesRoutes(deps: ApiDeps) {
   return (
     new Hono<ApiEnv>()
-      // A read, and nothing but a read. Importing moved to POST /accounts —
-      // this used to upsert the account and seize its ownership on every
-      // GET, which is how browsing transferred archives between users.
-      // An untracked handle is a 404 the client turns into "import it".
-      .get("/", validateQuery(archiveQuery), async (c) => {
-        const { platform, username, page, pageSize, ...filters } = c.req.valid("query");
-        const archive = await openArchive(deps.db, c.get("userId"), platform, username, {
+      // The user's unified library — synced accounts and manual PGN
+      // imports together, ownership read straight off the row. A pure
+      // read: connecting a provider is POST /accounts, importing a file
+      // is POST /games/import; neither ever happens on a GET.
+      .get("/", validateQuery(libraryQuery), async (c) => {
+        const { page, pageSize, ...filters } = c.req.valid("query");
+        const library = await openLibrary(deps.db, c.get("userId"), {
           filters,
           page: { page, pageSize },
         });
-        if (!archive) return c.json({ error: "archive not found" }, 404);
-        return c.json(archive);
+        return c.json(library);
+      })
+      // Manual PGN upload: no account, no cursor, no sync lifecycle —
+      // and no engine. The slice persists with conflict-ignore (re-import
+      // of the same file is a counted no-op) and runs the same
+      // extract → judge → seed tail a sync runs.
+      .post("/import", validateJson(importPgnSchema), async (c) => {
+        const outcome = await importPgnForUser(
+          deps.db,
+          c.get("userId"),
+          deps.analysisQueue,
+          c.req.valid("json"),
+        );
+        return c.json(outcome);
       })
       .post("/judge", async (c) => {
         const outcome = await judgeGamesForUser(
@@ -87,12 +109,15 @@ export function gamesRoutes(deps: ApiDeps) {
       })
       .get("/:id", validateIdParam, async (c) => {
         // The full game, rawPgn included — board replay needs the movetext.
+        // Seat identities ride along, resolved from the profile cache; a
+        // cold opponent costs one provider read on the first open only.
         // Scoped by owner: a stranger's game id and a missing one are the
         // same 404, so the route never confirms which uuids exist.
-        const game = await getGameForUser(
+        const game = await getGameForReview(
           deps.db,
           c.get("userId"),
           c.req.valid("param").id,
+          deps.sync,
         );
         if (!game) return c.json({ error: "game not found" }, 404);
         return c.json(game);

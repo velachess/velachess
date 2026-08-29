@@ -77,7 +77,7 @@ exists separately, and which decisions inside it are deliberate. This is
 where a future reader — human or agent — learns not to "fix" something
 on purpose.
 
-**7. Tests beside the code**, in `packages/<name>/__tests__/`. They run
+**7. Tests beside the code**, in `packages/<name>/tests/`. They run
 in the package's own project (step 4a) automatically.
 
 ## Dependency direction
@@ -86,10 +86,10 @@ in the package's own project (step 4a) automatically.
 apps/server, apps/worker → libs/application → domain packages + ports
 ```
 
-Application never imports pg-boss directly — only the `AnalysisQueue` /
-`SyncQueue` ports. `db` never imports `application`. A new package that
-needs to break this is a design question, not a config one: see
-`.agents/agents/architect.md`.
+Application never imports pg-boss directly — only the queue ports. `db` never
+imports `application`. A new package that needs to break this is a design
+question, not a config one: use the `architecture-review` skill before adding
+it.
 
 ## After
 

@@ -2,6 +2,7 @@
   "name": "velachess",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Open-source, evidence-grounded post-game chess review and coaching platform.",
   "license": "GPL-3.0-or-later",
   "repository": {
@@ -31,19 +32,22 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "knip": "knip",
-    "check": "pnpm typecheck && pnpm lint && pnpm knip",
+    "architecture": "dependency-cruise $(find apps/server apps/worker apps/web/src apps/site/src libs/application libs/infra libs/chess libs/repertoire libs/analysis libs/scheduler libs/ui/src \\( -name '*.ts' -o -name '*.tsx' \\) -not -path '*/node_modules/*')",
+    "check": "pnpm typecheck && pnpm lint && pnpm architecture && pnpm knip",
     "test:root": "vitest run --project root",
     "test": "turbo run test test:root",
     "test:watch": "vitest",
-    "test:e2e": "vitest run --project e2e",
-    "site:capture": "pnpm --filter @velachess/web capture:site",
+    "e2e": "vitest run --project e2e",
+    "site:capture": "playwright test --project site-capture",
     "site:lighthouse": "pnpm --filter @velachess/site lighthouse",
     "site:quality": "pnpm --filter @velachess/site build && pnpm --filter @velachess/site test && pnpm site:lighthouse"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
+    "@playwright/test": "1.62.1",
     "@types/node": "^26.2.0",
+    "dependency-cruiser": "^18.2.0",
     "jsdom": "^30.0.1",
     "knip": "^6.32.2",
     "lefthook": "^2.1.10",
@@ -58,6 +62,13 @@
   },
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
+    "packageExtensions": {
+      "dependency-cruiser@18.2.0": {
+        "dependencies": {
+          "typescript": "6.0.3"
+        }
+      }
+    },
     "overrides": {
       "@lhci/cli>lighthouse": "13.4.1",
       "@lhci/utils>lighthouse": "13.4.1",

@@ -25,8 +25,10 @@ export default defineConfig({
     // a container (VS Code's Dev Container port forwarding needs a real
     // listening interface, not the container's internal loopback).
     host: true,
-    // The API has no CORS middleware by design — the browser only ever talks
-    // to this origin, and /api is rewritten onto the API in dev.
+    // The browser only ever talks to this origin; /api is rewritten onto
+    // the API in dev. The Google OAuth return leg lands here too — the
+    // provider is configured with an explicit redirectURI under /api
+    // (libs/infra/auth/auth.ts), so it needs no second proxy rule.
     proxy: {
       "/api": {
         target: API_TARGET,

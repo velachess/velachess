@@ -1,17 +1,17 @@
 # Agent Guide — `libs/infra/auth`
 
-Extends `../../../AGENTS.md`. Read that first; this file only states what's
-different or additional for this package.
+Extends `../AGENTS.md`, which extends the repository guide. This file only
+states what is different or additional for the authentication library.
 
 ## Purpose
 
 Owns Better Auth config, session bootstrap, and process-scoped auth
 instance construction. Authorization ("may this user touch this game")
 lives in `libs/application`/`libs/infra/db`, not here —
-`__tests__/architecture.test.ts` enforces the direction. No dedicated
-`docs/explanation` page exists; this file is the source for this
-package's conventions, and `auth.ts` itself is densely comment-annotated
-— read it before restating anything from it elsewhere.
+`.dependency-cruiser.cjs` enforces the direction. No dedicated
+`docs/explanation` page exists; this file is the source for this library's
+durable conventions. Verify the live config and its tests before changing a
+current Better Auth option.
 
 ## Better Auth wiring — non-obvious, don't change without reading the why
 
@@ -24,7 +24,7 @@ package's conventions, and `auth.ts` itself is densely comment-annotated
   signup-enabled instance never mounted on HTTP (`apps/server/src/main.ts`).
   Don't flip the default.
 - `generateId: "uuid"` — matches `users.id`'s column type in the Drizzle
-  schema. Changing it breaks the schema contract, not just this package.
+  schema. Changing it breaks the schema contract, not just this library.
 - `modelName`/`fields` on each model (`users`, `sessions`, `authAccounts`,
   `verifications`) remap Better Auth's own table/column names onto this
   schema's existing ones — Better Auth's defaults don't match `libs/infra/db`'s
@@ -33,5 +33,5 @@ package's conventions, and `auth.ts` itself is densely comment-annotated
   `true`/`false`; it's threaded from the caller so only local dev can pass
   `false`. Never weaken it in a production code path.
 - One `Auth` instance per process, built from injected deps
-  (`AuthConfig`), never from ambient env reads inside this package — env
+  (`AuthConfig`), never from ambient env reads inside this library — env
   resolution belongs to the composition root (`apps/server`).

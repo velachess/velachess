@@ -57,7 +57,7 @@ The copied file points the application at the development database and includes
 credentials for the first local user. `.env` is ignored by Git.
 
 For this local tutorial, keep the supplied values. Deployment configuration has
-a different security lifecycle; follow [Self-host VelaChess](../docs/how-to/self-host.md)
+a different security lifecycle; follow [Self-host VelaChess](../how-to/self-host.md)
 when you need a persistent installation.
 
 ## 4. Start PostgreSQL
@@ -154,7 +154,7 @@ You now have evidence that the main services are working:
 - The web application opens and accepts the local bootstrap credentials.
 
 For other ways to run the processes, including the Dev Container, see
-[Run VelaChess locally](../docs/how-to/run-locally.md).
+[Run VelaChess locally](../how-to/run-locally.md).
 
 ## What you just did
 
@@ -164,7 +164,7 @@ and verified that the development environment works.
 
 Continue with:
 
-- [Repository layout](../docs/reference/repository-layout.md)
-- [Architecture](../docs/explanation/architecture.md)
-- [Verify a change](../docs/how-to/verify-a-change.md)
-- [Contribution workflow](../CONTRIBUTING.md)
+- [Repository layout](../reference/repository-layout.md)
+- [Architecture](../explanation/architecture.md)
+- [Verify a change](../how-to/verify-a-change.md)
+- [Contribution workflow](../../CONTRIBUTING.md)

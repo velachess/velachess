@@ -13,199 +13,207 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/landing/landing-page.tsx:95
+#: src/landing/landing-page.tsx:97
 msgid "© VelaChess. Open-source chess training."
 msgstr "© VelaChess. Open-source chess training."
 
-#: src/landing/landing-page.tsx:72
+#: src/landing/landing-page.tsx:74
 msgid "Analyze"
 msgstr "Analyze"
 
-#: src/landing/landing-header.tsx:21
+#: src/landing/landing-header.tsx:17
 msgid "Close navigation"
 msgstr "Close navigation"
 
-#: src/landing/landing-page.tsx:91
+#: src/landing/landing-page.tsx:93
 msgid "Connect an account and turn your next mistake into a position you will remember."
 msgstr "Connect an account and turn your next mistake into a position you will remember."
 
-#: src/landing/landing-page.tsx:71
+#: src/landing/landing-page.tsx:73
 msgid "Connect Chess.com or Lichess and bring your games together."
 msgstr "Connect Chess.com or Lichess and bring your games together."
 
-#: src/landing/landing-page.tsx:88
+#: src/landing/landing-page.tsx:90
 msgid "Contribute"
 msgstr "Contribute"
 
-#: src/landing/landing-page.tsx:92
+#: src/landing/landing-header.tsx:21
+msgid "Dark"
+msgstr "Dark"
+
+#: src/landing/landing-page.tsx:94
 msgid "Documentation"
 msgstr "Documentation"
 
-#: src/landing/landing-page.tsx:59
+#: src/landing/landing-page.tsx:61
 msgid "Drill"
 msgstr "Drill"
 
-#: src/landing/landing-page.tsx:69
+#: src/landing/landing-page.tsx:71
 msgid "Every step keeps the game you played, the mistake you made, and the position you need to remember connected."
 msgstr "Every step keeps the game you played, the mistake you made, and the position you need to remember connected."
 
-#: src/landing/landing-page.tsx:58
+#: src/landing/landing-page.tsx:60
 msgid "Game Analysis"
 msgstr "Game Analysis"
 
-#: src/landing/landing-page.tsx:78
+#: src/landing/landing-page.tsx:80
 msgid "Game Analysis becomes Drill."
 msgstr "Game Analysis becomes Drill."
 
-#: src/landing/landing-header.tsx:19
+#: src/landing/landing-header.tsx:15
 msgid "Get Started"
 msgstr "Get Started"
 
-#: src/landing/landing-page.tsx:87
+#: src/landing/landing-page.tsx:89
 msgid "GitHub"
 msgstr "GitHub"
 
-#: src/landing/landing-header.tsx:18
+#: src/landing/landing-header.tsx:14
 msgid "How it works"
 msgstr "How it works"
 
-#: src/landing/landing-page.tsx:70
+#: src/landing/landing-page.tsx:72
 msgid "Import"
 msgstr "Import"
 
-#: src/app/layout.tsx:19
+#: src/app/layout.tsx:22
 msgid "Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points."
 msgstr "Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points."
 
-#: src/landing/landing-page.tsx:64
+#: src/landing/landing-page.tsx:66
 msgid "Import your Chess.com and Lichess games. VelaChess finds the decisions that cost you, then turns them into training built from the games you actually play."
 msgstr "Import your Chess.com and Lichess games. VelaChess finds the decisions that cost you, then turns them into training built from the games you actually play."
 
-#: src/landing/landing-page.tsx:82
+#: src/landing/landing-page.tsx:84
 msgid "Inspect your games"
 msgstr "Inspect your games"
 
-#: src/landing/landing-page.tsx:93
+#: src/landing/landing-page.tsx:95
 msgid "License"
 msgstr "License"
 
-#: src/landing/landing-page.tsx:79
+#: src/landing/landing-header.tsx:20
+msgid "Light"
+msgstr "Light"
+
+#: src/landing/landing-page.tsx:81
 msgid "Move from a clear explanation of what changed to focused practice on the exact position."
 msgstr "Move from a clear explanation of what changed to focused practice on the exact position."
 
-#: src/landing/landing-page.tsx:68
+#: src/landing/landing-page.tsx:70
 msgid "One loop, grounded in your games."
 msgstr "One loop, grounded in your games."
 
-#: src/landing/landing-header.tsx:20
+#: src/landing/landing-header.tsx:16
 msgid "Open navigation"
 msgstr "Open navigation"
 
-#: src/landing/landing-page.tsx:94
+#: src/landing/landing-page.tsx:96
 msgid "Personalized chess training from your own games."
 msgstr "Personalized chess training from your own games."
 
-#: src/landing/landing-header.tsx:17
-#: src/landing/landing-page.tsx:57
+#: src/landing/landing-header.tsx:13
+#: src/landing/landing-page.tsx:59
 msgid "Product"
 msgstr "Product"
 
-#: src/landing/landing-page.tsx:60
+#: src/landing/landing-page.tsx:62
 msgid "Project"
 msgstr "Project"
 
-#: src/landing/landing-page.tsx:62
+#: src/landing/landing-page.tsx:64
 msgid "Public Beta 🎉"
 msgstr "Public Beta 🎉"
 
-#: src/landing/landing-page.tsx:84
+#: src/landing/landing-page.tsx:86
 msgid "Replay positions from your own mistakes, get immediate feedback, and let the next review arrive when it is useful."
 msgstr "Replay positions from your own mistakes, get immediate feedback, and let the next review arrive when it is useful."
 
-#: src/landing/landing-page.tsx:61
+#: src/landing/landing-page.tsx:63
 msgid "Resources"
 msgstr "Resources"
 
-#: src/landing/landing-page.tsx:80
+#: src/landing/landing-page.tsx:82
 msgid "See the moment the game changed."
 msgstr "See the moment the game changed."
 
-#: src/landing/landing-page.tsx:89
+#: src/landing/landing-page.tsx:91
 msgid "Self-host"
 msgstr "Self-host"
 
-#: src/landing/landing-page.tsx:77
+#: src/landing/landing-page.tsx:79
 msgid "Solve those positions again on a schedule that adapts to you."
 msgstr "Solve those positions again on a schedule that adapts to you."
 
-#: src/landing/landing-page.tsx:75
+#: src/landing/landing-page.tsx:77
 msgid "Spot recurring mistakes and weaknesses in the openings you play."
 msgstr "Spot recurring mistakes and weaknesses in the openings you play."
 
-#: src/landing/landing-page.tsx:86
+#: src/landing/landing-page.tsx:88
 msgid "Start drilling"
 msgstr "Start drilling"
 
-#: src/landing/landing-page.tsx:73
+#: src/landing/landing-page.tsx:75
 msgid "Stockfish grades the choices that changed your winning chances."
 msgstr "Stockfish grades the choices that changed your winning chances."
 
-#: src/landing/landing-header.tsx:23
-msgid "Switch to dark theme"
-msgstr "Switch to dark theme"
+#: src/landing/landing-header.tsx:19
+msgid "System"
+msgstr "System"
 
-#: src/landing/landing-header.tsx:22
-msgid "Switch to light theme"
-msgstr "Switch to light theme"
-
-#: src/landing/landing-page.tsx:83
+#: src/landing/landing-page.tsx:85
 msgid "The analysis becomes a training loop."
 msgstr "The analysis becomes a training loop."
 
-#: src/landing/landing-page.tsx:76
+#: src/landing/landing-header.tsx:18
+msgid "Toggle theme"
+msgstr "Toggle theme"
+
+#: src/landing/landing-page.tsx:78
 msgid "Train"
 msgstr "Train"
 
-#: src/landing/landing-page.tsx:90
+#: src/landing/landing-page.tsx:92
 msgid "Train on the games you actually play."
 msgstr "Train on the games you actually play."
 
-#: src/landing/landing-page.tsx:65
+#: src/landing/landing-page.tsx:67
 msgid "Try for free"
 msgstr "Try for free"
 
-#: src/landing/landing-page.tsx:66
+#: src/landing/landing-page.tsx:68
 msgid "Try VelaChess"
 msgstr "Try VelaChess"
 
 #: src/app/manifest.ts:9
-#: src/landing/landing-page.tsx:63
+#: src/landing/landing-page.tsx:65
 msgid "Turn your games into training."
 msgstr "Turn your games into training."
 
-#: src/landing/landing-page.tsx:74
+#: src/landing/landing-page.tsx:76
 msgid "Understand"
 msgstr "Understand"
 
-#: src/app/layout.tsx:40
+#: src/app/layout.tsx:43
 #: src/app/manifest.ts:8
-#: src/landing/landing-header.tsx:16
-#: src/landing/landing-page.tsx:56
+#: src/landing/landing-header.tsx:12
+#: src/landing/landing-page.tsx:58
 msgid "VelaChess"
 msgstr "VelaChess"
 
-#: src/app/layout.tsx:18
+#: src/app/layout.tsx:21
 msgid "VelaChess - Turn your games into training"
 msgstr "VelaChess - Turn your games into training"
 
-#: src/landing/landing-page.tsx:85
+#: src/landing/landing-page.tsx:87
 msgid "VelaChess drill showing feedback and the next review date"
 msgstr "VelaChess drill showing feedback and the next review date"
 
-#: src/landing/landing-page.tsx:67
+#: src/landing/landing-page.tsx:69
 msgid "VelaChess game analysis showing a blunder on move two"
 msgstr "VelaChess game analysis showing a blunder on move two"
 
-#: src/landing/landing-page.tsx:81
+#: src/landing/landing-page.tsx:83
 msgid "Walk through every move with Stockfish evaluation, clear move classification, and the better continuation shown on the board."
 msgstr "Walk through every move with Stockfish evaluation, clear move classification, and the better continuation shown on the board."

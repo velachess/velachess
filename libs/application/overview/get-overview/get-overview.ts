@@ -8,21 +8,19 @@ import { and, count, eq, lte } from "drizzle-orm";
 import type { Database } from "@velachess/db";
 import { schema } from "@velachess/db";
 
-const { cards, deviations, exercises, games, trackedAccounts } = schema;
+const { cards, deviations, exercises, games } = schema;
 
 /** One-call counters for the stats endpoint — no N queries from HTTP. */
 export async function getOverview(db: Database, userId: string, now: Date = new Date()) {
   const [gamesRow] = await db
     .select({ n: count() })
     .from(games)
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-    .where(eq(trackedAccounts.userId, userId));
+    .where(eq(games.userId, userId));
   const [deviationsRow] = await db
     .select({ n: count() })
     .from(deviations)
     .innerJoin(games, eq(deviations.gameId, games.id))
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-    .where(eq(trackedAccounts.userId, userId));
+    .where(and(eq(games.userId, userId), eq(deviations.type, "deviation")));
   const [exercisesRow] = await db
     .select({ n: count() })
     .from(exercises)

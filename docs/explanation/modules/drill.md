@@ -1,93 +1,140 @@
 # libs/application/drills
 
-**[DRILL] — turns judged deviations into recallable exercises.** Pure
-rules only: eligibility triage, exercise seeding, answer checking, grade
-mapping. Persistence lives in `libs/infra/db`; deciding _when_ to review is
-the scheduler's job, not this package's. Zero runtime dependencies — the
-whole package is functions over plain data.
+**[DRILL] — turns mistakes, deviations and prepared lines into recallable
+exercises.** Three slices own the loop: `seed-exercises` (triage and
+generation), `get-next-drill` (the queue), `submit-answer` (grading and the
+FSRS handoff). Deciding _when_ to review is the scheduler's job, not this
+package's. Exact rules, constants and shapes live in
+`docs/reference/drills.md`; this document is the reasoning.
 
 ## Flow
 
-```
-deviations (judged + severity)             exercises                  drill responses
-┌──────────────────────────────┐  triage  ┌──────────────────────┐   ┌────────────────────────┐
-│ type: "deviation"            │ ───────► │ one per              │──►│ correct: boolean       │
-│ engine_category: "mistake"   │ eligible │ (user, position_key) │   │ grade: again|good      │
-│ position_key, expected_sans  │          │ expected_sans        │   │ response_time_ms (null)│
-│ drillable: false → true      │          │ ◄─ N deviations      │   │ → scheduler cycle      │
-└──────────────────────────────┘          │   (exercise_sources) │   └────────────────────────┘
-                                          └──────────────────────┘
-                                            dedup: the same position in
-                                            two games = one exercise
+```mermaid
+flowchart TD
+  A["deviations - eligibleForDrill"] --> D["upsertExercise - identity user + EPD"]
+  B["game_analyses - selectDrillCandidates"] --> D
+  C["repertoire_chapters - decisionPositionsOf"] --> D
+  D --> E["exercise_sources - one row per origin"]
+  D --> F["queue: oldest due card, else new"]
+  F --> G["submitAnswer -> scheduler.review -> cards"]
+  G --> F
 ```
 
-## Eligibility — the triage rule
+## Three origins, three questions
 
-`eligibleForDrill(row, { minSeverity? })` passes a judgment only when all
-three hold:
+An exercise can be born three ways, and the origins deliberately ask
+different questions:
 
-1. **`type === "deviation"`** — only the owner's own move is drillable.
-   A `gap` has no answer to recall (the opponent left book), `book-ended`
-   has no prepared line to remember, `completed` has no mistake at all.
-2. **A prepared answer exists** (`expectedSans` non-empty) — an exercise
-   with nothing to recall isn't one.
-3. **The engine confirmed harm**: `engineCategory` present and at or
-   above the floor (default `"inaccuracy"`). Two deliberate consequences:
-   an unanalyzed deviation is _not_ eligible — analysis is a
-   prerequisite, not a nice-to-have — and a deviation the engine rates
-   `"ok"` never becomes a card. Leaving your line for an equally good
-   move is not a mistake to fix, and filling a review queue with
-   non-mistakes is the known failure mode of this kind of system.
-
-The floor is a parameter, not a buried constant — real calibration comes
-with real usage. The `drillable` flag stays on the deviation (triage is a
-fact about the deviation, not about the exercise); the caller runs the
-pure rule and persists via `setDrillable`.
+- **`repertoire-deviation`** — did you play what you _decided_? Your own move
+  left your book and the book had an answer to recall. Nothing about
+  severity: forgetting your line for a perfectly sound alternative costs zero
+  evaluation, so the engine is permanently silent about it — and that is
+  exactly the failure repertoire drilling exists to catch. It used to require
+  the engine to confirm harm; that made this origin a near-subset of the
+  engine origin and trapped deviations from games analysed before their
+  repertoire existed, so the requirement was removed. Volume needs no budget
+  here: `deviations_game_repertoire` guarantees at most one deviation per
+  game per repertoire.
+- **`engine-blunder`** — did you play _well_? Every graded ply of your side is
+  a candidate. Volume does not come from a severity floor — measured on real
+  games, blunder is the most common category, so a fixed floor either starves
+  strong players or drowns beginners. Instead candidates are ranked by
+  `winChanceLoss` and cut at a per-game budget (5), which calibrates itself:
+  someone who blunders gets blunders, someone who only plays inaccuracies
+  gets inaccuracies. `minSeverity` (`inaccuracy`) survives only as an
+  absolute "never drill a fine move" floor, shared with nothing else via
+  `severeEnough`.
+- **`repertoire-line`** — the preparation itself, position by position. Every
+  decision position of a chapter is seeded when the chapter lands, so a book
+  is trainable the moment it exists instead of waiting for its owner to fail
+  in a game. A chapter is tens of positions entering as `new` cards; the
+  scoped queue (`?repertoire=`/`?chapter=`) exists so mistake drills stay
+  reachable while a fresh extraction's line drills fill the new pile — the
+  two shipped together on purpose.
 
 ## Exercise identity and provenance
 
 An exercise is `(user, position_key)` — EPD, the same key the repertoire
-package indexes by. The same deviation point reached in two games merges
-into one exercise with two rows in `exercise_sources`, enforced by a
-unique index rather than by caller discipline. Re-upserting refreshes
-`expected_sans` (the preparation may have been edited) and adds the new
-provenance.
+package indexes by. The same position reached in two games, or via two
+origins, merges into one exercise with one provenance row per origin in
+`exercise_sources`, enforced by partial unique indexes rather than caller
+discipline.
 
-Deliberately not stored: full FEN (EPD reconstructs a playable position —
-move counters don't affect the legality of the answer move), side to move
-(derivable from the EPD), difficulty or themes (later cycles), chapter
-name (reachable through the source deviation's snapshot).
+When origins collide, the preparation wins the _answer_: a repertoire seed
+refreshes `expected_sans`, an engine seed only adds its provenance. The
+engine is a strong opinion about the position; your book is a decision about
+what you intend to play, and drilling should not quietly redirect you away
+from it. The engine origin still earns the exercise its place in the queue —
+it just does not get to rewrite the answer. The same precedence explains the
+drill screen's sentence: `drillContextOf` prefers deviation, then line, then
+engine provenance.
+
+The engine origin is a natural key `(game_id, ply)` rather than a foreign
+key, because graded plies live as jsonb on `game_analyses`, not as rows.
+
+## Triage is plumbing
+
+Nobody presses "triage" — `triageAndSeed` hangs off the two events that
+produce something to triage: analysis completion and judging. Both orderings
+matter: a game can be analysed before its repertoire exists (the judge then
+fills severity from the cached report and seeds), or judged before analysis
+(completion seeds). Triage is idempotent by construction — candidates are
+rows with no exercise source yet, and the upsert conflicts the rest away —
+so re-running is always safe. On the deviation path, failing a prepared
+position that is already scheduled is the strongest evidence its interval
+was too long, so its review is pulled to now (`pullCardDueNow` — never
+later).
 
 ## Answering and grading
 
-`checkAnswer(exercise, san)` is strict SAN membership — any prepared
-answer counts as correct. The caller converts UI input (a piece drag, a
-Move object) to SAN with the chess package's `makeSan`; this module never
-parses moves.
+`checkAnswer` is strict SAN membership — any prepared answer counts as
+correct. The caller converts UI input to SAN with the chess package's
+`makeSan`; this module never parses moves. `gradeResponse` maps binary
+correctness to the four-value grade scale: `good` on correct, `again` on
+wrong. `hard`/`easy` are reserved for signals not collected yet —
+`response_time_ms` already persists so a future mapping has data to learn
+from, but it deliberately does not affect the grade today. The db enum
+carries all four values from day one; extending the mapping later is a code
+change, not a migration.
 
-`gradeResponse({ correct, responseTimeMs? })` maps binary correctness to
-the four-value grade scale: `"good"` on correct, `"again"` on wrong.
-`"hard"`/`"easy"` are reserved for signals not collected yet —
-`response_time_ms` already persists so the future mapping has data to
-learn from, but it deliberately does not affect the grade today. The db
-enum carries all four values from day one; extending the mapping later is
-a code change, not a migration.
+## The queue
+
+Oldest due card first (`due <= now`, ordered by due date), else a
+never-scheduled exercise, else nothing. That is the whole policy: there is
+no interleaving of new and due, no daily new-card limit, no randomization,
+and no retirement — the knobs FSRS products usually expose do not exist yet,
+and the new-pile pick order is undefined (no `ORDER BY`). Scope narrows both
+piles to an origin, repertoire or chapter, which is what lets a chapter's
+Train button and an insight's CTA land on the drills they are actually
+about.
 
 ## Testing
 
-The eligibility matrix (4 judgment types × 5 severity states ×
-answer present/absent) runs as pure unit tests. The e2e in
-`libs/infra/db/__tests__/drill-flow.test.ts` chains the real pipeline —
+The eligibility and selection rules run as pure unit tests (type gate,
+prepared-answer gate, harmless-deviation and unanalysed-deviation cases,
+ranking, budget, tie-break determinism). The e2e in
+`libs/infra/db/tests/drill-flow.test.ts` chains the real pipeline —
 judgment → engine signal → triage → deduped exercise with provenance →
-right and wrong answers → graded responses read back — plus the two
-counter-cases that define the rule: a harmless deviation creates nothing,
-and an unanalyzed one isn't eligible.
+right and wrong answers → graded responses read back. Queue counting,
+context precedence and scheduling have their own suites
+(`drill-queue.test.ts`, `drill-context.test.ts`, `scheduler-flow.test.ts`);
+the application-level acceptance covers scoped queues, `pullCardDueNow` and
+decision-position seeding on chapter add.
 
 ## Layout
 
 ```
-eligibility.ts   eligibleForDrill, EligibilityInput, Severity
-exercise.ts      ExerciseSeed, seedFromDeviation
-answer.ts        checkAnswer, gradeResponse, DrillGrade, ExerciseResponse
-index.ts         public surface
+seed-exercises/
+  eligibility.ts    eligibleForDrill (deviation path), severeEnough (shared floor)
+  selection.ts      selectDrillCandidates — rank by loss, cut at budget
+  exercise.ts       seedFromDeviation, seedFromGradedPly (UCI→SAN), seedFromDecisionPosition
+  seed-exercises.ts triageAndSeed, seedsFor — orchestration, both mistake origins
+  seed-lines.ts     seedRepertoireLines — the repertoire-line origin
+  queries.ts        listTriageCandidates
+get-next-drill/
+  get-next-drill.ts getReviewItem — due first, else new
+  queries.ts        getNewExercise
+submit-answer/
+  answer.ts         checkAnswer, gradeResponse
+  submit-answer.ts  submitAnswer — response row + FSRS review
 ```

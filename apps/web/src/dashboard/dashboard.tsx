@@ -21,7 +21,7 @@ const DASHBOARD_COPY = {
   unavailable: msg`—`,
   counters: {
     games: { label: msg`Games`, hint: msg`imported from your accounts` },
-    mistakes: { label: msg`Mistakes`, hint: msg`found in your repertoire` },
+    deviations: { label: msg`Deviations`, hint: msg`found in your repertoire` },
     exercises: { label: msg`Exercises`, hint: msg`made from your worst ones` },
     dueCards: { label: msg`Due now`, hint: msg`waiting for you today` },
   },
@@ -29,7 +29,7 @@ const DASHBOARD_COPY = {
 
 const COUNTERS = [
   { key: "games", ...DASHBOARD_COPY.counters.games },
-  { key: "deviations", ...DASHBOARD_COPY.counters.mistakes },
+  { key: "deviations", ...DASHBOARD_COPY.counters.deviations },
   { key: "exercises", ...DASHBOARD_COPY.counters.exercises },
   { key: "dueCards", ...DASHBOARD_COPY.counters.dueCards },
 ] satisfies { key: keyof Overview; label: MessageDescriptor; hint: MessageDescriptor }[];

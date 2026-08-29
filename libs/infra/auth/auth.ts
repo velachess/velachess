@@ -1,7 +1,7 @@
 /**
  * [AUTH] — who is making this request, nothing else. Owns Better Auth
  * config/sessions/bootstrap; authorization ("may this user touch this
- * game") lives in application/db instead (__tests__/architecture.test.ts
+ * game") lives in application/db instead (.dependency-cruiser.cjs
  * enforces the direction). generateId: "uuid" matches users.id's type;
  * modelName/fields map onto this schema's existing table/column names.
  */
@@ -34,10 +34,36 @@ export interface AuthConfig {
    * separate signup-enabled instance never mounted on HTTP (main.ts).
    */
   allowSignUp?: boolean;
+  /**
+   * Google OAuth, when configured. Absent means the provider is simply not
+   * offered — the button disappears, nothing throws.
+   *
+   * This is what opens public sign-up without touching the password path:
+   * `disableSignUp` above governs `emailAndPassword` only, and social
+   * providers carry their own (`disableImplicitSignUp`, default false).
+   * Verified in better-auth 1.7.0, not assumed.
+   */
+  google?: { clientId: string; clientSecret: string };
+  /**
+   * Addresses of the reverse proxies in front of this API.
+   *
+   * Load-bearing, and quiet when wrong. Better Auth keys its rate limiter
+   * by client IP; when it cannot resolve one it falls back to a single
+   * shared bucket per path (`NO_TRUSTED_IP_KEY` in its rate-limiter) and
+   * only logs a warning. Behind a proxy with this unset, the whole site's
+   * sign-in shares one 3-per-10s budget — three attempts by anyone lock
+   * out everyone, and the symptom reads as "I can't log in", never as a
+   * misconfigured limiter.
+   */
+  trustedProxies?: string[];
 }
 
+/** Google's authorized-redirect-URI path. Exported so the pinned test and
+ * the Google Cloud console value in self-host.md have one source. */
+export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
+
 /** One Better Auth instance per process, built from injected deps the way
- * apps/api builds everything else — never from ambient env reads here. */
+ * apps/server builds everything else — never from ambient env reads here. */
 export function createAuth(config: AuthConfig) {
   return betterAuth({
     baseURL: config.baseUrl,
@@ -48,6 +74,12 @@ export function createAuth(config: AuthConfig) {
     secret: config.secret,
     trustedOrigins: config.trustedOrigins ?? [config.baseUrl],
 
+    // Default is baseURL + basePath + "/error" (e.g. /auth/error) — a
+    // path this SPA never routes, so an OAuth failure that has no
+    // recoverable state (state_mismatch, invalid_callback_request) 404s
+    // instead of reaching the sign-in screen's own error copy.
+    onAPIError: { errorURL: `${config.baseUrl}/login` },
+
     database: drizzleAdapter(config.db, {
       provider: "pg",
       // Keyed by the modelName each model maps to below — the adapter
@@ -57,6 +89,7 @@ export function createAuth(config: AuthConfig) {
         sessions: schema.sessions,
         authAccounts: schema.authAccounts,
         verifications: schema.verifications,
+        authRateLimits: schema.authRateLimits,
       },
     }),
 
@@ -66,6 +99,43 @@ export function createAuth(config: AuthConfig) {
       // is the documented option for exactly this
       // (@better-auth/core dist/types/init-options.d.mts, @default false).
       disableSignUp: !config.allowSignUp,
+    },
+
+    // Social sign-in, and the only route to public sign-up that does not
+    // drag in password reset, email verification and an SMTP dependency.
+    // The whole key is conditional so an unconfigured provider is absent
+    // rather than present with empty credentials, which Better Auth would
+    // accept and then fail on at redirect time.
+    ...(config.google
+      ? {
+          socialProviders: {
+            google: {
+              clientId: config.google.clientId,
+              clientSecret: config.google.clientSecret,
+              // Explicit, under /api: Better Auth's default derives this
+              // from baseURL + basePath ("/auth"), with no /api prefix —
+              // a second proxy rule this avoids needing.
+              redirectURI: `${config.baseUrl}${GOOGLE_CALLBACK_PATH}`,
+            },
+          },
+        }
+      : {}),
+
+    // Auth throttling belongs to Better Auth, not to a second limiter in
+    // front of it: it already applies stricter built-in rules to the
+    // sensitive paths (3 per 10s on /sign-in*, /sign-up*, /change-password*
+    // and /change-email*; 3 per 60s on password reset, verification and
+    // OTP — getDefaultSpecialRules in its rate-limiter). Declaring those
+    // again here would only drift from the library on an upgrade.
+    //
+    // What DOES need saying is the storage: the default is process memory,
+    // which resets on deploy and is per-instance. `database` makes the
+    // limit hold across restarts and across however many API processes
+    // run. The table prunes itself (`deleteExpiredRows` inside consume) —
+    // no cleanup job.
+    rateLimit: {
+      storage: "database",
+      modelName: "authRateLimits",
     },
 
     // Our tables, our names. Type inference keeps Better Auth's names
@@ -94,6 +164,11 @@ export function createAuth(config: AuthConfig) {
       // has no TLS). Never weakened in production to ease development —
       // development passes `secureCookies: false` instead.
       useSecureCookies: config.secureCookies,
+      // See AuthConfig.trustedProxies: without this, every client behind
+      // the proxy collapses into one rate-limit bucket.
+      ...(config.trustedProxies
+        ? { ipAddress: { trustedProxies: config.trustedProxies } }
+        : {}),
     },
   });
 }

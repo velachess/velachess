@@ -198,15 +198,6 @@ const whiteDetail = {
     unmatchedGames: 5,
     outcomes: { ...EMPTY_OUTCOMES, held: 18, playerLeft: 3, opponentLeft: 3 },
     adherence: whiteSummary.adherence,
-    gaps: [
-      {
-        positionKey: frenchView.lines[0]!.moves[0]!.positionKey,
-        san: "c5",
-        games: 2,
-        ply: 2,
-        sampleGameId: "dddddddd-1111-4111-8111-dddddddddddd",
-      },
-    ],
     uncoveredOpenings: [{ opening: "Scandinavian Defense", games: 3 }],
   },
 };

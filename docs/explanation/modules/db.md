@@ -8,12 +8,12 @@ MCP server process all import it the same way, no HTTP hop between them.
 
 ## Schema
 
-Eleven tables across six domains — sync (what ingest produces),
-repertoire (what the user prepares), judgment (how a game compared
-against that preparation), analysis (what the engine said), drilling
-(which mistakes became exercises and how they were answered), scheduling
-(when each exercise comes back). Job delivery is NOT here: since cycle 5
-it lives in pg-boss's own `pgboss` schema, owned by `libs/infra/queue`
+Twelve tables across seven domains — sync (what ingest produces),
+identity (public provider metadata for any player), repertoire (what the
+user prepares), judgment (how a game compared against that preparation),
+analysis (what the engine said), drilling (which mistakes became
+exercises and how they were answered), scheduling (when each exercise
+comes back). Job delivery is NOT here: since cycle 5 it lives in pg-boss's own `pgboss` schema, owned by `libs/infra/queue`
 (migration 0008 dropped `analysis_jobs`, `sync_jobs` and the
 `job_status` enum):
 
@@ -81,6 +81,18 @@ LichessCursor` at compile time only — the two providers' cursors are
 structurally different shapes, and this package never reads inside
 either one, only stores and returns it opaquely.
 
+`provider_profiles` holds the same kind of key but nobody's ownership:
+avatar and flair are public metadata about a _player_, so the table has
+no `user_id` — an opponent gets a row because a game was opened against
+them, not because anyone tracked them, and two users reviewing games
+against the same opponent share one row and one refresh budget. The
+columns the connection rows used to carry (migration 0016 moved them
+here) were per-connection copies of what is really a per-handle fact,
+which is why they could disagree between users tracking the same handle.
+`fetched_at` is stamped on every attempt, failed ones included: it is a
+refresh cursor, not a success log, so a dead provider is retried at the
+cadence instead of on every game open.
+
 `games` has no normalized `players`/`events`/`sites` tables. Real-world
 comparison (En Croissant's SQLite schema) normalizes those because it
 dedupes and searches across a bulk-imported corpus of arbitrary
@@ -108,7 +120,8 @@ is a full table scan). The delete policies encode product decisions:
 
 | FK                                       | onDelete | Why                                                                                              |
 | ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `games.account_id`                       | set null | untracking an account keeps its games                                                            |
+| `games.user_id`                          | cascade  | a game without an owner is unreadable — ownership is direct, not inferred                        |
+| `games.account_id`                       | set null | untracking an account keeps its games (provenance only, null for manual imports)                 |
 | `tracked_accounts.user_id`               | set null | deleting a user keeps sync data                                                                  |
 | `repertoires.user_id`                    | cascade  | a repertoire without an owner is meaningless                                                     |
 | `repertoire_chapters.repertoire_id`      | cascade  | a chapter without its repertoire is meaningless                                                  |
@@ -152,22 +165,29 @@ runtime coupling). `libs/repertoire` never imports this package; the
 orchestration layer that reads a chapter's PGN and feeds
 `buildRepertoire` lives above both.
 
+## Ownership
+
+Games hang directly from their user (`games.user_id`, not null) — a manual
+PGN import has no account to infer ownership from, so every read scopes on
+the column instead of joining through `tracked_accounts`. The account is
+provenance: which connected handle produced the row.
+
 ## Dedup
 
-Two constraints, not one: a partial unique index on `(source,
-external_id) WHERE external_id IS NOT NULL` catches every Chess.com/Lichess
-re-sync for free, no hashing. A table-level unique constraint on
-`(account_id, movetext_hash)` with `NULLS NOT DISTINCT` catches a pasted
-PGN re-pasted with no linked account — Postgres treats `NULL` as distinct
-from itself by default, which would silently defeat this exact case
-without that clause. `saveGames` inserts with a bare `onConflictDoNothing()`
-(no target), which lets one statement satisfy both constraints at once,
-and reads the actual inserted count off what Postgres returns rather than
-pre-selecting to check.
-
-Known limitation, not fixed: the source/external_id index is global, so if
-two different tracked accounts both play the same game, only the first
-import sticks. One game = one row is the honest model for now.
+External-id dedup stays scoped to the tracked account: a partial unique
+index on `(account_id, source, external_id) WHERE external_id IS NOT NULL`
+catches every Chess.com/Lichess re-sync for free, no hashing, within that
+account — and each account still owns an independent copy of whatever it
+imports, so two accounts tracking the same real handle keep both histories.
+A table-level unique constraint on `(user_id, account_id, movetext_hash)`
+with `NULLS NOT DISTINCT` is the PGN half: `NULL` account ids compare equal
+within one user, so re-uploading the same file inserts nothing, while
+another user importing it keeps their own row. Postgres treats `NULL` as
+distinct from itself by default, which would silently defeat this exact
+case without that clause. `saveGames` inserts with a bare
+`onConflictDoNothing()` (no target), which lets one statement satisfy
+both constraints at once, and reads the actual inserted count off what
+Postgres returns rather than pre-selecting to check.
 
 ## Client
 
@@ -211,11 +231,11 @@ assertion checks the `game_source` enum's values against
 `gameSourceSchema.options` directly — the test that would have caught a
 schema drift bug outright.
 
-Everything else runs against a real Postgres via `__tests__/test-db.ts`:
+Everything else runs against a real Postgres via `tests/test-db.ts`:
 `DATABASE_URL` when set (the docker-compose instance), PGlite (in-process
 Postgres) otherwise — either way the suite applies the real migrations
 from `./migrations` first, so the schema under test is the schema that
-ships, and no environment skips the suite. `__tests__/repertoire-flow.test.ts`
+ships, and no environment skips the suite. `tests/repertoire-flow.test.ts`
 is the cycle's acceptance test: user → repertoire → chapter PGN → read
 back → `buildRepertoire` → `findDeviation` → `upsertJudgment` → read
 back, plus every constraint above exercised for real (partial-unique
@@ -248,7 +268,7 @@ drizzle.config.ts            schema/out paths, dbCredentials from DATABASE_URL
 migrations/                  0000 sync · 0001 users · 0002 repertoires · 0003 deviations
                              0004 analysis · 0005 adherence · 0006 drill · 0007 scheduler
                              0008 pgboss — drops the SQL job queues (pg-boss owns delivery)
-__tests__/
+tests/
   test-db.ts                 DATABASE_URL or PGlite — real migrations either way
 index.ts                     public surface
 ```

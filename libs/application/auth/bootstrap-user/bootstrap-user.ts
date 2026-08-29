@@ -4,7 +4,7 @@
  * Called a "user", not "admin": the product has no roles/RBAC to justify the word.
  */
 
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 
 import type { Database, ExecutionLock } from "@velachess/db";
 import { schema } from "@velachess/db";
@@ -61,6 +61,15 @@ export async function bootstrapUser(
         password: credentials.password,
       },
     });
+
+    // signUpEmail hard-codes emailVerified: false, not overridable via the
+    // body. The operator running this already controls the box the email
+    // sits on, so verification proves nothing — and left false, this
+    // account fails Google's account-linking check on first use.
+    await db
+      .update(schema.users)
+      .set({ emailVerified: true })
+      .where(eq(schema.users.id, created.user.id));
 
     return { status: "created", userId: created.user.id };
   } finally {

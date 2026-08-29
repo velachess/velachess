@@ -1,16 +1,16 @@
 # @velachess/queue
 
-The queue package. It hides pg-boss behind analysis and sync queue ports,
+The queue library. It hides pg-boss behind analysis and sync queue ports,
 ensures queue policies, and provides send/status adapters; application code
 should depend on ports and should not reimplement delivery, retry, backoff, or
 dead-letter handling.
 
 ## Placement
 
-A library on purpose: the api produces jobs, the worker consumes them, and
+A library on purpose: the server produces jobs, the worker consumes them, and
 the test harness runs both — so this cannot live inside either app without
 one importing the other. Handlers, registration and concurrency belong to
-`apps/worker` and are kept out by `tests/architecture.test.ts`.
+`apps/worker` and are kept out by `tests/ownership.test.ts`.
 
 ## Dependencies
 
@@ -22,9 +22,9 @@ one importing the other. Handlers, registration and concurrency belong to
 Bootstrap from the monorepo root with `pnpm install`.
 
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
-- Run queue behavior through the worker/API or package tests; this package has
+- Run queue behavior through the worker/server or workspace tests; this library has
   no standalone runtime script.
 
 ## Documentation
 
-See [Queue module](../../docs/explanation/modules/queue.md).
+See [Queue module](../../../docs/explanation/modules/queue.md).

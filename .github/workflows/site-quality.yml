@@ -23,11 +23,14 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Run affected site quality checks
+        env:
+          TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: pnpm exec turbo run lighthouse --affected --filter=@velachess/site
 
       - name: Upload Lighthouse reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-reports
           path: apps/site/.lighthouseci/reports

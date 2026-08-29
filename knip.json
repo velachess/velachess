@@ -17,13 +17,8 @@
     // filesystem rather than through an import, so knip has to be told the
     // same thing the plugin already knows.
     "apps/web": {
-      "entry": [
-        "src/routes/**/*.tsx",
-        "lingui.config.ts",
-        "**/*.test.{ts,tsx}",
-        "**/*.spec.{ts,tsx}"
-      ],
-      "project": ["src/**/*.{ts,tsx,css}", "__e2e__/**/*.{ts,tsx}"]
+      "entry": ["src/routes/**/*.tsx", "lingui.config.ts", "**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx,css}"]
     },
     "apps/site": {
       "entry": [
@@ -38,34 +33,34 @@
       "ignoreDependencies": ["@lingui/swc-plugin", "tailwindcss"]
     },
     "libs/chess": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/fixtures": {
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/engine": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/platforms": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/infra/db": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/repertoire": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/analysis": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
     "libs/scheduler": {
-      "entry": ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     }
   }

@@ -1,136 +1,78 @@
-# apps/server
+# `apps/server`
 
-**The only place HTTP exists.** Hono over the Node adapter. Routes are
-thin: validate (zod), call `libs/application`, map outcomes to status
-codes. `AppType` is exported for a future UI as a _type only_ — importing
-it pulls zero runtime code.
+`apps/server` is the only HTTP composition root. Hono routes validate transport
+shape, invoke one application slice, and translate its outcome to HTTP. The
+current route surface is the hand-authored OpenAPI document in
+`apps/server/src/openapi.ts`; the anti-drift test verifies every registered
+route and documented operation in both directions.
 
-## Surface
+## Middleware order
 
-```
-GET  /health                      liveness
-GET  /openapi.json                hand-authored OpenAPI 3.1 document
-POST /accounts                    track a chess.com/Lichess account (upsert)
-GET  /accounts                    tracked accounts + last sync + delivery state
-POST /accounts/{id}/sync          202 — enqueue; the worker refreshes and judges
-GET  /accounts/{id}/games         games + judgment + analyzed flag, no PGNs
-GET  /games?platform=&username=   importing: a player's games, filled once
-POST /games/judge                 judge unjudged games now (interactive path)
-GET  /games/{id}                  full game, rawPgn included (board replay)
-GET  /deviations                  own deviations: verdict + context + drilled flag
-GET  /games/{id}/analysis         analysis state + a running run's progress
-GET  /games/{id}/analysis/events  SSE, EventSource-ready — watch a run (below)
-POST /games/{id}/analyze          202 — ask for the analysis; the worker runs it
-GET/POST /repertoires             list / create
-GET  /repertoires/{id}            header + ordered chapters (name, pgn)
-POST /repertoires/extract         derive the book from the user's games
-DELETE /repertoires/{id}          remove (judgment history survives)
-POST /repertoires/{id}/chapters   add a PGN chapter
-GET  /drill/queue                 what is waiting: due, fresh, split by origin
-GET  /drill/next                  next due card, else a new exercise (204 = done)
-POST /drill/answer                grade + schedule
-GET  /overview                    per-user counters
-GET  /insights/adherence          adherence metrics per repertoire
-```
+The order in `src/server.ts` is part of the security and availability contract:
 
-## Asking for an analysis, and watching one
+1. request context, CORS, body limits, and CSRF protection;
+2. public system endpoints (`/health`, `/config`, `/openapi.json`);
+3. Better Auth's `/auth/*` handler;
+4. session resolution for every product route;
+5. user-keyed API rate limiting and cost-specific limits;
+6. product route groups.
 
-The trigger and the stream are separate endpoints, and neither of them
-runs the engine. **The API process holds no Stockfish at all** — that is
-the worker's job, delivered by pg-boss.
+Health and documentation remain available without a database-backed session.
+The sign-in capability endpoint exposes booleans only. Better Auth owns its own
+routes and throttling; the general API limiter sits after session resolution so
+its key is the authenticated user.
 
-| `requestAnalysis` says                    | `POST /analyze`    |
-| ----------------------------------------- | ------------------ |
-| completed                                 | 200, cached report |
-| failed (retries exhausted, dead-lettered) | 409                |
-| anything else                             | 202, enqueued      |
+## Identity and authorization
 
-The POST used to hold the run open and stream it, which made the HTTP
-request the computation: a deploy killed the analysis mid-game, a second
-replica could not observe one, and progress was visible only while a
-client stayed connected.
+Better Auth resolves the session. Middleware passes only `userId` downstream;
+application and database code never infer identity from a provider username.
+User-owned queries scope through that id in SQL. Another user's UUID answers
+like a missing UUID rather than disclosing existence.
 
-`GET /games/{id}/analysis/events` is a plain `GET`, so `EventSource`
-opens it with no polyfill and no hand-written parser. It owns nothing: it
-reads the `analysis_progress` rows the worker commits and the report that
-supersedes them.
+Chess.com and Lichess handles identify public archive/profile data. Connecting
+one creates a tracked account owned by the current VelaChess user. The same
+public handle may be tracked independently by another user with its own cursor
+and game rows.
 
-```
-analysis.opened        once, carrying retry
-analysis.move-graded   per ply, id = its 0-based index
-analysis.completed     terminal, the whole report
-analysis.failed        terminal
-```
+## Import and refresh
 
-Namespaced past-tense names, and **nothing is called `error`** — that
-name collides with the event `EventSource` itself fires on transport
-failure, and both would arrive at the same listener. The frame name is
-the discriminant, so no payload repeats it.
+`POST /accounts` creates/connects a tracked account and performs the initial
+import synchronously so provider errors reach the person who submitted the
+handle. `POST /accounts/:id/sync` performs an interactive refresh, enforces the
+per-account cooldown, and returns `Retry-After` when called too soon. The worker
+entry point remains available for refresh work no person is waiting on.
 
-`id:` on every graded frame is what makes the browser send
-`Last-Event-ID` back on its own reconnection; the route resumes from the
-frame after it instead of replaying the run. `: keep-alive` comments stop
-proxies closing an idle stream, and `X-Accel-Buffering: no` stops nginx
-buffering it into something indistinguishable from a hang.
+`POST /games/import` is the manual source: PGN text uploaded without any
+connected account. It normalizes in-request, resolves the named player's seat
+per game, persists with user-scoped conflict-ignore (a duplicate-only upload
+succeeds with counts), and runs the same judge-and-seed tail — never Stockfish.
+`GET /games` is the unified library: one filtered page of every game the caller
+owns across all sources, ownership read straight off `games.user_id`.
 
-**A terminal event closes the connection.** An EventSource left hanging
-reconnects by itself every few seconds, so a route that finished without
-saying so is an endless request loop rather than a stalled screen. The
-connection deadline is the one exception: it ends _without_ a terminal
-event, because the run has not finished and the browser resuming is
-exactly what should happen.
+All import paths persist, update candidate repertoires, judge, and seed. None of
+them run Stockfish.
 
-**One poll loop per game, not per connection** (`src/watchers.ts`). Each
-watcher used to run its own — `listProgress` plus `requestAnalysis` every
-400ms, about five queries a tick — so ten people on the same analysis
-meant ten loops asking the same question. The first subscriber starts the
-loop, the rest attach to what it already knows, and the last one out
-stops it. Per process: two replicas mean two loops for a game, and two is
-not ten.
+## Analysis and progress
 
-Disconnecting costs nothing here — there is no execution on this side to
-cancel. `GET /games/{id}/analysis` carries `graded`/`total` for the same
-run, so a client that would rather poll than stream still shows a real
-progress bar.
+`POST /games/:id/analyze` is the explicit product trigger and requests pg-boss
+delivery. The worker owns Stockfish execution. GET endpoints expose current
+state and an EventSource-compatible stream over persisted progress/report
+state; the API does not become a second execution owner.
 
-## OpenAPI anti-drift
+SSE event names are namespaced and terminal frames close the connection.
+`Last-Event-ID` resumes after the last observed ply, keep-alives prevent idle
+proxy closure, and disconnect does not cancel analysis.
 
-The spec is hand-authored in `src/openapi.ts` and served at
-`GET /openapi.json`. `__tests__/openapi.test.ts` walks `app.routes` and fails
-if any registered route is missing from the spec or any documented
-operation has no route — the document cannot silently rot. Contract tests
-go one level deeper: the `{ error }` shape the spec promises is asserted
-against real 400s (invalid body, malformed id) and the JSON 404.
+## Validation and errors
 
-## Errors and validation
-
-One JSON contract everywhere: `src/validation.ts` wraps zValidator so a
-failed body or path-param validation answers `{ error, details? }` (not
-zod's default dump), every `/:id` route validates the UUID before any db
-touch, and global `notFound`/`onError` handlers keep unknown routes and
-unmapped exceptions on the same shape.
-
-## Identity
-
-Middleware resolves the single user (`ensureDefaultUser`) per request and
-passes `userId` via context — registered AFTER `/health` and
-`/openapi.json`, so liveness and documentation answer even when the
-database is down. Services never know about "current user"; swapping in
-real auth later touches only the middleware.
-
-## Maintenance notes
-
-Dependency bump pending, deliberately not done blind: hono ^4.6 → 4.13.2
-and @hono/zod-validator ^0.4 → 0.9 (changelog review + full api suite
-before committing).
+Transport Zod stays in route files so the exported `AppType` client remains
+typed. `src/validation.ts` maps validation to `{ error, details? }`; not-found,
+HTTP exceptions, and opaque internal failures remain on the same JSON contract.
+Internal exception details are logged rather than returned.
 
 ## Tests
 
-`__tests__/api.test.ts` — route behavior over the real harness (PGlite +
-migrations + pg-boss + shallow Stockfish): validation, upsert semantics,
-sync 202 + dedup, judge outcome, the analyze state mapping, the watch
-route replaying staged progress and closing on the report, cache
-short-circuit, stats.
-Root `__e2e__/full-loop.test.ts` — the acceptance loop through the two
-apps only; it lives at the repo root, not here, because it composes both
-deployables (see `docs/explanation/architecture.md`).
+Server tests call the real Hono app over the package harness with migrations,
+queue, and engine dependencies appropriate to the behavior. OpenAPI tests pin
+surface and error-shape drift. Cross-server/worker acceptance behavior lives in
+root `e2e`. See `docs/how-to/write-a-test.md`.

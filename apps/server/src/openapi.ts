@@ -1,6 +1,6 @@
 /**
  * Hand-authored OpenAPI 3.1 document, served at GET /openapi.json.
- * Anti-drift: __tests__/openapi.test.ts fails if any registered Hono route is
+ * Anti-drift: tests/openapi.test.ts fails if any registered Hono route is
  * missing here (or vice versa) — the spec cannot silently rot.
  */
 
@@ -77,6 +77,32 @@ export const openApiSpec = {
         },
       },
     },
+    "/config": {
+      get: {
+        summary: "What this deployment offers, before anyone signs in",
+        description:
+          "Public by necessity: the sign-in screen has to know which methods exist before it can render them, and it has no session yet. Carries capability flags only — never credentials, never anything about a user.",
+        responses: {
+          "200": {
+            description: "Sign-in methods this instance actually offers",
+            ...jsonOf({
+              type: "object",
+              properties: {
+                signInMethods: {
+                  type: "object",
+                  properties: {
+                    password: { type: "boolean" },
+                    google: { type: "boolean" },
+                  },
+                  required: ["password", "google"],
+                },
+              },
+              required: ["signInMethods"],
+            }),
+          },
+        },
+      },
+    },
     "/openapi.json": {
       get: {
         summary: "This document",
@@ -99,18 +125,6 @@ export const openApiSpec = {
                   id: { type: "string", format: "uuid" },
                   platform: { type: "string", enum: ["chess_com", "lichess"] },
                   username: { type: "string" },
-                  avatarUrl: {
-                    type: "string",
-                    nullable: true,
-                    description:
-                      "Chess.com profile picture, read at connect time; null when the account has none or is on Lichess, which has no avatars",
-                  },
-                  flair: {
-                    type: "string",
-                    nullable: true,
-                    description:
-                      "Lichess flair asset id (e.g. people.santa-claus), read at connect time; null when unset or on Chess.com",
-                  },
                   lastSyncedAt: { type: "string", format: "date-time", nullable: true },
                   syncState: {
                     type: "string",
@@ -118,15 +132,7 @@ export const openApiSpec = {
                     description: "Delivery state of the newest non-completed sync job",
                   },
                 },
-                required: [
-                  "id",
-                  "platform",
-                  "username",
-                  "avatarUrl",
-                  "flair",
-                  "lastSyncedAt",
-                  "syncState",
-                ],
+                required: ["id", "platform", "username", "lastSyncedAt", "syncState"],
               },
             }),
           },
@@ -154,10 +160,8 @@ export const openApiSpec = {
                 id: { type: "string", format: "uuid" },
                 platform: { type: "string" },
                 username: { type: "string" },
-                avatarUrl: { type: "string", nullable: true },
-                flair: { type: "string", nullable: true },
               },
-              required: ["id", "platform", "username", "avatarUrl", "flair"],
+              required: ["id", "platform", "username"],
             }),
           },
           "400": { description: "Invalid body", ...errorResponse },
@@ -249,26 +253,15 @@ export const openApiSpec = {
     },
     "/games": {
       get: {
-        summary: "A player's games, by platform and username",
+        summary: "The signed-in user's unified game library",
         description:
-          "A read, and nothing but a read: one filtered page of a handle this user already tracks. An untracked handle is a 404 — importing is POST /accounts (the only place a connection is created), and keeping the archive current is POST /accounts/{id}/sync. Engine-free — analysis is triggered by opening a game, never by listing.",
+          "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis is triggered by opening a game, never by listing.",
         parameters: [
-          {
-            name: "platform",
-            in: "query",
-            required: true,
-            schema: { type: "string", enum: ["chess_com", "lichess"] },
-          },
-          {
-            name: "username",
-            in: "query",
-            required: true,
-            schema: { type: "string", maxLength: 64 },
-          },
           {
             name: "color",
             in: "query",
             schema: { type: "string", enum: ["white", "black"] },
+            description: "Which side you played, resolved per game",
           },
           {
             name: "outcome",
@@ -305,20 +298,11 @@ export const openApiSpec = {
         ],
         responses: {
           "200": {
-            description: "One page of the account's games (no PGN payloads)",
+            description:
+              "One page of the user's games across every source (no PGN payloads)",
             ...jsonOf({
               type: "object",
               properties: {
-                account: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string", format: "uuid" },
-                    platform: { type: "string", enum: ["chess_com", "lichess"] },
-                    username: { type: "string" },
-                    lastSyncedAt: { type: ["string", "null"], format: "date-time" },
-                  },
-                  required: ["id", "platform", "username", "lastSyncedAt"],
-                },
                 games: { type: "array", items: { type: "object" } },
                 total: {
                   type: "integer",
@@ -327,15 +311,66 @@ export const openApiSpec = {
                 page: { type: "integer" },
                 pageSize: { type: "integer" },
               },
-              required: ["account", "games", "total", "page", "pageSize"],
+              required: ["games", "total", "page", "pageSize"],
             }),
           },
           "400": {
-            description: "Missing or malformed platform/username",
+            description: "Malformed filter or paging parameter",
             ...errorResponse,
           },
-          "404": {
-            description: "The platform has no archive for that username",
+        },
+      },
+    },
+    "/games/import": {
+      post: {
+        summary: "Import games from a PGN upload",
+        description:
+          "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `playerName` resolves which side is theirs per game, so one file may mix White and Black, and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors. New games feed the same repertoire → judgment → seeding pass a sync runs.",
+        requestBody: {
+          required: true,
+          ...jsonOf({
+            type: "object",
+            properties: {
+              pgn: {
+                type: "string",
+                description: "One or more games in PGN format",
+              },
+              playerName: {
+                type: "string",
+                maxLength: 128,
+                description: "The player these games belong to, as named in the headers",
+              },
+            },
+            required: ["pgn"],
+          }),
+        },
+        responses: {
+          "200": {
+            description: "What landed and what didn't, all three counts at once",
+            ...jsonOf({
+              type: "object",
+              properties: {
+                imported: {
+                  type: "integer",
+                  description: "Games written for this user",
+                },
+                duplicates: {
+                  type: "integer",
+                  description: "Games this user already had — skipped as a no-op",
+                },
+                rejected: {
+                  type: "integer",
+                  description: "Chunks that failed to parse",
+                },
+                judged: { type: "integer" },
+                seeded: { type: "integer" },
+              },
+              required: ["imported", "duplicates", "rejected", "judged", "seeded"],
+            }),
+          },
+          "400": { description: "Missing or empty body", ...errorResponse },
+          "413": {
+            description: "Payload exceeds the 256 KiB server limit",
             ...errorResponse,
           },
         },
@@ -366,7 +401,7 @@ export const openApiSpec = {
       get: {
         summary: "The full game, rawPgn included",
         description:
-          "Board replay needs the movetext; the list endpoint deliberately omits it.",
+          "Board replay needs the movetext; the list endpoint deliberately omits it. Both seats carry their provider identity (avatarUrl / Lichess flair) resolved from a shared per-handle cache — fetched on the first open per refresh window, initials when unknown, and never a reason for the read to fail.",
         parameters: [
           {
             name: "id",
@@ -691,7 +726,7 @@ export const openApiSpec = {
       get: {
         summary: "A repertoire with its chapters and statistics",
         description:
-          "Header, ordered chapters (name, pgn, order — the tree ships on the chapter detail route), and the statistics the shared judgment rows derive: one of five mutually exclusive outcomes per judged game (held, playerLeft, opponentLeft, repertoireEnded, unmatched), adherence, per-chapter rates, the most frequent preparation gaps, and what the unmatched games opened as.",
+          "Header, ordered chapters (name, pgn, order — the tree ships on the chapter detail route), and the statistics the shared judgment rows derive: one of five mutually exclusive outcomes per judged game (held, playerLeft, opponentLeft, repertoireEnded, unmatched), adherence, per-chapter rates, and what the unmatched games opened as.",
         parameters: [
           {
             name: "id",
@@ -764,25 +799,6 @@ export const openApiSpec = {
                       ],
                     },
                     adherence: { type: "object", nullable: true },
-                    gaps: {
-                      type: "array",
-                      description:
-                        "Opponent moves preparation has no answer to, most frequent first — each with a sample game as evidence. Adding a chapter that covers one is the loop closing; nothing is ever added automatically.",
-                      items: {
-                        type: "object",
-                        properties: {
-                          positionKey: { type: "string" },
-                          san: { type: "string" },
-                          games: { type: "integer" },
-                          ply: { type: "integer", nullable: true },
-                          sampleGameId: {
-                            type: "string",
-                            format: "uuid",
-                            nullable: true,
-                          },
-                        },
-                      },
-                    },
                     uncoveredOpenings: {
                       type: "array",
                       description:
@@ -801,7 +817,6 @@ export const openApiSpec = {
                     "unmatchedGames",
                     "outcomes",
                     "adherence",
-                    "gaps",
                     "uncoveredOpenings",
                   ],
                 },

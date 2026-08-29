@@ -1,3 +1,4 @@
+/** Display names are proper nouns, in their own language — not translated. */
 const LOCALES = {
   en: "English",
   "pt-BR": "Português (Brasil)",
@@ -5,6 +6,10 @@ const LOCALES = {
 } as const;
 
 export type Locale = keyof typeof LOCALES;
+
+export const LOCALE_OPTIONS: { locale: Locale; label: string }[] = Object.entries(
+  LOCALES,
+).map(([locale, label]) => ({ locale: locale as Locale, label }));
 
 export const DEFAULT_LOCALE: Locale = "en";
 

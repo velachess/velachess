@@ -1,4 +1,3 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
@@ -6,20 +5,16 @@ import { Item, ItemContent, ItemMedia, ItemTitle } from "@velachess/ui/component
 import { BookOpen } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { categoriesInOrder, type SideBreakdown } from "../analysis-read.ts";
+import {
+  categoriesInOrder,
+  CATEGORY_LABELS,
+  type SideBreakdown,
+} from "../analysis-read.ts";
 import type { MoveCategory } from "../analysis-contract.ts";
 
 const REPORT_COPY = {
   unknownOpening: msg`Opening not recognised`,
 } as const;
-
-const CATEGORY_LABELS: Record<MoveCategory, MessageDescriptor> = {
-  best: msg`Best`,
-  good: msg`Good`,
-  inaccuracy: msg`Inaccuracy`,
-  mistake: msg`Mistake`,
-  blunder: msg`Blunder`,
-};
 
 /** The theme's severity tokens, mirroring `engine_category` in the database. */
 const CATEGORY_TONE: Record<MoveCategory, string> = {

@@ -1,7 +1,7 @@
 /**
  * [QUEUE] — pg-boss behind ports. Delivery lifecycle (claims, retries,
  * DLQ, dedup policies) belongs to pg-boss; application consumes the port
- * interfaces and never imports this package's pg-boss internals.
+ * interfaces and never imports this library's pg-boss internals.
  */
 
 export * from "./ports.ts";

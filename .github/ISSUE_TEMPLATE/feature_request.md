@@ -13,9 +13,10 @@ Describe the gap or friction this addresses.
 **Proposed solution**
 
 What you'd like to see. If this touches architecture — a new package, a
-new cross-package dependency, a change to `docs/poc/architecture/dependency-rules.md`
-— please tag this issue `rfc` and see `GOVERNANCE.md`; that kind of change
-gets discussed before implementation starts.
+new cross-package dependency, a change to the boundaries in
+`docs/explanation/architecture.md` or `.dependency-cruiser.cjs` — say so
+here; that kind of change gets discussed before implementation starts
+(see `CONTRIBUTING.md`, "Before you start").
 
 **Alternatives considered**
 
@@ -23,4 +24,6 @@ Any other approaches you thought about and why you didn't prefer them.
 
 **Additional context**
 
-Anything else useful — mockups, related issues, prior art.
+Evidence that shows the gap or the target: screenshots or a screen
+recording of the current UI, a mockup, a `curl` request/response, a
+sample PGN, related issues, prior art in other tools.

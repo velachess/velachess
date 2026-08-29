@@ -1,15 +1,15 @@
 # @velachess/db
 
-The persistence package. It owns Drizzle schema, migrations, and database
+The persistence library. It owns Drizzle schema, migrations, and database
 queries for normalized game data and derived domain state; fetching,
 normalizing, chess rules, application orchestration, and HTTP contracts belong
-outside this package.
+outside this library.
 
 ## Dependencies
 
 - Internal: `@velachess/platforms` for source schemas; dev/test coverage also
-  exercises `@velachess/analysis`, `@velachess/chess`, `@velachess/drill`,
-  `@velachess/engine`, `@velachess/repertoire`, and `@velachess/scheduler`.
+  exercises `@velachess/analysis`, `@velachess/chess`, `@velachess/engine`,
+  `@velachess/repertoire`, and `@velachess/scheduler`.
 - External runtime: Drizzle ORM and `postgres`; migrations use `drizzle-kit`.
 
 ## Usage / Development
@@ -23,4 +23,4 @@ Bootstrap from the monorepo root with `pnpm install`.
 
 ## Documentation
 
-See [Database module](../../docs/explanation/modules/db.md).
+See [Database module](../../../docs/explanation/modules/db.md).

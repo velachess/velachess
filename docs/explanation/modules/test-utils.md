@@ -10,7 +10,7 @@ definition now; the suites import it.
 Test-only by contract: no production entrypoint may import this package.
 It depends on `application`, `queue`, `db`, `engine`, and `fixtures` —
 which is why `libs/infra/db` keeps its own dual-backend test helper
-(`__tests__/test-db.ts`, DATABASE_URL or PGlite): db sits _below_ this
+(`tests/test-db.ts`, DATABASE_URL or PGlite): db sits _below_ this
 package, and its tests reaching up the layering would invert it.
 
 ## Layout

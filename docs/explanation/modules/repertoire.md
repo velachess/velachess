@@ -4,8 +4,12 @@
 where it left the prepared lines — no engine involved.** This is tree
 comparison, not move evaluation: "did the player follow what they prepared,"
 not "was the move good." Judging move quality is a different axis entirely
-(would live in an analysis package, evaluations supplied by
-`@velachess/engine`) and doesn't touch this package at all.
+(would live in an analysis library, with evaluations supplied by the
+`libs/infra/engine` workspace imported as `@velachess/engine`) and does not
+touch `libs/repertoire` at all.
+
+Exact parameters, judgment types and persisted shapes live in
+`docs/reference/repertoire.md`. This document is the reasoning.
 
 ## Repertoire as a tree, not a line
 
@@ -151,6 +155,10 @@ deviation.ts        DeviationEvent, DeviationResult, findDeviation
 judgment.ts         JudgmentType, judgmentType — names the four outcomes
 dispatch.ts         ChapterJudgment, judgeAgainstChapters — chapter selection rule
 adherence.ts        JudgmentRow, AdherenceMetrics, adherenceMetrics
+findings.ts         AdherenceFinding, adherenceFinding — the insight rule
+decision-positions.ts  DecisionPosition, decisionPositionsOf — the trainable unit
+chapter-view.ts     chapter tree shaped for the screen
+extract.ts          extractRepertoireLines, openingNameFrom — the descriptive book
 index.ts            public surface — re-exports all of the above
 ```
 
@@ -163,7 +171,10 @@ A frequency trie over game mainlines, cut where support drops below
 becomes its own line, ordered by support. Chapter names come from the
 dominant opening among supporting games via `openingNameFrom` — chess.com
 hides the name in the ECOUrl slug (no `[Opening]` header), Lichess sends
-it directly; fallback "Linha N". Pure: games in, lines out — persistence
+it directly; fallback "Line N". Pure: games in, lines out — persistence
 lives in application. Honest limits: the per-game name is the opening the
 game REACHED (post-transposition) and a line is a prefix, so naming is a
-dominant approximation, not exact position classification.
+dominant approximation, not exact position classification. One structural
+consequence worth knowing: a game that later deviates from the derived book
+still contributed its prefix to the trie — the book is the majority habit,
+and minority lines the owner keeps playing will keep judging as deviations.

@@ -10,6 +10,7 @@ import type * as React from "react";
 
 import { Toaster } from "@velachess/ui/components/toast";
 import { TooltipProvider } from "@velachess/ui/components/tooltip";
+import { ThemeProvider } from "@velachess/ui/lib/theme-provider";
 
 import { i18n } from "../i18n/index.ts";
 import { sessionQueryKey } from "../auth/session.ts";
@@ -28,13 +29,15 @@ function AppProviders({
   queryClient?: QueryClientType;
 }) {
   return (
-    <I18nProvider i18n={i18n}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster>{children}</Toaster>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster>{children}</Toaster>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
 

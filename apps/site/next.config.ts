@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   images: {
     deviceSizes: [640, 768, 1440],
+    imageSizes: [],
     loader: "custom",
     loaderFile: "./src/shared/image-loader.ts",
   },

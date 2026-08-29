@@ -21,6 +21,10 @@ msgstr "Preparing analysis…"
 msgid "—"
 msgstr "—"
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:32
+msgid "[Event \"...\"] …"
+msgstr "[Event \"...\"] …"
+
 #: src/repertoire/repertoire-detail.tsx:30
 msgid "{color} · {chapters, plural, one {# chapter} other {# chapters}}"
 msgstr "{color} · {chapters, plural, one {# chapter} other {# chapters}}"
@@ -30,7 +34,7 @@ msgid "{count, plural, one {# chapter} other {# chapters}}"
 msgstr "{count, plural, one {# chapter} other {# chapters}}"
 
 #: src/repertoire/repertoire-landing.tsx:35
-#: src/repertoire/repertoire-practice.tsx:73
+#: src/repertoire/repertoire-practice.tsx:76
 msgid "{count, plural, one {# position due} other {# positions due}}"
 msgstr "{count, plural, one {# position due} other {# positions due}}"
 
@@ -47,9 +51,13 @@ msgstr "{count, plural, one {# prep gap} other {# prep gaps}}"
 msgid "{count, plural, one {# recall failure} other {# recall failures}}"
 msgstr "{count, plural, one {# recall failure} other {# recall failures}}"
 
-#: src/repertoire/repertoire-detail.tsx:44
-msgid "{count, plural, one {in # game} other {in # games}}"
-msgstr "{count, plural, one {in # game} other {in # games}}"
+#: src/games/import-pgn/pgn-import-dialog.tsx:41
+msgid "{count, plural, one {One game could not be read.} other {# games could not be read.}}"
+msgstr "{count, plural, one {One game could not be read.} other {# games could not be read.}}"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:40
+msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
+msgstr "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 
 #: src/repertoire/repertoire-detail.tsx:33
 msgid "{count} due"
@@ -67,7 +75,7 @@ msgstr "{count} of them in your {moves} moves there — {rate}, against your usu
 msgid "{count} to practice"
 msgstr "{count} to practice"
 
-#: src/repertoire/repertoire-practice.tsx:74
+#: src/repertoire/repertoire-practice.tsx:77
 msgid "{done} / {total} completed"
 msgstr "{done} / {total} completed"
 
@@ -107,7 +115,13 @@ msgstr "{rate} adherence over {games} judged games · prep runs {depth} moves de
 msgid "{rate} of {count, plural, one {# game} other {# games}}"
 msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 
-#: src/games/open-game/game-analysis.tsx:24
+#: src/games/import/sync-games-button.tsx:31
+#: src/games/request-analysis/analysis-status.tsx:19
+#: src/settings/connections/connections-screen.tsx:49
+msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
+
+#: src/games/open-game/game-analysis.tsx:34
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
@@ -115,7 +129,11 @@ msgstr "{white} vs {black}"
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 
-#: src/app-shell/user-menu.tsx:20
+#: src/app-shell/user-menu.tsx:30
+#: src/routes/_app/settings/account.tsx:7
+#: src/settings/account/account-screen.tsx:12
+#: src/settings/layout/navigation.ts:29
+#: src/test/routes.tsx:180
 msgid "Account"
 msgstr "Account"
 
@@ -124,30 +142,51 @@ msgid "Across {games, plural, one {# analysed game} other {# analysed games}}."
 msgstr "Across {games, plural, one {# analysed game} other {# analysed games}}."
 
 #: src/games/import/sync-games-button.tsx:20
+#: src/settings/connections/connections-screen.tsx:41
 msgid "Already up to date"
 msgstr "Already up to date"
+
+#: src/auth/sign-in/sign-in-screen.tsx:52
+msgid "An account already exists with that email. Sign in with your password instead."
+msgstr "An account already exists with that email. Sign in with your password instead."
 
 #: src/shared/ui/route-error.tsx:15
 msgid "An unexpected error interrupted this screen."
 msgstr "An unexpected error interrupted this screen."
 
-#: src/games/request-analysis/analysis-status.tsx:16
+#: src/games/request-analysis/analysis-status.tsx:17
 msgid "Analyzing move {graded} of {total}…"
 msgstr "Analyzing move {graded} of {total}…"
+
+#: src/app-shell/user-menu.tsx:32
+#: src/routes/_app/settings/appearance.tsx:7
+#: src/settings/appearance/appearance-screen.tsx:11
+#: src/settings/layout/navigation.ts:32
+#: src/test/routes.tsx:201
+msgid "Appearance"
+msgstr "Appearance"
+
+#: src/settings/appearance/appearance-screen.tsx:13
+msgid "Application theme"
+msgstr "Application theme"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:28
+msgid "As it appears in the White and Black headers"
+msgstr "As it appears in the White and Black headers"
 
 #: src/onboarding/onboarding-dialog.tsx:24
 msgid "Back"
 msgstr "Back"
 
-#: src/drill/drill.tsx:64
+#: src/drill/drill.tsx:67
 msgid "Back to drills"
 msgstr "Back to drills"
 
-#: src/repertoire/repertoire-practice.tsx:71
+#: src/repertoire/repertoire-practice.tsx:74
 msgid "Back to the repertoire"
 msgstr "Back to the repertoire"
 
-#: src/repertoire/chapter-study.tsx:63
+#: src/repertoire/chapter-study.tsx:66
 msgid "Back to the start"
 msgstr "Back to the start"
 
@@ -155,7 +194,7 @@ msgstr "Back to the start"
 msgid "Backend unavailable · Retrying automatically"
 msgstr "Backend unavailable · Retrying automatically"
 
-#: src/games/view-analysis/game-report.tsx:17
+#: src/games/analysis-read.ts:157
 msgid "Best"
 msgstr "Best"
 
@@ -174,17 +213,17 @@ msgid "Black repertoire"
 msgstr "Black repertoire"
 
 #: src/drill/drill-prompt.tsx:25
-#: src/repertoire/repertoire-practice.tsx:60
+#: src/repertoire/repertoire-practice.tsx:63
 msgid "Black to move"
 msgstr "Black to move"
 
-#: src/games/games-list.tsx:29
+#: src/games/games-list.tsx:28
 #: src/games/list/columns.tsx:23
 #: src/games/list/filters.ts:49
 msgid "Blitz"
 msgstr "Blitz"
 
-#: src/games/view-analysis/game-report.tsx:21
+#: src/games/analysis-read.ts:161
 msgid "Blunder"
 msgstr "Blunder"
 
@@ -197,21 +236,29 @@ msgid "Blunders per game"
 msgstr "Blunders per game"
 
 #: src/games/open-game/board-pane.tsx:29
-#: src/repertoire/chapter-study.tsx:54
+#: src/repertoire/chapter-study.tsx:57
 msgid "Board"
 msgstr "Board"
+
+#: src/settings/gameplay/gameplay-screen.tsx:13
+msgid "Board interaction preferences."
+msgstr "Board interaction preferences."
+
+#: src/settings/gameplay/gameplay-screen.tsx:15
+msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
+msgstr "Board preferences like coordinates, move animation, and sound will land here once they exist."
 
 #: src/repertoire/repertoire-landing.tsx:39
 msgid "Built from your games"
 msgstr "Built from your games"
 
-#: src/games/games-list.tsx:28
+#: src/games/games-list.tsx:27
 #: src/games/list/columns.tsx:22
 #: src/games/list/filters.ts:48
 msgid "Bullet"
 msgstr "Bullet"
 
-#: src/repertoire/chapter-study.tsx:55
+#: src/repertoire/chapter-study.tsx:58
 msgid "Chapter"
 msgstr "Chapter"
 
@@ -219,7 +266,7 @@ msgstr "Chapter"
 msgid "Chess.com username"
 msgstr "Chess.com username"
 
-#: src/games/games-list.tsx:31
+#: src/games/games-list.tsx:30
 #: src/games/list/columns.tsx:25
 #: src/games/list/filters.ts:51
 msgid "Classical"
@@ -238,15 +285,39 @@ msgid "Compare all phases"
 msgstr "Compare all phases"
 
 #: src/onboarding/onboarding-dialog.tsx:25
+#: src/settings/connections/connections-screen.tsx:38
 msgid "Connect an account"
 msgstr "Connect an account"
 
-#: src/drill/drill.tsx:56
-#: src/repertoire/repertoire-practice.tsx:66
+#: src/settings/account/sign-in-methods.tsx:24
+msgid "Connected — you can sign in with Google."
+msgstr "Connected — you can sign in with Google."
+
+#: src/routes/_app/settings/connections.tsx:7
+#: src/settings/connections/connections-screen.tsx:33
+#: src/settings/layout/navigation.ts:30
+#: src/test/routes.tsx:187
+msgid "Connections"
+msgstr "Connections"
+
+#: src/drill/drill.tsx:59
+#: src/repertoire/repertoire-practice.tsx:69
 msgid "Continue"
 msgstr "Continue"
 
-#: src/repertoire/repertoire-practice.tsx:63
+#: src/auth/sign-in/sign-in-screen.tsx:36
+msgid "Continue to VelaChess"
+msgstr "Continue to VelaChess"
+
+#: src/auth/sign-in/sign-in-screen.tsx:48
+msgid "Continue with Google"
+msgstr "Continue with Google"
+
+#: src/auth/sign-in/sign-in-screen.tsx:37
+msgid "Continue with Google or sign in with your account credentials."
+msgstr "Continue with Google or sign in with your account credentials."
+
+#: src/repertoire/repertoire-practice.tsx:66
 msgid "Correct."
 msgstr "Correct."
 
@@ -254,16 +325,16 @@ msgstr "Correct."
 msgid "Correspondence"
 msgstr "Correspondence"
 
-#: src/games/open-game/game-analysis.tsx:23
+#: src/games/open-game/game-analysis.tsx:33
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
 
-#: src/drill/drill.tsx:48
+#: src/drill/drill.tsx:51
 msgid "Couldn't load drills."
 msgstr "Couldn't load drills."
 
-#: src/games/games-list.tsx:24
+#: src/games/games-list.tsx:23
 msgid "Couldn't load games."
 msgstr "Couldn't load games."
 
@@ -271,11 +342,11 @@ msgstr "Couldn't load games."
 msgid "Couldn't load insights."
 msgstr "Couldn't load insights."
 
-#: src/repertoire/chapter-study.tsx:53
+#: src/repertoire/chapter-study.tsx:56
 msgid "Couldn't load this chapter."
 msgstr "Couldn't load this chapter."
 
-#: src/repertoire/repertoire-practice.tsx:55
+#: src/repertoire/repertoire-practice.tsx:58
 msgid "Couldn't load this practice session."
 msgstr "Couldn't load this practice session."
 
@@ -283,21 +354,43 @@ msgstr "Couldn't load this practice session."
 msgid "Couldn't load this repertoire."
 msgstr "Couldn't load this repertoire."
 
+#: src/settings/connections/connections-screen.tsx:35
+msgid "Couldn't load your connected accounts."
+msgstr "Couldn't load your connected accounts."
+
 #: src/repertoire/repertoire-landing.tsx:29
 msgid "Couldn't load your repertoire."
 msgstr "Couldn't load your repertoire."
 
+#: src/settings/account/sign-in-methods.tsx:22
+msgid "Couldn't load your sign-in methods."
+msgstr "Couldn't load your sign-in methods."
+
 #: src/games/import/sync-games-button.tsx:24
+#: src/settings/connections/connections-screen.tsx:45
 msgid "Couldn't reach that account"
 msgstr "Couldn't reach that account"
 
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr "Couldn't reach the server. Try again in a moment."
 
-#: src/repertoire/chapter-study.tsx:72
+#: src/games/import-pgn/pgn-import-dialog.tsx:43
+msgid "Couldn't reach the server. Try again."
+msgstr "Couldn't reach the server. Try again."
+
+#: src/settings/account/profile-form.tsx:31
+msgid "Couldn't save that. Try again."
+msgstr "Couldn't save that. Try again."
+
+#: src/repertoire/chapter-study.tsx:75
 msgid "Current line"
 msgstr "Current line"
+
+#: src/app-shell/user-menu.tsx:35
+#: src/settings/appearance/appearance-screen.tsx:17
+msgid "Dark"
+msgstr "Dark"
 
 #: src/dashboard/dashboard.tsx:19
 msgid "Dashboard"
@@ -307,18 +400,22 @@ msgstr "Dashboard"
 msgid "Date"
 msgstr "Date"
 
+#: src/dashboard/dashboard.tsx:24
+msgid "Deviations"
+msgstr "Deviations"
+
 #: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:41
 #: src/games/open-game/game-result.tsx:11
 msgid "Draw"
 msgstr "Draw"
 
-#: src/drill/drill.tsx:45
-#: src/test/routes.tsx:101
+#: src/drill/drill.tsx:48
+#: src/test/routes.tsx:107
 msgid "Drill"
 msgstr "Drill"
 
-#: src/drill/drill.tsx:46
+#: src/drill/drill.tsx:49
 msgid "Drill what is costing you games."
 msgstr "Drill what is costing you games."
 
@@ -326,7 +423,7 @@ msgstr "Drill what is costing you games."
 msgid "Drill your mistakes"
 msgstr "Drill your mistakes"
 
-#: src/drill/drill.tsx:65
+#: src/drill/drill.tsx:68
 msgid "Drilling"
 msgstr "Drilling"
 
@@ -338,11 +435,16 @@ msgstr "Drills from the mistakes that cost you"
 msgid "Due now"
 msgstr "Due now"
 
-#: src/auth/sign-in/sign-in-screen.tsx:30
+#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/settings/account/profile-form.tsx:26
 msgid "Email"
 msgstr "Email"
 
-#: src/drill/drill.tsx:57
+#: src/settings/account/sign-in-methods.tsx:25
+msgid "Email and password"
+msgstr "Email and password"
+
+#: src/drill/drill.tsx:60
 msgid "End session"
 msgstr "End session"
 
@@ -350,11 +452,19 @@ msgstr "End session"
 msgid "endgame"
 msgstr "endgame"
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/settings/account/profile-form.tsx:24
+msgid "Enter a name."
+msgstr "Enter a name."
+
+#: src/auth/sign-in/sign-in-screen.tsx:45
 msgid "Enter your email."
 msgstr "Enter your email."
 
-#: src/auth/sign-in/sign-in-screen.tsx:38
+#: src/games/import-pgn/pgn-import-dialog.tsx:29
+msgid "Enter your name so your games can be told apart from your opponents'."
+msgstr "Enter your name so your games can be told apart from your opponents'."
+
+#: src/auth/sign-in/sign-in-screen.tsx:47
 msgid "Enter your password."
 msgstr "Enter your password."
 
@@ -367,19 +477,19 @@ msgstr "Enter your username"
 msgid "Evaluation"
 msgstr "Evaluation"
 
-#: src/games/view-analysis/eval-graph.tsx:10
+#: src/games/view-analysis/eval-graph.tsx:12
 msgid "Evaluation over the game"
 msgstr "Evaluation over the game"
 
-#: src/games/games-list.tsx:21
+#: src/games/games-list.tsx:20
 msgid "Every game you've imported, and how it went."
 msgstr "Every game you've imported, and how it went."
 
-#: src/repertoire/repertoire-practice.tsx:68
+#: src/repertoire/repertoire-practice.tsx:71
 msgid "Every position in this repertoire is scheduled for later. Come back when the next ones fall due."
 msgstr "Every position in this repertoire is scheduled for later. Come back when the next ones fall due."
 
-#: src/drill/drill.tsx:63
+#: src/drill/drill.tsx:66
 msgid "Everything due is drilled. Come back when the next ones fall due."
 msgstr "Everything due is drilled. Come back when the next ones fall due."
 
@@ -400,7 +510,7 @@ msgid "Find the best move."
 msgstr "Find the best move."
 
 #: src/drill/drill-prompt.tsx:27
-#: src/repertoire/repertoire-practice.tsx:62
+#: src/repertoire/repertoire-practice.tsx:65
 msgid "First time"
 msgstr "First time"
 
@@ -420,32 +530,76 @@ msgstr "From clearly winning positions, {rate} of your moves gave a real share o
 msgid "Game phases"
 msgstr "Game phases"
 
+#: src/routes/_app/settings/gameplay.tsx:7
+#: src/settings/gameplay/gameplay-screen.tsx:12
+#: src/settings/layout/navigation.ts:33
+#: src/test/routes.tsx:208
+msgid "Gameplay"
+msgstr "Gameplay"
+
 #: src/dashboard/dashboard.tsx:23
-#: src/games/games-list.tsx:20
+#: src/games/games-list.tsx:19
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:75
+#: src/test/routes.tsx:81
 msgid "Games"
 msgstr "Games"
 
-#: src/games/games-list.tsx:25
+#: src/games/import-pgn/pgn-import-dialog.tsx:39
+msgid "Games imported"
+msgstr "Games imported"
+
+#: src/games/games-list.tsx:24
 msgid "Games pages"
 msgstr "Games pages"
 
-#: src/games/view-analysis/game-report.tsx:18
+#: src/games/analysis-read.ts:158
 msgid "Good"
 msgstr "Good"
+
+#: src/settings/account/sign-in-methods.tsx:23
+msgid "Google"
+msgstr "Google"
+
+#: src/auth/sign-in/sign-in-screen.tsx:51
+msgid "Google sign-in didn't complete. Try again."
+msgstr "Google sign-in didn't complete. Try again."
+
+#: src/auth/sign-in/sign-in-screen.tsx:50
+msgid "Google sign-in was cancelled."
+msgstr "Google sign-in was cancelled."
 
 #: src/games/import/sources.ts:81
 msgid "Got them — opening your games."
 msgstr "Got them — opening your games."
 
+#: src/settings/appearance/appearance-screen.tsx:12
+msgid "How VelaChess looks on this device."
+msgstr "How VelaChess looks on this device."
+
+#: src/settings/account/profile-form.tsx:23
+msgid "How you're shown in the app."
+msgstr "How you're shown in the app."
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:34
 #: src/games/import/sources.ts:79
 msgid "Import"
 msgstr "Import"
 
-#: src/drill/drill.tsx:50
+#: src/games/import-pgn/pgn-import-dialog.tsx:42
+msgid "Import failed"
+msgstr "Import failed"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:25
+msgid "Import games from a PGN"
+msgstr "Import games from a PGN"
+
+#: src/drill/drill.tsx:53
 msgid "Import or analyze a game and new positions land here on their own."
 msgstr "Import or analyze a game and new positions land here on their own."
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:24
+msgid "Import PGN"
+msgstr "Import PGN"
 
 #: src/games/import/sources.ts:77
 msgid "Import your games"
@@ -455,20 +609,24 @@ msgstr "Import your games"
 msgid "imported from your accounts"
 msgstr "imported from your accounts"
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:35
+msgid "Importing…"
+msgstr "Importing…"
+
 #: src/drill/drill-prompt.tsx:20
 msgid "In the game, you played"
 msgstr "In the game, you played"
 
-#: src/games/view-analysis/game-report.tsx:19
+#: src/games/analysis-read.ts:159
 msgid "Inaccuracy"
 msgstr "Inaccuracy"
 
 #: src/insights/insights.tsx:40
-#: src/test/routes.tsx:143
+#: src/test/routes.tsx:149
 msgid "Insights"
 msgstr "Insights"
 
-#: src/auth/sign-in/sign-in-screen.tsx:34
+#: src/auth/sign-in/sign-in-screen.tsx:43
 msgid "Invalid email or password."
 msgstr "Invalid email or password."
 
@@ -512,6 +670,21 @@ msgstr "It hands over a real part of the advantage."
 msgid "It keeps the position healthy without giving anything away."
 msgstr "It keeps the position healthy without giving anything away."
 
+#: src/settings/account/profile-form.tsx:25
+msgid "Keep it under 100 characters."
+msgstr "Keep it under 100 characters."
+
+#: src/settings/language-region/language-region-screen.tsx:20
+msgid "Language"
+msgstr "Language"
+
+#: src/routes/_app/settings/language-region.tsx:7
+#: src/settings/language-region/language-region-screen.tsx:18
+#: src/settings/layout/navigation.ts:31
+#: src/test/routes.tsx:194
+msgid "Language & region"
+msgstr "Language & region"
+
 #: src/insights/finding-views.tsx:102
 msgid "Left the book"
 msgstr "Left the book"
@@ -524,18 +697,27 @@ msgstr "Letters, numbers, hyphen and underscore only"
 msgid "Lichess username"
 msgstr "Lichess username"
 
-#: src/repertoire/chapter-study.tsx:52
+#: src/app-shell/user-menu.tsx:34
+#: src/settings/appearance/appearance-screen.tsx:16
+msgid "Light"
+msgstr "Light"
+
+#: src/repertoire/chapter-study.tsx:55
 msgid "Loading the chapter…"
 msgstr "Loading the chapter…"
 
-#: src/games/open-game/game-analysis.tsx:22
+#: src/games/open-game/game-analysis.tsx:32
 msgid "Loading the game…"
 msgstr "Loading the game…"
 
-#: src/drill/drill.tsx:47
-#: src/repertoire/repertoire-practice.tsx:54
+#: src/drill/drill.tsx:50
+#: src/repertoire/repertoire-practice.tsx:57
 msgid "Loading…"
 msgstr "Loading…"
+
+#: src/settings/language-region/language-region-screen.tsx:19
+msgid "Locale preferences for this device."
+msgstr "Locale preferences for this device."
 
 #: src/insights/finding-views.tsx:99
 msgid "Look at these games"
@@ -554,21 +736,25 @@ msgstr "made from your worst ones"
 msgid "Main"
 msgstr "Main"
 
-#: src/repertoire/chapter-study.tsx:75
+#: src/repertoire/chapter-study.tsx:78
 msgid "Main line"
 msgstr "Main line"
+
+#: src/settings/connections/connections-screen.tsx:34
+msgid "Manage the chess accounts VelaChess imports games from."
+msgstr "Manage the chess accounts VelaChess imports games from."
+
+#: src/settings/layout/settings-layout.tsx:11
+msgid "Manage your account and application preferences."
+msgstr "Manage your account and application preferences."
 
 #: src/insights/finding-views.tsx:77
 msgid "middlegame"
 msgstr "middlegame"
 
-#: src/games/view-analysis/game-report.tsx:20
+#: src/games/analysis-read.ts:160
 msgid "Mistake"
 msgstr "Mistake"
-
-#: src/dashboard/dashboard.tsx:24
-msgid "Mistakes"
-msgstr "Mistakes"
 
 #: src/insights/finding-views.tsx:368
 msgid "Mistakes keep landing in your {phase}"
@@ -587,7 +773,7 @@ msgid "Move insight"
 msgstr "Move insight"
 
 #: src/games/open-game/replay-controls.tsx:11
-#: src/repertoire/chapter-study.tsx:58
+#: src/repertoire/chapter-study.tsx:61
 msgid "Move navigation"
 msgstr "Move navigation"
 
@@ -599,27 +785,32 @@ msgstr "Move sounds"
 msgid "Mute move sounds"
 msgstr "Mute move sounds"
 
+#: src/settings/account/profile-form.tsx:22
+msgid "Name"
+msgstr "Name"
+
 #: src/drill/drill-queue-panel.tsx:19
 msgid "new"
 msgstr "new"
 
 #: src/games/import/sync-games-button.tsx:22
+#: src/settings/connections/connections-screen.tsx:43
 msgid "New games imported"
 msgstr "New games imported"
 
-#: src/games/games-list.tsx:27
+#: src/games/games-list.tsx:26
 #: src/games/open-game/replay-controls.tsx:13
 #: src/onboarding/onboarding-dialog.tsx:23
-#: src/repertoire/chapter-study.tsx:62
+#: src/repertoire/chapter-study.tsx:65
 msgid "Next"
 msgstr "Next"
 
 #: src/games/open-game/replay-controls.tsx:10
-#: src/repertoire/chapter-study.tsx:60
+#: src/repertoire/chapter-study.tsx:63
 msgid "Next move"
 msgstr "Next move"
 
-#: src/drill/drill.tsx:55
+#: src/drill/drill.tsx:58
 msgid "Next review"
 msgstr "Next review"
 
@@ -635,19 +826,20 @@ msgstr "No chapters yet"
 msgid "No games found for that username. Check the spelling and try again."
 msgstr "No games found for that username. Check the spelling and try again."
 
-#: src/games/games-list.tsx:22
-msgid "No games imported yet."
-msgstr "No games imported yet."
-
 #: src/repertoire/repertoire-landing.tsx:34
 msgid "No games judged against it yet"
 msgstr "No games judged against it yet"
 
-#: src/games/games-list.tsx:23
+#: src/games/games-list.tsx:22
 msgid "No games match these filters."
 msgstr "No games match these filters."
 
+#: src/games/games-list.tsx:21
+msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
+msgstr "No games yet. Connect Chess.com or Lichess, or import a PGN."
+
 #: src/games/import/sync-games-button.tsx:21
+#: src/settings/connections/connections-screen.tsx:42
 msgid "No new games since your last sync."
 msgstr "No new games since your last sync."
 
@@ -655,15 +847,19 @@ msgstr "No new games since your last sync."
 msgid "Not graded yet"
 msgstr "Not graded yet"
 
-#: src/drill/drill.tsx:53
+#: src/settings/connections/connections-screen.tsx:36
+msgid "Not synced yet"
+msgstr "Not synced yet"
+
+#: src/drill/drill.tsx:56
 msgid "Not the move."
 msgstr "Not the move."
 
-#: src/repertoire/repertoire-practice.tsx:64
+#: src/repertoire/repertoire-practice.tsx:67
 msgid "Not your line."
 msgstr "Not your line."
 
-#: src/drill/drill.tsx:49
+#: src/drill/drill.tsx:52
 msgid "Nothing due today"
 msgstr "Nothing due today"
 
@@ -671,7 +867,11 @@ msgstr "Nothing due today"
 msgid "Nothing in the position was worth more."
 msgstr "Nothing in the position was worth more."
 
-#: src/repertoire/repertoire-practice.tsx:67
+#: src/settings/gameplay/gameplay-screen.tsx:14
+msgid "Nothing to configure yet"
+msgstr "Nothing to configure yet"
+
+#: src/repertoire/repertoire-practice.tsx:70
 msgid "Nothing to practice"
 msgstr "Nothing to practice"
 
@@ -691,7 +891,7 @@ msgstr "Open the worst one"
 msgid "opening"
 msgstr "opening"
 
-#: src/games/view-analysis/game-report.tsx:13
+#: src/games/view-analysis/game-report.tsx:16
 msgid "Opening not recognised"
 msgstr "Opening not recognised"
 
@@ -703,50 +903,62 @@ msgstr "Openings"
 msgid "Opponent"
 msgstr "Opponent"
 
-#: src/repertoire/repertoire-detail.tsx:43
-msgid "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-msgstr "Opponent moves your repertoire has no answer to, most frequent first. Cover one by adding it to a chapter."
-
-#: src/repertoire/chapter-study.tsx:70
+#: src/repertoire/chapter-study.tsx:73
 msgid "Opponent plays:"
 msgstr "Opponent plays:"
 
-#: src/auth/sign-in/sign-in-screen.tsx:31
+#: src/auth/sign-in/sign-in-screen.tsx:49
+msgid "Or continue with"
+msgstr "Or continue with"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:31
+msgid "Or paste the moves"
+msgstr "Or paste the moves"
+
+#: src/auth/sign-in/sign-in-screen.tsx:40
 msgid "Password"
 msgstr "Password"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:26
+msgid "Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs."
+msgstr "Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs."
 
 #: src/insights/insights.tsx:48
 msgid "Performance"
 msgstr "Performance"
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:30
+msgid "PGN file"
+msgstr "PGN file"
+
 #: src/drill/drill-prompt.tsx:21
-#: src/repertoire/repertoire-practice.tsx:58
+#: src/repertoire/repertoire-practice.tsx:61
 msgid "Play the move you prepared."
 msgstr "Play the move you prepared."
 
-#: src/repertoire/chapter-study.tsx:73
+#: src/repertoire/chapter-study.tsx:76
 msgid "Play the prepared moves on the board to walk the line."
 msgstr "Play the prepared moves on the board to walk the line."
 
-#: src/repertoire/repertoire-practice.tsx:56
-#: src/repertoire/repertoire-practice.tsx:75
+#: src/repertoire/repertoire-practice.tsx:59
+#: src/repertoire/repertoire-practice.tsx:78
 msgid "Position to play"
 msgstr "Position to play"
 
-#: src/drill/drill.tsx:51
+#: src/drill/drill.tsx:54
 msgid "Position to solve"
 msgstr "Position to solve"
 
-#: src/repertoire/repertoire-practice.tsx:53
-#: src/repertoire/repertoire-practice.tsx:57
+#: src/repertoire/repertoire-practice.tsx:56
+#: src/repertoire/repertoire-practice.tsx:60
 msgid "Practice"
 msgstr "Practice"
 
-#: src/repertoire/chapter-study.tsx:64
+#: src/repertoire/chapter-study.tsx:67
 msgid "Practice chapter"
 msgstr "Practice chapter"
 
-#: src/repertoire/repertoire-practice.tsx:69
+#: src/repertoire/repertoire-practice.tsx:72
 msgid "Practice complete"
 msgstr "Practice complete"
 
@@ -754,38 +966,42 @@ msgstr "Practice complete"
 msgid "Practice repertoire"
 msgstr "Practice repertoire"
 
-#: src/repertoire/repertoire-detail.tsx:42
-msgid "Prep gaps"
-msgstr "Prep gaps"
+#: src/settings/layout/navigation.ts:36
+msgid "Preferences"
+msgstr "Preferences"
 
-#: src/repertoire/chapter-study.tsx:65
+#: src/repertoire/chapter-study.tsx:68
 msgid "Prepared move"
 msgstr "Prepared move"
 
-#: src/repertoire/repertoire-practice.tsx:65
+#: src/repertoire/repertoire-practice.tsx:68
 msgid "Prepared move:"
 msgstr "Prepared move:"
 
 #: src/games/open-game/replay-controls.tsx:12
-#: src/repertoire/chapter-study.tsx:61
+#: src/repertoire/chapter-study.tsx:64
 msgid "Prev"
 msgstr "Prev"
 
-#: src/games/games-list.tsx:26
+#: src/games/games-list.tsx:25
 msgid "Previous"
 msgstr "Previous"
 
 #: src/games/open-game/replay-controls.tsx:9
-#: src/repertoire/chapter-study.tsx:59
+#: src/repertoire/chapter-study.tsx:62
 msgid "Previous move"
 msgstr "Previous move"
 
-#: src/drill/drill.tsx:58
-#: src/repertoire/repertoire-practice.tsx:72
+#: src/settings/account/profile-form.tsx:21
+msgid "Profile"
+msgstr "Profile"
+
+#: src/drill/drill.tsx:61
+#: src/repertoire/repertoire-practice.tsx:75
 msgid "Progress"
 msgstr "Progress"
 
-#: src/games/games-list.tsx:30
+#: src/games/games-list.tsx:29
 #: src/games/list/columns.tsx:24
 #: src/games/list/filters.ts:50
 msgid "Rapid"
@@ -809,7 +1025,7 @@ msgstr "Reload"
 
 #: src/repertoire/repertoire-landing.tsx:27
 #: src/routes/_app/repertoire.tsx:9
-#: src/test/routes.tsx:111
+#: src/test/routes.tsx:117
 msgid "Repertoire"
 msgstr "Repertoire"
 
@@ -830,7 +1046,7 @@ msgstr "Review"
 msgid "reviews"
 msgstr "reviews"
 
-#: src/drill/drill.tsx:61
+#: src/drill/drill.tsx:64
 msgid "Right"
 msgstr "Right"
 
@@ -838,52 +1054,75 @@ msgstr "Right"
 msgid "Right now: {games} games imported, {analysed} deeply analysed."
 msgstr "Right now: {games} games imported, {analysed} deeply analysed."
 
-#: src/drill/drill.tsx:52
+#: src/drill/drill.tsx:55
 msgid "Right."
 msgstr "Right."
+
+#: src/settings/account/profile-form.tsx:28
+msgid "Save"
+msgstr "Save"
+
+#: src/settings/account/profile-form.tsx:30
+msgid "Saved."
+msgstr "Saved."
+
+#: src/settings/account/profile-form.tsx:29
+msgid "Saving…"
+msgstr "Saving…"
 
 #: src/insights/finding-views.tsx:502
 msgid "Score"
 msgstr "Score"
-
-#: src/repertoire/repertoire-detail.tsx:45
-msgid "See a game"
-msgstr "See a game"
 
 #: src/games/view-analysis/drill-cta.tsx:14
 msgid "See your patterns"
 msgstr "See your patterns"
 
 #: src/drill/drill-prompt.tsx:26
-#: src/repertoire/repertoire-practice.tsx:61
+#: src/repertoire/repertoire-practice.tsx:64
 msgid "Seen before"
 msgstr "Seen before"
 
-#: src/drill/drill.tsx:62
+#: src/drill/drill.tsx:65
 msgid "Session complete"
 msgstr "Session complete"
+
+#: src/settings/account/sign-in-methods.tsx:26
+msgid "Set — you can sign in with your email and password."
+msgstr "Set — you can sign in with your email and password."
+
+#: src/app-shell/user-menu.tsx:31
+#: src/routes/_app/settings.tsx:12
+#: src/settings/layout/settings-layout.tsx:10
+#: src/test/routes.tsx:165
+msgid "Settings"
+msgstr "Settings"
 
 #: src/games/view-analysis/move-insight.tsx:25
 msgid "Show the engine's move on the board"
 msgstr "Show the engine's move on the board"
 
-#: src/auth/sign-in/sign-in-screen.tsx:32
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/auth/sign-in/sign-in-screen.tsx:29
-msgid "Sign in to your VelaChess instance."
-msgstr "Sign in to your VelaChess instance."
+#: src/auth/sign-in/sign-in-screen.tsx:38
+msgid "Sign in with your account credentials."
+msgstr "Sign in with your account credentials."
 
-#: src/app-shell/user-menu.tsx:21
+#: src/app-shell/user-menu.tsx:36
 msgid "Sign out"
 msgstr "Sign out"
 
-#: src/auth/sign-in/sign-in-screen.tsx:33
+#: src/settings/account/sign-in-methods.tsx:20
+msgid "Sign-in methods"
+msgstr "Sign-in methods"
+
+#: src/auth/sign-in/sign-in-screen.tsx:42
 msgid "Signing in…"
 msgstr "Signing in…"
 
-#: src/app-shell/user-menu.tsx:22
+#: src/app-shell/user-menu.tsx:37
 msgid "Signing out…"
 msgstr "Signing out…"
 
@@ -908,8 +1147,8 @@ msgid "Start here"
 msgstr "Start here"
 
 #: src/games/open-game/board-pane.tsx:30
-#: src/repertoire/chapter-study.tsx:56
-#: src/repertoire/chapter-study.tsx:57
+#: src/repertoire/chapter-study.tsx:59
+#: src/repertoire/chapter-study.tsx:60
 msgid "Starting position"
 msgstr "Starting position"
 
@@ -922,18 +1161,39 @@ msgid "Stockfish confirms what leaving your book was worth. The ones that hurt c
 msgstr "Stockfish confirms what leaving your book was worth. The ones that hurt come back as spaced-repetition drills."
 
 #: src/games/import/sync-games-button.tsx:18
+#: src/settings/connections/connections-screen.tsx:39
 msgid "Sync games"
 msgstr "Sync games"
 
 #: src/games/import/sync-games-button.tsx:23
+#: src/settings/connections/connections-screen.tsx:44
 msgid "Synced a moment ago"
 msgstr "Synced a moment ago"
 
 #: src/games/import/sync-games-button.tsx:19
+#: src/settings/connections/connections-screen.tsx:37
+#: src/settings/connections/connections-screen.tsx:40
 msgid "Syncing…"
 msgstr "Syncing…"
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
+#: src/app-shell/user-menu.tsx:33
+#: src/settings/appearance/appearance-screen.tsx:15
+msgid "System"
+msgstr "System"
+
+#: src/settings/language-region/language-region-screen.tsx:22
+msgid "System default"
+msgstr "System default"
+
+#: src/settings/language-region/language-region-screen.tsx:21
+msgid "System default follows your browser's language."
+msgstr "System default follows your browser's language."
+
+#: src/settings/appearance/appearance-screen.tsx:14
+msgid "System follows your operating system's setting."
+msgstr "System follows your operating system's setting."
+
+#: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "That doesn't look like an email address."
 msgstr "That doesn't look like an email address."
 
@@ -941,7 +1201,7 @@ msgstr "That doesn't look like an email address."
 msgid "That username is too long"
 msgstr "That username is too long"
 
-#: src/games/view-analysis/eval-graph.tsx:11
+#: src/games/view-analysis/eval-graph.tsx:13
 msgid "The curve appears as the analysis lands."
 msgstr "The curve appears as the analysis lands."
 
@@ -957,13 +1217,17 @@ msgstr "The engine reaches this move shortly."
 msgid "The move here is"
 msgstr "The move here is"
 
-#: src/repertoire/chapter-study.tsx:71
+#: src/repertoire/chapter-study.tsx:74
 msgid "The prepared line ends here."
 msgstr "The prepared line ends here."
 
 #: src/games/view-analysis/move-insight.tsx:20
 msgid "The starting position."
 msgstr "The starting position."
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:33
+msgid "There is nothing to import yet."
+msgstr "There is nothing to import yet."
 
 #: src/repertoire/repertoire-detail.tsx:41
 msgid "This repertoire is derived from your games. Sync a few more and its chapters appear here on their own."
@@ -989,7 +1253,7 @@ msgstr "Time control"
 msgid "to drill"
 msgstr "to drill"
 
-#: src/drill/drill.tsx:59
+#: src/drill/drill.tsx:62
 msgid "To go"
 msgstr "To go"
 
@@ -1000,6 +1264,10 @@ msgstr "Today"
 #: src/insights/finding-views.tsx:285
 msgid "too few moves to judge"
 msgstr "too few moves to judge"
+
+#: src/games/request-analysis/analysis-status.tsx:13
+msgid "Too many analyses at once."
+msgstr "Too many analyses at once."
 
 #: src/insights/finding-views.tsx:98
 msgid "Train the moves you missed"
@@ -1020,6 +1288,7 @@ msgid "Try again"
 msgstr "Try again"
 
 #: src/games/import/sync-games-button.tsx:25
+#: src/settings/connections/connections-screen.tsx:46
 msgid "Try again in a moment."
 msgstr "Try again in a moment."
 
@@ -1040,7 +1309,7 @@ msgstr "Unfinished"
 msgid "Up to date"
 msgstr "Up to date"
 
-#: src/repertoire/chapter-study.tsx:74
+#: src/repertoire/chapter-study.tsx:77
 msgid "Variation"
 msgstr "Variation"
 
@@ -1065,9 +1334,9 @@ msgstr "View games"
 msgid "waiting for you today"
 msgstr "waiting for you today"
 
-#: src/auth/sign-in/sign-in-screen.tsx:28
-msgid "Welcome back"
-msgstr "Welcome back"
+#: src/settings/account/sign-in-methods.tsx:21
+msgid "Ways you can get into this account."
+msgstr "Ways you can get into this account."
 
 #: src/repertoire/repertoire-landing.tsx:28
 msgid "What you intend to play, and how well you know it."
@@ -1088,7 +1357,7 @@ msgid "White repertoire"
 msgstr "White repertoire"
 
 #: src/drill/drill-prompt.tsx:24
-#: src/repertoire/repertoire-practice.tsx:59
+#: src/repertoire/repertoire-practice.tsx:62
 msgid "White to move"
 msgstr "White to move"
 
@@ -1109,7 +1378,7 @@ msgstr "won {rate} of {count, plural, one {# game} other {# games}}"
 msgid "Working out which positions are worth drilling…"
 msgstr "Working out which positions are worth drilling…"
 
-#: src/drill/drill.tsx:60
+#: src/drill/drill.tsx:63
 msgid "Wrong"
 msgstr "Wrong"
 
@@ -1121,7 +1390,7 @@ msgstr "You err on {rate} of your {phase} moves, against {overall} across the wh
 msgid "You followed it in {adherence} of {judged} judged games, and it runs about {depth} moves deep."
 msgstr "You followed it in {adherence} of {judged} judged games, and it runs about {depth} moves deep."
 
-#: src/repertoire/repertoire-practice.tsx:76
+#: src/repertoire/repertoire-practice.tsx:79
 msgid "You played {san}."
 msgstr "You played {san}."
 
@@ -1145,11 +1414,11 @@ msgstr "You score better when you leave your White book"
 msgid "You scored {latest} against {previous} in the {n} before them."
 msgstr "You scored {latest} against {previous} in the {n} before them."
 
-#: src/drill/drill.tsx:54
+#: src/drill/drill.tsx:57
 msgid "You tried"
 msgstr "You tried"
 
-#: src/repertoire/repertoire-practice.tsx:70
+#: src/repertoire/repertoire-practice.tsx:73
 msgid "You went through everything due in this repertoire."
 msgstr "You went through everything due in this repertoire."
 
@@ -1169,6 +1438,10 @@ msgstr "Your {phase} is your most solid stretch"
 msgid "Your book, from your own play"
 msgstr "Your book, from your own play"
 
+#: src/settings/account/profile-form.tsx:27
+msgid "Your email is tied to how you signed up and can't be changed here."
+msgstr "Your email is tied to how you signed up and can't be changed here."
+
 #: src/onboarding/steps.tsx:18
 msgid "Your games are the syllabus"
 msgstr "Your games are the syllabus"
@@ -1181,6 +1454,10 @@ msgstr "Your games, your repertoire, your mistakes."
 msgid "Your handle is all it takes. We read the public archive and stop there."
 msgstr "Your handle is all it takes. We read the public archive and stop there."
 
+#: src/settings/account/account-screen.tsx:13
+msgid "Your identity on this instance, and how you sign in to it."
+msgstr "Your identity on this instance, and how you sign in to it."
+
 #: src/insights/finding-views.tsx:498
 msgid "Your last {n} games are a clear step up"
 msgstr "Your last {n} games are a clear step up"
@@ -1188,6 +1465,10 @@ msgstr "Your last {n} games are a clear step up"
 #: src/insights/finding-views.tsx:499
 msgid "Your last {n} games have slipped"
 msgstr "Your last {n} games have slipped"
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:27
+msgid "Your name in these games"
+msgstr "Your name in these games"
 
 #: src/insights/finding-views.tsx:90
 msgid "Your preparation is paying off with Black"
@@ -1201,6 +1482,6 @@ msgstr "Your preparation is paying off with White"
 msgid "Your preparation said"
 msgstr "Your preparation said"
 
-#: src/repertoire/chapter-study.tsx:66
+#: src/repertoire/chapter-study.tsx:69
 msgid "Your repertoire plays:"
 msgstr "Your repertoire plays:"

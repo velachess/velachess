@@ -22,4 +22,8 @@ export interface SessionUser {
   id: string;
   email: string;
   name: string;
+  /** Better Auth's `user.image` — the provider's picture, for accounts
+   * that came from one. `null` for an email/password account, which is
+   * why every consumer needs a fallback rather than an `<img>`. */
+  image: string | null;
 }

@@ -7,7 +7,7 @@ import { and, desc, eq, exists } from "drizzle-orm";
 import type { Database } from "@velachess/db";
 import { schema } from "@velachess/db";
 
-const { deviations, exerciseSources, games, trackedAccounts } = schema;
+const { deviations, exerciseSources, games } = schema;
 
 /** The deviation table a UI renders: own deviations with the engine
  * verdict, repertoire attribution (snapshots survive deletion), the game
@@ -41,7 +41,6 @@ export async function listDeviationsForUser(db: Database, userId: string) {
     })
     .from(deviations)
     .innerJoin(games, eq(deviations.gameId, games.id))
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-    .where(and(eq(trackedAccounts.userId, userId), eq(deviations.type, "deviation")))
+    .where(and(eq(games.userId, userId), eq(deviations.type, "deviation")))
     .orderBy(desc(games.playedAt));
 }

@@ -1,6 +1,6 @@
 # @velachess/ui
 
-The shared design-system package. It owns theme tokens, shadcn/base-ui
+The shared design-system library. It owns theme tokens, shadcn/base-ui
 primitives, layout components, icons, charts, and the reusable chess board; app
 screens, routes, translated copy, and product-specific workflows belong in
 `@velachess/web`.
@@ -16,7 +16,7 @@ screens, routes, translated copy, and product-specific workflows belong in
 Bootstrap from the monorepo root with `pnpm install`.
 
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
-- Add or update registry components from this package's shadcn setup; do not
+- Add or update registry components from this library's shadcn setup; do not
   add reusable primitives under `apps/web`.
 
 ## Documentation

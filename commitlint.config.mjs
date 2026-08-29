@@ -34,6 +34,7 @@ const scopes = [
   "docs",
   "ci",
   "deps",
+  "deps-dev", // Dependabot's scope for devDependencies
   "repo", // tooling and config that belongs to no package
 ];
 

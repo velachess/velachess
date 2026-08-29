@@ -45,8 +45,6 @@ export function accountsRoutes(deps: ApiDeps) {
             id: account.id,
             platform: account.platform,
             username: account.username,
-            avatarUrl: account.avatarUrl,
-            flair: account.flair,
           },
           201,
         );

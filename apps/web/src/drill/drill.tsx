@@ -511,9 +511,9 @@ function SessionHeader({
  * survives a monochrome screen and a colour-blind reader.
  */
 const TALLY_TONE = {
-  neutral: "text-muted-foreground",
-  wrong: "text-[var(--grade-blunder)]",
-  right: "text-[var(--grade-ok)]",
+  neutral: "text-info",
+  wrong: "text-move-blunder",
+  right: "text-move-ok",
 } as const;
 
 function Tally({

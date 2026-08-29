@@ -39,6 +39,9 @@ jobs:
       - name: Formatting
         run: pnpm fmt:check
 
+      - name: Architecture
+        run: pnpm architecture
+
       # Unused files, exports and dependencies.
       - name: Dead code (knip)
         run: pnpm knip
@@ -67,6 +70,9 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      - name: End-to-end
+        run: pnpm e2e
 
       - name: Build
         run: pnpm build

@@ -1,6 +1,7 @@
 # @velachess/engine
 
-The UCI engine package. It parses and builds UCI protocol messages, abstracts
+The UCI engine library, exposed in the workspace as `@velachess/engine`. It
+parses and builds UCI protocol messages, abstracts
 Stockfish transport, and exposes engine sessions; it should not classify moves,
 judge repertoires, persist reports, or decide when an engine run starts.
 
@@ -14,10 +15,10 @@ judge repertoires, persist reports, or decide when an engine run starts.
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Package lint: `pnpm --filter @velachess/engine lint`
-- Package format check: `pnpm --filter @velachess/engine fmt:check`
+- Workspace lint: `pnpm --filter @velachess/engine lint`
+- Workspace format check: `pnpm --filter @velachess/engine fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation
 
-See [Engine module](../../docs/explanation/modules/engine.md).
+See [Engine module](../../../docs/explanation/modules/engine.md).

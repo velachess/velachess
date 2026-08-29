@@ -4,6 +4,8 @@
 @source "../../../../libs/ui/src/components/button.tsx";
 @source "../../../../libs/ui/src/components/card.tsx";
 @source "../../../../libs/ui/src/components/shimmer-button.tsx";
+@source "../../../../libs/ui/src/components/dropdown-menu.tsx";
+@source "../../../../libs/ui/src/components/theme-toggle.tsx";
 @source "../../../../libs/ui/src/icons/mark.tsx";
 
 html {

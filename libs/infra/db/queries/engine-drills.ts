@@ -30,7 +30,8 @@ export interface EngineDrillCandidate {
 /**
  * Analyses of the user's games, with already-seeded plies marked.
  * Deliberately skips the drill rule (severity/budget/ordering) — that's
- * `selectDrillCandidates` in `packages/drill`, pure and DB-free. Fetch only.
+ * `selectDrillCandidates` in the application drill slice, pure and DB-free.
+ * Fetch only.
  */
 export async function listEngineDrillCandidates(
   db: Database,
@@ -48,12 +49,12 @@ export async function listEngineDrillCandidates(
     })
     .from(gameAnalyses)
     .innerJoin(games, eq(gameAnalyses.gameId, games.id))
-    // Inner join, not left: a game with no tracked account has no "you",
-    // and there is nobody to attribute the mistake to.
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
+    // Provenance only — the fallback for perspective when the game
+    // stores none. A PGN import has no account and still owns its games.
+    .leftJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
     .where(
       and(
-        eq(trackedAccounts.userId, userId),
+        eq(games.userId, userId),
         opts.gameId ? eq(gameAnalyses.gameId, opts.gameId) : undefined,
       ),
     );
@@ -100,40 +101,40 @@ async function seededPliesByGame(
 }
 
 /**
- * Stored perspective wins; otherwise the tracked username decides. Same
- * rule as `resolveGamePerspective` in application, restated rather than
- * imported — importing it would invert the persistence/application
- * dependency the architecture tests protect. Acceptance test pins both.
+ * Stored perspective wins; otherwise the provenance account's username
+ * decides, when there is one. Same rule as `resolveGamePerspective` in
+ * application, restated rather than imported — importing it would invert
+ * the persistence/application dependency the architecture tests protect.
+ * Acceptance test pins both.
  */
 function sideOfUser(row: {
   perspective: string | null;
   whiteName: string;
   blackName: string;
-  accountUsername: string;
+  accountUsername: string | null;
 }): "white" | "black" | null {
   if (row.perspective === "white" || row.perspective === "black") {
     return row.perspective;
   }
-  const username = row.accountUsername.toLowerCase();
+  const username = row.accountUsername?.toLowerCase();
+  if (!username) return null;
   if (row.whiteName.toLowerCase() === username) return "white";
   if (row.blackName.toLowerCase() === username) return "black";
   return null;
 }
 
 /**
- * Who a game belongs to, for callers holding only a game id.
- *
- * Null when the game has no tracked account — a pasted PGN nobody
- * claimed. Nothing downstream can be attributed to a person then.
+ * Who a game belongs to — the row's own owner. Null only for a game id
+ * that does not exist; ownership is no longer inferred through an
+ * account, so a manually imported PGN answers exactly like a synced one.
  */
 export async function userIdForGame(
   db: Database,
   gameId: string,
 ): Promise<string | null> {
   const [row] = await db
-    .select({ userId: trackedAccounts.userId })
+    .select({ userId: games.userId })
     .from(games)
-    .innerJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
     .where(eq(games.id, gameId))
     .limit(1);
 

@@ -10,9 +10,6 @@ export interface ArchiveAccount {
   id: string;
   platform: Platform;
   username: string;
-  /** Provider identity, as the real route returns it. */
-  avatarUrl: string | null;
-  flair: string | null;
   lastSyncedAt: string | null;
 }
 
@@ -20,10 +17,16 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
   id: "account-1",
   platform: "chess_com",
   username: ME,
-  avatarUrl: null,
-  flair: null,
   lastSyncedAt: "2026-05-04T18:30:00.000Z",
 };
+
+/** What the detail read reports for one seat's provider identity — the server resolves it from a shared per-handle cache, tracked or not. */
+export interface SeatProfile {
+  avatarUrl: string | null;
+  flair: string | null;
+}
+
+const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null };
 
 /** How the server answers an analysis request. `elsewhere` counts reads: first says "running", next delivers — the 202 convergence. */
 export type AnalysisAnswer =
@@ -47,6 +50,8 @@ interface ArchiveState {
   refusesRefreshFor: number | null;
   /** Per game — absent means "never analyzed", which streams empty. */
   analyses: Map<string, AnalysisAnswer>;
+  /** Per game — what the detail read reports for each seat's identity. */
+  identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
   watches: number;
 }
 
@@ -57,6 +62,7 @@ function fresh(): ArchiveState {
     incoming: [],
     refusesRefreshFor: null,
     analyses: new Map(),
+    identities: new Map(),
     watches: 0,
   };
 }
@@ -65,6 +71,7 @@ let state: ArchiveState = fresh();
 
 export function resetArchive(): void {
   state = fresh();
+  pgnImportState = freshImportPlan();
   resetGameIds();
 }
 
@@ -95,6 +102,29 @@ export function stageAnalysis(gameId: string, answer: AnalysisAnswer): void {
   state.analyses.set(gameId, answer);
 }
 
+/** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
+export function stageSeatIdentities(
+  gameId: string,
+  seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },
+): void {
+  state.identities.set(gameId, {
+    white: { ...NO_PROFILE, ...seats.white },
+    black: { ...NO_PROFILE, ...seats.black },
+  });
+}
+
+/** Shaped exactly as GET /games/:id reports it. */
+export function seatIdentityFields(gameId: string): {
+  whiteIdentity: SeatProfile;
+  blackIdentity: SeatProfile;
+} {
+  const staged = state.identities.get(gameId);
+  return {
+    whiteIdentity: staged?.white ?? { ...NO_PROFILE },
+    blackIdentity: staged?.black ?? { ...NO_PROFILE },
+  };
+}
+
 /** Counted because a reopening EventSource is invisible on screen — this is the only tell. */
 export function watchCount(): number {
   return state.watches;
@@ -107,6 +137,42 @@ export function countWatch(): number {
 
 export function analysisAnswerFor(gameId: string): AnalysisAnswer | undefined {
   return state.analyses.get(gameId);
+}
+
+/**
+ * What the next PGN upload does. Success lands its games in the library;
+ * `refuses` answers like an unreachable server. Reset with the archive.
+ */
+export interface PgnImportPlan {
+  incoming: Game[];
+  duplicates: number;
+  rejected: number;
+  refuses: boolean;
+}
+
+function freshImportPlan(): PgnImportPlan {
+  return { incoming: [], duplicates: 0, rejected: 0, refuses: false };
+}
+
+let pgnImportState: PgnImportPlan = freshImportPlan();
+
+export const pgnImport = {
+  get incoming() {
+    return pgnImportState.incoming;
+  },
+  get duplicates() {
+    return pgnImportState.duplicates;
+  },
+  get rejected() {
+    return pgnImportState.rejected;
+  },
+  get refuses() {
+    return pgnImportState.refuses;
+  },
+};
+
+export function stagePgnImport(plan: Partial<PgnImportPlan>): void {
+  pgnImportState = { ...freshImportPlan(), ...plan };
 }
 
 /** Unknown player -> 404, not an empty archive — how a test tells "no such user" from "no games yet". */

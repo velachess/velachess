@@ -1,79 +1,75 @@
-# libs/application
+# `libs/application`
 
-**[APPLICATION] — the composition layer. Orchestrates domain capabilities,
-never implements them.**
-Consumed by `apps/server` and `apps/worker`; those two stay thin because
-every multi-package flow lives here. Knows queue _ports_, never pg-boss;
-knows `Database`, never HTTP.
+Application owns what VelaChess does. It is one workspace package organized by
+vertical slice: each request or system event owns its orchestration, local
+queries, decisions at effect boundaries, errors, and tests.
 
-## Services
+```text
+accounts/      connect, list, sync, and list account games
+games/         list/open and judge games
+analysis/      request, execute, read, and watch analysis
+repertoires/   extract, list, read, and add chapters
+drills/        seed exercises, select the next drill, submit an answer
+overview/      dashboard read model
+insights/      user-facing derived insights
+deviations/    deviation read model
+auth/          bootstrap the first configured user
+```
 
-- `bootstrap.ts` — `ensureDefaultUser`: single-user get-or-create. The
-  api middleware resolves identity once and passes `userId` on; no
-  service knows about a "current user".
-- `sync.ts` — three things, in order of how often they run:
-  - `openArchive`: "show me this player's games", and the whole of
-    importing. Read-through — a username nobody opened yet is tracked and
-    filled once, then every later read is a database query.
-  - `syncAccount`: fetch (chess.com/Lichess) → save → advance cursor only
-    on a complete pass; mark the account synced on any complete pass
-    (an empty archive produces no cursor and still counts).
-  - `processAccountSync`: the refresh routine — pull what's new, judge it,
-    keep the drilling routines current. No engine.
-- `judge.ts` — `judgeGamesForUser`: builds the judging repertoire per
-  color (oldest chaptered one wins, deterministically), and judges each
-  game PER REPERTOIRE — a game is pending for repertoire R until R judged
-  it, so a fresh extraction reaches games older repertoires already
-  judged. Judging is replay, never the engine. `enqueueAnalysis` is
-  opt-in and off by default: when it is on, judgment persistence and the
-  enqueue share one transaction.
-- `extract.ts` — `extractRepertoire`: loads the user's games of a color,
-  replays them, feeds the pure trie (`@velachess/repertoire`), and writes
-  the result into the fixed `Extracted — <color>` repertoire (typed
-  constants) — chapters fully replaced in one transaction, so
-  re-extraction is idempotent.
-- `perspective.ts` — `resolveGamePerspective`: the one place that decides
-  which side is "you" (stored perspective wins; else tracked-account
-  username vs player names; else null).
-- `analyze.ts` — the heart. See below.
-- `triage.ts` — `triageAndSeed`: harmful, analysis-confirmed deviations
-  become exercises. Since severity only exists for games someone opened,
-  exercises grow out of the games you reviewed.
-- `review.ts` — `getReviewItem` (oldest due card, else a new exercise,
-  EPD → playable FEN, per-grade previews) and `submitAnswer` (check →
-  grade → record → schedule).
-- `reports.ts` — UI read models: `listAdherence` (adherence per
-  repertoire — the math is cycle-2's pure `adherenceMetrics`) and
-  `reviewForecast` (cards due per day — cycle-4's pure `forecast`).
-- `locks.ts` — `sessionAdvisoryLock`: `pg_try_advisory_lock` where the
-  acquisition IS the check (no TOCTOU), plus an in-process set because
-  session locks are reentrant within one connection.
+The area directory is navigation. The architectural unit is the slice beneath
+it; there is no internal template and no service/repository layer.
 
-## Analysis: one primitive, two callers
+## Boundaries
 
-`tryStartAnalysis` is the only way an analysis run starts. The advisory
-lock decides ownership atomically; the interactive route (SSE) and the
-background consumer both call it and accept whatever it decides:
+Application knows database and queue port types but not Hono, pg-boss, process
+environment, or deployment topology. `apps/server` and `apps/worker` translate
+delivery and call slices. Technical mechanisms live in `libs/infra`; pure
+chess, analysis, repertoire, and scheduling rules live in their domain
+libraries.
 
-- `started` — this caller owns the run. It gets an `AnalysisExecution`:
-  a broadcast `events` iterable (subscribe before `start()`; a subscriber
-  that stops reading never stops the run — disconnect ≠ cancel is
-  structural), a `result` promise, and `start()`.
-- `running` — someone alive holds the lock. Observe, don't drive.
-- `completed` — cached. A crash-retried job never re-runs the engine.
+Queries used by one behavior stay in that slice. Multi-consumer queries may
+live in `libs/infra/db/queries` when the shared ownership is real and documented.
+Slices do not call one another except for the allowlisted event-reaction paths
+enforced by `.dependency-cruiser.cjs`.
 
-Completion is atomic: the engine report and the judgment severity update
-(`applyEngineSignal`) commit in one transaction.
+## Account sync and judgment
 
-`requestAnalysis` is the read-only composition for HTTP state mapping
-(created / queued / running / failed / completed) — it inspects the domain
-table and the queue, never the lock (that would reintroduce TOCTOU).
+`accounts/connect-account` creates a user-owned tracked account and performs the
+first public archive import. `accounts/sync-account` has an interactive refresh
+entry point and a delivery-agnostic worker entry point. Both fetch and persist
+through provider/db adapters; cursor and `lastSyncedAt` advance only after a
+complete pass.
 
-## Tests
+A complete sync updates candidate repertoires, judges games, and seeds exercises
+from evidence already stored. It does not run Stockfish. Judgment is replay
+against one repertoire; it remains independent per `(game, repertoire)`.
 
-One suite over the real harness — PGlite + real migrations + pg-boss +
-real Stockfish (shallow depth): bootstrap idempotence, sync fixture and
-cursor, `openArchive` filling once and then only reading, judge with
-transactional enqueue when it is asked for, the TOCTOU race (two concurrent
-`tryStartAnalysis`, exactly one starts), disconnect ≠ cancel, completed
-short-circuit, triage, review round-trip.
+## Analysis
+
+`analysis/request-analysis` maps persisted report and queue delivery state for
+HTTP. `analysis/process-analysis` owns execution: it checks cached completion,
+uses the database session advisory lock to establish one owner, drives the
+engine, records progress, and persists the result. The queue deduplicates
+delivery; the lock deduplicates execution.
+
+An analysis report and the judgment severity it fills commit together. A
+watcher observes persisted progress/report state; disconnecting a watcher does
+not cancel execution.
+
+## Training
+
+`drills/seed-exercises` turns eligible repertoire or engine evidence into
+idempotent exercise sources. `get-next-drill` selects due cards before unseen
+exercises. `submit-answer` checks the move, records the response, and delegates
+FSRS scheduling to `libs/scheduler`.
+
+Product vocabulary remains distinct: analysis is engine judgment, repertoire
+judgment is replay, a drill is the exercise shown to the user, and a review is
+one scheduled FSRS event.
+
+## Verification
+
+The package test project uses real migrations and, where required, real
+Stockfish at shallow depth. Cross-app behavior belongs in root `e2e`; the
+dependency rules belong in `.dependency-cruiser.cjs`. See
+`docs/how-to/verify-a-change.md`.

@@ -170,3 +170,51 @@ export const PROMOTION_DEVIATION_GAME_PGN = `[Event "Promotion deviation"]
 
 1. e8=N *
 `;
+
+/**
+ * The player a manual import names as theirs — one person, both colors
+ * across the file. Invented handle; a test has no business shipping a
+ * real player's name.
+ */
+export const IMPORTED_PLAYER_NAME = "Ada Lovelace";
+
+/**
+ * One upload, two games, opposite seats: the named player is White in
+ * the first and Black in the second, so per-game perspective resolution
+ * has something honest to resolve.
+ */
+export const MIXED_COLOR_PGN = `[Event "As white"]
+[Site "?"]
+[White "${IMPORTED_PLAYER_NAME}"]
+[Black "Invented Opponent"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 *
+[Event "As black"]
+[Site "?"]
+[White "Invented Opponent"]
+[Black "${IMPORTED_PLAYER_NAME}"]
+[Result "*"]
+
+1. d4 d5 2. c4 e6 *
+`;
+
+/** RUY_LOPEZ_REPERTOIRE_PGN's mainline, tagged with real player names so a manual import can attribute it. */
+export const NAMED_IN_BOOK_GAME_PGN = `[Event "Named in book"]
+[Site "?"]
+[White "${IMPORTED_PLAYER_NAME}"]
+[Black "Marcel Duchamp"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 *
+`;
+
+/** The named player leaves the book at move 4: Bc4 instead of Ba4. */
+export const NAMED_DEVIATION_GAME_PGN = `[Event "Named deviation"]
+[Site "?"]
+[White "${IMPORTED_PLAYER_NAME}"]
+[Black "Marcel Duchamp"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bc4 *
+`;

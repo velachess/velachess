@@ -1,15 +1,15 @@
 # @velachess/application
 
-The application orchestration layer. It composes database queries, pure domain
-packages, engine sessions, schedulers, and queue ports into use cases for the
-API and worker; HTTP, pg-boss consumer wiring, SQL schema ownership, and domain
+The application orchestration library. It composes database queries, pure domain
+libraries, engine sessions, schedulers, and queue ports into use cases for the
+server and worker; HTTP, pg-boss consumer wiring, SQL schema ownership, and domain
 math should not live here.
 
 ## Dependencies
 
 - Internal: `@velachess/analysis`, `@velachess/chess`, `@velachess/db`,
-  `@velachess/drill`, `@velachess/engine`, `@velachess/platforms`,
-  `@velachess/queue`, `@velachess/repertoire`, `@velachess/scheduler`.
+  `@velachess/engine`, `@velachess/platforms`, `@velachess/queue`,
+  `@velachess/repertoire`, `@velachess/scheduler`, and `@velachess/auth`.
 - Important boundary: queue usage goes through ports; application code must not
   import pg-boss directly.
 
@@ -18,8 +18,8 @@ math should not live here.
 Bootstrap from the monorepo root with `pnpm install`.
 
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
-- Run application flows through the API/worker or the shared test harness; this
-  package has no standalone runtime script.
+- Run application flows through the server/worker or shared test harness; this
+  library has no standalone runtime script.
 
 ## Documentation
 
