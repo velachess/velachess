@@ -37,6 +37,11 @@ Stockfish — GPL-3.0-or-later
     engine, same licence) backs the test suites and serves as a fallback
     when ENGINE_CMD is unset.
 
+Chess board sounds
+    apps/web/public/sounds/chess/ — cut from "chess pieces.wav" by
+    simone_ds, Freesound #366065 (CC0 / public domain), also distributed
+    on Pixabay as "chess-pieces-60890".
+
 Chess API response shapes
     The fixtures under libs/fixtures/ follow the publicly documented
     Chess.com Published-Data API and the Lichess API. The players, ratings,

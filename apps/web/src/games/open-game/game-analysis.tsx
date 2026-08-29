@@ -10,8 +10,14 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../../shared/chess-sounds/chess-sounds.ts";
+import { useQuery } from "../../shared/libs/query/index.ts";
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { flairImageOf } from "../import/queries.ts";
+import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
@@ -21,6 +27,7 @@ import {
 } from "../analysis-read.ts";
 import { BoardPane } from "./board-pane.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
+import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
 import { useAnalysis } from "../watch-analysis/use-analysis.ts";
 
 const ANALYSE_COPY = {
@@ -48,6 +55,7 @@ export function GameAnalysis() {
 
 function GameAnalysisContent({ gameId }: { gameId: string }) {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   // The array itself, mapped where it is used: a selector that builds a
   // new array every render never compares equal, and zustand re-renders
   // until React gives up.
@@ -61,6 +69,30 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
    */
   const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
 
+  // `playReplaySound` is wired into `useAnalysis` below, which is where
+  // `game` (and so `orientation`) normally comes from — reading the same
+  // query directly here breaks that ordering instead of caching the
+  // value in a ref. Same cache entry, no extra fetch.
+  const gameForSound = useQuery(gameQuery(gameId));
+  const orientationForSound = gameForSound.data
+    ? seatOf(
+        gameForSound.data,
+        myAccounts.map((account) => account.username),
+      )
+    : undefined;
+  const playReplaySound = (event: ReplayNavigationEvent) => {
+    if (event.type === REPLAY_NAVIGATION.START) {
+      playSound({ type: CHESS_SOUND_EVENT.GAME_START });
+      return;
+    }
+    playSound({
+      type: CHESS_SOUND_EVENT.MOVE,
+      fenBefore: event.move.fenBefore,
+      san: event.move.san,
+      viewerColor: orientationForSound,
+    });
+  };
+
   const {
     game,
     isLoading,
@@ -71,7 +103,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     isAnalyzing,
     analysisFailed,
     analysisRetryAfterSeconds,
-  } = useAnalysis(gameId);
+  } = useAnalysis(gameId, playReplaySound);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would

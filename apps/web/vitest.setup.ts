@@ -28,6 +28,10 @@ beforeAll(() => {
   // a failure and is not one.
   window.scrollTo = () => {};
 
+  // jsdom has no audio backend; failure behavior is tested through the
+  // sound dispatcher's injected output instead of this browser stub.
+  HTMLMediaElement.prototype.play = () => Promise.resolve();
+
   // jsdom implements no media queries at all. ThemeProvider's "system"
   // resolution reads this on every mount, so without a stub every screen
   // test throws before it renders anything.

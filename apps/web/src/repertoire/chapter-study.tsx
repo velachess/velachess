@@ -24,6 +24,10 @@ import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/e
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../app-shell/board-screen.tsx";
+import {
+  CHESS_SOUND_EVENT,
+  useChessSounds,
+} from "../shared/chess-sounds/chess-sounds.ts";
 import { useQuery } from "../shared/libs/query/index.ts";
 import {
   chapterQuery,
@@ -117,6 +121,7 @@ type Cursor = MoveCursor | null;
 
 function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
   const { i18n } = useLingui();
+  const playSound = useChessSounds();
   const [cursor, setCursor] = useState<Cursor>(null);
 
   const line = cursor ? chapter.lines[cursor.line] : undefined;
@@ -146,6 +151,7 @@ function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
       (option) => option.from === played.from && option.to === played.to,
     );
     if (!match) return false;
+    playSound({ type: CHESS_SOUND_EVENT.MOVE, fenBefore: here.fen, san: match.san });
     setCursor(match.at);
     return true;
   };
@@ -267,7 +273,7 @@ function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
           <div className="flex flex-col gap-3">
             {chapter.lines.map((chapterLine, lineIndex) => (
               <VariationLine
-                key={lineIndex}
+                key={chapterLine.moves[0]!.positionKey}
                 line={chapterLine}
                 lineIndex={lineIndex}
                 cursor={cursor}
@@ -320,7 +326,7 @@ function VariationLine({
       <div className="flex flex-wrap gap-x-1 gap-y-0.5">
         {line.moves.map((chapterMove, moveIndex) => (
           <MoveButton
-            key={`${lineIndex}:${moveIndex}`}
+            key={chapterMove.positionKey}
             label={chapterMove.label}
             at={{ line: lineIndex, move: moveIndex }}
             cursor={cursor}

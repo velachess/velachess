@@ -33,7 +33,9 @@ describe("settings navigation", () => {
     const { router } = await renderApp({ path: "/settings/gameplay" });
 
     expect(router.state.location.pathname).toBe("/settings/gameplay");
-    expect(await screen.findByText("Nothing to configure yet")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Mute move sounds" }),
+    ).toBeInTheDocument();
   });
 
   it("follows a nav click to the new section", async () => {

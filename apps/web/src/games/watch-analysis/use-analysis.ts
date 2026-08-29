@@ -9,7 +9,11 @@ import {
   gameQuery,
 } from "../analysis-contract.ts";
 import type { DrillCount, GradedPly, ReplayableGame } from "../analysis-contract.ts";
-import { useChessReplay, type ChessReplay } from "../open-game/use-chess-replay.ts";
+import {
+  useChessReplay,
+  type ChessReplay,
+  type ReplayNavigation,
+} from "../open-game/use-chess-replay.ts";
 
 export interface Analysis {
   game: ReplayableGame | undefined;
@@ -32,7 +36,10 @@ export interface Analysis {
   analysisRetryAfterSeconds: number | null;
 }
 
-export function useAnalysis(gameId: string): Analysis {
+export function useAnalysis(
+  gameId: string,
+  onReplayNavigate?: ReplayNavigation,
+): Analysis {
   const game = useQuery(gameQuery(gameId));
   const analysis = useQuery(analysisQuery(gameId));
   // Only once the run has finished: asking while the stream is open
@@ -54,7 +61,11 @@ export function useAnalysis(gameId: string): Analysis {
 
   // Called unconditionally, before any caller's early return: hooks do
   // not take branches, and an empty replay is a valid one.
-  const replay = useChessReplay(game.data?.moves ?? [], game.data?.startFen ?? "");
+  const replay = useChessReplay(
+    game.data?.moves ?? [],
+    game.data?.startFen ?? "",
+    onReplayNavigate,
+  );
 
   return {
     game: game.data,

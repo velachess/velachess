@@ -18,7 +18,7 @@ import {
 import { makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
 import { parseSan } from "chessops/san";
 
-export { isDrop, isNormal };
+export { isDrop, isNormal, castlingSide };
 export type { DropMove, Move, NormalMove };
 
 /**

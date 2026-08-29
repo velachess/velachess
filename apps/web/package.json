@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@velachess/fixtures": "workspace:*",
     "@velachess/server": "workspace:*",
     "@lingui/babel-plugin-lingui-macro": "^6.6.0",
     "@lingui/cli": "^6.6.0",

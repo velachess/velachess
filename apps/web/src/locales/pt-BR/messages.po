@@ -34,7 +34,7 @@ msgid "{count, plural, one {# chapter} other {# chapters}}"
 msgstr ""
 
 #: src/repertoire/repertoire-landing.tsx:35
-#: src/repertoire/repertoire-practice.tsx:72
+#: src/repertoire/repertoire-practice.tsx:76
 msgid "{count, plural, one {# position due} other {# positions due}}"
 msgstr ""
 
@@ -49,10 +49,6 @@ msgstr ""
 
 #: src/repertoire/repertoire-detail.tsx:38
 msgid "{count, plural, one {# recall failure} other {# recall failures}}"
-msgstr ""
-
-#: src/repertoire/repertoire-detail.tsx:44
-msgid "{count, plural, one {in # game} other {in # games}}"
 msgstr ""
 
 #: src/games/import-pgn/pgn-import-dialog.tsx:41
@@ -79,7 +75,7 @@ msgstr ""
 msgid "{count} to practice"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:73
+#: src/repertoire/repertoire-practice.tsx:77
 msgid "{done} / {total} completed"
 msgstr ""
 
@@ -125,7 +121,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:29
+#: src/games/open-game/game-analysis.tsx:35
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -182,15 +178,15 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
-#: src/drill/drill.tsx:63
+#: src/drill/drill.tsx:67
 msgid "Back to drills"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:70
+#: src/repertoire/repertoire-practice.tsx:74
 msgid "Back to the repertoire"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:62
+#: src/repertoire/chapter-study.tsx:66
 msgid "Back to the start"
 msgstr ""
 
@@ -217,7 +213,7 @@ msgid "Black repertoire"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:25
-#: src/repertoire/repertoire-practice.tsx:59
+#: src/repertoire/repertoire-practice.tsx:63
 msgid "Black to move"
 msgstr ""
 
@@ -240,16 +236,12 @@ msgid "Blunders per game"
 msgstr ""
 
 #: src/games/open-game/board-pane.tsx:29
-#: src/repertoire/chapter-study.tsx:53
+#: src/repertoire/chapter-study.tsx:57
 msgid "Board"
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:13
+#: src/settings/gameplay/gameplay-screen.tsx:10
 msgid "Board interaction preferences."
-msgstr ""
-
-#: src/settings/gameplay/gameplay-screen.tsx:15
-msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
 msgstr ""
 
 #: src/repertoire/repertoire-landing.tsx:39
@@ -262,7 +254,7 @@ msgstr ""
 msgid "Bullet"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:54
+#: src/repertoire/chapter-study.tsx:58
 msgid "Chapter"
 msgstr ""
 
@@ -304,8 +296,8 @@ msgstr ""
 msgid "Connections"
 msgstr ""
 
-#: src/drill/drill.tsx:55
-#: src/repertoire/repertoire-practice.tsx:65
+#: src/drill/drill.tsx:59
+#: src/repertoire/repertoire-practice.tsx:69
 msgid "Continue"
 msgstr ""
 
@@ -321,7 +313,7 @@ msgstr ""
 msgid "Continue with Google or sign in with your account credentials."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:62
+#: src/repertoire/repertoire-practice.tsx:66
 msgid "Correct."
 msgstr ""
 
@@ -329,12 +321,12 @@ msgstr ""
 msgid "Correspondence"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:28
+#: src/games/open-game/game-analysis.tsx:34
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr ""
 
-#: src/drill/drill.tsx:47
+#: src/drill/drill.tsx:51
 msgid "Couldn't load drills."
 msgstr ""
 
@@ -346,11 +338,11 @@ msgstr ""
 msgid "Couldn't load insights."
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:52
+#: src/repertoire/chapter-study.tsx:56
 msgid "Couldn't load this chapter."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:54
+#: src/repertoire/repertoire-practice.tsx:58
 msgid "Couldn't load this practice session."
 msgstr ""
 
@@ -387,7 +379,7 @@ msgstr ""
 msgid "Couldn't save that. Try again."
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:71
+#: src/repertoire/chapter-study.tsx:75
 msgid "Current line"
 msgstr ""
 
@@ -414,12 +406,12 @@ msgstr ""
 msgid "Draw"
 msgstr ""
 
-#: src/drill/drill.tsx:44
+#: src/drill/drill.tsx:48
 #: src/test/routes.tsx:107
 msgid "Drill"
 msgstr ""
 
-#: src/drill/drill.tsx:45
+#: src/drill/drill.tsx:49
 msgid "Drill what is costing you games."
 msgstr ""
 
@@ -427,7 +419,7 @@ msgstr ""
 msgid "Drill your mistakes"
 msgstr ""
 
-#: src/drill/drill.tsx:64
+#: src/drill/drill.tsx:68
 msgid "Drilling"
 msgstr ""
 
@@ -448,7 +440,7 @@ msgstr ""
 msgid "Email and password"
 msgstr ""
 
-#: src/drill/drill.tsx:56
+#: src/drill/drill.tsx:60
 msgid "End session"
 msgstr ""
 
@@ -489,11 +481,11 @@ msgstr ""
 msgid "Every game you've imported, and how it went."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:67
+#: src/repertoire/repertoire-practice.tsx:71
 msgid "Every position in this repertoire is scheduled for later. Come back when the next ones fall due."
 msgstr ""
 
-#: src/drill/drill.tsx:62
+#: src/drill/drill.tsx:66
 msgid "Everything due is drilled. Come back when the next ones fall due."
 msgstr ""
 
@@ -514,7 +506,7 @@ msgid "Find the best move."
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:27
-#: src/repertoire/repertoire-practice.tsx:61
+#: src/repertoire/repertoire-practice.tsx:65
 msgid "First time"
 msgstr ""
 
@@ -535,7 +527,7 @@ msgid "Game phases"
 msgstr ""
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:12
+#: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
 #: src/test/routes.tsx:208
 msgid "Gameplay"
@@ -597,7 +589,7 @@ msgstr ""
 msgid "Import games from a PGN"
 msgstr ""
 
-#: src/drill/drill.tsx:49
+#: src/drill/drill.tsx:53
 msgid "Import or analyze a game and new positions land here on their own."
 msgstr ""
 
@@ -706,16 +698,16 @@ msgstr ""
 msgid "Light"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:51
+#: src/repertoire/chapter-study.tsx:55
 msgid "Loading the chapter…"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:27
+#: src/games/open-game/game-analysis.tsx:33
 msgid "Loading the game…"
 msgstr ""
 
-#: src/drill/drill.tsx:46
-#: src/repertoire/repertoire-practice.tsx:53
+#: src/drill/drill.tsx:50
+#: src/repertoire/repertoire-practice.tsx:57
 msgid "Loading…"
 msgstr ""
 
@@ -740,7 +732,7 @@ msgstr ""
 msgid "Main"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:74
+#: src/repertoire/chapter-study.tsx:78
 msgid "Main line"
 msgstr ""
 
@@ -777,8 +769,16 @@ msgid "Move insight"
 msgstr ""
 
 #: src/games/open-game/replay-controls.tsx:11
-#: src/repertoire/chapter-study.tsx:57
+#: src/repertoire/chapter-study.tsx:61
 msgid "Move navigation"
+msgstr ""
+
+#: src/shared/chess-sounds/sound-toggle.tsx:10
+msgid "Move sounds"
+msgstr ""
+
+#: src/shared/chess-sounds/sound-toggle.tsx:11
+msgid "Mute move sounds"
 msgstr ""
 
 #: src/settings/account/profile-form.tsx:22
@@ -797,16 +797,16 @@ msgstr ""
 #: src/games/games-list.tsx:26
 #: src/games/open-game/replay-controls.tsx:13
 #: src/onboarding/onboarding-dialog.tsx:23
-#: src/repertoire/chapter-study.tsx:61
+#: src/repertoire/chapter-study.tsx:65
 msgid "Next"
 msgstr ""
 
 #: src/games/open-game/replay-controls.tsx:10
-#: src/repertoire/chapter-study.tsx:59
+#: src/repertoire/chapter-study.tsx:63
 msgid "Next move"
 msgstr ""
 
-#: src/drill/drill.tsx:54
+#: src/drill/drill.tsx:58
 msgid "Next review"
 msgstr ""
 
@@ -847,15 +847,15 @@ msgstr ""
 msgid "Not synced yet"
 msgstr ""
 
-#: src/drill/drill.tsx:52
+#: src/drill/drill.tsx:56
 msgid "Not the move."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:63
+#: src/repertoire/repertoire-practice.tsx:67
 msgid "Not your line."
 msgstr ""
 
-#: src/drill/drill.tsx:48
+#: src/drill/drill.tsx:52
 msgid "Nothing due today"
 msgstr ""
 
@@ -863,11 +863,7 @@ msgstr ""
 msgid "Nothing in the position was worth more."
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:14
-msgid "Nothing to configure yet"
-msgstr ""
-
-#: src/repertoire/repertoire-practice.tsx:66
+#: src/repertoire/repertoire-practice.tsx:70
 msgid "Nothing to practice"
 msgstr ""
 
@@ -887,7 +883,7 @@ msgstr ""
 msgid "opening"
 msgstr ""
 
-#: src/games/view-analysis/game-report.tsx:13
+#: src/games/view-analysis/game-report.tsx:16
 msgid "Opening not recognised"
 msgstr ""
 
@@ -899,7 +895,7 @@ msgstr ""
 msgid "Opponent"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:69
+#: src/repertoire/chapter-study.tsx:73
 msgid "Opponent plays:"
 msgstr ""
 
@@ -928,33 +924,37 @@ msgid "PGN file"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:21
-#: src/repertoire/repertoire-practice.tsx:57
+#: src/repertoire/repertoire-practice.tsx:61
 msgid "Play the move you prepared."
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:72
+#: src/repertoire/chapter-study.tsx:76
 msgid "Play the prepared moves on the board to walk the line."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:55
-#: src/repertoire/repertoire-practice.tsx:74
+#: src/settings/gameplay/gameplay-screen.tsx:11
+msgid "Plays a sound for moves, captures, checks, and castling while reviewing or drilling."
+msgstr ""
+
+#: src/repertoire/repertoire-practice.tsx:59
+#: src/repertoire/repertoire-practice.tsx:78
 msgid "Position to play"
 msgstr ""
 
-#: src/drill/drill.tsx:50
+#: src/drill/drill.tsx:54
 msgid "Position to solve"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:52
 #: src/repertoire/repertoire-practice.tsx:56
+#: src/repertoire/repertoire-practice.tsx:60
 msgid "Practice"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:63
+#: src/repertoire/chapter-study.tsx:67
 msgid "Practice chapter"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:68
+#: src/repertoire/repertoire-practice.tsx:72
 msgid "Practice complete"
 msgstr ""
 
@@ -966,16 +966,16 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:64
+#: src/repertoire/chapter-study.tsx:68
 msgid "Prepared move"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:64
+#: src/repertoire/repertoire-practice.tsx:68
 msgid "Prepared move:"
 msgstr ""
 
 #: src/games/open-game/replay-controls.tsx:12
-#: src/repertoire/chapter-study.tsx:60
+#: src/repertoire/chapter-study.tsx:64
 msgid "Prev"
 msgstr ""
 
@@ -984,7 +984,7 @@ msgid "Previous"
 msgstr ""
 
 #: src/games/open-game/replay-controls.tsx:9
-#: src/repertoire/chapter-study.tsx:58
+#: src/repertoire/chapter-study.tsx:62
 msgid "Previous move"
 msgstr ""
 
@@ -992,8 +992,8 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: src/drill/drill.tsx:57
-#: src/repertoire/repertoire-practice.tsx:71
+#: src/drill/drill.tsx:61
+#: src/repertoire/repertoire-practice.tsx:75
 msgid "Progress"
 msgstr ""
 
@@ -1042,7 +1042,7 @@ msgstr ""
 msgid "reviews"
 msgstr ""
 
-#: src/drill/drill.tsx:60
+#: src/drill/drill.tsx:64
 msgid "Right"
 msgstr ""
 
@@ -1050,7 +1050,7 @@ msgstr ""
 msgid "Right now: {games} games imported, {analysed} deeply analysed."
 msgstr ""
 
-#: src/drill/drill.tsx:51
+#: src/drill/drill.tsx:55
 msgid "Right."
 msgstr ""
 
@@ -1075,11 +1075,11 @@ msgid "See your patterns"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:26
-#: src/repertoire/repertoire-practice.tsx:60
+#: src/repertoire/repertoire-practice.tsx:64
 msgid "Seen before"
 msgstr ""
 
-#: src/drill/drill.tsx:61
+#: src/drill/drill.tsx:65
 msgid "Session complete"
 msgstr ""
 
@@ -1143,8 +1143,8 @@ msgid "Start here"
 msgstr ""
 
 #: src/games/open-game/board-pane.tsx:30
-#: src/repertoire/chapter-study.tsx:55
-#: src/repertoire/chapter-study.tsx:56
+#: src/repertoire/chapter-study.tsx:59
+#: src/repertoire/chapter-study.tsx:60
 msgid "Starting position"
 msgstr ""
 
@@ -1213,7 +1213,7 @@ msgstr ""
 msgid "The move here is"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:70
+#: src/repertoire/chapter-study.tsx:74
 msgid "The prepared line ends here."
 msgstr ""
 
@@ -1249,7 +1249,7 @@ msgstr ""
 msgid "to drill"
 msgstr ""
 
-#: src/drill/drill.tsx:58
+#: src/drill/drill.tsx:62
 msgid "To go"
 msgstr ""
 
@@ -1288,6 +1288,10 @@ msgstr ""
 msgid "Try again in a moment."
 msgstr ""
 
+#: src/shared/chess-sounds/sound-toggle.tsx:12
+msgid "Turn move sounds on"
+msgstr ""
+
 #: src/insights/finding-views.tsx:501
 msgid "Two windows of {n} games each, most recent last."
 msgstr ""
@@ -1301,7 +1305,7 @@ msgstr ""
 msgid "Up to date"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:73
+#: src/repertoire/chapter-study.tsx:77
 msgid "Variation"
 msgstr ""
 
@@ -1349,7 +1353,7 @@ msgid "White repertoire"
 msgstr ""
 
 #: src/drill/drill-prompt.tsx:24
-#: src/repertoire/repertoire-practice.tsx:58
+#: src/repertoire/repertoire-practice.tsx:62
 msgid "White to move"
 msgstr ""
 
@@ -1370,7 +1374,7 @@ msgstr ""
 msgid "Working out which positions are worth drilling…"
 msgstr ""
 
-#: src/drill/drill.tsx:59
+#: src/drill/drill.tsx:63
 msgid "Wrong"
 msgstr ""
 
@@ -1382,7 +1386,7 @@ msgstr ""
 msgid "You followed it in {adherence} of {judged} judged games, and it runs about {depth} moves deep."
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:75
+#: src/repertoire/repertoire-practice.tsx:79
 msgid "You played {san}."
 msgstr ""
 
@@ -1406,11 +1410,11 @@ msgstr ""
 msgid "You scored {latest} against {previous} in the {n} before them."
 msgstr ""
 
-#: src/drill/drill.tsx:53
+#: src/drill/drill.tsx:57
 msgid "You tried"
 msgstr ""
 
-#: src/repertoire/repertoire-practice.tsx:69
+#: src/repertoire/repertoire-practice.tsx:73
 msgid "You went through everything due in this repertoire."
 msgstr ""
 
@@ -1474,6 +1478,6 @@ msgstr ""
 msgid "Your preparation said"
 msgstr ""
 
-#: src/repertoire/chapter-study.tsx:65
+#: src/repertoire/chapter-study.tsx:69
 msgid "Your repertoire plays:"
 msgstr ""
