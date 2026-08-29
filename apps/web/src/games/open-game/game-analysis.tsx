@@ -1,10 +1,9 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-import type { Color } from "@velachess/chess";
 import { BOARD_STAGE_WIDTH, BoardStage } from "@velachess/ui/chess/board-stage";
 import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/empty";
 import { Skeleton } from "@velachess/ui/components/skeleton";
@@ -15,8 +14,10 @@ import {
   CHESS_SOUND_EVENT,
   useChessSounds,
 } from "../../shared/chess-sounds/chess-sounds.ts";
+import { useQuery } from "../../shared/libs/query/index.ts";
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { flairImageOf } from "../import/queries.ts";
+import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
@@ -68,10 +69,17 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
    */
   const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
 
-  // `orientation` isn't known until `game` loads, but this callback is
-  // wired into `useAnalysis` before that — the ref (kept in sync by the
-  // effect below) carries the latest value across renders instead.
-  const orientationRef = useRef<Color>(undefined);
+  // `playReplaySound` is wired into `useAnalysis` below, which is where
+  // `game` (and so `orientation`) normally comes from — reading the same
+  // query directly here breaks that ordering instead of caching the
+  // value in a ref. Same cache entry, no extra fetch.
+  const gameForSound = useQuery(gameQuery(gameId));
+  const orientationForSound = gameForSound.data
+    ? seatOf(
+        gameForSound.data,
+        myAccounts.map((account) => account.username),
+      )
+    : undefined;
   const playReplaySound = (event: ReplayNavigationEvent) => {
     if (event.type === REPLAY_NAVIGATION.START) {
       playSound({ type: CHESS_SOUND_EVENT.GAME_START });
@@ -81,7 +89,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       type: CHESS_SOUND_EVENT.MOVE,
       fenBefore: event.move.fenBefore,
       san: event.move.san,
-      viewerColor: orientationRef.current,
+      viewerColor: orientationForSound,
     });
   };
 
@@ -96,18 +104,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     analysisFailed,
     analysisRetryAfterSeconds,
   } = useAnalysis(gameId, playReplaySound);
-
-  // Render must stay pure — `orientationRef` is written here, in an
-  // effect, rather than inline while computing `orientation` below.
-  // Unconditional (before the loading/error returns) so hook order never
-  // changes between renders.
-  useEffect(() => {
-    if (!game) return;
-    orientationRef.current = seatOf(
-      game,
-      myAccounts.map((account) => account.username),
-    );
-  }, [game, myAccounts]);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would
