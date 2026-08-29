@@ -122,6 +122,7 @@ export function Drill() {
       exerciseId: string;
       san: string;
       fen: string;
+      fenBefore: string;
       responseTimeMs: number;
     }) => {
       const answer = await parseResponse(
@@ -139,7 +140,19 @@ export function Drill() {
         answer,
       };
     },
-    onSuccess: setAttempt,
+    // A wrong answer reverts to the asked position and shows arrows
+    // instead of the move — nothing landed, so nothing sounds. Right is
+    // the only case the piece actually stays where it was dropped.
+    onSuccess: (result, variables) => {
+      setAttempt(result);
+      if (result.answer.correct) {
+        playSound({
+          type: CHESS_SOUND_EVENT.MOVE,
+          fenBefore: variables.fenBefore,
+          san: result.san,
+        });
+      }
+    },
   });
 
   /**
@@ -156,8 +169,6 @@ export function Drill() {
     const played = playMove(item.fen, move.from, move.to);
     if (!played) return false;
 
-    playSound({ type: CHESS_SOUND_EVENT.MOVE, fenBefore: item.fen, san: played.san });
-
     // Recorded, not rendered: the board keeps showing the position as it
     // was asked until the answer says the move belongs there.
     setAttempt({ fen: played.fen, san: played.san, answer: null });
@@ -165,6 +176,7 @@ export function Drill() {
       exerciseId: item.exerciseId,
       san: played.san,
       fen: played.fen,
+      fenBefore: item.fen,
       // How long the position was on screen. The server grades on this
       // as well as on being right, which is what makes the schedule
       // adapt without anyone being asked how hard it felt.
