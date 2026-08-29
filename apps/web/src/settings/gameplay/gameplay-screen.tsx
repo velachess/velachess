@@ -1,23 +1,18 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@velachess/ui/components/empty";
+import { Field, FieldDescription } from "@velachess/ui/components/field";
+
+import { SoundToggle } from "../../shared/chess-sounds/sound-toggle.tsx";
 
 const GAMEPLAY_COPY = {
   title: msg`Gameplay`,
   description: msg`Board interaction preferences.`,
-  emptyTitle: msg`Nothing to configure yet`,
-  emptyDescription: msg`Board preferences like coordinates, move animation, and sound will land here once they exist.`,
+  soundHint: msg`Plays a sound for moves, captures, checks, and castling while reviewing or drilling.`,
 } as const;
 
-/** Settings → Gameplay: the section exists so the information architecture
- * is complete, but no board preference has a real implementation yet — an
- * honest empty state, not invented controls. */
+/** Settings → Gameplay: board preferences. Sound is the first — its
+ * on/off lives here only, not duplicated anywhere else in the app. */
 export function GameplayScreen() {
   const { i18n } = useLingui();
 
@@ -30,12 +25,10 @@ export function GameplayScreen() {
         </p>
       </div>
 
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>{i18n._(GAMEPLAY_COPY.emptyTitle)}</EmptyTitle>
-          <EmptyDescription>{i18n._(GAMEPLAY_COPY.emptyDescription)}</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <Field>
+        <SoundToggle />
+        <FieldDescription>{i18n._(GAMEPLAY_COPY.soundHint)}</FieldDescription>
+      </Field>
     </div>
   );
 }

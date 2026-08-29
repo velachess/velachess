@@ -121,7 +121,7 @@ msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
-#: src/games/open-game/game-analysis.tsx:34
+#: src/games/open-game/game-analysis.tsx:35
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
@@ -129,7 +129,7 @@ msgstr "{white} vs {black}"
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 
-#: src/app-shell/user-menu.tsx:30
+#: src/app-shell/user-menu.tsx:29
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:12
 #: src/settings/layout/navigation.ts:29
@@ -158,7 +158,7 @@ msgstr "An unexpected error interrupted this screen."
 msgid "Analyzing move {graded} of {total}…"
 msgstr "Analyzing move {graded} of {total}…"
 
-#: src/app-shell/user-menu.tsx:32
+#: src/app-shell/user-menu.tsx:31
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
@@ -240,13 +240,9 @@ msgstr "Blunders per game"
 msgid "Board"
 msgstr "Board"
 
-#: src/settings/gameplay/gameplay-screen.tsx:13
+#: src/settings/gameplay/gameplay-screen.tsx:10
 msgid "Board interaction preferences."
 msgstr "Board interaction preferences."
-
-#: src/settings/gameplay/gameplay-screen.tsx:15
-msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
-msgstr "Board preferences like coordinates, move animation, and sound will land here once they exist."
 
 #: src/repertoire/repertoire-landing.tsx:39
 msgid "Built from your games"
@@ -325,7 +321,7 @@ msgstr "Correct."
 msgid "Correspondence"
 msgstr "Correspondence"
 
-#: src/games/open-game/game-analysis.tsx:33
+#: src/games/open-game/game-analysis.tsx:34
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
@@ -387,7 +383,7 @@ msgstr "Couldn't save that. Try again."
 msgid "Current line"
 msgstr "Current line"
 
-#: src/app-shell/user-menu.tsx:35
+#: src/app-shell/user-menu.tsx:34
 #: src/settings/appearance/appearance-screen.tsx:17
 msgid "Dark"
 msgstr "Dark"
@@ -531,7 +527,7 @@ msgid "Game phases"
 msgstr "Game phases"
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:12
+#: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
 #: src/test/routes.tsx:208
 msgid "Gameplay"
@@ -697,7 +693,7 @@ msgstr "Letters, numbers, hyphen and underscore only"
 msgid "Lichess username"
 msgstr "Lichess username"
 
-#: src/app-shell/user-menu.tsx:34
+#: src/app-shell/user-menu.tsx:33
 #: src/settings/appearance/appearance-screen.tsx:16
 msgid "Light"
 msgstr "Light"
@@ -706,7 +702,7 @@ msgstr "Light"
 msgid "Loading the chapter…"
 msgstr "Loading the chapter…"
 
-#: src/games/open-game/game-analysis.tsx:32
+#: src/games/open-game/game-analysis.tsx:33
 msgid "Loading the game…"
 msgstr "Loading the game…"
 
@@ -867,10 +863,6 @@ msgstr "Nothing due today"
 msgid "Nothing in the position was worth more."
 msgstr "Nothing in the position was worth more."
 
-#: src/settings/gameplay/gameplay-screen.tsx:14
-msgid "Nothing to configure yet"
-msgstr "Nothing to configure yet"
-
 #: src/repertoire/repertoire-practice.tsx:70
 msgid "Nothing to practice"
 msgstr "Nothing to practice"
@@ -939,6 +931,10 @@ msgstr "Play the move you prepared."
 #: src/repertoire/chapter-study.tsx:76
 msgid "Play the prepared moves on the board to walk the line."
 msgstr "Play the prepared moves on the board to walk the line."
+
+#: src/settings/gameplay/gameplay-screen.tsx:11
+msgid "Plays a sound for moves, captures, checks, and castling while reviewing or drilling."
+msgstr "Plays a sound for moves, captures, checks, and castling while reviewing or drilling."
 
 #: src/repertoire/repertoire-practice.tsx:59
 #: src/repertoire/repertoire-practice.tsx:78
@@ -1091,7 +1087,7 @@ msgstr "Session complete"
 msgid "Set — you can sign in with your email and password."
 msgstr "Set — you can sign in with your email and password."
 
-#: src/app-shell/user-menu.tsx:31
+#: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
 #: src/test/routes.tsx:165
@@ -1110,7 +1106,7 @@ msgstr "Sign in"
 msgid "Sign in with your account credentials."
 msgstr "Sign in with your account credentials."
 
-#: src/app-shell/user-menu.tsx:36
+#: src/app-shell/user-menu.tsx:35
 msgid "Sign out"
 msgstr "Sign out"
 
@@ -1122,7 +1118,7 @@ msgstr "Sign-in methods"
 msgid "Signing in…"
 msgstr "Signing in…"
 
-#: src/app-shell/user-menu.tsx:37
+#: src/app-shell/user-menu.tsx:36
 msgid "Signing out…"
 msgstr "Signing out…"
 
@@ -1176,7 +1172,7 @@ msgstr "Synced a moment ago"
 msgid "Syncing…"
 msgstr "Syncing…"
 
-#: src/app-shell/user-menu.tsx:33
+#: src/app-shell/user-menu.tsx:32
 #: src/settings/appearance/appearance-screen.tsx:15
 msgid "System"
 msgstr "System"

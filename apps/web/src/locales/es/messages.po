@@ -121,7 +121,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:34
+#: src/games/open-game/game-analysis.tsx:35
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr ""
 msgid "A finding needs enough games to be more than chance: results and openings speak after a few dozen games, mistake patterns after a handful of analysed ones, book findings once games are judged against a repertoire. Sync, analyse a few, and the first one shows up here."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:30
+#: src/app-shell/user-menu.tsx:29
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:12
 #: src/settings/layout/navigation.ts:29
@@ -158,7 +158,7 @@ msgstr ""
 msgid "Analyzing move {graded} of {total}…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:32
+#: src/app-shell/user-menu.tsx:31
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
@@ -240,12 +240,8 @@ msgstr ""
 msgid "Board"
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:13
+#: src/settings/gameplay/gameplay-screen.tsx:10
 msgid "Board interaction preferences."
-msgstr ""
-
-#: src/settings/gameplay/gameplay-screen.tsx:15
-msgid "Board preferences like coordinates, move animation, and sound will land here once they exist."
 msgstr ""
 
 #: src/repertoire/repertoire-landing.tsx:39
@@ -325,7 +321,7 @@ msgstr ""
 msgid "Correspondence"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:33
+#: src/games/open-game/game-analysis.tsx:34
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr ""
@@ -387,7 +383,7 @@ msgstr ""
 msgid "Current line"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:35
+#: src/app-shell/user-menu.tsx:34
 #: src/settings/appearance/appearance-screen.tsx:17
 msgid "Dark"
 msgstr ""
@@ -531,7 +527,7 @@ msgid "Game phases"
 msgstr ""
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:12
+#: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
 #: src/test/routes.tsx:208
 msgid "Gameplay"
@@ -697,7 +693,7 @@ msgstr ""
 msgid "Lichess username"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:34
+#: src/app-shell/user-menu.tsx:33
 #: src/settings/appearance/appearance-screen.tsx:16
 msgid "Light"
 msgstr ""
@@ -706,7 +702,7 @@ msgstr ""
 msgid "Loading the chapter…"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:32
+#: src/games/open-game/game-analysis.tsx:33
 msgid "Loading the game…"
 msgstr ""
 
@@ -867,10 +863,6 @@ msgstr ""
 msgid "Nothing in the position was worth more."
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:14
-msgid "Nothing to configure yet"
-msgstr ""
-
 #: src/repertoire/repertoire-practice.tsx:70
 msgid "Nothing to practice"
 msgstr ""
@@ -938,6 +930,10 @@ msgstr ""
 
 #: src/repertoire/chapter-study.tsx:76
 msgid "Play the prepared moves on the board to walk the line."
+msgstr ""
+
+#: src/settings/gameplay/gameplay-screen.tsx:11
+msgid "Plays a sound for moves, captures, checks, and castling while reviewing or drilling."
 msgstr ""
 
 #: src/repertoire/repertoire-practice.tsx:59
@@ -1091,7 +1087,7 @@ msgstr ""
 msgid "Set — you can sign in with your email and password."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:31
+#: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
 #: src/test/routes.tsx:165
@@ -1110,7 +1106,7 @@ msgstr ""
 msgid "Sign in with your account credentials."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:36
+#: src/app-shell/user-menu.tsx:35
 msgid "Sign out"
 msgstr ""
 
@@ -1122,7 +1118,7 @@ msgstr ""
 msgid "Signing in…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:37
+#: src/app-shell/user-menu.tsx:36
 msgid "Signing out…"
 msgstr ""
 
@@ -1176,7 +1172,7 @@ msgstr ""
 msgid "Syncing…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:33
+#: src/app-shell/user-menu.tsx:32
 #: src/settings/appearance/appearance-screen.tsx:15
 msgid "System"
 msgstr ""

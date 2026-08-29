@@ -273,7 +273,7 @@ function ChapterReader({ chapter }: { chapter: ChapterDetail }) {
           <div className="flex flex-col gap-3">
             {chapter.lines.map((chapterLine, lineIndex) => (
               <VariationLine
-                key={lineIndex}
+                key={chapterLine.moves[0]!.positionKey}
                 line={chapterLine}
                 lineIndex={lineIndex}
                 cursor={cursor}
@@ -326,7 +326,7 @@ function VariationLine({
       <div className="flex flex-wrap gap-x-1 gap-y-0.5">
         {line.moves.map((chapterMove, moveIndex) => (
           <MoveButton
-            key={`${lineIndex}:${moveIndex}`}
+            key={chapterMove.positionKey}
             label={chapterMove.label}
             at={{ line: lineIndex, move: moveIndex }}
             cursor={cursor}

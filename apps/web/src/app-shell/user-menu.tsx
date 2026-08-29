@@ -21,7 +21,6 @@ import { ThemeRadioItems } from "@velachess/ui/components/theme-toggle";
 import { PaletteIcon, SettingsIcon } from "@velachess/ui/icons";
 
 import { useSignOut } from "../auth/sign-out/use-sign-out.ts";
-import { SoundToggle } from "../shared/chess-sounds/sound-toggle.tsx";
 import { sessionQuery } from "../auth/session.ts";
 import { UserAvatar } from "../auth/user-avatar.tsx";
 import { useQuery } from "../shared/libs/query/index.ts";
@@ -104,12 +103,6 @@ export function UserMenu() {
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
-        <div className="px-1.5 py-1">
-          <SoundToggle />
-        </div>
 
         <DropdownMenuSeparator />
 

@@ -1,9 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
+import type { Color } from "@velachess/chess";
 import { BOARD_STAGE_WIDTH, BoardStage } from "@velachess/ui/chess/board-stage";
 import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/empty";
 import { Skeleton } from "@velachess/ui/components/skeleton";
@@ -67,6 +68,10 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
    */
   const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
 
+  // `orientation` isn't known until `game` loads, but this callback is
+  // wired into `useAnalysis` before that — the ref carries the latest
+  // value across renders without reordering the hooks below.
+  const orientationRef = useRef<Color>(undefined);
   const playReplaySound = (event: ReplayNavigationEvent) => {
     if (event.type === REPLAY_NAVIGATION.START) {
       playSound({ type: CHESS_SOUND_EVENT.GAME_START });
@@ -76,6 +81,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       type: CHESS_SOUND_EVENT.MOVE,
       fenBefore: event.move.fenBefore,
       san: event.move.san,
+      viewerColor: orientationRef.current,
     });
   };
 
@@ -136,6 +142,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     game,
     myAccounts.map((account) => account.username),
   );
+  orientationRef.current = orientation;
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
