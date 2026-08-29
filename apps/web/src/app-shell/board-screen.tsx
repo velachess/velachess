@@ -18,6 +18,8 @@ export interface BoardScreenProps {
   /** The page's own name — the last crumb, which the router cannot know
    * because it needs data the route hasn't loaded. */
   page: string;
+  /** Extra classes for the page crumb — truncation on narrow screens, for instance. */
+  pageClassName?: string;
   /** Crumbs between the router's trail and this page, as
    * `<BreadcrumbItem>`s — a chapter's repertoire, for instance. */
   crumbs?: ReactNode;
@@ -35,7 +37,7 @@ export interface BoardScreenProps {
  * next. So the scroll boundary, the trail and the two-column stage are
  * decided here once; each screen brings only its own two children.
  */
-export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
+export function BoardScreen({ page, pageClassName, crumbs, children }: BoardScreenProps) {
   const { i18n } = useLingui();
   const trail = useBreadcrumbTrail();
 
@@ -61,7 +63,7 @@ export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
           ))}
           {crumbs}
           <BreadcrumbItem>
-            <BreadcrumbPage>{page}</BreadcrumbPage>
+            <BreadcrumbPage className={pageClassName}>{page}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

@@ -26,8 +26,17 @@ import { useAnalysis } from "../watch-analysis/use-analysis.ts";
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
   loadError: msg`Couldn't load analysis.`,
-  matchup: msg`{white} vs {black}`,
+  matchup: msg`{opponent} vs you · {date} · {source} · {result}`,
+  sourceChessCom: "Chess.com",
+  sourceLichess: "Lichess",
+  sourcePgn: "PGN",
 } as const;
+
+const SOURCE_LABEL: Record<string, string> = {
+  chess_com: ANALYSE_COPY.sourceChessCom,
+  lichess: ANALYSE_COPY.sourceLichess,
+  pgn: ANALYSE_COPY.sourcePgn,
+};
 
 const SCORESHEET_SKELETON_CELLS = Array.from(
   { length: 24 },
@@ -121,15 +130,20 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
+  const opponent = orientation === "white" ? black.name : white.name;
+  const dateLabel = game.playedAt
+    ? i18n.date(new Date(game.playedAt), { dateStyle: "short" })
+    : "—";
+  const sourceLabel = SOURCE_LABEL[game.source] ?? game.source;
   const matchup = i18n._({
     ...ANALYSE_COPY.matchup,
-    values: { white: white.name, black: black.name },
+    values: { opponent, date: dateLabel, source: sourceLabel, result: game.result },
   });
   const top = orientation === "white" ? black : white;
   const bottom = orientation === "white" ? white : black;
 
   return (
-    <BoardScreen page={matchup}>
+    <BoardScreen page={matchup} pageClassName="max-w-xs truncate">
       <BoardPane
         fen={replay.fen}
         orientation={orientation}
