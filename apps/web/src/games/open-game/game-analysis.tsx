@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useParams } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import type { Color } from "@velachess/chess";
@@ -69,8 +69,8 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
 
   // `orientation` isn't known until `game` loads, but this callback is
-  // wired into `useAnalysis` before that — the ref carries the latest
-  // value across renders without reordering the hooks below.
+  // wired into `useAnalysis` before that — the ref (kept in sync by the
+  // effect below) carries the latest value across renders instead.
   const orientationRef = useRef<Color>(undefined);
   const playReplaySound = (event: ReplayNavigationEvent) => {
     if (event.type === REPLAY_NAVIGATION.START) {
@@ -96,6 +96,18 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     analysisFailed,
     analysisRetryAfterSeconds,
   } = useAnalysis(gameId, playReplaySound);
+
+  // Render must stay pure — `orientationRef` is written here, in an
+  // effect, rather than inline while computing `orientation` below.
+  // Unconditional (before the loading/error returns) so hook order never
+  // changes between renders.
+  useEffect(() => {
+    if (!game) return;
+    orientationRef.current = seatOf(
+      game,
+      myAccounts.map((account) => account.username),
+    );
+  }, [game, myAccounts]);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would
@@ -142,7 +154,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     game,
     myAccounts.map((account) => account.username),
   );
-  orientationRef.current = orientation;
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
