@@ -237,7 +237,6 @@ export function Drill() {
   const waiting = totalWaiting(queue.data);
 
   function startSession() {
-    playSound({ type: CHESS_SOUND_EVENT.GAME_START });
     setSession({ size: waiting, right: 0, wrong: 0, retry: [] });
   }
 
