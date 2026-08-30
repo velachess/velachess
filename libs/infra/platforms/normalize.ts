@@ -6,7 +6,7 @@
  * on each platform, see providers/chess-com.ts and providers/lichess.ts).
  */
 
-import { emptyHeaders, parsePgn } from "@velachess/chess";
+import { emptyHeaders, openingNameFrom, parsePgn } from "@velachess/chess";
 
 import { movetextHash } from "./hash.ts";
 import type { GameSource, NormalizedGame, Perspective, SyncFailure } from "./schema.ts";
@@ -91,6 +91,12 @@ export function normalizeGame(
       ? (rawResult as NormalizedGame["result"])
       : "*";
 
+  const ecoUrl = headers.get("ECOUrl");
+  const openingName = openingNameFrom({
+    name: headers.get("Opening"),
+    url: ecoUrl,
+  });
+
   return {
     source: meta.origin,
     externalId: meta.externalId,
@@ -112,8 +118,8 @@ export function normalizeGame(
     },
     opening: {
       eco: headers.get("ECO"),
-      name: headers.get("Opening"),
-      url: headers.get("ECOUrl"),
+      name: openingName ?? undefined,
+      url: ecoUrl ?? undefined,
     },
     termination: headers.get("Termination"),
     hasClocks: CLOCK_ANNOTATION.test(rawPgn),
