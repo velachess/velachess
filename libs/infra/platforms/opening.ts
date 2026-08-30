@@ -3,6 +3,10 @@
  * inside the ECOUrl slug instead of an [Opening] header — the URL is the
  * fallback name source. Lichess and manual PGNs carry an [Opening] header
  * directly. This module unifies both into a single resolution.
+ *
+ * This is provider-specific URL parsing, not chess-domain logic. The
+ * resolved name is persisted during normalization; consumers like
+ * repertoire extraction work with the canonical `openingName` field.
  */
 
 /**

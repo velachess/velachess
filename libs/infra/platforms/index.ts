@@ -10,6 +10,7 @@ export * from "./time-class.ts";
 export * from "./normalize.ts";
 export * from "./split.ts";
 export * from "./hash.ts";
+export * from "./opening.ts";
 export * from "./opening-family.ts";
 export * from "./providers/chess-com.ts";
 export * from "./providers/lichess.ts";

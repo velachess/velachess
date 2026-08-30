@@ -6,9 +6,10 @@
  * on each platform, see providers/chess-com.ts and providers/lichess.ts).
  */
 
-import { emptyHeaders, openingNameFrom, parsePgn } from "@velachess/chess";
+import { emptyHeaders, parsePgn } from "@velachess/chess";
 
 import { movetextHash } from "./hash.ts";
+import { openingNameFrom } from "./opening.ts";
 import type { GameSource, NormalizedGame, Perspective, SyncFailure } from "./schema.ts";
 
 export interface NormalizeMeta {

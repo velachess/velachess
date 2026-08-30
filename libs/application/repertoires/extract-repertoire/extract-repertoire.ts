@@ -75,7 +75,6 @@ export async function extractRepertoire(
     extractable.push({
       sans: replayed.unwrap().moves.map((move) => move.san),
       openingName: game.openingName,
-      openingUrl: game.openingUrl,
     });
   }
 

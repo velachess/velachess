@@ -9,17 +9,11 @@
  * application layer.
  */
 
-import { openingNameFrom } from "@velachess/chess";
-
-export { openingNameFrom } from "@velachess/chess";
-
 export interface ExtractableGame {
   /** Mainline SAN, already replayed and legal. */
   sans: string[];
+  /** Opening name, already resolved during normalization. */
   openingName?: string | null;
-  /** chess.com puts the opening name inside the ECOUrl slug instead of an
-   * [Opening] header — the url is the fallback name source. */
-  openingUrl?: string | null;
 }
 
 export interface ExtractOptions {
@@ -52,10 +46,7 @@ function dominantName(
 ): string {
   const votes = new Map<string, number>();
   for (const index of indices) {
-    const name = openingNameFrom({
-      name: games[index]?.openingName,
-      url: games[index]?.openingUrl,
-    });
+    const name = games[index]?.openingName;
     if (name) votes.set(name, (votes.get(name) ?? 0) + 1);
   }
   let best: string | null = null;

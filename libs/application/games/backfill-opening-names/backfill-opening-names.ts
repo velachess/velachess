@@ -8,9 +8,9 @@
  * New games get the name at normalization time (libs/infra/platforms).
  * This slice handles the legacy data that predates that fix.
  */
-import { openingNameFrom } from "@velachess/chess";
 import type { Database } from "@velachess/db";
 import { games } from "@velachess/db";
+import { openingNameFrom } from "@velachess/platforms";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 
 export interface BackfillResult {
