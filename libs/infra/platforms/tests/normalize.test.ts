@@ -39,10 +39,10 @@ describe("normalizeGame — real Chess.com sample", () => {
     expect(result.hasClocks).toBe(true);
   });
 
-  it("has no opening name — Chess.com's PGN carries only ECO/ECOUrl, not a name", () => {
+  it("resolves the opening name from the ECOUrl slug when [Opening] is absent", () => {
     if (isSyncFailure(result)) throw new Error("expected a NormalizedGame");
     expect(result.opening.eco).toBe("B23");
-    expect(result.opening.name).toBeUndefined();
+    expect(result.opening.name).toBe("Closed Sicilian Defense Grand Prix Attack");
     expect(result.opening.url).toContain("chess.com/openings");
   });
 
@@ -126,5 +126,74 @@ describe("normalizeGame — malformed input", () => {
       externalUrl: null,
     });
     expect(isSyncFailure(result)).toBe(true);
+  });
+});
+
+describe("normalizeGame — opening name resolution", () => {
+  it("resolves name from ECOUrl when Opening header is absent", () => {
+    const pgn = `[Event "Test"]
+[ECO "B23"]
+[ECOUrl "https://www.chess.com/openings/Closed-Sicilian-Defense-Grand-Prix-Attack-3...g6"]
+
+1. e4 c5 1-0
+`;
+    const result = normalizeGame(pgn, {
+      origin: "chess_com",
+      externalId: null,
+      externalUrl: null,
+    });
+    expect(isSyncFailure(result)).toBe(false);
+    if (isSyncFailure(result)) return;
+    expect(result.opening.name).toBe("Closed Sicilian Defense Grand Prix Attack");
+  });
+
+  it("prefers Opening header over ECOUrl-derived name", () => {
+    const pgn = `[Event "Test"]
+[Opening "London System"]
+[ECOUrl "https://www.chess.com/openings/Some-Other-Opening"]
+
+1. d4 d5 1-0
+`;
+    const result = normalizeGame(pgn, {
+      origin: "chess_com",
+      externalId: null,
+      externalUrl: null,
+    });
+    expect(isSyncFailure(result)).toBe(false);
+    if (isSyncFailure(result)) return;
+    expect(result.opening.name).toBe("London System");
+  });
+
+  it("returns undefined name when only ECO is present without URL", () => {
+    const pgn = `[Event "Test"]
+[ECO "C00"]
+
+1. e4 e6 1-0
+`;
+    const result = normalizeGame(pgn, {
+      origin: "pgn",
+      externalId: null,
+      externalUrl: null,
+    });
+    expect(isSyncFailure(result)).toBe(false);
+    if (isSyncFailure(result)) return;
+    expect(result.opening.name).toBeUndefined();
+    expect(result.opening.eco).toBe("C00");
+  });
+
+  it("returns undefined name when no opening metadata exists", () => {
+    const pgn = `[Event "Test"]
+
+1. e4 e5 1-0
+`;
+    const result = normalizeGame(pgn, {
+      origin: "pgn",
+      externalId: null,
+      externalUrl: null,
+    });
+    expect(isSyncFailure(result)).toBe(false);
+    if (isSyncFailure(result)) return;
+    expect(result.opening.name).toBeUndefined();
+    expect(result.opening.eco).toBeUndefined();
   });
 });

@@ -1,16 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { extractRepertoireLines, openingNameFrom } from "../extract.ts";
+import { extractRepertoireLines } from "../extract.ts";
 
-const game = (
-  sans: string[],
-  openingName?: string | null,
-  openingUrl?: string | null,
-) => ({
+const game = (sans: string[], openingName?: string | null) => ({
   sans,
   openingName: openingName ?? null,
-  openingUrl: openingUrl ?? null,
 });
 
 describe("extractRepertoireLines", () => {
@@ -81,16 +76,10 @@ describe("extractRepertoireLines", () => {
     expect(lines.find((l) => l.sans[0] === "d4")?.name).toMatch(/^Line \d$/);
   });
 
-  it("derives the chess.com name from the ECOUrl slug", () => {
-    const url =
-      "https://www.chess.com/openings/Closed-Sicilian-Defense-Grand-Prix-Attack-3...g6-4.Bc4-Bg7-5.Nf3";
-    expect(openingNameFrom({ url })).toBe("Closed Sicilian Defense Grand Prix Attack");
-    expect(openingNameFrom({ name: "London System", url })).toBe("London System");
-    expect(openingNameFrom({})).toBeNull();
-
+  it("uses the already-resolved opening name from normalization", () => {
     const lines = extractRepertoireLines([
-      game(["e4", "c5"], null, url),
-      game(["e4", "c5"], null, url),
+      game(["e4", "c5"], "Closed Sicilian Defense Grand Prix Attack"),
+      game(["e4", "c5"], "Closed Sicilian Defense Grand Prix Attack"),
     ]);
     expect(lines[0]!.name).toBe("Closed Sicilian Defense Grand Prix Attack");
   });
