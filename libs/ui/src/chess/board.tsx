@@ -260,6 +260,9 @@ export function Board({
           showAnimations: animated,
           animationDurationInMs: ANIMATION_DURATION_MS,
           allowDragging: interactive && onMove !== undefined,
+          // Lets a badge on an edge square draw in full instead of being
+          // clipped by the library's own board root (BOARD_STYLE.frame).
+          boardStyle: BOARD_STYLE.frame,
           lightSquareStyle: BOARD_STYLE.light,
           darkSquareStyle: BOARD_STYLE.dark,
           // The last move still goes here: it is painted before any

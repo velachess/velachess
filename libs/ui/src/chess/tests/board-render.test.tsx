@@ -63,3 +63,22 @@ it("renders a square for every one of the sixty-four", () => {
 
   expect(container.querySelectorAll("[data-square]")).toHaveLength(64);
 });
+
+/**
+ * A badge on a corner square (#64). `board.test.tsx` pins that we ask
+ * `react-chessboard` for `boardStyle: { overflow: "visible" }`; this is the
+ * guard that the real library actually applies it to its own board root
+ * rather than to some other element, which is exactly the class of bug
+ * `board-render.test.tsx` exists to catch.
+ */
+it("leaves the board root unclipped so a badge on a corner square draws in full", () => {
+  const { container } = render(
+    <Board fen={START} badges={{ h1: { tone: "blunder", label: "??" } }} />,
+  );
+
+  const boardRoot = container.querySelector("#chessboard-board") as HTMLElement | null;
+  expect(boardRoot).not.toBeNull();
+  expect(boardRoot?.style.overflow).toBe("visible");
+
+  expect(squareAt(container, "h1")?.textContent).toContain("??");
+});
