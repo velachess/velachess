@@ -9,7 +9,7 @@ outside this library.
 
 - Internal: `@velachess/infra-platforms` for source schemas; dev/test coverage also
   exercises `@velachess/analysis`, `@velachess/chess`, `@velachess/infra-engine`,
-  `@velachess/repertoire`, and `@velachess/scheduler`.
+  `@velachess/repertoires`, and `@velachess/scheduler`.
 - External runtime: Drizzle ORM and `postgres`; migrations use `drizzle-kit`.
 
 ## Usage / Development

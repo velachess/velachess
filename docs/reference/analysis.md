@@ -2,9 +2,9 @@
 
 Facts about the shipped analysis pipeline: engine configuration, classification
 rules, and persisted shapes. The reasoning behind these choices lives inline in
-`libs/analysis`'s own doc comments (`winchance.ts`, `classify.ts`,
-`process-analysis/analyze-game.ts`) and this module's
-`tests/lichess-reference.test.ts`.
+`libs/analysis`'s own doc comments (`winchance.ts`, `engine-category.ts`,
+`process-analysis/classify-move.ts`, `process-analysis/analyze-game.ts`) and
+this module's `tests/lichess-reference.test.ts`.
 
 ## Engine configuration (production)
 
@@ -33,7 +33,8 @@ dedup. Drill triage runs after completion.
   on the [-1, 1] scale. Gaining eval is never punished.
 - Categories: `best | good | inaccuracy | mistake | blunder`. Thresholds on
   win-chance loss: **0.10** inaccuracy, **0.20** mistake, **0.30** blunder
-  (5/10/15 percentage points of win probability) — `libs/analysis/classify.ts`.
+  (5/10/15 percentage points of win probability) —
+  `libs/analysis/process-analysis/classify-move.ts`.
 - A move equal to the engine's first PV move is `best` regardless of loss; the
   raw `winChanceLoss` is still stored.
 - `toEngineCategory` collapses `best`/`good` → `ok` for the `deviations`
@@ -45,7 +46,8 @@ dedup. Drill triage runs after completion.
 
 ## Game phase heuristic
 
-`gamePhaseOf(fen)` (`libs/analysis/phase.ts`): endgame at ≤ 6 majors+minors;
+`gamePhaseOf(fen)` (`libs/insights/get-insights/phase.ts` — moved from
+`libs/analysis` once `insights` became its only consumer): endgame at ≤ 6 majors+minors;
 middlegame at ≤ 10, or when a back rank holds < 4 pieces; otherwise opening.
 Only the placement field of the FEN is read. Consumers: insight sources only —
 classification does not use phase.
@@ -69,7 +71,9 @@ classification does not use phase.
 ## Entry points
 
 - `libs/analysis/process-analysis/analyze-game.ts` → `analyzeGame`
-- `libs/analysis/classify.ts` → `classifyMove`, `toEngineCategory`, `cpLoss`
+- `libs/analysis/process-analysis/classify-move.ts` → `classifyMove`,
+  `scoreToWinChance`
+- `libs/analysis/engine-category.ts` → `toEngineCategory`, `cpLoss`
 - `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`,
   `tryStartAnalysis`
 - `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`
@@ -77,6 +81,6 @@ classification does not use phase.
 
 ## Currently unused
 
-`libs/analysis/deferred/accuracy.ts` (`moveAccuracy`, `gameAccuracy`) is a
-faithful port of the reference implementation with a full test suite and no
-callers in any app or slice.
+`libs/analysis/accuracy.ts` (`moveAccuracy`, `gameAccuracy`) is a faithful
+port of the reference implementation with a full test suite and no callers
+in any app or slice.

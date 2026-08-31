@@ -14,6 +14,19 @@ Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
   when pg-boss delivery is deduplicated; the two mechanisms solve different
   problems.
 
+## Composition root files
+
+`src/composition/<module>.ts` (currently `accounts`, `analysis`) — the
+worker's own composition root, parallel to `apps/server`'s but never
+shared with it (`no-cross-app-runtime-imports` forbids one app importing
+the other's composition, even for identical-looking adapter code — see
+`apps/server/src/composition/accounts.ts` and this app's own
+`composition/accounts.ts` for the duplicated-by-design pair). Each file
+adapts `main.ts`'s real infra (`db`, `analysisQueue`, the engine session
+factory) and other modules' `index.ts` capabilities into the narrow
+dependency shape a consumer's slice declared. `consumers/*.ts` call the
+composed builder, never construct a slice's deps inline.
+
 Read `docs/explanation/apps/worker.md` and
 `docs/explanation/modules/queue.md` before changing registration or delivery.
 Use `engine-analysis` for Stockfish execution and `debug-pipeline` for a stuck
