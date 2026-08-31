@@ -92,6 +92,15 @@ export const BOARD_STYLE = {
   light: { backgroundColor: cssVar(TOKEN.lightSquare) },
   dark: { backgroundColor: cssVar(TOKEN.darkSquare) },
   highlight: { backgroundColor: cssVar(TOKEN.highlight) },
+  /**
+   * The library's own board root defaults to `overflow: hidden`. A
+   * `SquareBadge` deliberately sits a few pixels past its square's corner
+   * (see square-badge.tsx), which an interior square's neighbour absorbs —
+   * but on an edge square that overflow crosses the board root itself and
+   * gets clipped. The drag ghost is unaffected: it renders through
+   * `@dnd-kit`'s `DragOverlay`, a portal outside this element entirely.
+   */
+  frame: { overflow: "visible" },
 } as const satisfies Record<string, React.CSSProperties>;
 
 /**

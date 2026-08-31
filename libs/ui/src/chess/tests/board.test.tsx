@@ -26,6 +26,7 @@ interface CapturedOptions {
   position: string;
   boardOrientation: string;
   allowDragging: boolean;
+  boardStyle: { overflow?: string };
   showAnimations: boolean;
   animationDurationInMs: number;
   showNotation: boolean;
@@ -150,6 +151,11 @@ it("animates by default and holds still on request", () => {
 
   render(<Board fen={START} animated={false} />);
   expect(captured.showAnimations).toBe(false);
+});
+
+it("asks the library for an unclipped board root, so a badge on an edge square is not cut off", () => {
+  render(<Board fen={START} />);
+  expect(captured.boardStyle).toEqual({ overflow: "visible" });
 });
 
 it("is not draggable without an onMove handler", () => {
