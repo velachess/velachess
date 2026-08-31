@@ -10,6 +10,8 @@ import {
 
 export { DetailedError } from "../libs/hono.ts";
 export type { InferResponseType } from "../libs/hono.ts";
+export * from "./errors.ts";
+export { onUnauthorized, reportUnauthorized } from "./unauthorized.ts";
 
 export const apiBaseUrl = "/api";
 
@@ -55,3 +57,11 @@ export const parseResponse: typeof parseHonoResponse = async (...args) => {
     throw error;
   }
 };
+
+// ponytail: folded from a separate health.ts — a one-line health probe
+// keeping its own file would need to import `api`/`parseResponse` back
+// from this index.ts, which is exactly the cycle the index-only rule
+// exists to prevent (index re-exporting a file that imports index).
+export async function checkBackendHealth() {
+  await parseResponse(api.health.$get());
+}

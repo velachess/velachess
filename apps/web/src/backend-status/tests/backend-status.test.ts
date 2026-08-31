@@ -1,15 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NetworkError } from "../../api/errors.ts";
+import { NetworkError } from "../../api/index.ts";
 import {
   confirmBackendRecovery,
   getBackendStatus,
   recordInfrastructureFailure,
   resetBackendStatus,
 } from "../backend-status.ts";
-import { createQueryClient } from "../../query/query-client.ts";
-import { server } from "../../../test/server.ts";
+import { createQueryClient } from "../../query/index.ts";
+import { server } from "../../test/server.ts";
 
 afterEach(() => {
   vi.useRealTimers();

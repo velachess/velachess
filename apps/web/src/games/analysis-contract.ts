@@ -2,17 +2,12 @@ import {
   // Experimental (5.101): isolated here so a removal falls back to a plain polling query.
   experimental_streamedQuery as streamedQuery,
   queryOptions,
-} from "../shared/libs/query/index.ts";
-import { z } from "../shared/libs/zod.ts";
+} from "../libs/react-query.ts";
+import { z } from "../libs/zod.ts";
 
 import { parsePgn, replayMainline } from "@velachess/chess";
 
-import {
-  api,
-  apiBaseUrl,
-  parseResponse,
-  type InferResponseType,
-} from "../shared/api/client.ts";
+import { api, apiBaseUrl, parseResponse, type InferResponseType } from "../api/index.ts";
 import { eventsOf } from "./watch-analysis/event-source.ts";
 
 const scoreSchema = z.object({

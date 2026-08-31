@@ -6,7 +6,7 @@
 
 import { signIn, type Credentials } from "./sign-in.ts";
 import { sessionQueryKey } from "../session.ts";
-import { useMutation, useQueryClient } from "../../shared/libs/query/index.ts";
+import { useMutation, useQueryClient } from "../../libs/react-query.ts";
 
 export function useSignIn() {
   const queryClient = useQueryClient();

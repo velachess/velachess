@@ -1,5 +1,5 @@
-import { api, parseResponse, type InferResponseType } from "../shared/api/client.ts";
-import { queryOptions } from "../shared/libs/query/index.ts";
+import { api, parseResponse, type InferResponseType } from "../api/index.ts";
+import { queryOptions } from "../libs/react-query.ts";
 
 export type Overview = InferResponseType<typeof api.overview.$get, 200>;
 

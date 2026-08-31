@@ -11,7 +11,7 @@ import {
 } from "@velachess/ui/components/tooltip";
 import { RefreshCw } from "@velachess/ui/icons";
 
-import { useQuery } from "../../shared/libs/query/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
 import { trackedAccountsQuery, useSyncGames } from "./queries.ts";
 
 const SYNC_COPY = {

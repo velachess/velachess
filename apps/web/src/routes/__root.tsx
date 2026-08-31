@@ -12,8 +12,8 @@ import appCss from "@velachess/ui/globals.css?url";
 import { activateLocale, i18n } from "../i18n/index.ts";
 import { resolveLocale } from "../i18n/locale.ts";
 import { useLocaleStore } from "../i18n/locale-store.ts";
-import { queryClient } from "../shared/query/query-client.ts";
-import { QueryClientProvider, type QueryClientType } from "../shared/libs/query/index.ts";
+import { queryClient } from "../query/index.ts";
+import { QueryClientProvider, type QueryClientType } from "../libs/react-query.ts";
 
 interface RouterContext {
   queryClient: QueryClientType;

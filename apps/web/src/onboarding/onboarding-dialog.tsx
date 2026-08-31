@@ -16,7 +16,7 @@ import { cn } from "@velachess/ui/lib/utils";
 import { ONBOARDING_STEPS, StepMedia } from "./steps.tsx";
 import { ImportGames } from "../games/import/import-games.tsx";
 import { IMPORT_MUTATION_KEY } from "../games/import/queries.ts";
-import { useIsMutating } from "../shared/libs/query/index.ts";
+import { useIsMutating } from "../libs/react-query.ts";
 
 const DIALOG_COPY = {
   skip: msg`Skip`,

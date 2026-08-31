@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react";
 
 import { Field, FieldDescription } from "@velachess/ui/components/field";
 
-import { SoundToggle } from "../../shared/chess-sounds/sound-toggle.tsx";
+import { SoundToggle } from "../../chess-sounds/index.ts";
 
 const GAMEPLAY_COPY = {
   title: msg`Gameplay`,

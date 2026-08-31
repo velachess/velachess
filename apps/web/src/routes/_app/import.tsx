@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ImportGames } from "../../games/import/import-games.tsx";
-import { z } from "../../shared/libs/zod.ts";
+import { z } from "../../libs/zod.ts";
 
 /** Lives inside `_app`: importing writes the signed-in user's tracked account, and the API 401s anyone else. */
 const importSearchSchema = z.object({

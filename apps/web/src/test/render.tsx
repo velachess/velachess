@@ -14,10 +14,10 @@ import { ThemeProvider } from "@velachess/ui/lib/theme-provider";
 
 import { i18n } from "../i18n/index.ts";
 import { sessionQueryKey } from "../auth/session.ts";
-import { QueryClientProvider, type QueryClientType } from "../shared/libs/query/index.ts";
-import { onUnauthorized } from "../shared/api/unauthorized.ts";
-import { createQueryClient } from "../shared/query/query-client.ts";
-import { DefaultRouteError } from "../shared/ui/route-error.tsx";
+import { QueryClientProvider, type QueryClientType } from "../libs/react-query.ts";
+import { onUnauthorized } from "../api/index.ts";
+import { createQueryClient } from "../query/index.ts";
+import { DefaultRouteError } from "../route-error.tsx";
 import { testRouteTree } from "./routes.tsx";
 
 /** The providers `__root.tsx` gives every screen, in the same order — kept identical so this list can't drift from the app. */

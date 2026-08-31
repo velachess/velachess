@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react";
 
 import { Alert, AlertTitle } from "@velachess/ui/components/alert";
 
-import { useBackendStatus } from "../errors/backend-status.ts";
+import { useBackendStatus } from "./backend-status.ts";
 
 const BACKEND_STATUS_COPY = {
   unavailable: msg`Backend unavailable · Retrying automatically`,

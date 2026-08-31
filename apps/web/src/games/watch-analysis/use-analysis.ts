@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
-import { isRateLimitedError } from "../../shared/api/errors.ts";
-import { useQuery, useQueryClient } from "../../shared/libs/query/index.ts";
+import { isRateLimitedError } from "../../api/index.ts";
+import { useQuery, useQueryClient } from "../../libs/react-query.ts";
 import {
   analysisKey,
   analysisQuery,

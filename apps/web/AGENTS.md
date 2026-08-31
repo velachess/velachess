@@ -13,6 +13,24 @@ does not restate it.
 
 ## Frontend Conventions
 
+- No `shared/`. A grab-bag groups by technical type, which this app never
+  does. Cross-vertical infrastructure gets its own vertical instead —
+  `api/`, `backend-status/`, `chess-sounds/`, `query/` — named for what it
+  does, same as any other slice.
+- A vertical's public surface is its `index.ts`; a file inside it that
+  isn't re-exported is private to that vertical. `api`, `backend-status`,
+  `chess-sounds`, and `query` enforce this by dependency-cruiser rule
+  (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`); the
+  pre-existing verticals (`auth`, `games`, ...) predate the rule and stay
+  deep-imported from `routes/` today — retrofitting them is a deliberate,
+  separate follow-up, not something to do incidentally.
+- `libs/` is reserved for thin third-party wrapper/facade files
+  (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
+  for business logic. A facade re-exports its package under one name so a
+  version bump or provider swap touches one file, enforced by
+  dependency-cruiser (`web-facade-only-for-third-party-clients`): nothing
+  outside `libs/` may import `zod`, `hono`/`hono/client`, or
+  `@tanstack/react-query` directly.
 - `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
 - Two vocabularies, one boundary. Data keeps the domain's name (a

@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { z } from "../shared/libs/zod.ts";
+import { z } from "../libs/zod.ts";
 
 /**
  * Only route outside `_app`; guard mirrors it, redirecting an already-signed-in visitor away.

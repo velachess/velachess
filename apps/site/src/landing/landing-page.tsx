@@ -23,7 +23,7 @@ import {
 } from "motion/react-client";
 import Image from "next/image";
 
-import { i18n } from "../shared/i18n.ts";
+import { i18n } from "../locales/index.ts";
 import { LandingHeader } from "./landing-header.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";

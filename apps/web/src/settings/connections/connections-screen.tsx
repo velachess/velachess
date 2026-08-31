@@ -27,7 +27,7 @@ import {
   type TrackedAccount,
 } from "../../games/import/queries.ts";
 import { IMPORT_SOURCES } from "../../games/import/sources.ts";
-import { useQuery } from "../../shared/libs/query/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
 
 const CONNECTIONS_COPY = {
   title: msg`Connections`,

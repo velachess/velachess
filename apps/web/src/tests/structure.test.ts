@@ -6,7 +6,7 @@ const root = path.resolve(import.meta.dirname, "../../../..");
 
 it("does not create technical bucket directories", () => {
   const buckets = globSync("apps/web/src/**/*.{ts,tsx}", { cwd: root }).filter((file) =>
-    /apps\/web\/src\/(?:[^/]+\/)*(?:components|hooks|stores|services|helpers|utils)\//.test(
+    /apps\/web\/src\/(?:[^/]+\/)*(?:components|hooks|stores|services|helpers|utils|shared)\//.test(
       file,
     ),
   );

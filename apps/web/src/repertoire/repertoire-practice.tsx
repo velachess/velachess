@@ -27,13 +27,10 @@ import {
 import { Progress } from "@velachess/ui/components/progress";
 
 import { BoardScreen } from "../app-shell/board-screen.tsx";
-import { api, parseResponse } from "../shared/api/client.ts";
-import {
-  CHESS_SOUND_EVENT,
-  useChessSounds,
-} from "../shared/chess-sounds/chess-sounds.ts";
+import { api, parseResponse } from "../api/index.ts";
+import { CHESS_SOUND_EVENT, useChessSounds } from "../chess-sounds/index.ts";
 import { legalTargetsFrom, playMove, squaresOfSanAt } from "../drill/move.ts";
-import { useMutation, useQuery, useQueryClient } from "../shared/libs/query/index.ts";
+import { useMutation, useQuery, useQueryClient } from "../libs/react-query.ts";
 import { drillNextQuery, drillQueueQuery } from "../drill/queries.ts";
 import { repertoireQuery } from "./queries.ts";
 

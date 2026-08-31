@@ -1,8 +1,8 @@
 /** One shared session query/cache, not Better Auth's own `useSession()` — avoids a second cache of the same fact. */
 
 import { authClient, type SessionUser } from "./client.ts";
-import { queryOptions } from "../shared/libs/query/index.ts";
-import { NetworkError } from "../shared/api/errors.ts";
+import { queryOptions } from "../libs/react-query.ts";
+import { NetworkError } from "../api/index.ts";
 
 export const sessionQueryKey = ["auth", "session"] as const;
 

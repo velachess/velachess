@@ -2,8 +2,8 @@ import "@testing-library/jest-dom/vitest";
 
 import { afterAll, afterEach, beforeAll } from "vitest";
 
-import { resetBackendStatus } from "./src/shared/errors/backend-status.ts";
-import { resetBackendRecoveryProbe } from "./src/shared/query/query-client.ts";
+import { resetBackendStatus } from "./src/backend-status/index.ts";
+import { resetBackendRecoveryProbe } from "./src/query/index.ts";
 import { resetArchive } from "./src/test/archive.ts";
 import { resetTrackedAccounts } from "./src/test/handlers/accounts.ts";
 import { resetRepertoires } from "./src/test/handlers/repertoires.ts";

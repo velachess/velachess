@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
-import { useQuery } from "../shared/libs/query/index.ts";
+import { useQuery } from "../libs/react-query.ts";
 import { overviewQuery, type Overview } from "./queries.ts";
 
 const DASHBOARD_COPY = {

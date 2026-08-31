@@ -7,7 +7,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import type { ReactNode } from "react";
 
-import { i18n } from "../shared/i18n.ts";
+import { i18n } from "../locales/index.ts";
 import "./globals.css";
 
 const spaceGrotesk = localFont({

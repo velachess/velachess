@@ -4,7 +4,7 @@ import type * as React from "react";
 
 import { ChessComIcon, LichessIcon } from "@velachess/ui/icons";
 
-import { z } from "../../shared/libs/zod.ts";
+import { z } from "../../libs/zod.ts";
 
 export type Translate = (message: MessageDescriptor) => string;
 

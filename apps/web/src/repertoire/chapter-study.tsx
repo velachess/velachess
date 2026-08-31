@@ -24,11 +24,8 @@ import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/e
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../app-shell/board-screen.tsx";
-import {
-  CHESS_SOUND_EVENT,
-  useChessSounds,
-} from "../shared/chess-sounds/chess-sounds.ts";
-import { useQuery } from "../shared/libs/query/index.ts";
+import { CHESS_SOUND_EVENT, useChessSounds } from "../chess-sounds/index.ts";
+import { useQuery } from "../libs/react-query.ts";
 import {
   chapterQuery,
   type ChapterDetail,

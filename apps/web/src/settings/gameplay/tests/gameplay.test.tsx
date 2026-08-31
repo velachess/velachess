@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 
 import { renderApp } from "../../../test/render.tsx";
 import { sessionActive } from "../../../test/handlers/auth.ts";
-import { useSoundPreferences } from "../../../shared/chess-sounds/chess-sounds.ts";
+import { useSoundPreferences } from "../../../chess-sounds/index.ts";
 
 /** Settings → Gameplay: the only place move sounds can be muted — not
  * duplicated in the account dropdown. */

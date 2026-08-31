@@ -1,6 +1,6 @@
-import { api, parseResponse, type InferResponseType } from "../shared/api/client.ts";
-import { queryOptions } from "../shared/libs/query/index.ts";
-import { z } from "../shared/libs/zod.ts";
+import { api, parseResponse, type InferResponseType } from "../api/index.ts";
+import { queryOptions } from "../libs/react-query.ts";
+import { z } from "../libs/zod.ts";
 
 /** Practising a repertoire, optionally narrowed to one chapter. */
 export const practiceSearchSchema = z.object({

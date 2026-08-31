@@ -15,7 +15,7 @@ import { Input } from "@velachess/ui/components/input";
 import { useRenameSelf } from "./queries.ts";
 import type { SessionUser } from "../../auth/client.ts";
 import { UserAvatar } from "../../auth/user-avatar.tsx";
-import { z } from "../../shared/libs/zod.ts";
+import { z } from "../../libs/zod.ts";
 
 const PROFILE_COPY = {
   title: msg`Profile`,

@@ -1,5 +1,5 @@
-import { api, parseResponse } from "../../shared/api/client.ts";
-import { useMutation, useQueryClient } from "../../shared/libs/query/index.ts";
+import { api, parseResponse } from "../../api/index.ts";
+import { useMutation, useQueryClient } from "../../libs/react-query.ts";
 
 /** What POST /games/import reports, all three counts at once. */
 export type ImportPgnOutcome = {

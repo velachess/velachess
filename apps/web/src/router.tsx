@@ -3,9 +3,9 @@ import type { MessageDescriptor } from "@lingui/core";
 
 import { routeTree } from "./routeTree.gen.ts";
 import { sessionQueryKey } from "./auth/session.ts";
-import { onUnauthorized } from "./shared/api/unauthorized.ts";
-import { queryClient } from "./shared/query/query-client.ts";
-import { DefaultRouteError } from "./shared/ui/route-error.tsx";
+import { onUnauthorized } from "./api/index.ts";
+import { queryClient } from "./query/index.ts";
+import { DefaultRouteError } from "./route-error.tsx";
 
 export function getRouter() {
   const router = createTanStackRouter({

@@ -5,7 +5,7 @@
 
 import { createAuthClient } from "better-auth/react";
 
-import { apiBaseUrl } from "../shared/api/client.ts";
+import { apiBaseUrl } from "../api/index.ts";
 
 export const authClient = createAuthClient({
   basePath: `${apiBaseUrl}/auth`,

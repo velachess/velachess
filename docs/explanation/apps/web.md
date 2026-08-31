@@ -15,21 +15,26 @@ folder: those group by technical type, which puts `useTheme` next to
 
 ```
 src/
-  app-shell/    frame assembly: navigation as data, the layout routes use
-  auth/         session, sign-in, sign-out and user presentation
-  i18n/         locale resolution and catalogue activation
-  dashboard/    the overview
-  games/        everything you do to games
-    import/       connect an account and pull games in
-    list/         filter and page owned games
-    open-game/    load the playable game record
+  api/            the backend HTTP contract: client, errors, health, 401 handling
+  app-shell/      frame assembly: navigation as data, the layout routes use
+  auth/           session, sign-in, sign-out and user presentation
+  backend-status/ backend-availability state and the banner that shows it
+  chess-sounds/   move-sound preference, mapping and playback
+  i18n/           locale resolution and catalogue activation
+  dashboard/      the overview
+  games/          everything you do to games
+    import/         connect an account and pull games in
+    list/           filter and page owned games
+    open-game/      load the playable game record
     request-analysis/ view-analysis/ watch-analysis/
-  insights/     findings derived from owned games and analysis
-  repertoire/   the lines you actually play
-  drill/        spaced repetition over your worst mistakes
-  settings/     account and product preferences
-  routes/       routing only — a route imports a slice and mounts it
-  shared/       cross-vertical transport/query/error infrastructure only
+  insights/       findings derived from owned games and analysis
+  libs/           thin third-party facades only (zod, hono/client, React Query)
+  query/          this app's React Query client: retry policy and error wiring
+  repertoire/     the lines you actually play
+  drill/          spaced repetition over your worst mistakes
+  settings/       account and product preferences
+  routes/         routing only — a route imports a slice and mounts it
+  router.tsx      router construction; route-error.tsx sits beside it
 ```
 
 Importing and analysis are things you do _to games_, so they nest under
@@ -39,6 +44,18 @@ belongs to, not merely that it exists.
 A slice owns its data (`queries.ts`), its screen, its constants and its
 tests. It never positions itself on the page — it returns content, and the
 shell decides where that content goes.
+
+There is no `shared/`: a grab-bag by definition groups by technical type,
+which is exactly what this app's slices refuse to do. `api/`,
+`backend-status/`, `chess-sounds/`, and `query/` are verticals like any
+other — each named for what it does, not for being "shared" — and each
+exposes only its `index.ts`; a deep import into one of these from anywhere
+else is a dependency-cruiser violation, not a style preference. `libs/` is
+the one exception on purpose: it holds thin re-export wrappers around
+third-party packages (`zod`, `hono/client`, `@tanstack/react-query`) with no
+business logic of their own, so every file in it is public and none needs
+an `index.ts` — wrapping the package once means a version bump or a
+provider swap touches one file instead of every consumer.
 
 ## Two vocabularies, one boundary
 

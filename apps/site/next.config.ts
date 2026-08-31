@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 768, 1440],
     imageSizes: [],
     loader: "custom",
-    loaderFile: "./src/shared/image-loader.ts",
+    loaderFile: "./src/landing/image-loader.ts",
   },
   transpilePackages: ["@velachess/ui"],
   experimental: {

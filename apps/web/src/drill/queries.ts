@@ -1,6 +1,6 @@
-import { z } from "../shared/libs/zod.ts";
-import { api, parseResponse, type InferResponseType } from "../shared/api/client.ts";
-import { queryOptions } from "../shared/libs/query/index.ts";
+import { z } from "../libs/zod.ts";
+import { api, parseResponse, type InferResponseType } from "../api/index.ts";
+import { queryOptions } from "../libs/react-query.ts";
 
 export type DrillQueue = InferResponseType<typeof api.drill.queue.$get, 200>;
 export type DrillItem = InferResponseType<typeof api.drill.next.$get, 200>;

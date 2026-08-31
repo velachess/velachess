@@ -24,7 +24,7 @@
       "entry": [
         "src/app/**/*.{ts,tsx}",
         // Next resolves the custom image loader from a config string.
-        "src/shared/image-loader.ts",
+        "src/landing/image-loader.ts",
         "lingui.config.ts",
         "**/*.test.{ts,tsx}"
       ],

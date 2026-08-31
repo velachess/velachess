@@ -29,7 +29,7 @@ import { RepertoireLanding } from "../repertoire/repertoire-landing.tsx";
 import { RepertoirePractice } from "../repertoire/repertoire-practice.tsx";
 import { practiceSearchSchema } from "../repertoire/queries.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
-import type { QueryClientType } from "../shared/libs/query/index.ts";
+import type { QueryClientType } from "../libs/react-query.ts";
 
 /**
  * The app's routes, by hand: `routeTree.gen.ts` is generated and

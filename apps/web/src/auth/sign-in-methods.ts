@@ -1,8 +1,8 @@
 /** What this deployment lets people sign in with — `GET /config`,
  * public because it is asked before anyone has a session. */
 
-import { api, parseResponse } from "../shared/api/client.ts";
-import { queryOptions } from "../shared/libs/query/index.ts";
+import { api, parseResponse } from "../api/index.ts";
+import { queryOptions } from "../libs/react-query.ts";
 
 export interface SignInMethods {
   password: boolean;

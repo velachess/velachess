@@ -6,7 +6,7 @@ import { Separator } from "@velachess/ui/components/separator";
 import { ProfileForm } from "./profile-form.tsx";
 import { SignInMethods } from "./sign-in-methods.tsx";
 import { sessionQuery } from "../../auth/session.ts";
-import { useQuery } from "../../shared/libs/query/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
 
 const ACCOUNT_COPY = {
   title: msg`Account`,

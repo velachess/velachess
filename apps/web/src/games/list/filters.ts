@@ -1,6 +1,6 @@
 import { msg } from "@lingui/core/macro";
 
-import { z } from "../../shared/libs/zod.ts";
+import { z } from "../../libs/zod.ts";
 
 /** The URL owns filters (survives refresh/back/share); this schema is the route's `validateSearch`, so bad params default, not crash. */
 export const gamesSearchSchema = z.object({

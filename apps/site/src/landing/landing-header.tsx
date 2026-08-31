@@ -3,7 +3,7 @@ import { buttonVariants } from "@velachess/ui/components/button";
 import { ThemeToggle } from "@velachess/ui/components/theme-toggle";
 import { VelaChessMark } from "@velachess/ui/icons";
 
-import { i18n } from "../shared/i18n.ts";
+import { i18n } from "../locales/index.ts";
 import { LandingHeaderNav } from "./landing-header-nav.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";

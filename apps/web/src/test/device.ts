@@ -1,7 +1,7 @@
 import { accountIsTracked } from "./handlers/accounts.ts";
 import { useMyAccounts, type RememberedAccount } from "../games/import/my-accounts.ts";
 import { useSourceStore } from "../games/import/source-store.ts";
-import { useSoundPreferences } from "../shared/chess-sounds/chess-sounds.ts";
+import { useSoundPreferences } from "../chess-sounds/index.ts";
 import { archiveAccount } from "./archive.ts";
 
 export function resetDevice(): void {

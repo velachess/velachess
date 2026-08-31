@@ -2,7 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { VELACHESS_THEME_COLORS } from "@velachess/ui/styles/theme-colors";
 import type { MetadataRoute } from "next";
 
-import { i18n } from "../shared/i18n.ts";
+import { i18n } from "../locales/index.ts";
 
 const MANIFEST_COPY = {
   name: msg`VelaChess`,

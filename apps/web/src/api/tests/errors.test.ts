@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, DetailedError, parseResponse } from "../client.ts";
+import { api, DetailedError, parseResponse } from "../index.ts";
 import {
   ApiError,
   CancelledError,

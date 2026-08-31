@@ -1,4 +1,5 @@
 import {
+  checkBackendHealth,
   isBaseApiError,
   isCancelledError,
   isInfrastructureError,
@@ -6,15 +7,14 @@ import {
   isRetryableApiError,
   isUnauthorizedError,
   normalizeApiError,
-} from "../api/errors.ts";
-import { checkBackendHealth } from "../api/health.ts";
-import { reportUnauthorized } from "../api/unauthorized.ts";
+  reportUnauthorized,
+} from "../api/index.ts";
 import {
   confirmBackendRecovery,
   getBackendStatus,
   recordInfrastructureFailure,
-} from "../errors/backend-status.ts";
-import { MutationCache, QueryCache, QueryClient } from "../libs/query/index.ts";
+} from "../backend-status/index.ts";
+import { MutationCache, QueryCache, QueryClient } from "../libs/react-query.ts";
 
 const RECOVERY_PROBE_DELAY_MS = 5_000;
 let recoveryProbe: ReturnType<typeof setTimeout> | null = null;
@@ -27,7 +27,7 @@ function handleApiError(error: unknown) {
   // 401 is an authentication state, not a failure to report: the session
   // ended (expired, revoked, signed out in another tab) and the app has
   // to stop pretending otherwise. Announced here, decided elsewhere —
-  // see shared/api/unauthorized.ts.
+  // see api/unauthorized.ts.
   if (isUnauthorizedError(apiError)) {
     reportUnauthorized();
     return;

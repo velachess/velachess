@@ -26,8 +26,8 @@ import { signInFailureOf, type SignInFailure } from "./sign-in.ts";
 import { signInWithGoogle } from "./social.ts";
 import { useSignIn } from "./use-sign-in.ts";
 import { signInMethodsQuery } from "../sign-in-methods.ts";
-import { useQuery } from "../../shared/libs/query/index.ts";
-import { z } from "../../shared/libs/zod.ts";
+import { useQuery } from "../../libs/react-query.ts";
+import { z } from "../../libs/zod.ts";
 
 // Neutral copy: with Google enabled, the provider button also creates
 // the account on first use — never assume the visitor is returning, and

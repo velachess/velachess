@@ -13,7 +13,7 @@ import { gamesColumns } from "./list/columns.tsx";
 import { activeFilterCount, PAGE_SIZE, type GamesSearch } from "./list/filters.ts";
 import { GamesFilters } from "./list/games-filters.tsx";
 import { libraryQuery, type Game } from "./list/queries.ts";
-import { useQuery } from "../shared/libs/query/index.ts";
+import { useQuery } from "../libs/react-query.ts";
 
 const GAMES_COPY = {
   title: msg`Games`,

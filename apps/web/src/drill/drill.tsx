@@ -25,12 +25,9 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
 
 import { useBreadcrumbTrail } from "../app-shell/breadcrumb-trail.ts";
-import { api, parseResponse } from "../shared/api/client.ts";
-import {
-  CHESS_SOUND_EVENT,
-  useChessSounds,
-} from "../shared/chess-sounds/chess-sounds.ts";
-import { useMutation, useQuery, useQueryClient } from "../shared/libs/query/index.ts";
+import { api, parseResponse } from "../api/index.ts";
+import { CHESS_SOUND_EVENT, useChessSounds } from "../chess-sounds/index.ts";
+import { useMutation, useQuery, useQueryClient } from "../libs/react-query.ts";
 import { DrillPrompt } from "./drill-prompt.tsx";
 import { DrillQueuePanel, totalWaiting } from "./drill-queue-panel.tsx";
 import { legalTargetsFrom, playMove, sideToMove } from "./move.ts";

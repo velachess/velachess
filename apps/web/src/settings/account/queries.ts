@@ -2,11 +2,7 @@
 
 import { authClient } from "../../auth/client.ts";
 import { sessionQueryKey } from "../../auth/session.ts";
-import {
-  queryOptions,
-  useMutation,
-  useQueryClient,
-} from "../../shared/libs/query/index.ts";
+import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
 
 /** Better Auth's provider id for email+password. */
 export const PASSWORD_PROVIDER = "credential";

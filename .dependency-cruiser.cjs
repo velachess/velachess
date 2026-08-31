@@ -9,6 +9,12 @@ const businessModules =
 
 const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${businessModules}|infra|chess|scheduler|ui/src))/`;
 
+// apps/web verticals born from eliminating shared/ (see docs/explanation/apps/web.md).
+// Only these expose an index.ts public surface; pre-existing verticals
+// (auth, games, ...) predate the rule and are a deliberate, separate
+// follow-up — see apps/web/AGENTS.md.
+const webIndexOnlyVerticals = "api|backend-status|chess-sounds|query";
+
 function externalPackage(name) {
   return `(?:^${name}(?:/|$)|(?:^|/)node_modules/${name}(?:/|$))`;
 }
@@ -138,7 +144,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^apps/([^/]+)/",
-        pathNot: "^apps/web/src/shared/api/client[.]ts$",
+        pathNot: "^apps/web/src/api/index[.]ts$",
       },
       to: {
         path: "^apps/",
@@ -149,7 +155,7 @@ module.exports = {
     {
       name: "web-uses-only-server-api-contract",
       severity: "error",
-      from: { path: "^apps/web/src/shared/api/client[.]ts$" },
+      from: { path: "^apps/web/src/api/index[.]ts$" },
       to: {
         path: "^apps/(?!web/)",
         pathNot: "^apps/server/src/server[.]ts$",
@@ -225,9 +231,57 @@ module.exports = {
       severity: "error",
       from: {
         path: "^apps/web/src/[^/]+/[^/]+[.]ts$",
-        pathNot: ["^apps/web/src/(?:api|app-shell|i18n|routes|test)/", testPath],
+        pathNot: [
+          "^apps/web/src/(?:api|app-shell|backend-status|i18n|routes|test)/",
+          testPath,
+        ],
       },
       to: { path: [externalPackage("react"), externalPackage("react-dom")] },
+    },
+    {
+      name: "web-vertical-index-only",
+      comment:
+        "A file outside api/, backend-status/, chess-sounds/, and query/ may only reach one of them through its index.ts — same shape as no-cross-module-deep-imports on the backend, scoped to the verticals this eliminates apps/web/src/shared/ into. Pre-existing verticals (auth, games, ...) are unaffected; retrofitting them is a separate follow-up.",
+      severity: "error",
+      from: {
+        path: "^apps/web/src/",
+        pathNot: [`^apps/web/src/(?:${webIndexOnlyVerticals})/`, testPath],
+      },
+      to: {
+        path: `^apps/web/src/(?:${webIndexOnlyVerticals})/[^/]`,
+        pathNot: `^apps/web/src/(?:${webIndexOnlyVerticals})/index[.]ts$`,
+      },
+    },
+    {
+      name: "web-vertical-no-cross-deep-imports",
+      comment:
+        "Same rule as web-vertical-index-only, for one of these verticals reaching a sibling's internals directly instead of through its index.ts.",
+      severity: "error",
+      from: {
+        path: `^apps/web/src/(${webIndexOnlyVerticals})/`,
+        pathNot: testPath,
+      },
+      to: {
+        path: `^apps/web/src/(?:${webIndexOnlyVerticals})/[^/]`,
+        pathNot: [
+          `^apps/web/src/$1/`,
+          `^apps/web/src/(?:${webIndexOnlyVerticals})/index[.]ts$`,
+        ],
+      },
+    },
+    {
+      name: "web-facade-only-for-third-party-clients",
+      comment:
+        "zod, hono/client, and @tanstack/react-query are each wrapped once in apps/web/src/libs/* so a version bump or provider swap touches one file; every other file imports the wrapper, never the package directly.",
+      severity: "error",
+      from: { path: "^apps/web/src/", pathNot: ["^apps/web/src/libs/", testPath] },
+      to: {
+        path: [
+          externalPackage("zod"),
+          externalPackage("hono"),
+          externalPackage("@tanstack/react-query"),
+        ],
+      },
     },
     {
       name: "no-circular-dependencies",

@@ -1,10 +1,6 @@
-import { api, parseResponse, type InferResponseType } from "../../shared/api/client.ts";
-import { isRateLimitedError } from "../../shared/api/errors.ts";
-import {
-  queryOptions,
-  useMutation,
-  useQueryClient,
-} from "../../shared/libs/query/index.ts";
+import { api, parseResponse, type InferResponseType } from "../../api/index.ts";
+import { isRateLimitedError } from "../../api/index.ts";
+import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
 import { useMyAccounts, type RememberedAccount } from "./my-accounts.ts";
 import { INPUT_KINDS, type SourceId } from "./sources.ts";
 

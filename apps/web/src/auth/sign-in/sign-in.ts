@@ -4,7 +4,7 @@
  */
 
 import { authClient, type SessionUser } from "../client.ts";
-import { NetworkError } from "../../shared/api/errors.ts";
+import { NetworkError } from "../../api/index.ts";
 
 export interface Credentials {
   email: string;

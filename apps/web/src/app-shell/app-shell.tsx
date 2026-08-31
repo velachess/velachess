@@ -8,8 +8,8 @@ import { AppFrame } from "@velachess/ui/layout/app-frame";
 import { NavDock } from "@velachess/ui/layout/nav-dock";
 
 import { drillQueueQuery } from "../drill/queries.ts";
-import { useQuery } from "../shared/libs/query/index.ts";
-import { BackendStatusBanner } from "../shared/ui/backend-status-banner.tsx";
+import { useQuery } from "../libs/react-query.ts";
+import { BackendStatusBanner } from "../backend-status/index.ts";
 import { activeNavId, navItemsFor, NAV_ROUTES } from "./nav-items.ts";
 import { UserMenu } from "./user-menu.tsx";
 

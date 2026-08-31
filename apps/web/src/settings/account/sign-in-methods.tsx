@@ -14,7 +14,7 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { GoogleIcon, KeyRoundIcon } from "@velachess/ui/icons";
 
 import { accountMethodsQuery, PASSWORD_PROVIDER } from "./queries.ts";
-import { useQuery } from "../../shared/libs/query/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
 
 const METHODS_COPY = {
   title: msg`Sign-in methods`,
