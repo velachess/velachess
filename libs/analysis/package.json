@@ -13,6 +13,7 @@
   "dependencies": {
     "@velachess/chess": "workspace:*",
     "@velachess/drills": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
     "@velachess/infra-engine": "workspace:*"
   },
   "devDependencies": {

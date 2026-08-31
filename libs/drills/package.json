@@ -10,7 +10,10 @@
   "types": "./index.ts",
   "dependencies": {
     "@velachess/analysis": "workspace:*",
-    "@velachess/repertoires": "workspace:*"
+    "@velachess/chess": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
+    "@velachess/repertoires": "workspace:*",
+    "@velachess/scheduler": "workspace:*"
   },
   "exports": {
     ".": "./index.ts"

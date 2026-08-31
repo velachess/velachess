@@ -9,7 +9,10 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
-    "@badrap/result": "^0.3.0"
+    "@badrap/result": "^0.3.0",
+    "@velachess/chess": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
+    "@velachess/infra-platforms": "workspace:*"
   },
   "exports": {
     ".": "./index.ts"

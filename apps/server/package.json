@@ -20,6 +20,7 @@
     "@velachess/drills": "workspace:*",
     "@velachess/games": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
+    "@velachess/infra-platforms": "workspace:*",
     "@velachess/insights": "workspace:*",
     "@velachess/auth": "workspace:*",
     "@velachess/overview": "workspace:*",

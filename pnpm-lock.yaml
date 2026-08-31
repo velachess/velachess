@@ -104,6 +104,9 @@ importers:
       '@velachess/infra-logger':
         specifier: workspace:*
         version: link:../../libs/infra/logger
+      '@velachess/infra-platforms':
+        specifier: workspace:*
+        version: link:../../libs/infra/platforms
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
@@ -360,7 +363,14 @@ importers:
         specifier: ^18.0.8
         version: 18.0.8
 
-  libs/accounts: {}
+  libs/accounts:
+    dependencies:
+      '@velachess/infra-db':
+        specifier: workspace:*
+        version: link:../infra/db
+      '@velachess/infra-platforms':
+        specifier: workspace:*
+        version: link:../infra/platforms
 
   libs/analysis:
     dependencies:
@@ -370,6 +380,9 @@ importers:
       '@velachess/drills':
         specifier: workspace:*
         version: link:../drills
+      '@velachess/infra-db':
+        specifier: workspace:*
+        version: link:../infra/db
       '@velachess/infra-engine':
         specifier: workspace:*
         version: link:../infra/engine
@@ -399,21 +412,46 @@ importers:
         specifier: workspace:*
         version: link:../fixtures
 
-  libs/deviations: {}
+  libs/deviations:
+    dependencies:
+      '@velachess/chess':
+        specifier: workspace:*
+        version: link:../chess
 
   libs/drills:
     dependencies:
       '@velachess/analysis':
         specifier: workspace:*
         version: link:../analysis
+      '@velachess/chess':
+        specifier: workspace:*
+        version: link:../chess
+      '@velachess/infra-db':
+        specifier: workspace:*
+        version: link:../infra/db
       '@velachess/repertoires':
         specifier: workspace:*
         version: link:../repertoires
+      '@velachess/scheduler':
+        specifier: workspace:*
+        version: link:../scheduler
 
   libs/fixtures: {}
 
   libs/games:
     dependencies:
+      '@velachess/analysis':
+        specifier: workspace:*
+        version: link:../analysis
+      '@velachess/chess':
+        specifier: workspace:*
+        version: link:../chess
+      '@velachess/infra-db':
+        specifier: workspace:*
+        version: link:../infra/db
+      '@velachess/infra-platforms':
+        specifier: workspace:*
+        version: link:../infra/platforms
       '@velachess/repertoires':
         specifier: workspace:*
         version: link:../repertoires
@@ -543,6 +581,15 @@ importers:
       '@badrap/result':
         specifier: ^0.3.0
         version: 0.3.1
+      '@velachess/chess':
+        specifier: workspace:*
+        version: link:../chess
+      '@velachess/infra-db':
+        specifier: workspace:*
+        version: link:../infra/db
+      '@velachess/infra-platforms':
+        specifier: workspace:*
+        version: link:../infra/platforms
 
   libs/scheduler:
     dependencies:
