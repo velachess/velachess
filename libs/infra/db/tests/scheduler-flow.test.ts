@@ -4,15 +4,13 @@
  * due queue and forecast, chaining what cycles 0–3 built.
  */
 import { parsePgn, replayMainline, type Game, type PgnNodeData } from "@velachess/chess";
-import { buildRepertoire, findDeviation } from "@velachess/repertoire";
+import { buildRepertoire } from "@velachess/repertoires";
 import { makeScheduler } from "@velachess/scheduler";
-import {
-  checkAnswer,
-  gradeResponse,
-} from "@velachess/application/drills/submit-answer/answer";
+import { findDeviation } from "../../../games/judge-games/deviation.ts";
+import { checkAnswer, gradeResponse } from "../../../drills/submit-answer/answer.ts";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import {
   addChapter,
   cards,
@@ -32,7 +30,7 @@ import {
   upsertExercise,
   upsertJudgment,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

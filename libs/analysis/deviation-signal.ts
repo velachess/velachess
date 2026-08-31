@@ -1,6 +1,6 @@
-import type { GradedPly } from "./analyze-game.ts";
-import type { EngineCategory } from "./classify.ts";
-import { cpLoss, toEngineCategory } from "./classify.ts";
+import type { GradedPly } from "./process-analysis/analyze-game.ts";
+import type { EngineCategory } from "./engine-category.ts";
+import { cpLoss, toEngineCategory } from "./engine-category.ts";
 
 /**
  * Crosses a deviation's ply with an analyzed game to produce the severity

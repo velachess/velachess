@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { movetextHash } from "@velachess/platforms";
+import { movetextHash } from "@velachess/infra-platforms";
 import { CHESS_COM_ARCHIVE_MONTH, LICHESS_GAME_PGN } from "@velachess/fixtures";
 
 describe("movetextHash", () => {

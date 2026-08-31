@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fetchLichess } from "@velachess/platforms";
+import { fetchLichess } from "@velachess/infra-platforms";
 import { LICHESS_PGN_EXPORT, LICHESS_VARIANT_PGN } from "@velachess/fixtures";
 
 function textResponse(body: string, status = 200): Response {

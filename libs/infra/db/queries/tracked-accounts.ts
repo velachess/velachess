@@ -1,5 +1,5 @@
-import type { ChessComCursor, LichessCursor } from "@velachess/platforms";
-import { and, eq } from "drizzle-orm";
+import type { ChessComCursor, LichessCursor } from "@velachess/infra-platforms";
+import { and, asc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { trackedAccounts } from "../schema.ts";
@@ -109,6 +109,24 @@ export async function getTrackedAccountForUser(
     .from(trackedAccounts)
     .where(and(eq(trackedAccounts.id, accountId), eq(trackedAccounts.userId, userId)));
   return account ?? null;
+}
+
+/**
+ * The accounts a user tracks, oldest first. `lastSyncedAt` is what tells a
+ * caller whether this account ever completed a pass — the difference
+ * between "not connected" and "connected, nothing synced yet".
+ */
+export async function listTrackedAccountsByUser(db: Database, userId: string) {
+  return db
+    .select({
+      id: trackedAccounts.id,
+      platform: trackedAccounts.platform,
+      username: trackedAccounts.username,
+      lastSyncedAt: trackedAccounts.lastSyncedAt,
+    })
+    .from(trackedAccounts)
+    .where(eq(trackedAccounts.userId, userId))
+    .orderBy(asc(trackedAccounts.createdAt));
 }
 
 /** The user's connection to a handle, if they track it. Reads never create. */

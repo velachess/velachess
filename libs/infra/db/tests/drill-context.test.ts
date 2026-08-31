@@ -7,7 +7,7 @@
  * exercise with two sources. The screen has to pick a sentence, and
  * picking the wrong one describes a move the drill is not checking.
  */
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import {
   createUser,
   deviations,
@@ -16,7 +16,7 @@ import {
   games,
   listExercisesByUser,
   upsertExercise,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 import { eq } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@velachess/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

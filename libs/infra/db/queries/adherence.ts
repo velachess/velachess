@@ -1,8 +1,23 @@
-import type { JudgmentRow } from "@velachess/repertoire";
 import { and, eq, ne } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { deviations, games, trackedAccounts } from "../schema.ts";
+
+/**
+ * Structurally compatible with `@velachess/repertoires`' own `JudgmentRow`
+ * (adherence.ts) — infra must never import a business module
+ * (no-infra-to-modules), so this is a local copy, not a shared import.
+ * `repertoires/list-repertoires.ts` and `get-repertoire.ts` declare their
+ * own `GetJudgmentRows` dependency type against their own `JudgmentRow`;
+ * composition assigns this file's `getJudgmentRows` into it, which
+ * typechecks on shape alone.
+ */
+export interface JudgmentRow {
+  type: "completed" | "deviation" | "gap" | "book-ended";
+  inBookPlies: number;
+  gamePlies: number;
+  result?: "win" | "draw" | "loss";
+}
 
 type OwnerResult = "win" | "draw" | "loss" | undefined;
 type Perspective = "white" | "black";

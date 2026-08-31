@@ -7,7 +7,7 @@
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 
-import { consumeRateLimit, type RateLimitPolicy } from "@velachess/db";
+import { consumeRateLimit, type RateLimitPolicy } from "@velachess/infra-db";
 
 import type { ApiEnv } from "../server.ts";
 import type { ApiDeps } from "../deps.ts";

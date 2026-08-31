@@ -29,7 +29,7 @@ Two slug/name parsers exist, for different granularities:
   (`defense | defence | opening | game | gambit | attack | system | variation`),
   stopping at the first token starting with a digit; shapes with no marker
   fall back to the first 3 words.
-- `openingNameFrom({name, url})` (`libs/repertoire/extract.ts`) — the full
+- `openingNameFrom({name, url})` (`libs/repertoires/extract-repertoire/extract.ts`) — the full
   human-readable name for extracted chapter titles: slug words until the
   first move-like token, no marker cut.
 

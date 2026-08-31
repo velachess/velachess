@@ -4,8 +4,9 @@ Extends `../../AGENTS.md`. Each child library owns one technical mechanism
 behind a narrow public surface: database, queue, engine, logger, platforms, or
 authentication.
 
-- Infra does not import `libs/application` or any app. Composition roots wire
-  adapters to application ports.
+- Infra does not import any business module (`libs/accounts`, `libs/games`, …)
+  or any app. Composition roots wire adapters to the narrow types a
+  module's slices declared.
 - Prefer the native library/platform primitive before wrapping or replacing it.
   A wrapper must express a VelaChess boundary, not hide a dependency.
 - Keep local, self-hosted, and hosted deployments on the same conceptual core.

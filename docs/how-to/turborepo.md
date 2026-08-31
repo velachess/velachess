@@ -49,7 +49,7 @@ task actually reads it; do not copy a broad environment list across tasks.
 Use a filter for quick feedback on one workspace:
 
 ```bash
-pnpm exec turbo run test --filter=@velachess/db
+pnpm exec turbo run test --filter=@velachess/infra-db
 pnpm exec turbo run build --filter=@velachess/site
 ```
 

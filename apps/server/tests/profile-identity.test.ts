@@ -13,7 +13,7 @@ import {
   LICHESS_PGN_EXPORT,
 } from "@velachess/fixtures";
 import { chessComFixtureFetch } from "@velachess/test-utils";
-import { providerProfiles } from "@velachess/db";
+import { providerProfiles } from "@velachess/infra-db";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 

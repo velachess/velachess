@@ -1,22 +1,17 @@
-import type { GradedPly } from "@velachess/analysis";
 import { and, desc, eq, sql } from "drizzle-orm";
 
-import type { StoredGradedPly } from "../schema.ts";
-
-// Drift guard: the schema's structural mirror must stay assignable from the
-// real GradedPly — both directions, checked at typecheck time.
-const toStoredDriftCheck: StoredGradedPly = {} as GradedPly;
-const fromStoredDriftCheck: GradedPly = {} as StoredGradedPly;
-void toStoredDriftCheck;
-void fromStoredDriftCheck;
-
 import type { Database } from "../client.ts";
-import { analysisProgress, deviations, gameAnalyses } from "../schema.ts";
+import {
+  analysisProgress,
+  deviations,
+  gameAnalyses,
+  type StoredGradedPly,
+} from "../schema.ts";
 
 export async function saveAnalysis(
   db: Database,
   gameId: string,
-  data: { engineVersion: string; depth: number; positions: GradedPly[] },
+  data: { engineVersion: string; depth: number; positions: StoredGradedPly[] },
 ) {
   const row = { gameId, ...data };
   const [analysis] = await db
@@ -48,7 +43,7 @@ export async function appendProgress(
     gameId: string;
     index: number;
     total: number;
-    position: GradedPly;
+    position: StoredGradedPly;
   },
 ) {
   await db

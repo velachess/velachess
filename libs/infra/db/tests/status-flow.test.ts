@@ -4,10 +4,9 @@
  * game list picks the most actionable judgment, extraction chapter swaps
  * are full replacements, and deleting a repertoire keeps history.
  */
-import type { NormalizedGame } from "@velachess/platforms";
+import type { NormalizedGame } from "@velachess/infra-platforms";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { DeviationResult } from "@velachess/repertoire";
 import {
   addChapter,
   createRepertoire,
@@ -16,14 +15,15 @@ import {
   ensureUser,
   findRepertoireOfColor,
   getRepertoireWithChapters,
+  listGamesWithStatusForAccount,
   listUnjudgedGames,
   markRepertoireManual,
   replaceChapters,
   saveGames,
   upsertJudgment,
   upsertTrackedAccount,
-} from "@velachess/db";
-import { listGamesWithStatus } from "@velachess/application/accounts/list-account-games/list-account-games";
+  type DeviationResult,
+} from "@velachess/infra-db";
 import { eq } from "drizzle-orm";
 
 import { createTestDb } from "./test-db.ts";
@@ -37,9 +37,8 @@ const deviationResult: DeviationResult = {
     type: "deviation",
     ply: 3,
     positionKey: "key-3",
-    actualMove: { from: 12, to: 28 },
     actualSan: "g4",
-    expectedMoves: [{ move: { from: 11, to: 27 }, san: "d4" }],
+    expectedMoves: [{ san: "d4" }],
   },
 };
 
@@ -78,7 +77,7 @@ beforeAll(async () => {
   accountId = account.id;
 
   await saveGames(db, [syncedGame("1001")], { userId, accountId });
-  const [game] = await listGamesWithStatus(db, accountId);
+  const [game] = (await listGamesWithStatusForAccount(db, accountId))!;
   gameId = game!.id;
 
   repA = await createRepertoire(db, { userId, name: "A", color: "white" });
@@ -137,7 +136,7 @@ describe("per-repertoire judgment semantics", () => {
   });
 
   it("the game list shows ONE row per game and prefers the deviation judgment", async () => {
-    const rows = await listGamesWithStatus(db, accountId);
+    const rows = (await listGamesWithStatusForAccount(db, accountId))!;
     expect(rows).toHaveLength(1); // two judgments, no fan-out
     expect(rows[0]!.judgmentType).toBe("deviation");
     expect(rows[0]!.judgmentPly).toBe(3);

@@ -3,8 +3,8 @@ import { createRequire } from "node:module";
 import { FOOLS_MATE_CHECKMATE, STARTING_POSITION } from "@velachess/fixtures";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { ChildProcessTransport } from "@velachess/engine/transport-child-process";
-import { EngineSession } from "@velachess/engine";
+import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
+import { EngineSession } from "@velachess/infra-engine";
 
 // e2e: talks to a real Stockfish process (the `stockfish` npm package ships
 // a UCI engine runnable straight under node, no native binary required).

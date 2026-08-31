@@ -1,7 +1,20 @@
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { users } from "../schema.ts";
+
+/** Whether any user exists — the bootstrap module's own guard, not "this
+ * email exists". */
+export async function countUsers(db: Database) {
+  const [row] = await db.select({ n: count() }).from(users);
+  return row?.n ?? 0;
+}
+
+/** Better Auth's own sign-up hard-codes emailVerified: false; the bootstrap
+ * module corrects it for the operator-provisioned first user. */
+export async function markEmailVerified(db: Database, userId: string) {
+  await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
+}
 
 let seq = 0;
 

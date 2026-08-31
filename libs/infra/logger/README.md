@@ -1,4 +1,4 @@
-# @velachess/logger
+# @velachess/infra-logger
 
 The shared logging library. It centralizes the pino logger used by runtime
 processes; application logic, transport concerns, and area-specific logging
@@ -18,4 +18,4 @@ Bootstrap from the monorepo root with `pnpm install`.
 
 ## Documentation
 
-No dedicated `/docs` page exists for `@velachess/logger` yet.
+No dedicated `/docs` page exists for `@velachess/infra-logger` yet.

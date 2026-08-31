@@ -1,20 +1,21 @@
 /**
  * [WORKER] — queue delivery and runtime composition only. Behaviors live in
- * libs/application; ./consumers are one-call adapters onto them.
+ * the business modules under libs/; ./consumers are one-call adapters onto
+ * them.
  */
 
-import type { AnalyzeDeps } from "@velachess/application/analysis/process-analysis/process-analysis";
-import type { SyncDeps } from "@velachess/application/accounts/sync-account/sync-account";
-import type { Database } from "@velachess/db";
-import { logger, type Logger } from "@velachess/logger";
+import type { SyncDeps } from "@velachess/accounts";
+import type { Database } from "@velachess/infra-db";
+import { logger, type Logger } from "@velachess/infra-logger";
 import type {
   AnalysisJobData,
   AnalysisQueue,
   PgBoss,
   SyncJobData,
-} from "@velachess/queue";
-import { QUEUES } from "@velachess/queue";
+} from "@velachess/infra-queue";
+import { QUEUES } from "@velachess/infra-queue";
 
+import type { EngineDeps } from "./composition/analysis.ts";
 import { consumeAnalysisJob } from "./consumers/analysis.ts";
 import { consumeSyncJob } from "./consumers/accounts.ts";
 
@@ -22,7 +23,11 @@ const workerLogger = logger.child({ component: "worker" });
 
 export interface WorkerDeps {
   db: Database;
-  analyze: AnalyzeDeps;
+  /** The engine/lock bits `completeAnalysis` needs beyond what `db`
+   * already derives — the consumer completes the rest per invocation via
+   * `composition/analysis.ts`'s `buildAnalyzeDeps`, the same way
+   * `consumers/accounts.ts` completes `SyncAccountDeps` from `db`. */
+  analyze: EngineDeps;
   analysisQueue: AnalysisQueue;
   sync?: SyncDeps;
   log?: Logger;

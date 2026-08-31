@@ -5,7 +5,7 @@ normal docs, live code, schema, and tests.
 
 ```text
 account refresh
-  -> libs/application/accounts/sync-account
+  -> libs/accounts/sync-account
   -> libs/infra/platforms normalization
   -> game persistence -> repertoire extraction/judgment -> exercise seeding
 
@@ -25,10 +25,10 @@ deduplicated.
 
 Useful starting points:
 
-- `libs/application/accounts/sync-account/`
-- `libs/application/games/judge-games/`
-- `libs/application/analysis/`
-- `libs/application/drills/seed-exercises/`
+- `libs/accounts/sync-account/`
+- `libs/games/judge-games/`
+- `libs/analysis/`
+- `libs/drills/seed-exercises/`
 - `libs/infra/db/queries/status.ts`
 - `libs/infra/db/queries/engine-drills.ts`
 - `libs/infra/queue/`

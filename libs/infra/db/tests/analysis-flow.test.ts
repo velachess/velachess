@@ -5,14 +5,21 @@
  */
 import { createRequire } from "node:module";
 
-import { analyzeGame, engineSignalForDeviation } from "@velachess/analysis";
+import { engineSignalForDeviation } from "@velachess/analysis";
 import { parsePgn, replayMainline, type Game, type PgnNodeData } from "@velachess/chess";
-import { EngineSession } from "@velachess/engine";
-import { ChildProcessTransport } from "@velachess/engine/transport-child-process";
-import { buildRepertoire, findDeviation } from "@velachess/repertoire";
+import { EngineSession } from "@velachess/infra-engine";
+import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
+import { buildRepertoire } from "@velachess/repertoires";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+// findDeviation is private to games/judge-games (its only production
+// consumer) — reached here via relative path; see adherence-flow.test.ts's
+// comment on judgeAgainstChapters for why. analyzeGame is private to
+// analysis/process-analysis the same way.
+import { findDeviation } from "../../../games/judge-games/deviation.ts";
+import { analyzeGame } from "../../../analysis/process-analysis/analyze-game.ts";
+
+import type { Database } from "@velachess/infra-db";
 import {
   addChapter,
   applyEngineSignal,
@@ -27,7 +34,7 @@ import {
   saveAnalysis,
   upsertJudgment,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

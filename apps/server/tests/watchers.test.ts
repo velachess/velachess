@@ -10,9 +10,10 @@
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { appendProgress } from "@velachess/db";
+import { appendProgress } from "@velachess/infra-db";
 
-import { createWatchers } from "@velachess/application/analysis/watch-analysis/watchers";
+import { createWatchers } from "@velachess/analysis";
+import { buildWatcherDeps } from "../src/composition/analysis.ts";
 import { createApiHarness, type ApiHarness } from "./harness.ts";
 
 let harness: ApiHarness;
@@ -48,11 +49,9 @@ const aPosition = (ply: number) => ({
 
 describe("shared watchers", () => {
   it("runs one loop for a game however many are watching it", async () => {
-    const watchers = createWatchers({
-      db: harness.db,
-      analysisQueue: harness.analysisQueue,
-      intervalMs: 20,
-    });
+    const watchers = createWatchers(
+      buildWatcherDeps(harness.db, harness.analysisQueue, 20),
+    );
     const controllers = [
       new AbortController(),
       new AbortController(),
@@ -82,11 +81,9 @@ describe("shared watchers", () => {
     // Someone opening the screen halfway through a run must not wait for
     // the next poll to see what has been graded — the shared loop's
     // snapshot is the answer, and it is handed over on subscribe.
-    const watchers = createWatchers({
-      db: harness.db,
-      analysisQueue: harness.analysisQueue,
-      intervalMs: 20,
-    });
+    const watchers = createWatchers(
+      buildWatcherDeps(harness.db, harness.analysisQueue, 20),
+    );
     await appendProgress(harness.db, {
       runId: crypto.randomUUID(),
       gameId,

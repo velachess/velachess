@@ -2,8 +2,8 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
-import { makeAnalysisQueue, QUEUES, type PgBoss } from "@velachess/queue";
+import type { Database } from "@velachess/infra-db";
+import { makeAnalysisQueue, QUEUES, type PgBoss } from "@velachess/infra-queue";
 import { createTestDb, startBoss } from "@velachess/test-utils";
 
 let pglite: PGlite;

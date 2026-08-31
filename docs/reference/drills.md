@@ -1,7 +1,7 @@
 # Drills
 
 Facts about drill generation, the review queue, and FSRS scheduling.
-Reasoning: [`explanation/modules/drill.md`](../explanation/modules/drill.md).
+Reasoning: [`explanation/modules/drills.md`](../explanation/modules/drills.md).
 
 ## Exercise identity
 
@@ -32,7 +32,7 @@ never later).
 
 ## Queue contract
 
-`getReviewItem` (`libs/application/drills/get-next-drill/`):
+`getNextDrillForUser` (`libs/drills/get-next-drill/`):
 
 1. Oldest due card: `listDueExercises` — `due <= now`, `ORDER BY due ASC`.
 2. Else a never-scheduled exercise: `getNewExercise` — `LIMIT 1` with **no

@@ -23,11 +23,17 @@ apps/worker       pg-boss consumer composition root
 apps/web          TanStack Start product SPA
 apps/site         Next.js static public site
 
-libs/application  vertical slices: one request/use case per directory
+libs/accounts     tracked-account lifecycle: connect, list, refresh
+libs/games        the game record and replay-against-repertoire behavior
+libs/repertoires  the repertoire/chapter aggregate and its adherence stats
+libs/analysis     the Stockfish job lifecycle: request, watch, process, get
+libs/drills       exercise identity, FSRS card state, the training queue
+libs/insights     cross-module reporting aggregates
+libs/deviations   the judgment-table read
+libs/overview     the dashboard aggregate
+libs/auth         user bootstrap (package @velachess/auth)
 libs/infra        db, queue, engine, logger, platforms, and auth adapters
 libs/chess        chess rules and notation
-libs/analysis     per-ply engine classification
-libs/repertoire   repertoire construction and judgment
 libs/scheduler    FSRS wrapper
 libs/ui           shared design system and chess presentation
 libs/fixtures     pure test data
@@ -37,13 +43,94 @@ libs/test-utils   shared test harness
 Backend dependency direction:
 
 ```text
-apps/server, apps/worker -> libs/application -> libs/infra + domain libs
+apps/server, apps/worker -> libs/<module> -> libs/infra + domain libs
 ```
 
-Nothing under `libs/` imports from `apps/`. Application imports ports, not
-Hono or pg-boss. Infra does not import application. The enforced boundary and
-documented exceptions live in `docs/explanation/architecture.md` and
-`.dependency-cruiser.cjs`.
+Nothing under `libs/` imports from `apps/`. A business module imports ports,
+not Hono or pg-boss. Infra does not import a business module. The enforced
+boundary and documented exceptions live in `docs/explanation/architecture.md`
+and `.dependency-cruiser.cjs`.
+
+A boundary that is structural — which directory may import which — belongs in
+`.dependency-cruiser.cjs`. A boundary that is semantic — intent, public vs.
+private usage inside a slice, one file legitimately serving two purposes —
+belongs in the nearest `AGENTS.md` and is enforced by code review, not a
+regex. Do not add a dependency-cruiser rule that approximates a semantic
+boundary; a false positive on a legitimate case is worse than an unenforced
+rule stated in `AGENTS.md`.
+
+## Modules and slices
+
+The backend is organized as vertical slices grouped into flat business
+modules (see `docs/explanation/architecture.md` for the full rationale).
+This section is the precise model; when code and this section disagree,
+fix whichever is wrong.
+
+- **Slice** — owns one behavior (e.g. `sync-account`, `judge-games`).
+  Declares its own narrow dependency function types, in its own
+  vocabulary, for everything external: DB reads/writes, queue enqueue,
+  provider HTTP, and any other slice's behavior. A slice never imports or
+  receives a `Database`, `AnalysisQueue`, `SyncQueue`, `Scheduler`, or
+  another slice's handler directly.
+- **Module** — a package under `libs/<module>` grouping slices that change
+  together (e.g. `games` owns `judge-games`, `import-pgn`,
+  `land-new-games`). May hold shared **pure** policies/calculators at the
+  module root (no DB/queue/provider dependency of their own — e.g.
+  `libs/repertoires/tree.ts`).
+- **Module API (`index.ts`)** — what the module offers the rest of the
+  system. The only file reachable from outside the module, structurally
+  (package `exports`, non-wildcard `tsconfig.json` paths) and by
+  dependency-cruiser rule. Not a convenience barrel: an export exists
+  there iff a route/worker consumer calls it directly, or composition-root
+  wiring needs it.
+- **Slice-declared dependency** — the narrow function type a slice writes
+  for each external need, named in its own vocabulary rather than
+  imported from whatever satisfies it. Duplicating this _type_ across
+  every caller is expected and fine; duplicating the real _implementation_
+  is not.
+- **Composition root** (`apps/server/src/composition/*.ts`,
+  `apps/worker/src/composition/*.ts`) — maps DB clients, queue clients,
+  provider HTTP clients, and other modules' `index.ts` capabilities onto
+  the exact narrow function types slices declared. This is also how one
+  slice's need for a _sibling_ slice's behavior gets satisfied, same
+  module or not — never a direct import.
+- **Dependency rule** — the one distinction that resolves every case:
+
+  | From → to                                | Allowed?                | Mechanism                                                                                                     |
+  | ---------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+  | slice A → slice B's handler              | **No**                  | A declares a dependency type; composition wires the real B handler in, whether A and B share a module or not. |
+  | slice A → a module-level pure policy     | **Yes**, direct import  | Deterministic, no I/O of its own — no trust boundary to protect, so no ceremony.                              |
+  | slice A needs a capability from module B | Via declared dependency | Composition sources the real implementation from B's `index.ts`.                                              |
+
+- **Sharing rule** — a slice never imports a sibling slice's handler
+  directly, **same module or not**. The only thing safe to import
+  directly, without a Deps type or composition, is a module-root pure
+  policy (no DB/queue/provider parameter). A stateful workflow that
+  happens to sit next to other slices in the same module (e.g.
+  `games/land-new-games`) does not qualify as a pure policy and gets no
+  same-package exemption — it is external to every caller, including its
+  own module-mates.
+
+### Module → package → path
+
+| Module      | Package                  | Path                |
+| ----------- | ------------------------ | ------------------- |
+| accounts    | `@velachess/accounts`    | `libs/accounts/`    |
+| games       | `@velachess/games`       | `libs/games/`       |
+| repertoires | `@velachess/repertoires` | `libs/repertoires/` |
+| analysis    | `@velachess/analysis`    | `libs/analysis/`    |
+| drills      | `@velachess/drills`      | `libs/drills/`      |
+| insights    | `@velachess/insights`    | `libs/insights/`    |
+| deviations  | `@velachess/deviations`  | `libs/deviations/`  |
+| overview    | `@velachess/overview`    | `libs/overview/`    |
+| auth        | `@velachess/auth`        | `libs/auth/`        |
+
+`libs/infra/*`'s six packages are `@velachess/infra-db`,
+`@velachess/infra-queue`, `@velachess/infra-engine`,
+`@velachess/infra-logger`, `@velachess/infra-platforms`, and
+`@velachess/infra-auth` — the `infra-` prefix keeps them visually distinct
+from business modules at the import site, including from the business
+`@velachess/auth` above.
 
 ## Principles
 
@@ -108,7 +195,10 @@ Always-relevant subtree rules belong in the nearest `AGENTS.md`:
 - `apps/site/AGENTS.md` — static public-site boundary.
 - `apps/server/AGENTS.md` — HTTP, validation, auth middleware, and OpenAPI.
 - `apps/worker/AGENTS.md` — delivery consumer ownership.
-- `libs/application/AGENTS.md` — vertical-slice ownership.
+- `libs/<module>/AGENTS.md` — one per business module (`accounts`, `games`,
+  `repertoires`, `analysis`, `drills`, `insights`, `deviations`, `overview`,
+  `auth`) — what it owns, its `index.ts` surface, and its cross-module
+  dependency edges.
 - `libs/infra/AGENTS.md` — technical adapters and portability.
 - `libs/ui/AGENTS.md` — design-system ownership.
 

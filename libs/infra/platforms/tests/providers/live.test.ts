@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { fetchChessCom, fetchLichess } from "@velachess/platforms";
+import { fetchChessCom, fetchLichess } from "@velachess/infra-platforms";
 
 const isLive = process.env["VELACHESS_LIVE"] === "1";
 const describeLive = isLive ? describe : describe.skip;

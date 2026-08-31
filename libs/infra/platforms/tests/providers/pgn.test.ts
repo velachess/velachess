@@ -7,7 +7,7 @@ import {
   MIXED_COLOR_PGN,
   MULTI_GAME_PGN,
 } from "@velachess/fixtures";
-import { importPgn } from "@velachess/platforms";
+import { importPgn } from "@velachess/infra-platforms";
 
 describe("importPgn", () => {
   it("normalizes a single pasted game with no provenance and no perspective", () => {

@@ -13,8 +13,8 @@
  */
 import { afterAll, beforeAll, expect, it } from "vitest";
 
-import { completeAnalysis } from "@velachess/application/analysis/process-analysis/process-analysis";
-import { logger } from "@velachess/logger";
+import { completeAnalysis } from "@velachess/analysis";
+import { logger } from "@velachess/infra-logger";
 import { chessComExtractFixtureFetch, poll } from "@velachess/test-utils";
 
 import { registerConsumers } from "../apps/worker/src/worker.ts";
@@ -113,7 +113,7 @@ it("extraction loop: games in, book derived, blunder inside the book drilled", a
   expect(asked.status).toBe(202);
 
   // The worker's job, inline — the request no longer owns the run.
-  await completeAnalysis(harness.db, harness.analyze, deviant.id);
+  await completeAnalysis(harness.analyze, deviant.id);
 
   // Scoped to the deviation origin: the chapter's own line positions
   // also live in the queue now, and this loop is about the mistake.

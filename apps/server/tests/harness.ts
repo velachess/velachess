@@ -1,7 +1,19 @@
 /** API harness: the shared loop harness + the real app. Only what is
  * api-specific lives here — everything else comes from test-utils. */
 
-import { createAuth, type Auth } from "@velachess/auth";
+import { createAuth, type Auth } from "@velachess/infra-auth";
+import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
+import {
+  appendProgress,
+  applyEngineSignal,
+  clearProgress,
+  getAnalysis,
+  getGame,
+  listJudgmentsByGame,
+  saveAnalysis,
+  userIdForGame,
+} from "@velachess/infra-db";
+import { triageAndSeed } from "@velachess/drills";
 import { makeScheduler } from "@velachess/scheduler";
 import {
   chessComFixtureFetch,
@@ -10,15 +22,13 @@ import {
   type LoopHarness,
 } from "@velachess/test-utils";
 
-import type { AnalyzeDeps } from "@velachess/application/analysis/process-analysis/process-analysis";
-
 /** What a signed-in browser sees — the harness app with a cookie attached. */
 export interface AuthedApp {
   request: (input: string, init?: RequestInit) => Promise<Response>;
 }
 
 import { createApp } from "../src/server.ts";
-import { createWatchers } from "@velachess/application/analysis/watch-analysis/watchers";
+import { buildWatcherDeps } from "../src/composition/analysis.ts";
 import type { ApiDeps } from "../src/deps.ts";
 
 export interface ApiHarness extends LoopHarness {
@@ -74,11 +84,7 @@ export async function createApiHarness(
     signInMethods: { password: true, google: false },
     analysisQueue: harness.analysisQueue,
     // A short interval: the suite should not wait out a production poll.
-    watchers: createWatchers({
-      db: harness.db,
-      analysisQueue: harness.analysisQueue,
-      intervalMs: 50,
-    }),
+    watchers: createWatchers(buildWatcherDeps(harness.db, harness.analysisQueue, 50)),
     syncQueue: harness.syncQueue,
     scheduler: makeScheduler(),
     lock: harness.lock,
@@ -86,9 +92,26 @@ export async function createApiHarness(
     sync,
   };
 
+  // The worker's own composition (apps/worker/src/composition/analysis.ts)
+  // builds the equivalent for production — apps never share a composition
+  // helper, so this restates the same DB wiring independently, the way
+  // apps/worker/src/composition/accounts.ts duplicates apps/server's own
+  // buildSyncAccountDeps.
   const analyze: AnalyzeDeps = {
     makeSession: makeStockfishSession,
-    lock: harness.lock,
+    tryAcquireLock: (key) => harness.lock.tryAcquire(key),
+    getGame: (gameId) => getGame(harness.db, gameId),
+    getAnalysis: (gameId) => getAnalysis(harness.db, gameId),
+    withTransaction: (fn) => harness.db.transaction(fn),
+    saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
+    listJudgmentsByGame: (tx, gameId) => listJudgmentsByGame(tx, gameId),
+    applyEngineSignal: (tx, deviationId, signal) =>
+      applyEngineSignal(tx, deviationId, signal).then(() => {}),
+    appendProgress: (entry) => appendProgress(harness.db, entry),
+    clearProgress: (gameId) => clearProgress(harness.db, gameId),
+    userIdForGame: (gameId) => userIdForGame(harness.db, gameId),
+    seedDrillsForGame: (userId, gameId) =>
+      triageAndSeed(harness.db, userId, { gameId }).then(() => {}),
     depth: 8,
   };
 

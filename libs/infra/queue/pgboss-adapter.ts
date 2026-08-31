@@ -1,4 +1,4 @@
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import { and, desc, eq, ne, sql as drizzleSql } from "drizzle-orm";
 import { jsonb, pgSchema, text, timestamp } from "drizzle-orm/pg-core";
 import { fromDrizzle, type DrizzleTransactionLike } from "pg-boss";

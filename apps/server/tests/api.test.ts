@@ -8,8 +8,8 @@ import { randomUUID } from "node:crypto";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { completeAnalysis } from "@velachess/application/analysis/process-analysis/process-analysis";
-import { appendProgress } from "@velachess/db";
+import { completeAnalysis } from "@velachess/analysis";
+import { appendProgress } from "@velachess/infra-db";
 import { LOOPER_REPERTOIRE_PGN, LOOPER_USERNAME } from "@velachess/fixtures";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
@@ -415,7 +415,7 @@ describe("api routes", () => {
 
     // The worker, inline. Delivery is pg-boss's business and lives in
     // apps/worker; what this pins is that the run is not the request.
-    const run = completeAnalysis(harness.db, harness.analyze, inBookGameId);
+    const run = completeAnalysis(harness.analyze, inBookGameId);
     const transcript = await events.text(); // resolves when the route closes
     await run;
 

@@ -21,9 +21,9 @@
  */
 import { afterAll, beforeAll, expect, it } from "vitest";
 
-import { completeAnalysis } from "@velachess/application/analysis/process-analysis/process-analysis";
+import { completeAnalysis } from "@velachess/analysis";
 import { LOOPER_REPERTOIRE_PGN } from "@velachess/fixtures";
-import { logger } from "@velachess/logger";
+import { logger } from "@velachess/infra-logger";
 import { chessComFixtureFetch, poll } from "@velachess/test-utils";
 
 import { registerConsumers } from "../apps/worker/src/worker.ts";
@@ -121,7 +121,7 @@ it("full loop: HTTP in, worker in the background, a drilled exercise out", async
   const asked = await app.request(`/games/${deviant.id}/analyze`, { method: "POST" });
   expect(asked.status).toBe(202);
 
-  await completeAnalysis(harness.db, harness.analyze, deviant.id);
+  await completeAnalysis(harness.analyze, deviant.id);
 
   const watched = await app.request(`/games/${deviant.id}/analysis/events`);
   expect(await watched.text()).toContain("event: analysis.completed");

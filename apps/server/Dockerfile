@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 RUN corepack disable pnpm && npm install -g pnpm@10.28.0
 
 # Migrations run as a release step, not at boot:
-#   pnpm --filter @velachess/db exec drizzle-kit migrate
+#   pnpm --filter @velachess/infra-db exec drizzle-kit migrate
 ENV NODE_ENV=production
 EXPOSE 3000
 RUN chown -R 1000:1000 /app

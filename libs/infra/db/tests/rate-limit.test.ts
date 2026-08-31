@@ -7,7 +7,7 @@
 import { sql } from "drizzle-orm";
 import { afterAll, expect, it } from "vitest";
 
-import { consumeRateLimit, type RateLimitPolicy } from "@velachess/db";
+import { consumeRateLimit, type RateLimitPolicy } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
 

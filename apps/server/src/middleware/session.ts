@@ -6,7 +6,7 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
-import type { Auth } from "@velachess/auth";
+import type { Auth } from "@velachess/infra-auth";
 
 import type { ApiEnv } from "../server.ts";
 

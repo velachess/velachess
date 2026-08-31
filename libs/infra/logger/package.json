@@ -1,5 +1,5 @@
 {
-  "name": "@velachess/logger",
+  "name": "@velachess/infra-logger",
   "version": "0.1.0",
   "private": true,
   "main": "./src/index.ts",

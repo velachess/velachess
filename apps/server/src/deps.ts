@@ -4,14 +4,13 @@
  * construct infrastructure.
  */
 
-import type { ExecutionLock } from "@velachess/db";
-import type { SyncDeps } from "@velachess/application/accounts/sync-account/sync-account";
-import type { Auth } from "@velachess/auth";
-import type { Database } from "@velachess/db";
-import type { AnalysisQueue, SyncQueue } from "@velachess/queue";
+import type { ExecutionLock } from "@velachess/infra-db";
+import type { SyncDeps } from "@velachess/accounts";
+import type { Auth } from "@velachess/infra-auth";
+import type { Database } from "@velachess/infra-db";
+import type { AnalysisQueue, SyncQueue } from "@velachess/infra-queue";
 import type { Scheduler } from "@velachess/scheduler";
-
-import type { Watchers } from "@velachess/application/analysis/watch-analysis/watchers";
+import type { Watchers } from "@velachess/analysis";
 
 /**
  * What the sign-in screen may render. Capability flags, nothing more: the

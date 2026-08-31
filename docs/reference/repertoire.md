@@ -1,12 +1,12 @@
 # Repertoire
 
 Facts about repertoire extraction, judging, and the persisted judgment model.
-Reasoning: [`explanation/modules/repertoire.md`](../explanation/modules/repertoire.md).
+Reasoning: [`explanation/modules/repertoires.md`](../explanation/modules/repertoires.md).
 
 ## Extraction
 
-`extractRepertoireLines(games, opts)` (`libs/repertoire/extract.ts`), called by
-`extractRepertoire` (`libs/application/repertoires/extract-repertoire/`):
+`extractRepertoireLines(games, opts)` (`libs/repertoires/extract-repertoire/extract.ts`), called by
+`extractRepertoire` (`libs/repertoires/extract-repertoire/`):
 
 - Frequency trie over game mainlines, per color. Parameters in effect:
   `minGames = 2`, `maxPlies = 12` (defaults; no caller overrides them).
@@ -31,7 +31,7 @@ games.
 
 ## Judging
 
-`judgeGamesForUser` (`libs/application/games/judge-games/judge-games.ts`):
+`judgeGamesForUser` (`libs/games/judge-games/judge-games.ts`):
 
 - One judging repertoire per color: manual (confirmed) first, then oldest.
 - Judgment per game: `judgeAgainstChapters` picks among chapters whose
@@ -67,18 +67,18 @@ Reopening rules:
 
 ## Adherence and findings
 
-- `adherenceMetrics(rows, {minJudgedPlies = 6})` (`libs/repertoire/adherence.ts`):
+- `adherenceMetrics(rows, {minJudgedPlies = 6})` (`libs/repertoires/adherence.ts`):
   games with `gamePlies < 6` are skipped (the floor reads total game length,
   not `inBookPlies`). Faithful = `type !== "deviation"`; `gap`, `book-ended`
   and `completed` all count as faithful. Win rate = wins / decided games.
 - `getJudgmentRows` excludes `unmatched` rows and rows with null `gamePlies`.
-- `adherenceFinding` (`libs/repertoire/findings.ts`) reports a
+- `adherenceFinding` (`libs/insights/get-insights/adherence-finding.ts`) reports a
   book-advantage/disadvantage insight only with ≥ 5 decided games in each
   bucket and a win-rate gap ≥ 0.10.
 
 ## Decision positions
 
-`decisionPositionsOf(built, color)` (`libs/repertoire/decision-positions.ts`):
+`decisionPositionsOf(built, color)` (`libs/drills/seed-exercises/decision-positions.ts`):
 every position where it is the owner's turn and the tree prepares ≥ 1
 response, including the chapter's starting position. Transpositions collapse
 to one decision with the union of prepared responses. Feeds the

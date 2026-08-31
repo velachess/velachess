@@ -20,6 +20,7 @@ export default defineConfig({
           name: "root",
           include: ["tests/**/*.test.ts"],
         },
+        resolve: { alias: aliases },
       },
       {
         test: {

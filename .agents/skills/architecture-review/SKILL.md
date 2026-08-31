@@ -32,12 +32,16 @@ Read the nearest `AGENTS.md`, `docs/explanation/architecture.md`, and
 `.dependency-cruiser.cjs`, then:
 
 1. Name the request, user action, or system event that executes the behavior.
-2. Keep behavior that changes with it in the owning
-   `libs/application/<area>/<slice>` directory. Areas aid navigation; the
-   request or event owns the slice.
+2. Keep behavior that changes with it in the owning `libs/<module>/<slice>`
+   directory (see root `AGENTS.md`'s "Modules and slices" for the module
+   list). A slice never imports a sibling slice's handler directly, same
+   module or not — it declares its own narrow dependency type and the
+   composition root wires the real implementation in.
 3. Keep HTTP translation in `apps/server`, delivery translation in
    `apps/worker`, technical mechanisms in `libs/infra`, and stable shared domain
-   rules in the existing domain libraries.
+   rules in the existing domain libraries (`libs/chess`, `libs/scheduler`) or,
+   when only one module's slices need it, as a module-root pure policy (no
+   DB/queue/provider dependency of its own).
 4. Group frontend code by user or domain behavior; shared UI and global
    infrastructure do not become parallel application layers.
 

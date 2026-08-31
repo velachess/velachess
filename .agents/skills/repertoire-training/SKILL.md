@@ -1,6 +1,6 @@
 ---
 name: repertoire-training
-description: Change or review VelaChess repertoire extraction, chapters, habitual lines, judgment, deviations, engine-confirmed training candidates, exercise identity, drill selection, answers, cards, or FSRS scheduling. Use for libs/repertoire, libs/scheduler, repertoire or drill application slices, and product behavior connecting games to training.
+description: Change or review VelaChess repertoire extraction, chapters, habitual lines, judgment, deviations, engine-confirmed training candidates, exercise identity, drill selection, answers, cards, or FSRS scheduling. Use for libs/repertoires, libs/drills, libs/scheduler, and product behavior connecting games to training.
 ---
 
 # Work on repertoire and training
@@ -13,10 +13,12 @@ prepared chapter -> repertoire-line evidence
 evidence -> exercise source -> exercise/card -> drill answer -> FSRS schedule
 ```
 
-Keep domain decisions pure in `libs/repertoire` or `libs/scheduler`; application
-slices own persistence and effects. A repertoire judgment is replay against a
-book, not Stockfish analysis. Exercise seeding is idempotent and may combine
-repertoire and engine evidence without making them synonyms.
+Keep pure policies at the module root (`libs/repertoires/tree.ts`,
+`repertoire.ts`, `judgment.ts`, `adherence.ts`) or in `libs/scheduler`;
+`libs/repertoires`/`libs/drills` slices own persistence and effects. A
+repertoire judgment is replay against a book, not Stockfish analysis.
+Exercise seeding is idempotent and may combine repertoire and engine
+evidence without making them synonyms.
 
 Before changing extraction, judgment, eligibility, queue selection, or FSRS
 behavior, read the relevant canonical detail in `docs/reference/repertoire.md`,

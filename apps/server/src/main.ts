@@ -6,24 +6,23 @@
 import { serve } from "@hono/node-server";
 import postgres from "postgres";
 
-import { sessionAdvisoryLock } from "@velachess/db";
-import { createAuth, resolveAuthEnv } from "@velachess/auth";
-import {
-  bootstrapCredentialsFromEnv,
-  bootstrapUser,
-} from "@velachess/application/auth/bootstrap-user/bootstrap-user";
-import { createDb } from "@velachess/db";
-import { logger } from "@velachess/logger";
+import { sessionAdvisoryLock } from "@velachess/infra-db";
+import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
+import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/auth";
+import { createDb } from "@velachess/infra-db";
+import { createWatchers } from "@velachess/analysis";
+import { logger } from "@velachess/infra-logger";
 import {
   createBoss,
   ensureQueues,
   makeAnalysisQueue,
   makeSyncQueue,
-} from "@velachess/queue";
+} from "@velachess/infra-queue";
 import { makeScheduler } from "@velachess/scheduler";
 
 import { createApp } from "./server.ts";
-import { createWatchers } from "@velachess/application/analysis/watch-analysis/watchers";
+import { buildBootstrapUserDeps } from "./composition/auth.ts";
+import { buildWatcherDeps } from "./composition/analysis.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -89,9 +88,7 @@ const auth = createAuth(authConfig);
 // ever: it exists for the single call below and is never mounted.
 const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 const bootstrap = await bootstrapUser(
-  db,
-  bootstrapAuth,
-  lock,
+  buildBootstrapUserDeps(db, bootstrapAuth, lock),
   bootstrapCredentialsFromEnv(process.env),
 );
 // The outcome carries only status/userId/reason by construction —
@@ -107,7 +104,7 @@ const app = createApp({
   // from, so the screen and the server cannot disagree about what exists.
   signInMethods: { password: true, google: Boolean(authEnv.google) },
   analysisQueue,
-  watchers: createWatchers({ db, analysisQueue }),
+  watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
   syncQueue: makeSyncQueue(boss, db),
   scheduler: makeScheduler(),
   lock,

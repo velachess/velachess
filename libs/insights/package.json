@@ -1,0 +1,19 @@
+{
+  "name": "@velachess/insights",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "@velachess/chess": "workspace:*",
+    "@velachess/infra-platforms": "workspace:*",
+    "@velachess/repertoires": "workspace:*"
+  },
+  "exports": {
+    ".": "./index.ts"
+  }
+}

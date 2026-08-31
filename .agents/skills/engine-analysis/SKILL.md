@@ -8,9 +8,9 @@ description: Change or review VelaChess Stockfish execution, engine sessions, UC
 Keep three concerns separate:
 
 - `libs/infra/engine` owns UCI transport and session mechanics.
-- `libs/analysis` owns pure score normalization and per-ply classification.
-- `libs/application/analysis` owns execution, locking, persistence, progress,
-  and the meaning of completion.
+- `libs/analysis` owns pure score normalization and per-ply classification at
+  its module root, and (in `process-analysis/`) execution, locking,
+  persistence, progress, and the meaning of completion.
 
 Prefer Stockfish/UCI and pg-boss primitives over local schedulers, polling,
 timeouts, or retry frameworks. Keep classification pure and reproducible from
@@ -24,7 +24,6 @@ Do not make import or refresh an engine trigger. Preserve the transactional
 pairs named in root `AGENTS.md`.
 
 Canonical detail lives in `docs/reference/analysis.md`,
-`docs/explanation/modules/analysis.md`, `docs/explanation/modules/engine.md`,
-`docs/explanation/modules/queue.md`, and the live code/tests. Verify those
-owners before changing an option, threshold, watchdog, retry, or persisted
-shape.
+`docs/explanation/modules/engine.md`, `docs/explanation/modules/queue.md`, and
+the live code/tests. Verify those owners before changing an option,
+threshold, watchdog, retry, or persisted shape.

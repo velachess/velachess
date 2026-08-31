@@ -1,12 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { getReviewItem } from "@velachess/application/drills/get-next-drill/get-next-drill";
-import { submitAnswer } from "@velachess/application/drills/submit-answer/submit-answer";
-import { countDrillQueue } from "@velachess/db";
+import {
+  countDrillQueue,
+  getNextDrillForUser,
+  submitAnswer,
+  type CountDrillQueueDeps,
+  type GetNextDrillDeps,
+  type SubmitAnswerDeps,
+} from "@velachess/drills";
 
 import type { ApiEnv } from "../server.ts";
-import type { ApiDeps } from "../deps.ts";
 import { validateJson, validateQuery } from "../validation.ts";
 
 const answerSchema = z.object({
@@ -38,7 +42,15 @@ function scopeOf(query: z.infer<typeof scopeSchema>) {
   };
 }
 
-export function drillRoutes(deps: ApiDeps) {
+/** Each route's own narrow deps, composed separately — the three don't
+ * share a shape. See apps/server/src/composition/drills.ts. */
+export interface DrillRouteDeps {
+  queue: CountDrillQueueDeps;
+  next: GetNextDrillDeps;
+  answer: SubmitAnswerDeps;
+}
+
+export function drillRoutes(deps: DrillRouteDeps) {
   return (
     new Hono<ApiEnv>()
       /**
@@ -50,13 +62,14 @@ export function drillRoutes(deps: ApiDeps) {
        */
       .get("/queue", validateQuery(scopeSchema), async (c) => {
         const scope = scopeOf(c.req.valid("query"));
-        return c.json(await countDrillQueue(deps.db, c.get("userId"), new Date(), scope));
+        return c.json(
+          await countDrillQueue(deps.queue, c.get("userId"), new Date(), scope),
+        );
       })
       .get("/next", validateQuery(scopeSchema), async (c) => {
         const scope = scopeOf(c.req.valid("query"));
-        const item = await getReviewItem(
-          deps.db,
-          deps.scheduler,
+        const item = await getNextDrillForUser(
+          deps.next,
           c.get("userId"),
           new Date(),
           scope,
@@ -66,7 +79,7 @@ export function drillRoutes(deps: ApiDeps) {
       })
       .post("/answer", validateJson(answerSchema), async (c) => {
         const { exerciseId, san, responseTimeMs } = c.req.valid("json");
-        const outcome = await submitAnswer(deps.db, deps.scheduler, c.get("userId"), {
+        const outcome = await submitAnswer(deps.answer, c.get("userId"), {
           exerciseId,
           san,
           ...(responseTimeMs !== undefined ? { responseTimeMs } : {}),

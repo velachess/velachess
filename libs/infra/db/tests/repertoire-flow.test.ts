@@ -5,11 +5,13 @@
  * buildRepertoire → findDeviation → upsertJudgment → read back.
  */
 import { parsePgn, replayMainline } from "@velachess/chess";
-import { buildRepertoire, findDeviation } from "@velachess/repertoire";
+import { buildRepertoire } from "@velachess/repertoires";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+import { findDeviation } from "../../../games/judge-games/deviation.ts";
+
+import type { Database } from "@velachess/infra-db";
 import {
   addChapter,
   createRepertoire,
@@ -25,7 +27,7 @@ import {
   upsertJudgment,
   upsertTrackedAccount,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

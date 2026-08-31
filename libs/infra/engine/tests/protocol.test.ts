@@ -6,7 +6,7 @@ import {
   buildSetOptionCommand,
   parseBestMoveLine,
   parseInfoLine,
-} from "@velachess/engine";
+} from "@velachess/infra-engine";
 
 describe("buildGoCommand", () => {
   it("builds depth, movetime, nodes, and infinite", () => {

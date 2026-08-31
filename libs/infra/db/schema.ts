@@ -7,13 +7,13 @@
 // Leaf import on purpose: the package index re-exports providers, which pull
 // the chess toolchain — schema.ts must stay loadable by drizzle-kit's plain
 // TS loader. schema.ts (zod-only) is the actual source of these enums anyway.
-import type { ChessComCursor } from "@velachess/platforms/providers/chess-com";
-import type { LichessCursor } from "@velachess/platforms/providers/lichess";
+import type { ChessComCursor } from "@velachess/infra-platforms/providers/chess-com";
+import type { LichessCursor } from "@velachess/infra-platforms/providers/lichess";
 import {
   gameSourceSchema,
   perspectiveSchema,
   resultSchema,
-} from "@velachess/platforms/schema";
+} from "@velachess/infra-platforms/schema";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -399,7 +399,7 @@ export const repertoireChapters = pgTable(
 );
 
 /**
- * Values align 1:1 with DeviationEvent.type in libs/repertoire, plus
+ * Values align 1:1 with DeviationEvent.type in libs/games/judge-games, plus
  * "completed" for DeviationResult.event === null (whole game stayed in
  * book) and "unmatched" for a game no chapter of the repertoire could
  * judge — a different starting universe, or no chapter at all. Persisted
@@ -477,7 +477,9 @@ export const deviations = pgTable(
 
 /** Structural mirror of @velachess/analysis's GradedPly — declared
  * locally so drizzle-kit's schema loader never touches the chess toolchain.
- * Compatibility is asserted at typecheck in queries/analysis.ts. */
+ * Compatibility is asserted at typecheck in tests/schema.test.ts (a
+ * production import of a business module's type would violate
+ * no-infra-to-modules; the test path is exempt). */
 export interface StoredGradedPly {
   ply: number;
   fen: string;

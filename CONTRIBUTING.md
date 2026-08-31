@@ -81,13 +81,18 @@ apps/server              HTTP API (Hono) — routes are thin, logic lives below
 apps/worker           pg-boss consumers — one-line adapters over use cases
 apps/web              TanStack Start SPA — one folder per domain slice
 libs/ui           design system — theme, shadcn primitives, chess board
-libs/application  use-case orchestration
+libs/accounts     tracked-account lifecycle: connect, list, refresh
+libs/games        the game record, replay-against-repertoire, land-new-games
+libs/repertoires  the repertoire/chapter aggregate, adherence, extraction
+libs/analysis     move classification, the Stockfish job lifecycle
+libs/drills       exercise identity, FSRS card state, the training queue
+libs/insights     cross-module reporting aggregates
+libs/deviations   the judgment-table read
+libs/overview     the dashboard aggregate
+libs/auth         user bootstrap (package @velachess/auth)
 libs/chess        chess rules, PGN, FEN/EPD
 libs/infra/platforms       chess.com / Lichess sync
 libs/infra/engine       Stockfish UCI
-libs/analysis     move classification, game analysis
-libs/repertoire   book building, judgment, extraction
-libs/application/drills        exercise rules
 libs/scheduler    FSRS spaced repetition
 libs/infra/db           Drizzle schema, migrations, queries
 libs/infra/queue        pg-boss behind ports

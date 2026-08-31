@@ -7,8 +7,8 @@ production code must not import it, and pure fixture data belongs in
 
 ## Dependencies
 
-- Internal: `@velachess/application`, `@velachess/db`, `@velachess/engine`,
-  `@velachess/fixtures`, `@velachess/queue`.
+- Internal: `@velachess/infra-db`, `@velachess/infra-engine`,
+  `@velachess/fixtures`, `@velachess/infra-queue`.
 - External test/runtime: PGlite, Drizzle ORM, and `stockfish`.
 
 ## Usage / Development

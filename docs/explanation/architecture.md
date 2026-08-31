@@ -34,59 +34,63 @@ packages/*  what we intentionally publish   (empty until that is a product decis
 `apps/server` and `apps/worker` own runtime concerns — HTTP framework,
 queue consumers, configuration, dependency construction, lifecycle — and
 **no business workflows**. A route or consumer unpacks the transport and
-invokes a slice:
+invokes a slice through its module's public surface:
 
 ```
-HTTP  → apps/server → libs/application/<area>/<slice>
-job   → apps/worker → libs/application/<area>/<slice>
+HTTP  → apps/server → libs/<module> (index.ts) → <slice>
+job   → apps/worker → libs/<module> (index.ts) → <slice>
 ```
 
-`libs/` splits in two, plus a small set of justified domain libraries:
+`libs/` splits into flat business modules, technical infra, and a small
+set of justified domain libraries. See root `AGENTS.md`'s "Modules and
+slices" for the full module → package → path table; the layout:
 
 ```
 libs/
-  application/      behavior, as vertical slices        (one workspace library)
+  accounts/, games/, repertoires/, analysis/, drills/,
+  insights/, deviations/, overview/, auth/
+                    one package per business module — see root AGENTS.md
   infra/            technical mechanisms, one library each
     db/             drizzle client, schema, migrations, shared queries, advisory lock
     queue/          pg-boss behind ports
-    engine/         the Stockfish session       (workspace import @velachess/engine)
-    logger/         structured logging          (workspace import @velachess/logger)
-    platforms/      chess.com/Lichess clients   (workspace import @velachess/platforms)
+    engine/         the Stockfish session       (workspace import @velachess/infra-engine)
+    logger/         structured logging          (workspace import @velachess/infra-logger)
+    platforms/      chess.com/Lichess clients   (workspace import @velachess/infra-platforms)
     auth/           Better Auth configuration   (identity mechanism, not behavior)
-  chess/            rules, PGN, FEN — shared by many slices AND apps/web
-  analysis/         move classification math — shared by process-analysis AND apps/web
-  repertoire/       book building and judgment — shared by judge, extract, insights
+  chess/            rules, PGN, FEN — shared by many modules AND apps/web
   scheduler/        the FSRS wrapper
   ui/               the design system (apps/web and apps/site primitives)
   fixtures/, test-utils/   test infrastructure
 ```
 
-Each domain library is a stable concept used across several slices and, for
-chess and analysis, by the frontend. Single-slice drill behavior stays with its
-request: eligibility, selection, and seeding live in `drills/seed-exercises/`;
-answer grading lives in `drills/submit-answer/`.
+Each domain library (`chess`, `scheduler`) is a stable concept with no
+DB/queue/provider dependency of its own, used across several modules and,
+for chess, by the frontend too. A module-level pure policy that only one
+module's slices need (e.g. `libs/repertoires/tree.ts`) lives at that
+module's root instead of a separate domain library — see the module doc
+comments for the current set.
 
 ## A slice
 
 ```
-libs/application/
-  accounts/   connect-account/  sync-account/
-  games/      list-games/  judge-games/
-  analysis/   request-analysis/  process-analysis/  get-analysis/  watch-analysis/
-  drills/     seed-exercises/  get-next-drill/  submit-answer/
-  repertoires/ extract-repertoire/  list-repertoires/ …
-  insights/   get-insights/
-  overview/   get-overview/
-  deviations/ list-deviations/
-  auth/       bootstrap-user/
+libs/accounts/     connect-account/  sync-account/  list-accounts/  list-account-games/
+libs/games/        list-games/  judge-games/  import-pgn/  get-game/  land-new-games/
+libs/analysis/     request-analysis/  process-analysis/  get-analysis/  watch-analysis/
+libs/drills/       seed-exercises/  get-next-drill/  submit-answer/  count-drill-queue/
+libs/repertoires/  extract-repertoire/  list-repertoires/  add-chapter/ …
+libs/insights/     get-insights/
+libs/overview/     get-overview/
+libs/deviations/   list-deviations/
+libs/auth/         bootstrap-user/
 ```
 
-The area directories (`accounts/`, `drills/`, …) are navigation. The
-architectural unit is one level down. A slice contains whatever that
-behavior needs — a single file for a trivial read, several for a complex
-process — and there is **no mandatory internal template**. `get-overview`
-is one file holding its own SQL; `process-analysis` is an execution
-engine with locking and streaming. That difference is intentional.
+Each top-level module is its own workspace package (`@velachess/accounts`,
+`@velachess/games`, …), with `index.ts` as its only reachable surface —
+see root `AGENTS.md`. A slice contains whatever that behavior needs — a
+single file for a trivial read, several for a complex process — and there
+is **no mandatory internal template**. `get-overview` is one file holding
+its own SQL; `process-analysis` is an execution engine with locking and
+streaming. That difference is intentional.
 
 Slices start as the simplest thing that works — usually a transaction
 script over Drizzle directly. Richer patterns are earned by observed
@@ -120,12 +124,16 @@ Order of preference when code seems shared:
 Documented exceptions that exist today, each with its reason at the
 definition site:
 
-- `libs/application/perspective.ts` — the "which side is you" rule, used
-  by judge-games and extract-repertoire; one rule, two areas.
-- Cross-slice calls into `drills/seed-exercises` from judge-games,
-  sync-account and process-analysis: seeding is an event-reaction
-  behavior with three triggers, kept as one slice rather than three
-  copies.
+- `libs/chess/perspective.ts` — the "which side is you" rule, used by
+  `games/judge-games`, `repertoires/extract-repertoire`, and `insights`;
+  one rule, several modules, no DB/queue dependency of its own.
+- `games/land-new-games` — the shared post-import/post-sync tail
+  (`ensureCandidateRepertoires` → `judgeGamesForUser` → seed) that
+  `accounts/sync-account` and `games/import-pgn` both need: a single real
+  slice, external to every caller including its own module-mate
+  `import-pgn`, wired through each caller's own declared dependency and
+  the composition root — never a same-package shortcut. See root
+  `AGENTS.md`'s "Modules and slices".
 - `sync-account` exposes both the HTTP trigger (`refreshAccount`) and the
   delivery-agnostic core (`processAccountSync`) the worker invokes — one
   behavior, two entry points.
@@ -137,15 +145,23 @@ definition site:
 ## Dependency direction, enforced
 
 ```
-apps/*  →  libs/application  →  libs/infra + domain libs
+apps/*  →  libs/<module>  →  libs/infra + domain libs
 ```
+
+A slice never calls another slice's handler directly, same module or
+not — it declares its own narrow dependency type and the composition root
+wires the real implementation in, sourced from the callee module's
+`index.ts`. See root `AGENTS.md`'s "Modules and slices" for the full model.
 
 Forbidden, and failing `pnpm architecture` via `.dependency-cruiser.cjs`:
 
 - anything under `libs/` importing from `apps/`
-- `libs/application` importing `hono` or `pg-boss` (transports belong to
-  the apps; the queue is reached through `@velachess/queue/ports`)
-- `libs/infra/db` importing application code
+- a business module importing `hono` or `pg-boss` (transports belong to
+  the apps; the queue is reached through `@velachess/infra-queue`'s ports)
+- a module deep-importing another module's internals, or a sibling
+  slice's handler within its own module (`index.ts` is the only reachable
+  surface, inside or outside the module)
+- `libs/infra/db` importing business-module code
 - domain logic importing Better Auth
 
 Cross-app imports are forbidden except for the web client's type-only

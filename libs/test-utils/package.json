@@ -10,10 +10,10 @@
     "fmt:check": "oxfmt --check ."
   },
   "dependencies": {
-    "@velachess/db": "workspace:*",
-    "@velachess/engine": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
+    "@velachess/infra-engine": "workspace:*",
     "@velachess/fixtures": "workspace:*",
-    "@velachess/queue": "workspace:*",
+    "@velachess/infra-queue": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "stockfish": "^18.0.8"
   },

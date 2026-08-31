@@ -1,6 +1,6 @@
-import { scoreToWinChance } from "@velachess/analysis/winchance";
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
+import { scoreToWinChance } from "@velachess/analysis";
 import type { MoveSquares } from "@velachess/chess";
 import { makeSan, parseUci, positionFromFen, squaresOfSan } from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";

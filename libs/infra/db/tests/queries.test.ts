@@ -1,5 +1,5 @@
 // @vitest-environment node
-import type { NormalizedGame } from "@velachess/platforms";
+import type { NormalizedGame } from "@velachess/infra-platforms";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -12,7 +12,7 @@ import {
   trackedAccounts,
   updateTrackedAccountCursor,
   upsertTrackedAccount,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
 

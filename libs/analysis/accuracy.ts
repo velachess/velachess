@@ -1,11 +1,10 @@
 /**
  * Move and game accuracy on the 0–100 scale, ported faithfully from the
  * reference implementation this module is validated against (sources in
- * docs/explanation/modules/analysis.md). The acceptance test mirrors the
- * reference's own public test suite, same inputs and expected values.
+ * docs/reference/analysis.md).
  */
 
-import { winPercent } from "./winchance.ts";
+import { winPercent } from "./win-percent.ts";
 
 const INITIAL_CP = 15;
 

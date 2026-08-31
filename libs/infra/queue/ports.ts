@@ -1,17 +1,17 @@
 /**
- * The interfaces `libs/application` consumes. Queue lifecycle concepts
- * (retries, DLQ, claims) never cross this boundary — application sees
+ * The interfaces business modules consume. Queue lifecycle concepts
+ * (retries, DLQ, claims) never cross this boundary — a module sees
  * enqueue and a coarse state, nothing else.
  */
 
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 
 export type QueueJobState = "queued" | "active" | "failed" | "none";
 
 export interface AnalysisQueue {
   /** dbOrTx: the repo's Database type — a Drizzle transaction is
    * structurally compatible, so enqueueing joins the caller's transaction
-   * without any infra type leaking into application. */
+   * without any infra type leaking into the business module. */
   enqueue(dbOrTx: Database, gameId: string): Promise<void>;
   /** State of the newest NON-completed job for this game's singleton key.
    * Completed history is ignored on purpose: domain success lives in

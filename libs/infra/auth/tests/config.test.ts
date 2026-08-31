@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 
 import { createAuth } from "../auth.ts";
 

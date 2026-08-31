@@ -5,17 +5,15 @@
  * counter-case: a harmless deviation creates nothing.
  */
 import { parsePgn, replayMainline, type Game, type PgnNodeData } from "@velachess/chess";
-import { buildRepertoire, findDeviation } from "@velachess/repertoire";
-import {
-  checkAnswer,
-  gradeResponse,
-} from "@velachess/application/drills/submit-answer/answer";
-import { eligibleForDrill } from "@velachess/application/drills/seed-exercises/eligibility";
-import { seedFromDeviation } from "@velachess/application/drills/seed-exercises/exercise";
+import { buildRepertoire } from "@velachess/repertoires";
+import { findDeviation } from "../../../games/judge-games/deviation.ts";
+import { checkAnswer, gradeResponse } from "../../../drills/submit-answer/answer.ts";
+import { eligibleForDrill } from "../../../drills/seed-exercises/eligibility.ts";
+import { seedFromDeviation } from "../../../drills/seed-exercises/exercise.ts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import {
   addChapter,
   applyEngineSignal,
@@ -34,7 +32,7 @@ import {
   upsertExercise,
   upsertJudgment,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

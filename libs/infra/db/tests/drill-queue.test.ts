@@ -6,7 +6,7 @@
  * not enough to decide whether to start. Everything here is about what a
  * person sees before pressing anything.
  */
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import {
   countDrillQueue,
   createUser,
@@ -14,7 +14,7 @@ import {
   games,
   saveCard,
   upsertExercise,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 import type { CardState } from "@velachess/scheduler";
 import { createTestDb, type TestDb } from "@velachess/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

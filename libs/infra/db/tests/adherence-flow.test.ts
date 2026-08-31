@@ -5,14 +5,18 @@
  * over real judgments.
  */
 import { parsePgn, replayMainline, type Game, type PgnNodeData } from "@velachess/chess";
-import {
-  adherenceMetrics,
-  buildRepertoire,
-  judgeAgainstChapters,
-} from "@velachess/repertoire";
+import { adherenceMetrics, buildRepertoire } from "@velachess/repertoires";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+// judgeAgainstChapters is private to games/judge-games (its only production
+// consumer) — reached here via relative path because dependency-cruiser
+// exempts test files from the module-boundary rules, and this test proves
+// dispatch's real output integrates correctly with DB persistence, not
+// just a DeviationResult fixture shape (see judgment-mapping.test.ts for
+// that simpler case).
+import { judgeAgainstChapters } from "../../../games/judge-games/dispatch.ts";
+
+import type { Database } from "@velachess/infra-db";
 import {
   addChapter,
   createRepertoire,
@@ -25,7 +29,7 @@ import {
   repertoires,
   upsertJudgment,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

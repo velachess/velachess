@@ -51,14 +51,6 @@
       "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
     },
-    "libs/repertoire": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
-    },
-    "libs/analysis": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
-    },
     "libs/scheduler": {
       "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]

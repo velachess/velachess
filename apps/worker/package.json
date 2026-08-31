@@ -10,11 +10,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@velachess/application": "workspace:*",
-    "@velachess/db": "workspace:*",
-    "@velachess/engine": "workspace:*",
-    "@velachess/logger": "workspace:*",
-    "@velachess/queue": "workspace:*",
+    "@velachess/accounts": "workspace:*",
+    "@velachess/analysis": "workspace:*",
+    "@velachess/drills": "workspace:*",
+    "@velachess/games": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
+    "@velachess/infra-engine": "workspace:*",
+    "@velachess/infra-logger": "workspace:*",
+    "@velachess/infra-platforms": "workspace:*",
+    "@velachess/infra-queue": "workspace:*",
+    "@velachess/repertoires": "workspace:*",
     "postgres": "^3.4.0",
     "stockfish": "^18.0.8"
   },

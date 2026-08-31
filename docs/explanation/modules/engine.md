@@ -86,8 +86,8 @@ The two concrete implementations are deliberately not re-exported from
 `index.ts`: each pulls in platform-only globals (Node's `child_process` and
 `readline` for one, the browser's `Worker` for the other), so importing the
 barrel must never force either into scope. Consumers import the one they
-need by subpath — `@velachess/engine/transport-child-process` or
-`@velachess/engine/transport-worker`.
+need by subpath — `@velachess/infra-engine/transport-child-process` or
+`@velachess/infra-engine/transport-worker`.
 
 `ChildProcessTransport` treats `command`/`args` as an opaque pass-through —
 it doesn't know or care whether that's a native binary or `node

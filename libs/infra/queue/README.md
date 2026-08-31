@@ -1,4 +1,4 @@
-# @velachess/queue
+# @velachess/infra-queue
 
 The queue library. It hides pg-boss behind analysis and sync queue ports,
 ensures queue policies, and provides send/status adapters; application code
@@ -14,7 +14,7 @@ one importing the other. Handlers, registration and concurrency belong to
 
 ## Dependencies
 
-- Internal: `@velachess/db` for queue adapter transaction integration.
+- Internal: `@velachess/infra-db` for queue adapter transaction integration.
 - External runtime: pg-boss and Drizzle ORM; tests may use PGlite.
 
 ## Usage / Development

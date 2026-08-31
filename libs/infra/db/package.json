@@ -1,5 +1,5 @@
 {
-  "name": "@velachess/db",
+  "name": "@velachess/infra-db",
   "version": "0.1.0",
   "private": true,
   "main": "./index.ts",
@@ -14,15 +14,15 @@
     "studio": "node --env-file-if-exists=../../../.env --env-file-if-exists=../../../.env.local node_modules/drizzle-kit/bin.cjs studio"
   },
   "dependencies": {
-    "@velachess/platforms": "workspace:*",
+    "@velachess/infra-platforms": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.0"
   },
   "devDependencies": {
     "@velachess/analysis": "workspace:*",
     "@velachess/chess": "workspace:*",
-    "@velachess/engine": "workspace:*",
-    "@velachess/repertoire": "workspace:*",
+    "@velachess/infra-engine": "workspace:*",
+    "@velachess/repertoires": "workspace:*",
     "@velachess/scheduler": "workspace:*",
     "@electric-sql/pglite": "^0.5.7",
     "drizzle-kit": "^0.31.10",

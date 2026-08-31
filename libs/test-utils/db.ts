@@ -6,8 +6,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 
-import type { Database } from "@velachess/db";
-import { schema } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
+import { schema } from "@velachess/infra-db";
 
 const migrationsFolder = new URL("../infra/db/migrations", import.meta.url).pathname;
 

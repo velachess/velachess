@@ -1,7 +1,7 @@
-# @velachess/platforms
+# @velachess/infra-platforms
 
 The ingestion library. It fetches or accepts external game sources and
-normalizes them into the shape persisted by `@velachess/db`; it should not
+normalizes them into the shape persisted by `@velachess/infra-db`; it should not
 store rows, judge repertoires, analyze moves, or own user-facing workflows.
 
 ## Dependencies
@@ -13,8 +13,8 @@ store rows, judge repertoires, analyze moves, or own user-facing workflows.
 
 Bootstrap from the monorepo root with `pnpm install`.
 
-- Workspace lint: `pnpm --filter @velachess/platforms lint`
-- Workspace format check: `pnpm --filter @velachess/platforms fmt:check`
+- Workspace lint: `pnpm --filter @velachess/infra-platforms lint`
+- Workspace format check: `pnpm --filter @velachess/infra-platforms fmt:check`
 - Validate from the root: `pnpm typecheck`, `pnpm lint`, `pnpm test`
 
 ## Documentation

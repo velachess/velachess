@@ -2,13 +2,17 @@
 
 The HTTP API for VelaChess. It owns Hono routes, request validation, response
 mapping, OpenAPI publication, and production wiring; domain decisions belong in
-`@velachess/application` or lower packages, and no frontend or worker logic
-should live here.
+the business modules under `libs/` (`@velachess/accounts`, `@velachess/games`,
+…) or lower packages, and no frontend or worker logic should live here.
 
 ## Dependencies
 
-- Internal: `@velachess/application`, `@velachess/db`, `@velachess/queue`,
-  `@velachess/logger`, `@velachess/scheduler`, plus narrow chess/engine types.
+- Internal: the business modules under `libs/` (`@velachess/accounts`,
+  `@velachess/games`, `@velachess/repertoires`, `@velachess/analysis`,
+  `@velachess/drills`, `@velachess/insights`, `@velachess/deviations`,
+  `@velachess/overview`, `@velachess/auth`), `@velachess/infra-db`,
+  `@velachess/infra-queue`, `@velachess/infra-logger`, `@velachess/scheduler`,
+  plus narrow chess/engine types.
 - External runtime: Hono, `@hono/node-server`, `postgres`, `zod`.
 
 ## Usage / Development

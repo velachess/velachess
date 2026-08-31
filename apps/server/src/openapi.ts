@@ -1247,7 +1247,7 @@ export const openApiSpec = {
                       evidence: {
                         type: "object",
                         description:
-                          "Per-kind numbers the finding was drawn from — counts, rates and the sample sizes behind them, never sentences. The authoritative shapes are the exported types in libs/application/insights/get-insights.",
+                          "Per-kind numbers the finding was drawn from — counts, rates and the sample sizes behind them, never sentences. The authoritative shapes are the exported types in libs/insights/get-insights.",
                       },
                       weight: {
                         type: "number",

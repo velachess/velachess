@@ -64,19 +64,15 @@
                 "message": "libs/chess is a leaf rules package."
               },
               {
-                "group": ["@velachess/db", "@velachess/db/**"],
+                "group": ["@velachess/infra-db", "@velachess/infra-db/**"],
                 "message": "libs/chess is a leaf rules package."
               },
               {
-                "group": ["@velachess/engine", "@velachess/engine/**"],
+                "group": ["@velachess/infra-engine", "@velachess/infra-engine/**"],
                 "message": "libs/chess is a leaf rules package."
               },
               {
-                "group": ["@velachess/platforms", "@velachess/platforms/**"],
-                "message": "libs/chess is a leaf rules package."
-              },
-              {
-                "group": ["@velachess/repertoire", "@velachess/repertoire/**"],
+                "group": ["@velachess/infra-platforms", "@velachess/infra-platforms/**"],
                 "message": "libs/chess is a leaf rules package."
               },
               {
@@ -162,10 +158,6 @@
               {
                 "group": ["@velachess/site", "@velachess/site/**"],
                 "message": "Architecture: libs must not import apps. apps/site is a composition root; it depends on libs, never the reverse."
-              },
-              {
-                "group": ["@velachess/application", "@velachess/application/**"],
-                "message": "Architecture: infra is a technical mechanism and must not know application behavior. libs/application depends on libs/infra, never the reverse."
               }
             ]
           }
@@ -190,38 +182,6 @@
               {
                 "group": ["@velachess/web", "@velachess/web/**"],
                 "message": "Architecture: libs must not import apps. apps/web is a composition root; it depends on libs, never the reverse."
-              },
-              {
-                "group": ["@velachess/application", "@velachess/application/**"],
-                "message": "Architecture: packages/* is intentionally public code and must not leak private application internals."
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": ["libs/repertoire/**/*.ts"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
-              {
-                "group": ["@velachess/engine", "@velachess/engine/**"],
-                "message": "libs/repertoire compares position trees, not evaluations \u2014 it must not talk UCI."
-              },
-              {
-                "group": ["@velachess/platforms", "@velachess/platforms/**"],
-                "message": "libs/repertoire has no I/O \u2014 it must not depend on @velachess/platforms."
-              },
-              {
-                "group": ["@velachess/db", "@velachess/db/**"],
-                "message": "libs/repertoire has no I/O \u2014 it must not depend on @velachess/db."
-              },
-              {
-                "group": ["@/app/**", "@/components/**", "@/features/**"],
-                "message": "Libs must not depend on UI code. UI depends on libs, not the reverse."
               }
             ]
           }
@@ -236,7 +196,7 @@
           {
             "patterns": [
               {
-                "group": ["@velachess/engine", "@velachess/engine/**"],
+                "group": ["@velachess/infra-engine", "@velachess/infra-engine/**"],
                 "message": "libs/infra/platforms fetches and normalizes games \u2014 it must not talk UCI."
               },
               {
@@ -273,16 +233,12 @@
           {
             "patterns": [
               {
-                "group": ["@velachess/engine", "@velachess/engine/**"],
+                "group": ["@velachess/infra-engine", "@velachess/infra-engine/**"],
                 "message": "libs/infra/db persists games \u2014 it has no reason to talk UCI."
               },
               {
                 "group": ["@velachess/chess", "@velachess/chess/**"],
                 "message": "libs/infra/db persists what providers already normalized \u2014 it must not depend on @velachess/chess."
-              },
-              {
-                "group": ["@velachess/application", "@velachess/application/**"],
-                "message": "Architecture: infra is a technical mechanism and must not know application behavior."
               },
               {
                 "group": ["@/app/**", "@/components/**", "@/features/**"],

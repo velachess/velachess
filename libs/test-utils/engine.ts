@@ -3,8 +3,8 @@
 
 import { createRequire } from "node:module";
 
-import { EngineSession } from "@velachess/engine";
-import { ChildProcessTransport } from "@velachess/engine/transport-child-process";
+import { EngineSession } from "@velachess/infra-engine";
+import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 
 const require = createRequire(import.meta.url);
 const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");

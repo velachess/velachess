@@ -4,7 +4,7 @@
  * conversion happens here, once, instead of at every callsite.
  */
 
-import type { EngineScore } from "@velachess/engine";
+import type { EngineScore } from "@velachess/infra-engine";
 
 export interface WhitePovScore {
   cp?: number;

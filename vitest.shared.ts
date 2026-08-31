@@ -11,21 +11,22 @@ import path from "node:path";
  */
 export const aliases = {
   "@velachess/chess": path.resolve(import.meta.dirname, "./libs/chess"),
-  "@velachess/engine": path.resolve(import.meta.dirname, "./libs/infra/engine"),
+  "@velachess/infra-engine": path.resolve(import.meta.dirname, "./libs/infra/engine"),
   "@velachess/fixtures": path.resolve(import.meta.dirname, "./libs/fixtures"),
-  "@velachess/platforms": path.resolve(import.meta.dirname, "./libs/infra/platforms"),
-  "@velachess/db": path.resolve(import.meta.dirname, "./libs/infra/db"),
-  "@velachess/repertoire": path.resolve(import.meta.dirname, "./libs/repertoire"),
+  "@velachess/infra-platforms": path.resolve(
+    import.meta.dirname,
+    "./libs/infra/platforms",
+  ),
+  "@velachess/infra-db": path.resolve(import.meta.dirname, "./libs/infra/db"),
   "@velachess/analysis": path.resolve(import.meta.dirname, "./libs/analysis"),
   "@velachess/scheduler": path.resolve(import.meta.dirname, "./libs/scheduler"),
-  "@velachess/queue": path.resolve(import.meta.dirname, "./libs/infra/queue"),
-  "@velachess/application": path.resolve(import.meta.dirname, "./libs/application"),
+  "@velachess/infra-queue": path.resolve(import.meta.dirname, "./libs/infra/queue"),
   "@velachess/test-utils": path.resolve(import.meta.dirname, "./libs/test-utils"),
   "@velachess/ui": path.resolve(import.meta.dirname, "./libs/ui/src"),
   // Reached from e2e/, which belongs to neither app and so has no
   // package.json declaring these as real dependencies on its behalf.
-  "@velachess/logger": path.resolve(import.meta.dirname, "./libs/infra/logger/src"),
-  "@velachess/auth": path.resolve(import.meta.dirname, "./libs/infra/auth"),
+  "@velachess/infra-logger": path.resolve(import.meta.dirname, "./libs/infra/logger/src"),
+  "@velachess/infra-auth": path.resolve(import.meta.dirname, "./libs/infra/auth"),
 };
 
 /**

@@ -7,12 +7,12 @@ import { createRequire } from "node:module";
 
 import postgres from "postgres";
 
-import { sessionAdvisoryLock } from "@velachess/db";
-import { createDb } from "@velachess/db";
-import { EngineSession } from "@velachess/engine";
-import { ChildProcessTransport } from "@velachess/engine/transport-child-process";
-import { logger } from "@velachess/logger";
-import { createBoss, ensureQueues, makeAnalysisQueue } from "@velachess/queue";
+import { sessionAdvisoryLock } from "@velachess/infra-db";
+import { createDb } from "@velachess/infra-db";
+import { EngineSession } from "@velachess/infra-engine";
+import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
+import { logger } from "@velachess/infra-logger";
+import { createBoss, ensureQueues, makeAnalysisQueue } from "@velachess/infra-queue";
 
 import { registerConsumers } from "./worker.ts";
 
@@ -53,7 +53,7 @@ const lock = sessionAdvisoryLock({
 // instead of logging "consuming" over dead workers.
 await registerConsumers(boss, {
   db,
-  analyze: { makeSession, lock },
+  analyze: { makeSession, tryAcquireLock: (key) => lock.tryAcquire(key) },
   analysisQueue: makeAnalysisQueue(boss, db),
   log: workerLogger,
 });

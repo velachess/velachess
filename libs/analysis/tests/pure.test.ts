@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  classifyMove,
-  cpLoss,
-  engineSignalForDeviation,
-  scoreToWinChance,
-  toEngineCategory,
-  toWhitePov,
-  uciOf,
-  winChance,
-  type GradedPly,
-} from "@velachess/analysis";
+import { cpLoss, toEngineCategory } from "../engine-category.ts";
+import { classifyMove } from "../process-analysis/classify-move.ts";
+import { engineSignalForDeviation } from "../deviation-signal.ts";
+import type { GradedPly } from "../process-analysis/analyze-game.ts";
+import { toWhitePov } from "../score.ts";
+import { winChance } from "../winchance.ts";
+import { scoreToWinChance } from "../process-analysis/classify-move.ts";
 
 describe("winChance", () => {
   it("is 0 at equality and symmetric around it", () => {
@@ -122,15 +118,6 @@ describe("cpLoss", () => {
     expect(cpLoss({ cp: 50 }, { cp: -50 }, "white")).toBe(100);
     expect(cpLoss({ cp: 50 }, { cp: -50 }, "black")).toBe(-100);
     expect(cpLoss({ mate: 2 }, { cp: 0 }, "white")).toBeNull();
-  });
-});
-
-describe("uciOf", () => {
-  it("renders normal moves, promotions (knight is n), and drops", () => {
-    expect(uciOf({ from: 12, to: 28 })).toBe("e2e4");
-    expect(uciOf({ from: 52, to: 60, promotion: "queen" })).toBe("e7e8q");
-    expect(uciOf({ from: 52, to: 60, promotion: "knight" })).toBe("e7e8n");
-    expect(uciOf({ role: "knight", to: 28 })).toBe("N@e4");
   });
 });
 

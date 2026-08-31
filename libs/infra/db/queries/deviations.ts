@@ -1,9 +1,32 @@
-import type { DeviationResult } from "@velachess/repertoire";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, notExists, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import type { NewDeviation } from "../schema.ts";
-import { deviations } from "../schema.ts";
+import { deviations, exerciseSources, games, repertoires } from "../schema.ts";
+
+/**
+ * A narrowed structural subset of games/judge-games's own DeviationResult
+ * (see its deviation.ts) — only the fields this file actually reads
+ * (`type`, `ply`, `positionKey`, `actualSan`, `expectedMoves[].san`).
+ * Declared locally rather than imported: infra must never depend on a
+ * business module (no-infra-to-modules), that module's non-wildcard
+ * tsconfig path only exposes its index.ts anyway, and this package is
+ * further barred from `@velachess/chess` (see .oxlintrc.json), which the
+ * real type's `actualMove`/`move` fields would drag in. Duplicate the
+ * type, never the implementation.
+ */
+export interface DeviationEvent {
+  type: "deviation" | "gap" | "book-ended";
+  ply: number;
+  positionKey: string;
+  actualSan: string;
+  expectedMoves?: { san: string }[] | undefined;
+}
+
+export interface DeviationResult {
+  inBookPlies: number;
+  event: DeviationEvent | null;
+}
 
 export interface JudgmentContext {
   gameId: string;
@@ -142,4 +165,71 @@ export async function listJudgmentsByGame(db: Database, gameId: string) {
 
 export async function listJudgmentsByRepertoire(db: Database, repertoireId: string) {
   return db.select().from(deviations).where(eq(deviations.repertoireId, repertoireId));
+}
+
+/** The deviations module's own read: own deviations with the engine
+ * verdict, repertoire attribution (snapshots survive deletion), the game
+ * context, and whether an exercise was already seeded from it. Shaped to
+ * satisfy libs/deviations' own ListOwnDeviations contract — the slice
+ * turns positionKey (an EPD) into a playable FEN, not this query. */
+export async function listOwnDeviations(db: Database, userId: string) {
+  return db
+    .select({
+      id: deviations.id,
+      gameId: deviations.gameId,
+      ply: deviations.ply,
+      playedSan: deviations.playedSan,
+      expectedSans: deviations.expectedSans,
+      positionKey: deviations.positionKey,
+      cpLoss: deviations.cpLoss,
+      engineCategory: deviations.engineCategory,
+      drillable: deviations.drillable,
+      repertoireName: deviations.repertoireNameSnapshot,
+      chapterName: deviations.chapterNameSnapshot,
+      whiteName: games.whiteName,
+      blackName: games.blackName,
+      result: games.result,
+      playedAt: games.playedAt,
+      openingName: games.openingName,
+      gameUrl: games.externalUrl,
+      drilled: sql<boolean>`${exists(
+        db
+          .select({ one: exerciseSources.deviationId })
+          .from(exerciseSources)
+          .where(eq(exerciseSources.deviationId, deviations.id)),
+      )}`,
+    })
+    .from(deviations)
+    .innerJoin(games, eq(deviations.gameId, games.id))
+    .where(and(eq(games.userId, userId), eq(deviations.type, "deviation")))
+    .orderBy(desc(games.playedAt));
+}
+
+/**
+ * The triage worklist: judged deviations with no exercise yet.
+ *
+ * Not filtered on engine verdict: requiring `engine_category` used to trap
+ * deviations from games analysed before their repertoire existed.
+ */
+export async function listTriageCandidates(db: Database, userId: string) {
+  return db
+    .select({
+      id: deviations.id,
+      type: deviations.type,
+      positionKey: deviations.positionKey,
+      expectedSans: deviations.expectedSans,
+    })
+    .from(deviations)
+    .innerJoin(repertoires, eq(deviations.repertoireId, repertoires.id))
+    .where(
+      and(
+        eq(repertoires.userId, userId),
+        notExists(
+          db
+            .select({ one: exerciseSources.deviationId })
+            .from(exerciseSources)
+            .where(eq(exerciseSources.deviationId, deviations.id)),
+        ),
+      ),
+    );
 }

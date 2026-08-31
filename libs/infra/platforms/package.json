@@ -1,5 +1,5 @@
 {
-  "name": "@velachess/platforms",
+  "name": "@velachess/infra-platforms",
   "version": "0.1.0",
   "private": true,
   "main": "./index.ts",

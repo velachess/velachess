@@ -3,8 +3,8 @@
  * must not deadlock on single-connection backends. */
 import { afterAll, beforeAll, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
-import { makeAnalysisQueue, type PgBoss } from "@velachess/queue";
+import type { Database } from "@velachess/infra-db";
+import { makeAnalysisQueue, type PgBoss } from "@velachess/infra-queue";
 import { createTestDb, startBoss } from "@velachess/test-utils";
 
 let boss: PgBoss;

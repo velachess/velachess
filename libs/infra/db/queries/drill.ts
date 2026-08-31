@@ -14,7 +14,7 @@ export interface ExerciseSeedInput {
     | { kind: "engine-blunder"; gameId: string; ply: number }
     | { kind: "repertoire-line"; chapterId: string };
 }
-import { and, eq, exists, gt, or, type SQL } from "drizzle-orm";
+import { and, eq, exists, gt, notExists, or, type SQL } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import {
@@ -148,6 +148,33 @@ export function drillScopeCondition(db: Database, scope: DrillScope): SQL | unde
       .leftJoin(repertoireChapters, eq(exerciseSources.chapterId, repertoireChapters.id))
       .where(and(...conditions)),
   );
+}
+
+/** An exercise that has never been scheduled — the "learn something new"
+ * pick when nothing is due. `scope` narrows the pile the same way it
+ * narrows the due queue. */
+export async function getNewExercise(
+  db: Database,
+  userId: string,
+  scope: DrillScope = {},
+) {
+  const [exercise] = await db
+    .select()
+    .from(exercises)
+    .where(
+      and(
+        eq(exercises.userId, userId),
+        notExists(
+          db
+            .select({ one: cards.id })
+            .from(cards)
+            .where(eq(cards.exerciseId, exercises.id)),
+        ),
+        drillScopeCondition(db, scope),
+      ),
+    )
+    .limit(1);
+  return exercise ?? null;
 }
 
 /**

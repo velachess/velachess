@@ -1,8 +1,10 @@
 # Analysis
 
 Facts about the shipped analysis pipeline: engine configuration, classification
-rules, and persisted shapes. The reasoning behind these choices lives in
-[`explanation/modules/analysis.md`](../explanation/modules/analysis.md).
+rules, and persisted shapes. The reasoning behind these choices lives inline in
+`libs/analysis`'s own doc comments (`winchance.ts`, `classify.ts`,
+`process-analysis/analyze-game.ts`) and this module's
+`tests/lichess-reference.test.ts`.
 
 ## Engine configuration (production)
 
@@ -66,15 +68,15 @@ classification does not use phase.
 
 ## Entry points
 
-- `libs/analysis/analyze-game.ts` → `analyzeGame`
+- `libs/analysis/process-analysis/analyze-game.ts` → `analyzeGame`
 - `libs/analysis/classify.ts` → `classifyMove`, `toEngineCategory`, `cpLoss`
-- `libs/application/analysis/process-analysis/process-analysis.ts` →
-  `completeAnalysis`, `tryStartAnalysis`
+- `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`,
+  `tryStartAnalysis`
 - `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`
 - `apps/worker/src/consumers/analysis.ts` → `consumeAnalysisJob`
 
 ## Currently unused
 
-`libs/analysis/accuracy.ts` (`moveAccuracy`, `gameAccuracy`) is a faithful
-port of the reference implementation with a full test suite and no callers in
-any app or slice.
+`libs/analysis/deferred/accuracy.ts` (`moveAccuracy`, `gameAccuracy`) is a
+faithful port of the reference implementation with a full test suite and no
+callers in any app or slice.

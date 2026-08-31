@@ -1,8 +1,8 @@
-import type { NormalizedGame } from "@velachess/platforms";
-import { and, desc, eq, type SQL } from "drizzle-orm";
+import type { NormalizedGame } from "@velachess/infra-platforms";
+import { and, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { games } from "../schema.ts";
+import { deviations, gameAnalyses, games } from "../schema.ts";
 
 function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
@@ -123,4 +123,43 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
     .from(games)
     .where(and(eq(games.id, gameId), eq(games.userId, userId)));
   return row ?? null;
+}
+
+/**
+ * Game list with judgment type and analysis presence in one join — what a
+ * game-list UI renders without N+1. rawPgn deliberately excluded.
+ * Judgments accumulate per repertoire (cycle 6): DISTINCT ON picks the
+ * most actionable one per game — a deviation beats any other type, then
+ * the newest wins. Final ordering (playedAt desc) happens after the
+ * distinct, in memory, because DISTINCT ON pins the SQL sort to game id.
+ * Unscoped by owner — callers that need ownership enforced check the
+ * tracked account first (see `@velachess/accounts`'s list-account-games).
+ */
+export async function listGamesWithStatusForAccount(db: Database, accountId: string) {
+  const rows = await db
+    .selectDistinctOn([games.id], {
+      id: games.id,
+      whiteName: games.whiteName,
+      blackName: games.blackName,
+      result: games.result,
+      playedAt: games.playedAt,
+      perspective: games.perspective,
+      openingName: games.openingName,
+      judgmentType: deviations.type,
+      judgmentPly: deviations.ply,
+      analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
+    })
+    .from(games)
+    .leftJoin(deviations, eq(deviations.gameId, games.id))
+    .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
+    .where(eq(games.accountId, accountId))
+    .orderBy(
+      games.id,
+      sql`case when ${deviations.type} = 'deviation' then 0 else 1 end`,
+      desc(deviations.createdAt),
+    );
+
+  return rows.toSorted(
+    (a, b) => (b.playedAt?.getTime() ?? 0) - (a.playedAt?.getTime() ?? 0),
+  );
 }

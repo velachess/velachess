@@ -30,7 +30,7 @@ services:
       context: ..
       dockerfile: apps/server/Dockerfile
     restart: "no"
-    command: ["pnpm", "--filter", "@velachess/db", "db:migrate"]
+    command: ["pnpm", "--filter", "@velachess/infra-db", "db:migrate"]
     environment:
       DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
     depends_on:

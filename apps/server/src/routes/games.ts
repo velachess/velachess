@@ -2,17 +2,28 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 
-import { drillSummaryFor } from "@velachess/application/analysis/get-analysis/drill-summary";
-import { getAnalysisReport } from "@velachess/application/analysis/get-analysis/get-analysis";
-import { requestAnalysis } from "@velachess/application/analysis/request-analysis/request-analysis";
-import { importPgnForUser } from "@velachess/application/games/import-pgn/import-pgn";
-import { judgeGamesForUser } from "@velachess/application/games/judge-games/judge-games";
-import { getGameForReview } from "@velachess/application/games/get-game/get-game";
-import { openLibrary } from "@velachess/application/games/list-games/list-games";
-import { getGameForUser } from "@velachess/db";
+import {
+  drillSummaryFor,
+  getAnalysisReport,
+  requestAnalysisForUser,
+  startAnalysisForUser,
+  type DrillSummaryDeps,
+  type GetAnalysisDeps,
+  type RequestAnalysisDeps,
+  type Watchers,
+} from "@velachess/analysis";
+import {
+  getGameForReview,
+  importPgnForUser,
+  judgeGamesForUser,
+  openLibrary,
+  type GetGameDeps,
+  type ImportPgnDeps,
+  type JudgeGamesDeps,
+  type ListGamesDeps,
+} from "@velachess/games";
 
 import type { ApiEnv } from "../server.ts";
-import type { ApiDeps } from "../deps.ts";
 import { validateIdParam, validateJson, validateQuery } from "../validation.ts";
 
 /** The largest page worth answering in one round trip. */
@@ -71,7 +82,24 @@ function watchDeadline() {
   return WATCH_DEADLINE_MS * (0.9 + Math.random() * 0.2);
 }
 
-export function gamesRoutes(deps: ApiDeps) {
+/** Narrow composed deps per handler — routes never see a Database,
+ * AnalysisQueue, or Watchers-building object directly. `analysis` bundles
+ * the four narrow contracts the analysis endpoints below declared,
+ * assembled at `apps/server/src/composition/analysis.ts`. */
+export interface GamesRouteDeps {
+  get: GetGameDeps;
+  list: ListGamesDeps;
+  importPgn: ImportPgnDeps;
+  judge: JudgeGamesDeps;
+  analysis: {
+    getAnalysis: GetAnalysisDeps;
+    requestAnalysis: RequestAnalysisDeps;
+    drillSummary: DrillSummaryDeps;
+    watchers: Watchers;
+  };
+}
+
+export function gamesRoutes(deps: GamesRouteDeps) {
   return (
     new Hono<ApiEnv>()
       // The user's unified library — synced accounts and manual PGN
@@ -80,7 +108,7 @@ export function gamesRoutes(deps: ApiDeps) {
       // is POST /games/import; neither ever happens on a GET.
       .get("/", validateQuery(libraryQuery), async (c) => {
         const { page, pageSize, ...filters } = c.req.valid("query");
-        const library = await openLibrary(deps.db, c.get("userId"), {
+        const library = await openLibrary(deps.list, c.get("userId"), {
           filters,
           page: { page, pageSize },
         });
@@ -89,22 +117,17 @@ export function gamesRoutes(deps: ApiDeps) {
       // Manual PGN upload: no account, no cursor, no sync lifecycle —
       // and no engine. The slice persists with conflict-ignore (re-import
       // of the same file is a counted no-op) and runs the same
-      // extract → judge → seed tail a sync runs.
+      // land-new-games tail a sync runs.
       .post("/import", validateJson(importPgnSchema), async (c) => {
         const outcome = await importPgnForUser(
-          deps.db,
+          deps.importPgn,
           c.get("userId"),
-          deps.analysisQueue,
           c.req.valid("json"),
         );
         return c.json(outcome);
       })
       .post("/judge", async (c) => {
-        const outcome = await judgeGamesForUser(
-          deps.db,
-          c.get("userId"),
-          deps.analysisQueue,
-        );
+        const outcome = await judgeGamesForUser(deps.judge, c.get("userId"));
         return c.json(outcome);
       })
       .get("/:id", validateIdParam, async (c) => {
@@ -114,23 +137,23 @@ export function gamesRoutes(deps: ApiDeps) {
         // Scoped by owner: a stranger's game id and a missing one are the
         // same 404, so the route never confirms which uuids exist.
         const game = await getGameForReview(
-          deps.db,
+          deps.get,
           c.get("userId"),
           c.req.valid("param").id,
-          deps.sync,
         );
         if (!game) return c.json({ error: "game not found" }, 404);
         return c.json(game);
       })
       .get("/:id/analysis", validateIdParam, async (c) => {
         const gameId = c.req.valid("param").id;
-        // Ownership first: an analysis narrates the game, so reading it is
-        // reading the game. The shaping — report + drill count together,
-        // progress absent-not-zero — is the get-analysis slice's; this
-        // route only maps its answer onto HTTP.
-        if (!(await getGameForUser(deps.db, c.get("userId"), gameId)))
-          return c.json({ error: "game not found" }, 404);
-        const report = await getAnalysisReport(deps.db, deps.analysisQueue, gameId);
+        // Ownership, and the shaping — report + drill count together,
+        // progress absent-not-zero — all live in the get-analysis slice;
+        // this route only maps its answer onto HTTP.
+        const report = await getAnalysisReport(
+          deps.analysis.getAnalysis,
+          c.get("userId"),
+          gameId,
+        );
         if (report.status === "not-found")
           return c.json({ error: "game not found" }, 404);
         return c.json(report);
@@ -142,27 +165,25 @@ export function gamesRoutes(deps: ApiDeps) {
        */
       .post("/:id/analyze", validateIdParam, async (c) => {
         const gameId = c.req.valid("param").id;
-        // The only engine trigger in the system: your games spend the CPU,
-        // and the drills a run seeds land in your queue — nobody else's.
-        if (!(await getGameForUser(deps.db, c.get("userId"), gameId)))
-          return c.json({ error: "game not found" }, 404);
-
-        const request = await requestAnalysis(deps.db, deps.analysisQueue, gameId);
+        // Ownership, and the decision to start the engine when nothing is
+        // running yet, both live in the request-analysis slice — the only
+        // engine trigger in the system: your games spend the CPU, and the
+        // drills a run seeds land in your queue — nobody else's.
+        const request = await startAnalysisForUser(
+          deps.analysis.requestAnalysis,
+          c.get("userId"),
+          gameId,
+        );
         if (request.status === "not-found")
           return c.json({ error: "game not found" }, 404);
         if (request.status === "completed") {
           // The CTA's count rides with the report it belongs to: a second
           // round trip would let the two disagree on screen.
-          const drills = await drillSummaryFor(deps.db, gameId);
+          const drills = await drillSummaryFor(deps.analysis.drillSummary, gameId);
           return c.json({ status: "completed", analysis: request.analysis, drills });
         }
         if (request.status === "failed") return c.json({ status: "failed" }, 409);
-        if (request.status === "queued" || request.status === "running") {
-          return c.json({ status: request.status }, 202);
-        }
-
-        await deps.analysisQueue.enqueue(deps.db, gameId);
-        return c.json({ status: "queued" }, 202);
+        return c.json({ status: request.status }, 202);
       })
 
       /**
@@ -173,9 +194,11 @@ export function gamesRoutes(deps: ApiDeps) {
       .get("/:id/analysis/events", validateIdParam, async (c) => {
         const gameId = c.req.valid("param").id;
         // The stream shows every graded move of the game — owner only.
-        if (!(await getGameForUser(deps.db, c.get("userId"), gameId)))
-          return c.json({ error: "game not found" }, 404);
-        const opening = await requestAnalysis(deps.db, deps.analysisQueue, gameId);
+        const opening = await requestAnalysisForUser(
+          deps.analysis.requestAnalysis,
+          c.get("userId"),
+          gameId,
+        );
         if (opening.status === "not-found")
           return c.json({ error: "game not found" }, 404);
 
@@ -197,7 +220,10 @@ export function gamesRoutes(deps: ApiDeps) {
 
           // The loop belongs to the game, not to this connection: see
           // src/watchers.ts. This reads what it publishes.
-          for await (const snapshot of deps.watchers.watch(gameId, c.req.raw.signal)) {
+          for await (const snapshot of deps.analysis.watchers.watch(
+            gameId,
+            c.req.raw.signal,
+          )) {
             if (stream.aborted || Date.now() >= expiresAt) return;
 
             const runId = snapshot.rows[0]?.runId;

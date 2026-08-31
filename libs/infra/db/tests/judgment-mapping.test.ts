@@ -1,8 +1,7 @@
 // Unit tests — pure mapping, no database.
-import type { DeviationResult } from "@velachess/repertoire";
 import { describe, expect, it } from "vitest";
 
-import { judgmentToRow } from "@velachess/db";
+import { judgmentToRow, type DeviationResult } from "@velachess/infra-db";
 
 const ctx = {
   gameId: "game-1",
@@ -34,9 +33,8 @@ describe("judgmentToRow", () => {
         type: "deviation",
         ply: 3,
         positionKey: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -",
-        actualMove: { from: 6, to: 21 },
         actualSan: "Nf3",
-        expectedMoves: [{ move: { from: 11, to: 27 }, san: "d4" }],
+        expectedMoves: [{ san: "d4" }],
       },
     };
     const row = judgmentToRow(ctx, result);
@@ -55,7 +53,6 @@ describe("judgmentToRow", () => {
           type,
           ply: 2,
           positionKey: "k",
-          actualMove: { from: 50, to: 34 },
           actualSan: "c5",
         },
       };

@@ -8,11 +8,12 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrapUser } from "@velachess/application/auth/bootstrap-user/bootstrap-user";
-import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/auth";
+import { bootstrapUser } from "@velachess/auth";
+import { buildBootstrapUserDeps } from "../src/composition/auth.ts";
+import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/infra-auth";
 import { eq } from "drizzle-orm";
 
-import { schema } from "@velachess/db";
+import { schema } from "@velachess/infra-db";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
@@ -34,10 +35,13 @@ afterAll(async () => {
 
 describe("bootstrap", () => {
   it("creates the first user once, from env-shaped credentials", async () => {
-    const first = await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, {
-      email: "admin@velachess.local",
-      password: "dev-password",
-    });
+    const first = await bootstrapUser(
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+      {
+        email: "admin@velachess.local",
+        password: "dev-password",
+      },
+    );
     expect(first.status).toBe("created");
     // The created outcome exposes status and userId — nothing else, by
     // construction, which is what makes main.ts's log of it safe.
@@ -46,26 +50,35 @@ describe("bootstrap", () => {
 
     // A second startup with the same env does nothing — the guard is
     // "any user exists", so re-running cannot touch anyone's credentials.
-    const second = await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, {
-      email: "admin@velachess.local",
-      password: "dev-password",
-    });
+    const second = await bootstrapUser(
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+      {
+        email: "admin@velachess.local",
+        password: "dev-password",
+      },
+    );
     expect(second).toEqual({ status: "skipped", reason: "users-exist" });
 
     // Not even with different credentials: an installation with users
     // manages them through real auth, never through startup env.
-    const hijack = await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, {
-      email: "admin@velachess.local",
-      password: "a-different-password",
-    });
+    const hijack = await bootstrapUser(
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+      {
+        email: "admin@velachess.local",
+        password: "a-different-password",
+      },
+    );
     expect(hijack).toEqual({ status: "skipped", reason: "users-exist" });
 
     // A different email skips just the same — the guard is the table,
     // not the address.
-    const other = await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, {
-      email: "someone-else@velachess.local",
-      password: "dev-password",
-    });
+    const other = await bootstrapUser(
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+      {
+        email: "someone-else@velachess.local",
+        password: "dev-password",
+      },
+    );
     expect(other).toEqual({ status: "skipped", reason: "users-exist" });
 
     const rows = await harness.db.select().from(schema.users);
@@ -78,7 +91,10 @@ describe("bootstrap", () => {
 
   it("does nothing when the env is not configured", async () => {
     expect(
-      await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, null),
+      await bootstrapUser(
+        buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+        null,
+      ),
     ).toEqual({
       status: "skipped",
       reason: "not-configured",
@@ -89,14 +105,15 @@ describe("bootstrap", () => {
     // main.ts logs the outcome as-is. Serialize every answerable shape
     // the way pino would and prove no credential survives into any of
     // them; the created shape is pinned to exactly {status, userId}.
-    const skipped = await bootstrapUser(harness.db, harness.bootstrapAuth, harness.lock, {
-      email: "canary-email@velachess.local",
-      password: "canary-password-value",
-    });
+    const skipped = await bootstrapUser(
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
+      {
+        email: "canary-email@velachess.local",
+        password: "canary-password-value",
+      },
+    );
     const notConfigured = await bootstrapUser(
-      harness.db,
-      harness.bootstrapAuth,
-      harness.lock,
+      buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
       null,
     );
     for (const outcome of [skipped, notConfigured]) {
@@ -129,9 +146,18 @@ describe("bootstrap under concurrent startup", () => {
     // user it would have created is the one being created.
     const credentials = { email: "user@velachess.local", password: "dev-password" };
     const outcomes = await Promise.all([
-      bootstrapUser(fresh.db, fresh.bootstrapAuth, fresh.lock, credentials),
-      bootstrapUser(fresh.db, fresh.bootstrapAuth, fresh.lock, credentials),
-      bootstrapUser(fresh.db, fresh.bootstrapAuth, fresh.lock, credentials),
+      bootstrapUser(
+        buildBootstrapUserDeps(fresh.db, fresh.bootstrapAuth, fresh.lock),
+        credentials,
+      ),
+      bootstrapUser(
+        buildBootstrapUserDeps(fresh.db, fresh.bootstrapAuth, fresh.lock),
+        credentials,
+      ),
+      bootstrapUser(
+        buildBootstrapUserDeps(fresh.db, fresh.bootstrapAuth, fresh.lock),
+        credentials,
+      ),
     ]);
 
     const statuses = outcomes.map((o) => o.status).sort();
@@ -457,7 +483,7 @@ describe("ownership isolation", () => {
       id: string;
     }[];
     expect(aliceUsers.length).toBeGreaterThan(0);
-    const { upsertExercise } = await import("@velachess/db");
+    const { upsertExercise } = await import("@velachess/infra-db");
     const aliceRows = await harness.db.select().from(schema.trackedAccounts);
     const aliceUserId = aliceRows.find((row) => row.id === aliceUsers[0]!.id)!.userId;
     // The provenance must reference a real game — Alice imported one.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { splitPgnGames } from "@velachess/platforms";
+import { splitPgnGames } from "@velachess/infra-platforms";
 import { FOOLS_MATE_PGN, MULTI_GAME_PGN, LICHESS_PGN_EXPORT } from "@velachess/fixtures";
 
 describe("splitPgnGames", () => {

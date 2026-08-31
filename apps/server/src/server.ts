@@ -12,9 +12,43 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 
-import { logger } from "@velachess/logger";
+import { logger } from "@velachess/infra-logger";
 
 import type { ApiDeps } from "./deps.ts";
+import {
+  buildImportAccountDeps,
+  buildListAccountGamesDeps,
+  buildListAccountsDeps,
+  buildSyncAccountDeps,
+} from "./composition/accounts.ts";
+import {
+  buildDrillSummaryDeps,
+  buildGetAnalysisDeps,
+  buildRequestAnalysisDeps,
+} from "./composition/analysis.ts";
+import {
+  buildCountDrillQueueDeps,
+  buildGetNextDrillDeps,
+  buildSubmitAnswerDeps,
+} from "./composition/drills.ts";
+import { buildDeviationsDeps } from "./composition/deviations.ts";
+import {
+  buildGetGameDeps,
+  buildImportPgnDeps,
+  buildJudgeGamesDeps,
+  buildListGamesDeps,
+} from "./composition/games.ts";
+import { buildInsightsDeps } from "./composition/insights.ts";
+import { buildOverviewDeps } from "./composition/overview.ts";
+import {
+  buildAddChapterDeps,
+  buildCreateRepertoireDeps,
+  buildDeleteRepertoireDeps,
+  buildExtractRepertoireDeps,
+  buildGetChapterDeps,
+  buildGetRepertoireDeps,
+  buildListRepertoiresDeps,
+} from "./composition/repertoires.ts";
 import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { openApiSpec } from "./openapi.ts";
@@ -121,13 +155,53 @@ export function createApp(deps: ApiDeps) {
       rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
     )
     .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
-    .route("/accounts", accountsRoutes(deps))
-    .route("/games", gamesRoutes(deps))
-    .route("/deviations", deviationsRoutes(deps))
-    .route("/repertoires", repertoiresRoutes(deps))
-    .route("/drill", drillRoutes(deps))
-    .route("/overview", overviewRoutes(deps))
-    .route("/insights", insightsRoutes(deps));
+    .route(
+      "/accounts",
+      accountsRoutes({
+        list: buildListAccountsDeps(deps.db, deps.syncQueue),
+        games: buildListAccountGamesDeps(deps.db),
+        connect: buildImportAccountDeps(deps.db, deps.analysisQueue, deps.sync?.fetch),
+        sync: buildSyncAccountDeps(deps.db, deps.analysisQueue, deps.sync?.fetch),
+      }),
+    )
+    .route(
+      "/games",
+      gamesRoutes({
+        get: buildGetGameDeps(deps.db, deps.sync?.fetch),
+        list: buildListGamesDeps(deps.db),
+        importPgn: buildImportPgnDeps(deps.db, deps.analysisQueue),
+        judge: buildJudgeGamesDeps(deps.db, deps.analysisQueue),
+        analysis: {
+          getAnalysis: buildGetAnalysisDeps(deps.db, deps.analysisQueue),
+          requestAnalysis: buildRequestAnalysisDeps(deps.db, deps.analysisQueue),
+          drillSummary: buildDrillSummaryDeps(deps.db),
+          watchers: deps.watchers,
+        },
+      }),
+    )
+    .route("/deviations", deviationsRoutes(buildDeviationsDeps(deps.db)))
+    .route(
+      "/repertoires",
+      repertoiresRoutes({
+        list: buildListRepertoiresDeps(deps.db),
+        create: buildCreateRepertoireDeps(deps.db),
+        extract: buildExtractRepertoireDeps(deps.db),
+        detail: buildGetRepertoireDeps(deps.db),
+        remove: buildDeleteRepertoireDeps(deps.db),
+        addChapter: buildAddChapterDeps(deps.db),
+        chapter: buildGetChapterDeps(deps.db),
+      }),
+    )
+    .route(
+      "/drill",
+      drillRoutes({
+        queue: buildCountDrillQueueDeps(deps.db),
+        next: buildGetNextDrillDeps(deps.db, deps.scheduler),
+        answer: buildSubmitAnswerDeps(deps.db, deps.scheduler),
+      }),
+    )
+    .route("/overview", overviewRoutes(buildOverviewDeps(deps.db)))
+    .route("/insights", insightsRoutes(buildInsightsDeps(deps.db)));
 
   // One JSON error contract everywhere. HTTPException is hono's own
   // "stop this request" signal (middleware throws it, a handler may):

@@ -2,14 +2,13 @@
   "$schema": "https://turborepo.dev/schema.json",
   "tasks": {
     "test": {},
-    "//#test:root": {},
-    "@velachess/db#test": {
+    "//#test:root": {
       "env": ["DATABASE_URL"]
     },
-    "@velachess/queue#test": {
+    "@velachess/infra-db#test": {
       "env": ["DATABASE_URL"]
     },
-    "@velachess/application#test": {
+    "@velachess/infra-queue#test": {
       "env": ["DATABASE_URL"]
     },
     "@velachess/server#test": {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isSyncFailure, normalizeGame } from "@velachess/platforms";
+import { isSyncFailure, normalizeGame } from "@velachess/infra-platforms";
 import {
   CHESS_COM_ARCHIVE_MONTH,
   FOOLS_MATE_PGN,

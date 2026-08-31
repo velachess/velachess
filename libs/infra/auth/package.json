@@ -1,5 +1,5 @@
 {
-  "name": "@velachess/auth",
+  "name": "@velachess/infra-auth",
   "version": "0.1.0",
   "private": true,
   "main": "./index.ts",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.0",
-    "@velachess/db": "workspace:*",
+    "@velachess/infra-db": "workspace:*",
     "better-auth": "1.7.0",
     "drizzle-orm": "^0.45.2",
     "envalid": "^8.2.0"

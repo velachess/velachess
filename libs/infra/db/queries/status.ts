@@ -2,7 +2,7 @@ import {
   ESTIMATED_MOVES,
   TIME_CLASS_CEILINGS,
   type TimeClass,
-} from "@velachess/platforms";
+} from "@velachess/infra-platforms";
 import { and, count, desc, eq, isNotNull, notExists, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "../client.ts";

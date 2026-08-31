@@ -30,8 +30,8 @@ index.ts     public surface
 ## Who uses what
 
 - `libs/infra/queue` tests — createTestDb, startBoss
-- `libs/application` tests — createLoopHarness, makeStockfishSession,
-  chessComFixtureFetch
+- root `tests/` and `libs/analysis` tests — createLoopHarness,
+  makeStockfishSession, chessComFixtureFetch
 - `apps/server` tests — a thin `ApiHarness` composes createLoopHarness +
   `createApp`; e2e adds poll and the fixture fetch
 - `apps/worker` tests — createLoopHarness, makeStockfishSession, poll,

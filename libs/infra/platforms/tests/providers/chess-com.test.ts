@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fetchChessCom } from "@velachess/platforms";
+import { fetchChessCom } from "@velachess/infra-platforms";
 import { CHESS_COM_ARCHIVES_INDEX, CHESS_COM_ARCHIVE_MONTH } from "@velachess/fixtures";
 import type { ChessComCursor } from "../../providers/chess-com.ts";
 

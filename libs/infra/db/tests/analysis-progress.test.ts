@@ -12,7 +12,7 @@ import type { GradedPly } from "@velachess/analysis";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
 import {
   analysisProgress,
   appendProgress,
@@ -21,7 +21,7 @@ import {
   games,
   listProgress,
   users,
-} from "@velachess/db";
+} from "@velachess/infra-db";
 
 import { createTestDb, createUserRow } from "./test-db.ts";
 

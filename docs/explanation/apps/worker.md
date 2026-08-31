@@ -1,24 +1,25 @@
 # apps/worker
 
-**pg-boss consumers, thin over `libs/application`.** A consumer
-unpacks job data, calls an application service, and lets thrown errors
-drive pg-boss's retry → dead-letter path. No domain logic lives here.
+**pg-boss consumers, thin over the business modules under `libs/`.** A
+consumer unpacks job data, calls a module's slice through its `index.ts`,
+and lets thrown errors drive pg-boss's retry → dead-letter path. No domain
+logic lives here.
 
 ## Consumers
 
 Each consumer answers exactly one question — "which use case does this
 job trigger?" — and nothing else:
 
-- **sync** → `processAccountSync` (application): pull what's new, insist
-  on completeness (partial saves kept, cursor not advanced, delivery
+- **sync** → `processAccountSync` (`@velachess/accounts`): pull what's new,
+  insist on completeness (partial saves kept, cursor not advanced, delivery
   fails and retries), then judge the owner's games and seed the exercises
   their severities allow. Judging is replay: refreshing an archive of
   hundreds of games costs hundreds of replays, not hundreds of engine
   runs. The worker never learns what follows sync.
-- **analysis** → `completeAnalysis` (application): returns only on
+- **analysis** → `completeAnalysis` (`@velachess/analysis`): returns only on
   terminal truth (run by us, cached, or game gone) and THROWS when a live
   executor owns the run — pg-boss's retry schedule decides when the
-  delivery is attempted again. The advisory lock stays an application
+  delivery is attempted again. The advisory lock stays that module's own
   invariant, not a queue one: pg-boss stately dedup only covers execution
   that flows through pg-boss; the lock also covers HTTP-vs-worker and any
   out-of-queue caller.

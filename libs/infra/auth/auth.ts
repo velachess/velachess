@@ -13,8 +13,8 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 // (dist/auth/minimal.d.mts), not assumed: same options type, same Auth.
 import { betterAuth } from "better-auth/minimal";
 
-import type { Database } from "@velachess/db";
-import { schema } from "@velachess/db";
+import type { Database } from "@velachess/infra-db";
+import { schema } from "@velachess/infra-db";
 
 export interface AuthConfig {
   db: Database;

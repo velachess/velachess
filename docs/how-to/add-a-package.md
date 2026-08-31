@@ -83,13 +83,13 @@ in the package's own project (step 4a) automatically.
 ## Dependency direction
 
 ```
-apps/server, apps/worker → libs/application → domain packages + ports
+apps/server, apps/worker → libs/<module> → domain packages + ports
 ```
 
-Application never imports pg-boss directly — only the queue ports. `db` never
-imports `application`. A new package that needs to break this is a design
-question, not a config one: use the `architecture-review` skill before adding
-it.
+A business module never imports pg-boss directly — only the queue ports.
+`db` never imports a business module. A new package that needs to break
+this is a design question, not a config one: use the `architecture-review`
+skill before adding it.
 
 ## After
 

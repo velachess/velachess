@@ -3,8 +3,9 @@
 Extends `../../AGENTS.md`. This app is the Hono HTTP composition root and
 the only place transport concerns belong.
 
-- Routes validate and translate HTTP, invoke one application slice, and map its
-  outcome. Business workflows do not live here.
+- Routes validate and translate HTTP, invoke one business-module slice
+  (through its module's `index.ts`), and map its outcome. Business
+  workflows do not live here.
 - HTTP-shape Zod stays in the route so the exported `AppType` client remains
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
 details? }` contract.
@@ -16,6 +17,24 @@ details? }` contract.
   validated injected configuration rather than reading ambient environment.
 - Read `docs/explanation/apps/api.md` before changing the HTTP surface, auth
   order, analysis endpoints, or stream behavior.
+
+## Route → module usage
+
+`pnpm architecture` blocks a route from reaching `libs/infra` directly
+(`routes-no-direct-infra`), from executing chess/scheduler domain behavior
+itself (`routes-no-direct-domain-behavior`), and from deep-importing a
+business module's internals (`routes-no-module-internals`) — a module's
+`index.ts` is the only structurally reachable file, both by package
+`exports` and by `tsconfig.json`'s non-wildcard `paths` entry, so there is
+no `"./*"` escape hatch to review around.
+
+- A module may deliberately expose more than one entry point (e.g.
+  `analysis`'s `getAnalysisReport` alongside `drillSummaryFor`) — a route
+  composing both is normal, not a violation.
+- If a route needs something not currently exported, that's a module-design
+  decision, not a route workaround: the module's `index.ts` grows an
+  explicit new export, or the behavior belongs somewhere else entirely. See
+  the target module's own `AGENTS.md` and `architecture-review`.
 
 Use `security-review` for auth, CORS, redirects, cookies, authorization, rate
 limits, or outbound URLs. Use `architecture-review` when a route needs new

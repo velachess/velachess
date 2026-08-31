@@ -3,8 +3,9 @@
 **[QUEUE] — job delivery behind ports (pg-boss + Postgres).**
 Owns everything pg-boss: queue creation, send, state reads, the adapter
 over pg-boss's own `pgboss.job` table. Nothing else in the codebase
-imports pg-boss — `libs/application` sees only the `AnalysisQueue`
-and `SyncQueue` ports.
+imports pg-boss — a business-module slice sees only the `AnalysisQueue`
+and `SyncQueue` ports, and even that only via its own composition root,
+never a slice-held field (`module-no-queue-object`).
 
 ## Why a library, and not part of the worker
 

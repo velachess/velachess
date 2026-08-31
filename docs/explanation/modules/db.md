@@ -1,7 +1,7 @@
 # libs/infra/db
 
 **[DB] — persists what libs/infra/platforms produces and what
-libs/repertoire judges (Postgres + Drizzle).**
+libs/games/judge-games judges (Postgres + Drizzle).**
 Doesn't fetch, doesn't normalize, doesn't judge a move. Doesn't know who's
 calling it — a Next.js server action, a future `apps/server`, and a future
 MCP server process all import it the same way, no HTTP hop between them.
@@ -131,7 +131,7 @@ is a full table scan). The delete policies encode product decisions:
 ## Repertoire and judgments
 
 `repertoire_chapters.pgn` is the source of truth for the tree — text,
-rebuilt on read by `libs/repertoire`'s `buildRepertoire`. Same
+rebuilt on read by `libs/repertoires`' `buildRepertoire`. Same
 tradeoff as `raw_pgn` on games: materialized nodes are the upgrade path if
 authored-content scale ever becomes real, not before.
 
@@ -151,19 +151,21 @@ judged game's total mainline plies at judgment time; the adherence floor
 the wrong place to get it. `getJudgmentRows` joins judgments with each
 game's `result` + `perspective` and translates them into the owner's
 win/draw/loss — schema knowledge stays here; the metric math lives in
-`libs/repertoire`'s pure `adherenceMetrics`.
+`libs/repertoires`' pure `adherenceMetrics`.
 
 `cp_loss` and `engine_category` are nullable columns that ship **before**
 the analysis cycle exists — adding them later would mean a retrofit
 migration in the middle of the cycle that needs them. `drillable` defaults
 false; the drilling cycle decides when it flips.
 
-The dependency direction is enforced by type only:
-`queries/deviations.ts` does `import type { DeviationResult }` from
-`@velachess/repertoire` (a devDependency — erased at compile time, zero
-runtime coupling). `libs/repertoire` never imports this package; the
-orchestration layer that reads a chapter's PGN and feeds
-`buildRepertoire` lives above both.
+The dependency direction is enforced structurally, not just by type: infra
+must never import a business module (`no-infra-to-modules`), so
+`queries/deviations.ts` declares its own local `DeviationResult` — a
+narrowed structural subset of `games/judge-games`'s own type — rather than
+importing it. Composition assigns `games`' real judgment output into this
+shape, which typechecks on structure alone. The orchestration layer that
+reads a chapter's PGN and feeds `buildRepertoire` lives above both, in
+`libs/games/judge-games`.
 
 ## Ownership
 
@@ -217,7 +219,7 @@ pure unit tests with no database.
 
 `drizzle.config.ts` lives inside this package, not at the monorepo root —
 `generate`/`migrate`/`studio` are this package's own scripts, run via
-`pnpm --filter @velachess/db <script>`. Migrations are generated and
+`pnpm --filter @velachess/infra-db <script>`. Migrations are generated and
 applied against a real Postgres before being considered done, not just
 typechecked.
 

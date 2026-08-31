@@ -4,8 +4,8 @@
 
 import type { PGlite } from "@electric-sql/pglite";
 
-import { sessionAdvisoryLock, type ExecutionLock } from "@velachess/db";
-import type { Database } from "@velachess/db";
+import { sessionAdvisoryLock, type ExecutionLock } from "@velachess/infra-db";
+import type { Database } from "@velachess/infra-db";
 import {
   createTestBoss,
   ensureQueues,
@@ -14,7 +14,7 @@ import {
   type AnalysisQueue,
   type PgBoss,
   type SyncQueue,
-} from "@velachess/queue";
+} from "@velachess/infra-queue";
 
 import { createTestDb } from "./db.ts";
 
