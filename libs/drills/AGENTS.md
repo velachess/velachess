@@ -8,11 +8,10 @@ the training queue.
 `GetNextDrillDeps`, `CountDrillQueueDeps`, `SubmitAnswerDeps`,
 `TriageOutcome`.
 
-`triageAndSeed`/`seedRepertoireLines` keep a deliberate, permanent
-`Database`-first signature rather than a narrow declared-deps one: six
-composition roots across five other modules each wire them directly with
-the `Database` they already hold — the same pattern as any other infra
-query function, not migration debt.
+`triageAndSeed`/`seedRepertoireLines` take `Database` directly rather than
+a narrow declared-deps interface — composition roots across other modules
+wire them with the `Database` they already hold, the same as any infra
+query function.
 
 Cross-module dependencies: `seed-exercises` imports `buildRepertoire`
 directly from `@velachess/repertoires` and `toEngineCategory` directly

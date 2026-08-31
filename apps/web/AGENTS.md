@@ -18,12 +18,11 @@ does not restate it.
   `api/`, `backend-status/`, `chess-sounds/`, `query/` — named for what it
   does, same as any other slice.
 - A vertical's public surface is its `index.ts`; a file inside it that
-  isn't re-exported is private to that vertical. `api`, `backend-status`,
-  `chess-sounds`, and `query` enforce this by dependency-cruiser rule
-  (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`); the
-  pre-existing verticals (`auth`, `games`, ...) predate the rule and stay
-  deep-imported from `routes/` today — retrofitting them is a deliberate,
-  separate follow-up, not something to do incidentally.
+  isn't re-exported is private to that vertical. Dependency-cruiser
+  enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
+  for `api`, `backend-status`, `chess-sounds`, and `query`; other
+  verticals may still be deep-imported from `routes/` until the same
+  enforcement is scoped onto them too.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
   for business logic. A facade re-exports its package under one name so a

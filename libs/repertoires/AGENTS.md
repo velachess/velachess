@@ -19,8 +19,8 @@ types `CreateRepertoireDeps`, `CreateRepertoireInput`, `DeleteRepertoireDeps`,
 
 No production dependency on any other business module —
 `ensureCandidateRepertoires` takes drills' seeding function injected rather
-than importing it, closing what would otherwise be a `repertoires` ↔
-`drills` package cycle.
+than importing it directly; a `repertoires` ↔ `drills` package cycle is
+not permitted.
 
 Depended on by `games` and `drills` (`buildRepertoire`/`judgmentType` pure
 policies, direct import) and `insights` (`listRepertoiresWithAdherence`,

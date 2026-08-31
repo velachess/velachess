@@ -23,5 +23,6 @@ capability).
 
 Depended on by `games/judge-games` (`engineSignalForDeviation` pure
 policy), `drills/seed-exercises` (`toEngineCategory` pure policy), and
-`apps/web` (`scoreToWinChance` — a pre-existing frontend edge, not routed
-through a composed API).
+`apps/web` (`scoreToWinChance`, reached directly through this module's
+`index.ts` — no composition, since the frontend has no composition root
+of its own).

@@ -185,9 +185,9 @@ route translates into.
 `repertoire/`, `auth/`) with **no global `components/`, `hooks/`,
 `utils/` buckets** — that has been the rule here since before this
 document, and it extends to cross-vertical infrastructure too: there is
-no `shared/` grab-bag, only more verticals named for what they do (`api/`,
-`backend-status/`, `chess-sounds/`, `query/`), each with an `index.ts` as
-its public surface. As areas grow, organize within them by user behavior
+no `shared/` grab-bag, only more verticals named for what they do, each
+with an `index.ts` as its public surface. As areas grow, organize within
+them by user behavior
 (`games/import-game/`, `drill/submit-drill-move/`) rather than by
 technical kind. Presentation primitives stay in `libs/ui`. A thin wrapper
 around a third-party package (`zod`, `hono/client`, `@tanstack/react-query`)
@@ -198,10 +198,9 @@ that facade. Business behavior never migrates into generic helpers. See
 
 `apps/site` uses the same vocabulary with a smaller surface: `app/` owns
 Next.js routes and composition, `landing/` owns the public marketing
-vertical (including `image-loader.ts`, since the images it serves are
-landing's own), and `locales/` owns the Lingui catalog and the `i18n.ts`
-instance every vertical activates from. No `shared/` here either — the
-same rule, same reasoning. It imports no application or chess behavior.
+vertical, including `image-loader.ts`, and `locales/` owns the Lingui
+catalog and the `i18n.ts` instance every vertical activates from. No
+`shared/` here either. It imports no application or chess behavior.
 Product fixtures stay in `apps/web`; Playwright captures the real
 screens; `apps/site/public` receives only the resulting marketing assets.
 

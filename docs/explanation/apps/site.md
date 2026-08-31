@@ -7,18 +7,16 @@
 ```
 src/
   app/       Next.js routes, metadata and composition
-  landing/   the marketing vertical (also owns image-loader.ts — Next's
-             custom image-loader contract, but the data it serves is this
-             vertical's own two product images, so it lives here, not in
-             a shared bucket or libs/)
+  landing/   the marketing vertical, including image-loader.ts (Next's
+             image-loader contract for this vertical's own product images)
   locales/   Lingui source catalog and i18n.ts (the Lingui instance every
              vertical activates from — a site-wide concern, not landing's)
 public/
   product/   generated screenshots, never fixture state
 ```
 
-No `shared/`: same rule as `apps/web` (see `docs/explanation/apps/web.md`)
-— a file's owner is what it does, not that it's used from more than one
+No `shared/`, same rule as `apps/web` (see `docs/explanation/apps/web.md`):
+a file's owner is what it does, not that it's used from more than one
 place.
 
 The site is a Next.js 16 App Router static export. Components are Server

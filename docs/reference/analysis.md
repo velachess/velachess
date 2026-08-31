@@ -46,8 +46,7 @@ dedup. Drill triage runs after completion.
 
 ## Game phase heuristic
 
-`gamePhaseOf(fen)` (`libs/insights/get-insights/phase.ts` — moved from
-`libs/analysis` once `insights` became its only consumer): endgame at ≤ 6 majors+minors;
+`gamePhaseOf(fen)` (`libs/insights/get-insights/phase.ts`): endgame at ≤ 6 majors+minors;
 middlegame at ≤ 10, or when a back rank holds < 4 pieces; otherwise opening.
 Only the placement field of the FEN is read. Consumers: insight sources only —
 classification does not use phase.
