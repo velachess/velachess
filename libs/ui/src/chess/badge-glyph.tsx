@@ -64,5 +64,3 @@ export function BadgeGlyph({ kind, nag, className }: BadgeGlyphProps) {
     </svg>
   );
 }
-  );
-}</text>
