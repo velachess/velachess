@@ -13,7 +13,7 @@
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.0",
     "@velachess/infra-db": "workspace:*",
-    "better-auth": "1.7.0",
+    "better-auth": "1.7.2",
     "drizzle-orm": "^0.45.2",
     "envalid": "^8.2.0"
   },
