@@ -24,7 +24,7 @@
     "@velachess/infra-engine": "workspace:*",
     "@velachess/repertoires": "workspace:*",
     "@velachess/scheduler": "workspace:*",
-    "@electric-sql/pglite": "^0.5.7",
+    "@electric-sql/pglite": "^0.5.8",
     "drizzle-kit": "^0.31.10",
     "stockfish": "^18.0.8"
   },
