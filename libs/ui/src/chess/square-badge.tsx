@@ -24,12 +24,13 @@ export function SquareBadge({ tone, children }: SquareBadgeProps) {
       aria-hidden
       // Nudged past the corner so it reads as attached to the square
       // rather than sitting inside it, which is where every board in the
-      // benchmark puts it. `ring` in the board's own colour keeps it
-      // legible against a piece underneath.
+      // benchmark puts it. A soft shadow gives it separation from the
+      // square underneath without the flat grey rim a fixed-colour ring
+      // produced regardless of the badge's own fill.
       className={cn(
         "pointer-events-none absolute -top-1 -right-1 z-10 grid size-[42%]",
-        "place-items-center rounded-full text-[0.6rem] leading-none font-medium",
-        "ring-2 ring-(--board-light)",
+        "place-items-center rounded-full leading-none",
+        "shadow-[0_1px_3px_rgba(15,23,42,0.45)]",
         LIGHT_ON_TONE.has(tone) ? "text-white" : "text-black/80",
       )}
       style={{ backgroundColor: BADGE_TONE_COLOR[tone] }}

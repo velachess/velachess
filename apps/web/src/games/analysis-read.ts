@@ -144,12 +144,18 @@ const CATEGORY_BADGE: Partial<Record<MoveCategory, BadgeTone>> = {
 
 const BEST_MOVE_GLYPH = "✓";
 
-export function badgeForCategory(
-  category: MoveCategory,
-): { tone: BadgeTone; label: string } | null {
+export interface CategoryBadge {
+  tone: BadgeTone;
+  /** Raw NAG text, or `BEST_MOVE_GLYPH` for the best move — notation, not
+   * a ready-to-render label. The board renders this as an SVG mark rather
+   * than the glyph itself; see `BadgeGlyph` in `@velachess/ui`. */
+  glyph: string;
+}
+
+export function badgeForCategory(category: MoveCategory): CategoryBadge | null {
   const tone = CATEGORY_BADGE[category];
   if (!tone) return null;
-  return { tone, label: glyphOf(category) ?? BEST_MOVE_GLYPH };
+  return { tone, glyph: glyphOf(category) ?? BEST_MOVE_GLYPH };
 }
 
 /** Translated category names for UI display. */

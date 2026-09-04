@@ -199,11 +199,11 @@ describe("bestMoveSan", () => {
 
 describe("badgeForCategory", () => {
   it("marks the moves worth stopping on", () => {
-    expect(badgeForCategory("blunder")).toEqual({ tone: "blunder", label: "??" });
-    expect(badgeForCategory("mistake")).toEqual({ tone: "mistake", label: "?" });
+    expect(badgeForCategory("blunder")).toEqual({ tone: "blunder", glyph: "??" });
+    expect(badgeForCategory("mistake")).toEqual({ tone: "mistake", glyph: "?" });
     expect(badgeForCategory("inaccuracy")).toEqual({
       tone: "inaccuracy",
-      label: "?!",
+      glyph: "?!",
     });
     expect(badgeForCategory("best")?.tone).toBe("ok");
   });

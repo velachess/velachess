@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
+import { BadgeGlyph } from "@velachess/ui/chess/badge-glyph";
 import { Board } from "@velachess/ui/chess/board";
 import type { SquareBadgeSpec } from "@velachess/ui/chess/board";
 import {
@@ -165,5 +166,14 @@ function badgesFor(
 ): Record<string, SquareBadgeSpec> | undefined {
   if (!square || !grade) return undefined;
   const badge = badgeForCategory(grade.category);
-  return badge ? { [square]: badge } : undefined;
+  if (!badge) return undefined;
+
+  const label =
+    badge.tone === "ok" ? (
+      <BadgeGlyph kind="best" />
+    ) : (
+      <BadgeGlyph kind="nag" nag={badge.glyph} />
+    );
+
+  return { [square]: { tone: badge.tone, label } };
 }
