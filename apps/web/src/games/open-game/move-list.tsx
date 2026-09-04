@@ -35,7 +35,7 @@ export function MoveList({
   });
 
   return (
-    <ScrollArea className="min-h-0 flex-1">
+    <ScrollArea className="h-72 min-h-0 flex-1 lg:h-auto">
       <div className="grid grid-cols-[2.25rem_1fr_1fr] items-center border-b bg-muted/50 text-[11px] text-muted-foreground">
         <span className="border-r px-1 py-1 text-center">#</span>
         <span className="truncate px-2 py-1">{whiteName}</span>

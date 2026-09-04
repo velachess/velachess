@@ -26,12 +26,13 @@ Regions are named and budgeted before any content exists. A screen fills a
 region instead of inventing its own page shape — the alternative produces
 "a padded scroll column that reads as a prototype".
 
-| Component                            | Contract                                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `AppFrame`                           | `nav` slot, `banner?`, children = main. Owns skip-to-content and the responsive contract |
-| `NavDock`                            | the 64px icon rail; takes items as data and an `activeId`, and never routes              |
-| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump  |
-| `PageHeader`                         | title, description, actions slot                                                         |
+| Component                            | Contract                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `AppFrame`                           | `nav` slot, `navFallback?` slot, `banner?`, children = main. Owns skip-to-content and the responsive contract                           |
+| `NavDock`                            | the 64px icon rail; takes items as data and an `activeId`, and never routes                                                             |
+| `NavBar`                             | the mobile bottom tab bar shown through `navFallback`; same item/`activeId` contract as `NavDock`, icon-over-label instead of a tooltip |
+| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump                                                 |
+| `PageHeader`                         | title, description, actions slot                                                                                                        |
 
 **Structure arrives through slots, content through children.** That split
 is what makes the frame reusable: a route swaps the middle without knowing

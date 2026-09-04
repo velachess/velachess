@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { deviceHasImported } from "../../test/device.ts";
 import { overview } from "../../test/handlers/overview.ts";
-import { renderApp } from "../../test/render.tsx";
+import { mainContent, renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
 describe("dashboard", () => {
@@ -20,7 +20,7 @@ describe("dashboard", () => {
 
     await renderApp({ path: "/" });
 
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(await mainContent().findByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Deviations")).toBeInTheDocument();
     expect(screen.getByText("14")).toBeInTheDocument();
     expect(screen.getAllByText("0")).toHaveLength(3);
@@ -39,7 +39,7 @@ describe("dashboard", () => {
     );
 
     await renderApp({ path: "/" });
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(await mainContent().findByText("Dashboard")).toBeInTheDocument();
 
     const afterFirstRender = calls;
     await new Promise((resolve) => setTimeout(resolve, 2_500));
@@ -60,7 +60,7 @@ describe("dashboard", () => {
 
     await renderApp({ path: "/" });
 
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(await mainContent().findByText("Dashboard")).toBeInTheDocument();
     expect(
       await screen.findByText("Backend unavailable · Retrying automatically"),
     ).toBeInTheDocument();

@@ -2,7 +2,8 @@
  * [UI/layout] Outermost frame — nav via the `nav` slot, content as
  * children. Responsive contract:
  *   > 768px   nav rail 64 | content
- *   <= 768px  rail hidden; `navFallback` renders above the content
+ *   <= 768px  rail hidden; `navFallback` renders below the content, as a
+ *             bottom bar — plain flex order, not fixed positioning
  */
 import type * as React from "react";
 
@@ -51,13 +52,13 @@ export function AppFrame({
         <div className="hidden md:block">{nav}</div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {navFallback ? <div className="md:hidden">{navFallback}</div> : null}
           <main
             id={SKIP_TARGET_ID}
             className="@container/content flex min-h-0 flex-1 flex-col"
           >
             {children}
           </main>
+          {navFallback ? <div className="md:hidden">{navFallback}</div> : null}
         </div>
       </div>
     </div>

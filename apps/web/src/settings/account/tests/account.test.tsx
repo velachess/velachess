@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 
-import { renderApp } from "../../../test/render.tsx";
+import { desktopNav, renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
 import {
   linkedProvidersAre,
@@ -26,7 +26,7 @@ describe("reaching the account screen", () => {
 
     const { router, user } = await renderApp({ path: "/" });
 
-    await user.click(await screen.findByRole("button", { name: "Account" }));
+    await user.click(await desktopNav().findByRole("button", { name: "Account" }));
     await user.click(await screen.findByRole("menuitem", { name: "Settings" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/settings/account"));
@@ -93,7 +93,7 @@ describe("the profile", () => {
     // in the shell is the same fact, so it cannot lag behind. Two places
     // now say "Magnus" — this screen's profile, and the menu — and that
     // is precisely the assertion.
-    await user.click(screen.getByRole("button", { name: "Account" }));
+    await user.click(desktopNav().getByRole("button", { name: "Account" }));
     await waitFor(() => expect(screen.getAllByText("Magnus")).toHaveLength(2));
   });
 
@@ -216,7 +216,7 @@ describe("the avatar", () => {
     sessionActive();
 
     const { user } = await renderApp({ path: "/" });
-    await user.click(await screen.findByRole("button", { name: "Account" }));
+    await user.click(await desktopNav().findByRole("button", { name: "Account" }));
 
     // "VelaChess User" → first and last initial.
     const menu = await screen.findByText(TEST_USER.email);

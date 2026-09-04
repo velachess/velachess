@@ -8,7 +8,7 @@ import {
   insightFindings,
   insightsReport,
 } from "../../test/handlers/insights.ts";
-import { renderApp } from "../../test/render.tsx";
+import { mainContent, renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
 /**
@@ -133,7 +133,7 @@ describe("insights", () => {
 
     await renderApp({ path: "/insights" });
 
-    expect(await screen.findByText("Insights")).toBeInTheDocument();
+    expect(await mainContent().findByText("Insights")).toBeInTheDocument();
     expect(screen.getByText("Couldn't load insights.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
     expect(screen.queryByText("Nothing worth saying yet")).not.toBeInTheDocument();

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ME } from "../../test/games.ts";
 import { accountIsTracked } from "../../test/handlers/accounts.ts";
 import { overview } from "../../test/handlers/overview.ts";
-import { renderApp } from "../../test/render.tsx";
+import { mainContent, renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
 /**
@@ -115,7 +115,7 @@ describe("an account that already has games", () => {
     // The default handler answers with a filled archive.
     await renderApp({ path: "/" });
 
-    expect(await screen.findByText("Dashboard")).toBeInTheDocument();
+    expect(await mainContent().findByText("Dashboard")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

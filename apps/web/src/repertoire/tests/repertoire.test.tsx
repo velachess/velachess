@@ -8,7 +8,7 @@ import {
   WHITE_REPERTOIRE_ID,
   whiteRepertoireIsConfigured,
 } from "../../test/handlers/repertoires.ts";
-import { renderApp } from "../../test/render.tsx";
+import { mainContent, renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
 /**
@@ -356,7 +356,7 @@ describe("the scoped drill screen", () => {
     );
 
     await renderApp({ path: `/drill?chapter=${FRENCH_CHAPTER_ID}` });
-    await screen.findByText("Drill");
+    await mainContent().findByText("Drill");
 
     expect(asked.some((search) => search.includes(`chapter=${FRENCH_CHAPTER_ID}`))).toBe(
       true,

@@ -4,7 +4,7 @@ import {
   createMemoryHistory,
   createRouter,
 } from "@tanstack/react-router";
-import { act, render } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type * as React from "react";
 
@@ -83,4 +83,24 @@ export async function renderApp(options: RenderAppOptions = {}) {
   });
 
   return { ...result, user, router, queryClient, releaseUnauthorized };
+}
+
+/**
+ * `AppShell` renders the same destinations and account menu twice — the
+ * desktop rail and a mobile bottom bar — and switches between them with
+ * CSS alone. jsdom applies none, so both sit in the tree at once here; a
+ * bare `screen` query for a nav label or the account button matches
+ * twice. Screens that reach through the chrome incidentally (not testing
+ * the nav itself) scope to the rail, the region that was here first.
+ */
+export function desktopNav() {
+  return within(screen.getByRole("navigation", { name: "Main" }));
+}
+
+/** Same reasoning as {@link desktopNav}: a nav item's label (`Dashboard`,
+ * `Insights`, `Drill`, …) sits in both navs too, so a page-content
+ * assertion for the same word scopes to `main` — the one region that
+ * isn't duplicated — rather than the whole document. */
+export function mainContent() {
+  return within(screen.getByRole("main"));
 }

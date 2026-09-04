@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { act, screen, waitFor } from "@testing-library/react";
 
-import { renderApp } from "../../test/render.tsx";
+import { desktopNav, renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 import { deviceHasImported, resetDevice } from "../../test/device.ts";
 import {
@@ -251,7 +251,7 @@ describe("signing out", () => {
 
     const { router, user } = await renderApp({ path: "/games" });
 
-    await user.click(await screen.findByRole("button", { name: "Account" }));
+    await user.click(await desktopNav().findByRole("button", { name: "Account" }));
     expect(await screen.findByText(TEST_USER.email)).toBeInTheDocument();
 
     await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
