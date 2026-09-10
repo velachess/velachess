@@ -10,7 +10,7 @@
   "dependencies": {
     "@velachess/infra-db": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "pg-boss": "12.28.0"
+    "pg-boss": "12.30.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"
