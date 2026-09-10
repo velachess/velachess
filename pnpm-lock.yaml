@@ -598,8 +598,8 @@ importers:
   libs/scheduler:
     dependencies:
       ts-fsrs:
-        specifier: 5.4.1
-        version: 5.4.1
+        specifier: 5.4.2
+        version: 5.4.2
 
   libs/test-utils:
     dependencies:
@@ -6521,8 +6521,8 @@ packages:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
     hasBin: true
 
-  ts-fsrs@5.4.1:
-    resolution: {integrity: sha512-mOp9+oexJexBTkwjg/jQI1aSUQRLIAvbimeKHLSmVdNJPwObugFNKmZkoggH5d6kZ0uaWLboP1Al1DnXAfIb9w==}
+  ts-fsrs@5.4.2:
+    resolution: {integrity: sha512-z4qop4pzTcyTzuJ566d9EaX/4bZZzhYfeaPImfVr+xcYT65c5oBgFDijUhCE/D+C78eaolHIhKRZ04/RwF+v2g==}
     engines: {node: '>=20.0.0'}
 
   ts-morph@26.0.0:
@@ -12417,7 +12417,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  ts-fsrs@5.4.1: {}
+  ts-fsrs@5.4.2: {}
 
   ts-morph@26.0.0:
     dependencies:

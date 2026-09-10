@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "ts-fsrs": "5.4.1"
+    "ts-fsrs": "5.4.2"
   },
   "type": "module",
   "exports": {
