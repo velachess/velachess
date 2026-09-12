@@ -67,7 +67,7 @@ export function MoveNav({
                 render={
                   <Button
                     variant="outline"
-                    className="h-11 md:h-9"
+                    className="h-11 active:scale-[0.97] md:h-9"
                     disabled={!canGoBack}
                     aria-label={copy.reset}
                     onClick={onReset}
@@ -86,7 +86,7 @@ export function MoveNav({
               render={
                 <Button
                   variant="outline"
-                  className="h-11 w-full md:h-9"
+                  className="h-11 w-full active:scale-[0.97] md:h-9"
                   disabled={!canGoBack}
                   aria-label={copy.previous}
                   onClick={onPrevious}
@@ -108,7 +108,7 @@ export function MoveNav({
               render={
                 <Button
                   variant="outline"
-                  className="h-11 w-full md:h-9"
+                  className="h-11 w-full active:scale-[0.97] md:h-9"
                   disabled={!canGoForward}
                   aria-label={copy.next}
                   onClick={onNext}

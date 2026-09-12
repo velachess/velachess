@@ -88,7 +88,12 @@ export function BoardColumn({
 }
 
 /** Everything that is not the board: its own scroll boundary, so a long
- * variation tree or scoresheet never grows the screen. */
+ * variation tree or scoresheet never grows the screen.
+ *
+ * `overflow-clip`, not `overflow-hidden`: same rounded-corner clipping,
+ * but `hidden` registers as a scroll container and would catch a sticky
+ * descendant (a pinned footer nav) before it reaches the real scrolling
+ * ancestor above it. */
 export function BoardPanel({
   label,
   children,
@@ -103,7 +108,7 @@ export function BoardPanel({
     <aside
       aria-label={label}
       className={cn(
-        "bg-card flex min-h-0 flex-col overflow-hidden rounded-lg border",
+        "bg-card flex min-h-0 flex-col overflow-clip rounded-lg border",
         className,
       )}
     >

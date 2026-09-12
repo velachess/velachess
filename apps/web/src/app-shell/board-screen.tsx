@@ -42,7 +42,11 @@ export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
   return (
     // The scroll/overflow boundary sits here so the breadcrumb stays
     // above it; the stage below keeps its own height tuning.
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 lg:overflow-hidden">
+    //
+    // `pb-0` on mobile: a sticky footer nav inside the panel sticks to
+    // this container's own padding edge, so a bottom padding here would
+    // show up as a gap between it and the screen edge/bottom bar.
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pb-0 lg:overflow-hidden lg:pb-4">
       <Breadcrumb className="shrink-0">
         <BreadcrumbList>
           {trail.map((crumb) => (
