@@ -4,7 +4,8 @@
  * export — importing it pulls zero runtime code.
  */
 
-import { Hono } from "hono";
+import { swaggerUI } from "@hono/swagger-ui";
+import { $, createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { bodyLimit } from "hono/body-limit";
 import type { ApplyGlobalResponse } from "hono/client";
 import { cors } from "hono/cors";
@@ -51,7 +52,7 @@ import {
 } from "./composition/repertoires.ts";
 import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
-import { openApiSpec } from "./openapi.ts";
+import { defaultHook } from "./validation.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { deviationsRoutes } from "./routes/deviations.ts";
 import { gamesRoutes } from "./routes/games.ts";
@@ -76,63 +77,113 @@ export interface ApiEnv {
  */
 const MAX_BODY_BYTES = 256 * 1024;
 
-export function createApp(deps: ApiDeps) {
-  const app = new Hono<ApiEnv>()
-    // Headers first, so they cover every response — including the opaque
-    // 500 that `onError` produces at the very bottom.
-    //
-    // No CSP: this app answers JSON. A content policy governs what a
-    // *document* may load, and the document is served by the reverse
-    // proxy in front of the SPA, not here. What matters for an API is
-    // nosniff and a referrer policy, which are the middleware's defaults.
-    .use("*", secureHeaders())
-    // Declared before every route, as hono's docs require ("should be called
-    // before the route"), and mirroring Better Auth's Hono guide: an explicit
-    // origin list rather than a wildcard, `credentials: true` because the
-    // session rides in a cookie, and the very same list Better Auth trusts —
-    // one source of truth, so CORS and the session cannot disagree about who
-    // is allowed to talk to this API.
-    //
-    // Today that list is the app's own origin, and a same-origin request
-    // carries no Origin header worth answering, so this middleware is
-    // effectively inert. It exists for the deployment that puts the SPA on a
-    // separate host, and it fails closed until that host is declared.
-    //
-    // Also the layer that stops a forged JSON fetch() — see csrf() below
-    // for the request class this one doesn't cover.
-    .use(
-      "*",
-      cors({
-        origin: deps.trustedOrigins,
-        credentials: true,
-        // What the SPA actually sends. Anything else is not a request this
-        // API knows how to serve.
-        allowHeaders: ["Content-Type"],
-        maxAge: 600,
-      }),
-    )
-    .use(
-      "*",
-      bodyLimit({
-        maxSize: MAX_BODY_BYTES,
-        onError: () => {
-          throw new HTTPException(413, { message: "payload too large" });
+const healthRoute = createRoute({
+  method: "get",
+  path: "/health",
+  summary: "Liveness probe",
+  responses: {
+    200: {
+      description: "API is up",
+      content: { "application/json": { schema: z.object({ ok: z.boolean() }) } },
+    },
+  },
+});
+
+const configRoute = createRoute({
+  method: "get",
+  path: "/config",
+  summary: "Sign-in methods this instance actually offers",
+  responses: {
+    200: {
+      description: "Capability flags only — see SignInMethods in deps.ts",
+      content: {
+        "application/json": {
+          schema: z.object({
+            signInMethods: z.object({ password: z.boolean(), google: z.boolean() }),
+          }),
         },
-      }),
-    )
-    // Origin check for requests CORS never sees: a plain <form> POST needs
-    // no preflight (content-type form-urlencoded/multipart/text-plain, or
-    // absent), so it reaches here un-vetted — and SameSite=Lax lets a
-    // top-level form submission carry the cookie cross-site regardless.
-    // A JSON fetch() never matches this check; that's CORS's job, above.
-    .use("*", csrf({ origin: deps.trustedOrigins }))
+      },
+    },
+  },
+});
+
+export function createApp(deps: ApiDeps) {
+  // `$()` converts the chain back to `OpenAPIHono`'s type: `.use()` (like
+  // `.get`/`.post`) returns a plain `Hono` type, which drops `.openapi`
+  // (see @hono/zod-openapi's README, "Type utilities") — needed here only
+  // because /health and /config sit after four `.use()` calls.
+  const app = $(
+    new OpenAPIHono<ApiEnv>({ defaultHook })
+      // Headers first, so they cover every response — including the opaque
+      // 500 that `onError` produces at the very bottom.
+      //
+      // No CSP: this app answers JSON. A content policy governs what a
+      // *document* may load, and the document is served by the reverse
+      // proxy in front of the SPA, not here. What matters for an API is
+      // nosniff and a referrer policy, which are the middleware's defaults.
+      .use("*", secureHeaders())
+      // Declared before every route, as hono's docs require ("should be called
+      // before the route"), and mirroring Better Auth's Hono guide: an explicit
+      // origin list rather than a wildcard, `credentials: true` because the
+      // session rides in a cookie, and the very same list Better Auth trusts —
+      // one source of truth, so CORS and the session cannot disagree about who
+      // is allowed to talk to this API.
+      //
+      // Today that list is the app's own origin, and a same-origin request
+      // carries no Origin header worth answering, so this middleware is
+      // effectively inert. It exists for the deployment that puts the SPA on a
+      // separate host, and it fails closed until that host is declared.
+      //
+      // Also the layer that stops a forged JSON fetch() — see csrf() below
+      // for the request class this one doesn't cover.
+      .use(
+        "*",
+        cors({
+          origin: deps.trustedOrigins,
+          credentials: true,
+          // What the SPA actually sends. Anything else is not a request this
+          // API knows how to serve.
+          allowHeaders: ["Content-Type"],
+          maxAge: 600,
+        }),
+      )
+      .use(
+        "*",
+        bodyLimit({
+          maxSize: MAX_BODY_BYTES,
+          onError: () => {
+            throw new HTTPException(413, { message: "payload too large" });
+          },
+        }),
+      )
+      // Origin check for requests CORS never sees: a plain <form> POST needs
+      // no preflight (content-type form-urlencoded/multipart/text-plain, or
+      // absent), so it reaches here un-vetted — and SameSite=Lax lets a
+      // top-level form submission carry the cookie cross-site regardless.
+      // A JSON fetch() never matches this check; that's CORS's job, above.
+      .use("*", csrf({ origin: deps.trustedOrigins })),
+  )
     // System routes — liveness and documentation answer even when the
     // database is down; identity never touches them.
-    .get("/health", (c) => c.json({ ok: true }))
+    .openapi(healthRoute, (c) => c.json({ ok: true }, 200))
     // Public because the sign-in screen consumes it before there is anyone to
     // authenticate. Capability flags only — see SignInMethods in deps.ts.
-    .get("/config", (c) => c.json({ signInMethods: deps.signInMethods }))
-    .get("/openapi.json", (c) => c.json(openApiSpec))
+    .openapi(configRoute, (c) => c.json({ signInMethods: deps.signInMethods }, 200))
+    // Generated from every route above that used `createRoute`/`.openapi()`
+    // — no hand-maintained document to drift from it.
+    .doc31("/openapi.json", {
+      openapi: "3.1.0",
+      info: {
+        title: "VelaChess API",
+        version: "0.1.0",
+        description:
+          "Sync games, judge them against your repertoire, analyze deviations with an engine, and drill the fixes on a spaced-repetition schedule.",
+      },
+    })
+    // Interactive documentation, reading the generated spec above — public
+    // like the spec itself, for the same reason (nothing here is secret,
+    // and someone deciding whether to integrate has no session yet).
+    .get("/docs", swaggerUI({ url: "/openapi.json" }))
     // Better Auth owns everything under /auth/* — sign-in, sign-out,
     // session, sign-up. Mounted before the session gate because logging
     // in is, definitionally, done without a session. The handler shape is

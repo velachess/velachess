@@ -1,62 +1,64 @@
 /**
- * Validation with one error contract. Every failed validation — body or
- * path param — answers the `{ error }` shape the OpenAPI document
- * promises, instead of zod-validator's default zod dump.
+ * The shared request/response contract every `@hono/zod-openapi` route
+ * builds on: the `{id}`/`{repertoireId, chapterId}` path params, the
+ * `{ error, details? }` error body, and the one `defaultHook` that
+ * produces it for every failed validation.
  */
 
-import { zValidator } from "@hono/zod-validator";
-import type { z } from "zod";
-import { z as zod } from "zod";
+import type { Hook } from "@hono/zod-openapi";
+import { z } from "@hono/zod-openapi";
 
-const idParamSchema = zod.object({ id: zod.string().uuid() });
-
-export function validateJson<T extends z.ZodType>(schema: T) {
-  return zValidator("json", schema, (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          error: "invalid body",
-          details: result.error.issues.map(
-            (issue) => `${issue.path.join(".")}: ${issue.message}`,
-          ),
-        },
-        400,
-      );
-    }
-  });
-}
-
-export function validateQuery<T extends z.ZodType>(schema: T) {
-  return zValidator("query", schema, (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          error: "invalid query",
-          details: result.error.issues.map(
-            (issue) => `${issue.path.join(".")}: ${issue.message}`,
-          ),
-        },
-        400,
-      );
-    }
-  });
-}
-
-/** For every `/:id` route — a malformed id is a 400, not a db error. */
-export const validateIdParam = zValidator("param", idParamSchema, (result, c) => {
-  if (!result.success) return c.json({ error: "invalid id" }, 400);
+/** Shared `{id}` path param for every migrated `/:id`-shaped route. */
+export const idParamSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({ param: { name: "id", in: "path" } }),
 });
 
-const chapterParamsSchema = zod.object({
-  repertoireId: zod.string().uuid(),
-  chapterId: zod.string().uuid(),
+/** Shared two-id path param for `/{repertoireId}/chapters/{chapterId}`. */
+export const chapterParamsSchema = z.object({
+  repertoireId: z
+    .string()
+    .uuid()
+    .openapi({ param: { name: "repertoireId", in: "path" } }),
+  chapterId: z
+    .string()
+    .uuid()
+    .openapi({ param: { name: "chapterId", in: "path" } }),
 });
 
-/** For `/:repertoireId/chapters/:chapterId` — same contract, two ids. */
-export const validateChapterParams = zValidator(
-  "param",
-  chapterParamsSchema,
-  (result, c) => {
-    if (!result.success) return c.json({ error: "invalid id" }, 400);
-  },
-);
+/** The `{ error, details? }` body every migrated route's error branches document. */
+export const errorResponseSchema = z.object({
+  error: z.string(),
+  details: z.array(z.string()).optional(),
+});
+
+/**
+ * One hook for every `OpenAPIHono` instance, answering the exact same
+ * `{ error, details? }` shape regardless of what failed: a malformed path
+ * param answers `{ error: "invalid id" }` with no `details` (there is
+ * only ever one thing wrong with a uuid param), a bad body/query answers
+ * `{ error, details }` with one string per issue.
+ */
+// `any` for the Env position matches `@hono/zod-openapi`'s own
+// `OpenAPIHonoOptions<E>['defaultHook']` shape (`Hook<any, E, any, any>`)
+// — one hook value must be assignable regardless of which app's `Env` it's
+// passed to, and this hook never reads an env-specific context variable.
+export const defaultHook: Hook<unknown, any, string, Response | undefined> = (
+  result,
+  c,
+) => {
+  if (result.success) return undefined;
+  if (result.target === "param") return c.json({ error: "invalid id" }, 400);
+  const label = result.target === "json" ? "invalid body" : "invalid query";
+  return c.json(
+    {
+      error: label,
+      details: result.error.issues.map(
+        (issue) => `${issue.path.join(".")}: ${issue.message}`,
+      ),
+    },
+    400,
+  );
+};

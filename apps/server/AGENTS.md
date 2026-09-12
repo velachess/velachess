@@ -9,8 +9,11 @@ the only place transport concerns belong.
 - HTTP-shape Zod stays in the route so the exported `AppType` client remains
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
 details? }` contract.
-- Every route must be represented in `src/openapi.ts`; the anti-drift suite in
-  `tests/openapi.test.ts` checks both directions.
+- Every route is declared with `@hono/zod-openapi`'s `createRoute` and mounted
+  via `app.openapi(route, handler)`, never a plain `.get`/`.post`/`.delete` —
+  `GET /openapi.json` is generated from those declarations, not hand-written.
+  The anti-drift suite in `tests/openapi.test.ts` checks every registered
+  route has a matching declaration in the generated document.
 - Better Auth owns `/auth/*`. Session middleware resolves `userId`; downstream
   routes and slices never infer identity from a chess handle.
 - Composition reads environment and constructs dependencies. Libraries receive

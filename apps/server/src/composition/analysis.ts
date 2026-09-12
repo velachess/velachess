@@ -33,6 +33,8 @@ import type {
 } from "@velachess/analysis";
 import type { AnalysisQueue } from "@velachess/infra-queue";
 
+import { ANALYSIS_STATUS } from "../status.ts";
+
 export function buildRequestAnalysisDeps(
   db: Database,
   analysisQueue: AnalysisQueue,
@@ -83,8 +85,11 @@ export function buildWatcherDeps(
     listProgress: (gameId) => listProgress(db, gameId),
     requestAnalysis: async (gameId): Promise<WatchTerminal> => {
       const result = await requestAnalysisSlice(requestAnalysisDeps, gameId);
-      return result.status === "completed"
-        ? { status: "completed", analysis: { positions: result.analysis.positions } }
+      return result.status === ANALYSIS_STATUS.COMPLETED
+        ? {
+            status: ANALYSIS_STATUS.COMPLETED,
+            analysis: { positions: result.analysis.positions },
+          }
         : result;
     },
     ...(intervalMs !== undefined ? { intervalMs } : {}),

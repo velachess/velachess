@@ -1,10 +1,11 @@
 # `apps/server`
 
 `apps/server` is the only HTTP composition root. Hono routes validate transport
-shape, invoke one application slice, and translate its outcome to HTTP. The
-current route surface is the hand-authored OpenAPI document in
-`apps/server/src/openapi.ts`; the anti-drift test verifies every registered
-route and documented operation in both directions.
+shape, invoke one application slice, and translate its outcome to HTTP. Each
+route declares its request and response shapes once, with `@hono/zod-openapi`'s
+`createRoute`/`app.openapi()`; `GET /openapi.json` is generated from those
+declarations, and the anti-drift test verifies every registered route and
+documented operation in both directions.
 
 ## Middleware order
 
@@ -69,6 +70,17 @@ Transport Zod stays in route files so the exported `AppType` client remains
 typed. `src/validation.ts` maps validation to `{ error, details? }`; not-found,
 HTTP exceptions, and opaque internal failures remain on the same JSON contract.
 Internal exception details are logged rather than returned.
+
+Routes migrated to `@hono/zod-openapi`'s `createRoute`/`app.openapi()` gain one
+deliberate exception to that contract: a JSON-body route rejects a request
+whose `Content-Type` is missing or doesn't match with `415`
+(`{ "error": "Unsupported Media Type" }`), before the body is parsed at all —
+the library's own built-in gate, not something this app added. Every real
+client (`hono/client`'s `hc()`, which `apps/web` uses) always sets
+`Content-Type: application/json` on a JSON body, so this never fires for
+legitimate traffic; it only changes the answer to a request with no declared
+media type, which previously fell through as an ordinary `{ error: "invalid
+body" }` `400` (the body validated as if it were `{}`).
 
 ## Tests
 
