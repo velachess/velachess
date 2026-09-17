@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lingui/core": "^6.6.0",
+    "@lingui/core": "^6.7.0",
     "@velachess/ui": "workspace:*",
     "motion": "^13.2.0",
     "next": "16.3.4",
