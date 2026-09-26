@@ -46,6 +46,35 @@ beforeAll(() => {
   // sound dispatcher's injected output instead of this browser stub.
   HTMLMediaElement.prototype.play = () => Promise.resolve();
 
+  // jsdom implements neither a 2D context nor toBlob, so the avatar
+  // cropper's encode step cannot run. Stubbed at the platform level, not by
+  // mocking our own module: the component still executes, the MSW handler
+  // still refuses a body that is not base64, and the assertions stay about
+  // what the screen shows. A one-byte blob is enough — nothing under test
+  // inspects the pixels.
+  HTMLCanvasElement.prototype.getContext = (() => ({
+    imageSmoothingEnabled: false,
+    imageSmoothingQuality: "low",
+    drawImage: () => {},
+  })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.toBlob = (callback) => {
+    callback(new Blob([new Uint8Array([0x00])], { type: "image/webp" }));
+  };
+
+  // jsdom has no object URLs. The cropper creates one per picked file and
+  // revokes it on close, so both halves need to exist or the dialog throws
+  // before it renders.
+  URL.createObjectURL = () => "blob:velachess-test";
+  URL.revokeObjectURL = () => {};
+
+  // jsdom's Image never loads, so the cropper's decode would hang forever.
+  // Firing load on the next tick is what lets the crop settle.
+  Object.defineProperty(Image.prototype, "src", {
+    set() {
+      setTimeout(() => this.dispatchEvent(new Event("load")), 0);
+    },
+  });
+
   // jsdom implements no media queries at all. ThemeProvider's "system"
   // resolution reads this on every mount, so without a stub every screen
   // test throws before it renders anything.

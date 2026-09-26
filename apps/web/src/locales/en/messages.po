@@ -254,6 +254,14 @@ msgstr "Built from your games"
 msgid "Bullet"
 msgstr "Bullet"
 
+#: src/settings/account/avatar-field.tsx:29
+msgid "Cancel"
+msgstr "Cancel"
+
+#: src/settings/account/avatar-field.tsx:24
+msgid "Change your picture"
+msgstr "Change your picture"
+
 #: src/repertoire/chapter-study.tsx:55
 msgid "Chapter"
 msgstr "Chapter"
@@ -261,6 +269,10 @@ msgstr "Chapter"
 #: src/games/import/sources.ts:58
 msgid "Chess.com username"
 msgstr "Chess.com username"
+
+#: src/settings/account/avatar-field.tsx:36
+msgid "Choose a JPEG, PNG or WebP image."
+msgstr "Choose a JPEG, PNG or WebP image."
 
 #: src/games/games-list.tsx:30
 #: src/games/list/columns.tsx:25
@@ -375,9 +387,21 @@ msgstr "Couldn't reach the server. Try again in a moment."
 msgid "Couldn't reach the server. Try again."
 msgstr "Couldn't reach the server. Try again."
 
+#: src/settings/account/avatar-field.tsx:35
+msgid "Couldn't remove it. Try again."
+msgstr "Couldn't remove it. Try again."
+
+#: src/settings/account/avatar-field.tsx:34
+msgid "Couldn't save that picture. Try again."
+msgstr "Couldn't save that picture. Try again."
+
 #: src/settings/account/profile-form.tsx:31
 msgid "Couldn't save that. Try again."
 msgstr "Couldn't save that. Try again."
+
+#: src/settings/account/avatar-field.tsx:26
+msgid "Crop your picture"
+msgstr "Crop your picture"
 
 #: src/repertoire/chapter-study.tsx:72
 msgid "Current line"
@@ -399,6 +423,10 @@ msgstr "Date"
 #: src/dashboard/dashboard.tsx:24
 msgid "Deviations"
 msgstr "Deviations"
+
+#: src/settings/account/avatar-field.tsx:27
+msgid "Drag to reposition, and zoom to fill the circle."
+msgstr "Drag to reposition, and zoom to fill the circle."
 
 #: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:41
@@ -927,6 +955,14 @@ msgstr "Performance"
 msgid "PGN file"
 msgstr "PGN file"
 
+#: src/settings/account/avatar-field.tsx:33
+msgid "Picture removed."
+msgstr "Picture removed."
+
+#: src/settings/account/avatar-field.tsx:32
+msgid "Picture updated."
+msgstr "Picture updated."
+
 #: src/drill/drill-prompt.tsx:21
 #: src/repertoire/repertoire-practice.tsx:58
 msgid "Play the move you prepared."
@@ -1023,6 +1059,10 @@ msgstr "Reading your games…"
 msgid "Reload"
 msgstr "Reload"
 
+#: src/settings/account/avatar-field.tsx:25
+msgid "Remove picture"
+msgstr "Remove picture"
+
 #: src/repertoire/repertoire-landing.tsx:27
 #: src/routes/_app/repertoire.tsx:9
 #: src/test/routes.tsx:117
@@ -1062,10 +1102,15 @@ msgstr "Right."
 msgid "Save"
 msgstr "Save"
 
+#: src/settings/account/avatar-field.tsx:30
+msgid "Save picture"
+msgstr "Save picture"
+
 #: src/settings/account/profile-form.tsx:30
 msgid "Saved."
 msgstr "Saved."
 
+#: src/settings/account/avatar-field.tsx:31
 #: src/settings/account/profile-form.tsx:29
 msgid "Saving…"
 msgstr "Saving…"
@@ -1196,6 +1241,10 @@ msgstr "System follows your operating system's setting."
 #: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "That doesn't look like an email address."
 msgstr "That doesn't look like an email address."
+
+#: src/settings/account/avatar-field.tsx:37
+msgid "That image is too large. Choose one under 8 MB."
+msgstr "That image is too large. Choose one under 8 MB."
 
 #: src/games/import/sources.ts:13
 msgid "That username is too long"
@@ -1485,3 +1534,7 @@ msgstr "Your preparation said"
 #: src/repertoire/chapter-study.tsx:66
 msgid "Your repertoire plays:"
 msgstr "Your repertoire plays:"
+
+#: src/settings/account/avatar-field.tsx:28
+msgid "Zoom"
+msgstr "Zoom"

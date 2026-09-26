@@ -254,12 +254,24 @@ msgstr ""
 msgid "Bullet"
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:29
+msgid "Cancel"
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:24
+msgid "Change your picture"
+msgstr ""
+
 #: src/repertoire/chapter-study.tsx:55
 msgid "Chapter"
 msgstr ""
 
 #: src/games/import/sources.ts:58
 msgid "Chess.com username"
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:36
+msgid "Choose a JPEG, PNG or WebP image."
 msgstr ""
 
 #: src/games/games-list.tsx:30
@@ -375,8 +387,20 @@ msgstr ""
 msgid "Couldn't reach the server. Try again."
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:35
+msgid "Couldn't remove it. Try again."
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:34
+msgid "Couldn't save that picture. Try again."
+msgstr ""
+
 #: src/settings/account/profile-form.tsx:31
 msgid "Couldn't save that. Try again."
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:26
+msgid "Crop your picture"
 msgstr ""
 
 #: src/repertoire/chapter-study.tsx:72
@@ -398,6 +422,10 @@ msgstr ""
 
 #: src/dashboard/dashboard.tsx:24
 msgid "Deviations"
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:27
+msgid "Drag to reposition, and zoom to fill the circle."
 msgstr ""
 
 #: src/games/list/columns.tsx:20
@@ -927,6 +955,14 @@ msgstr ""
 msgid "PGN file"
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:33
+msgid "Picture removed."
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:32
+msgid "Picture updated."
+msgstr ""
+
 #: src/drill/drill-prompt.tsx:21
 #: src/repertoire/repertoire-practice.tsx:58
 msgid "Play the move you prepared."
@@ -1023,6 +1059,10 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:25
+msgid "Remove picture"
+msgstr ""
+
 #: src/repertoire/repertoire-landing.tsx:27
 #: src/routes/_app/repertoire.tsx:9
 #: src/test/routes.tsx:117
@@ -1062,10 +1102,15 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:30
+msgid "Save picture"
+msgstr ""
+
 #: src/settings/account/profile-form.tsx:30
 msgid "Saved."
 msgstr ""
 
+#: src/settings/account/avatar-field.tsx:31
 #: src/settings/account/profile-form.tsx:29
 msgid "Saving…"
 msgstr ""
@@ -1195,6 +1240,10 @@ msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "That doesn't look like an email address."
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:37
+msgid "That image is too large. Choose one under 8 MB."
 msgstr ""
 
 #: src/games/import/sources.ts:13
@@ -1484,4 +1533,8 @@ msgstr ""
 
 #: src/repertoire/chapter-study.tsx:66
 msgid "Your repertoire plays:"
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:28
+msgid "Zoom"
 msgstr ""

@@ -27,6 +27,11 @@ export const TEST_USER: TestSessionUser = {
  */
 let signInMethods = { password: true, google: false };
 
+/** Bumped per upload so a replacement produces a different URL, the way
+ * the real cache buster does — a test asserting the image changed needs
+ * the value to actually change. */
+let avatarVersion = 1;
+
 export function signInMethodsAre(methods: {
   password?: boolean;
   google?: boolean;
@@ -70,6 +75,7 @@ export function resetAuthScenario(): void {
   scenario = { kind: "signed-in", user: TEST_USER };
   signInMethods = { password: true, google: false };
   linkedProviders = ["credential"];
+  avatarVersion = 1;
 }
 
 function sessionBody(user: TestSessionUser) {
@@ -160,6 +166,34 @@ export const authHandlers = [
       scenario = { kind: "signed-in", user: { ...scenario.user, name: body.name } };
     }
     return HttpResponse.json({ status: true });
+  }),
+
+  /**
+   * Avatar bytes go to our API, not Better Auth, but the URL lands on the
+   * same session — so these live beside the session handler that reads it.
+   *
+   * The body is checked rather than accepted: a payload that is not raw
+   * base64 is what the real route refuses, so refusing it here is what
+   * makes a screen test able to catch the client sending the wrong thing.
+   */
+  http.post("/api/me/avatar", async ({ request }) => {
+    const body = (await request.json()) as { image?: string };
+    if (!body.image || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
+      return HttpResponse.json({ error: "invalid body" }, { status: 400 });
+    }
+
+    const image = `/api/me/avatar?v=${avatarVersion++}`;
+    if (scenario.kind === "signed-in") {
+      scenario = { kind: "signed-in", user: { ...scenario.user, image } };
+    }
+    return HttpResponse.json({ image });
+  }),
+
+  http.delete("/api/me/avatar", () => {
+    if (scenario.kind === "signed-in") {
+      scenario = { kind: "signed-in", user: { ...scenario.user, image: null } };
+    }
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // Closed on the real server, closed here too — the frontend must never

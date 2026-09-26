@@ -12,9 +12,9 @@ import {
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
 
+import { AvatarField } from "./avatar-field.tsx";
 import { useRenameSelf } from "./queries.ts";
 import type { SessionUser } from "../../auth/client.ts";
-import { UserAvatar } from "../../auth/user-avatar.tsx";
 import { z } from "../../libs/zod.ts";
 
 const PROFILE_COPY = {
@@ -46,13 +46,7 @@ export function ProfileForm({ user }: { user: SessionUser }) {
     <section className="flex flex-col gap-4">
       <h3 className="text-sm font-medium">{i18n._(PROFILE_COPY.title)}</h3>
 
-      <div className="flex items-center gap-3">
-        <UserAvatar user={user} size="lg" />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{user.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-        </div>
-      </div>
+      <AvatarField user={user} />
 
       <form
         className="max-w-sm"

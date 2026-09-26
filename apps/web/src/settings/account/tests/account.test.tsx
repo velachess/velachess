@@ -1,8 +1,8 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
-import { desktopNav, renderApp } from "../../../test/render.tsx";
+import { desktopNav, mainContent, renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
 import {
   linkedProvidersAre,
@@ -211,6 +211,21 @@ describe("sign-in methods", () => {
   });
 });
 
+/** A real File, so the type and size guards see what a browser would give
+ * them. The bytes never matter: jsdom's canvas is stubbed, so the encode
+ * always yields the same one-byte blob. */
+function imageFile({
+  type = "image/png",
+  bytes = 8,
+}: { type?: string; bytes?: number } = {}): File {
+  return new File([new Uint8Array(bytes)], "picture.png", { type });
+}
+
+async function openAccount() {
+  sessionActive();
+  return renderApp({ path: "/settings/account" });
+}
+
 describe("the avatar", () => {
   it("falls back to initials for an account with no picture", async () => {
     sessionActive();
@@ -223,5 +238,111 @@ describe("the avatar", () => {
     expect(
       within(menu.closest("div")!.parentElement!).getByText("VU"),
     ).toBeInTheDocument();
+  });
+});
+
+describe("changing the avatar", () => {
+  /**
+   * The avatar image is decorative — `alt=""`, because the name sits right
+   * beside it — so it has no `img` role to query. The observable fact is
+   * the one the user cares about: initials give way to a picture.
+   */
+  it("shows a stored picture instead of initials", async () => {
+    sessionActive({ ...TEST_USER, image: "/api/me/avatar?v=7" });
+
+    await renderApp({ path: "/settings/account" });
+
+    expect(await screen.findByRole("heading", { name: "Profile" })).toBeInTheDocument();
+    expect(mainContent().queryByText("VU")).not.toBeInTheDocument();
+  });
+
+  it("uploads a cropped picture and shows it in the shell too", async () => {
+    const { user } = await openAccount();
+
+    await user.upload(await screen.findByLabelText("Change your picture"), imageFile());
+    await user.click(await screen.findByRole("button", { name: "Save picture" }));
+
+    expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
+    // The shell reads the same session query, so one invalidation refreshes
+    // both — that is the whole reason the mutation invalidates rather than
+    // writing the cache. Initials disappearing from the shell's user menu
+    // is how that shows from outside.
+    await user.click(await desktopNav().findByRole("button", { name: "Account" }));
+    await waitFor(() => {
+      expect(screen.queryByText("VU")).not.toBeInTheDocument();
+    });
+  });
+
+  it("removes it and comes back to initials", async () => {
+    sessionActive({ ...TEST_USER, image: "/api/me/avatar?v=3" });
+    const { user } = await renderApp({ path: "/settings/account" });
+
+    await user.click(await screen.findByRole("button", { name: "Remove picture" }));
+
+    expect(await screen.findByText("Picture removed.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mainContent().getByText("VU")).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * `fireEvent`, not `user.upload`: userEvent enforces the input's `accept`
+   * attribute and silently drops a non-matching file, so the change event
+   * never fires and the guard is never reached. Browsers do not enforce it
+   * that way — `accept` filters the picker's default view, a user can
+   * switch it to all files, and a drop bypasses it entirely — which is why
+   * the guard exists and why the test has to reach past userEvent to
+   * exercise it. Same class of exception as pgn-import-dialog.test.tsx.
+   */
+  it("refuses a file that is not an image we accept", async () => {
+    await openAccount();
+    const input = await screen.findByLabelText("Change your picture");
+
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["not an image"], "notes.txt", { type: "text/plain" })],
+      },
+    });
+
+    expect(
+      await screen.findByText("Choose a JPEG, PNG or WebP image."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Save picture" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("refuses a file too large to decode", async () => {
+    const { user } = await openAccount();
+
+    await user.upload(
+      await screen.findByLabelText("Change your picture"),
+      imageFile({ bytes: 9 * 1024 * 1024 }),
+    );
+
+    expect(
+      await screen.findByText("That image is too large. Choose one under 8 MB."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Save picture" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the dialog open and says so when the upload fails", async () => {
+    server.use(
+      http.post("/api/me/avatar", () =>
+        HttpResponse.json({ error: "boom" }, { status: 500 }),
+      ),
+    );
+    const { user } = await openAccount();
+
+    await user.upload(await screen.findByLabelText("Change your picture"), imageFile());
+    await user.click(await screen.findByRole("button", { name: "Save picture" }));
+
+    expect(
+      await screen.findByText("Couldn't save that picture. Try again."),
+    ).toBeInTheDocument();
+    // Still open, so the user can retry without picking the file again.
+    expect(screen.getByRole("button", { name: "Save picture" })).toBeInTheDocument();
   });
 });
