@@ -11,6 +11,18 @@
  * It is not a convenience barrel.
  */
 
+export { AVATAR_MAX_BYTES } from "./avatar.ts";
+export type { AvatarMediaType, AvatarSource } from "./avatar.ts";
+
+export { setAvatar } from "./set-avatar/set-avatar.ts";
+export type { SetAvatarDeps, SetAvatarOutcome } from "./set-avatar/set-avatar.ts";
+
+export { removeAvatar } from "./remove-avatar/remove-avatar.ts";
+export type { RemoveAvatarDeps } from "./remove-avatar/remove-avatar.ts";
+
+export { readAvatar } from "./read-avatar/read-avatar.ts";
+export type { ReadAvatarDeps, StoredAvatar } from "./read-avatar/read-avatar.ts";
+
 export {
   bootstrapUser,
   bootstrapCredentialsFromEnv,

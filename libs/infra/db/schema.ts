@@ -70,7 +70,23 @@ export const users = pgTable("users", {
   displayName: text("display_name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
+  /**
+   * The effective avatar URL, whatever its origin. Better Auth writes the
+   * OAuth profile picture here when it creates the user, and never again —
+   * both of its overwrite paths (`overrideUserInfoOnSignIn`,
+   * `accountLinking.updateUserInfoOnLink`) are opt-in and unset. The
+   * application owns the column after that.
+   */
   image: text("image"),
+  /**
+   * Who last set `image`, written only by VelaChess: `custom` for an
+   * upload, `none` for a deliberate removal. `null` means untouched by us,
+   * so OAuth-initialized is `image != null AND avatar_source IS NULL`.
+   *
+   * Exists because `image IS NULL` alone cannot tell "never had a picture"
+   * from "deleted theirs", and only the second must stay empty.
+   */
+  avatarSource: text("avatar_source"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
