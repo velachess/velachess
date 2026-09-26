@@ -1,7 +1,11 @@
 /**
- * [AUTH] — what this module offers the rest of the system. Packaged as
- * @velachess/auth (folder stays libs/auth/) to avoid colliding
- * with libs/infra/auth's existing @velachess/infra-auth package name.
+ * [USER] — the VelaChess person: who they are here and what they look
+ * like. Owns first-user bootstrap and the profile avatar.
+ *
+ * Refuses to own the Better Auth mechanism and session resolution (that
+ * is libs/infra/auth and apps/server/src/middleware/session.ts), and the
+ * chess.com/Lichess handles a person tracks (that is libs/accounts — a
+ * public handle is a data source, never identity).
  *
  * Root index.ts is the public interface of a vertical/module/capability.
  * It is not a convenience barrel.

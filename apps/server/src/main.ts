@@ -8,7 +8,7 @@ import postgres from "postgres";
 
 import { sessionAdvisoryLock } from "@velachess/infra-db";
 import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
-import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/auth";
+import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
 import { createDb } from "@velachess/infra-db";
 import { createWatchers } from "@velachess/analysis";
 import { logger } from "@velachess/infra-logger";
@@ -21,7 +21,7 @@ import {
 import { makeScheduler } from "@velachess/scheduler";
 
 import { createApp } from "./server.ts";
-import { buildBootstrapUserDeps } from "./composition/auth.ts";
+import { buildBootstrapUserDeps } from "./composition/user.ts";
 import { buildWatcherDeps } from "./composition/analysis.ts";
 
 const apiLogger = logger.child({ component: "api" });

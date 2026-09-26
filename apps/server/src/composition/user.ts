@@ -9,7 +9,7 @@
 import type { Auth } from "@velachess/infra-auth";
 import { countUsers, markEmailVerified } from "@velachess/infra-db";
 import type { Database, ExecutionLock } from "@velachess/infra-db";
-import type { BootstrapUserDeps } from "@velachess/auth";
+import type { BootstrapUserDeps } from "@velachess/user";
 
 export function buildBootstrapUserDeps(
   db: Database,

@@ -89,7 +89,7 @@ libs/drills       exercise identity, FSRS card state, the training queue
 libs/insights     cross-module reporting aggregates
 libs/deviations   the judgment-table read
 libs/overview     the dashboard aggregate
-libs/auth         user bootstrap (package @velachess/auth)
+libs/user         the person: first-user bootstrap and profile avatar
 libs/chess        chess rules, PGN, FEN/EPD
 libs/infra/platforms       chess.com / Lichess sync
 libs/infra/engine       Stockfish UCI

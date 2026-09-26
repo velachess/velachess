@@ -23,7 +23,7 @@
     "@velachess/infra-logger": "workspace:*",
     "@velachess/infra-platforms": "workspace:*",
     "@velachess/insights": "workspace:*",
-    "@velachess/auth": "workspace:*",
+    "@velachess/user": "workspace:*",
     "@velachess/overview": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
     "@velachess/repertoires": "workspace:*",

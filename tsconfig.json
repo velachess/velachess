@@ -50,7 +50,7 @@
       "@velachess/games": ["./libs/games/index.ts"],
       "@velachess/insights": ["./libs/insights/index.ts"],
       "@velachess/repertoires": ["./libs/repertoires/index.ts"],
-      "@velachess/auth": ["./libs/auth/index.ts"],
+      "@velachess/user": ["./libs/user/index.ts"],
       "@velachess/test-utils": ["./libs/test-utils/index.ts"],
       "@velachess/test-utils/*": ["./libs/test-utils/*"]
     }

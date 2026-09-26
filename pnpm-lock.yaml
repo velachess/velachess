@@ -90,9 +90,6 @@ importers:
       '@velachess/analysis':
         specifier: workspace:*
         version: link:../../libs/analysis
-      '@velachess/auth':
-        specifier: workspace:*
-        version: link:../../libs/auth
       '@velachess/deviations':
         specifier: workspace:*
         version: link:../../libs/deviations
@@ -129,6 +126,9 @@ importers:
       '@velachess/scheduler':
         specifier: workspace:*
         version: link:../../libs/scheduler
+      '@velachess/user':
+        specifier: workspace:*
+        version: link:../../libs/user
       hono:
         specifier: ^4.13.5
         version: 4.13.5
@@ -403,8 +403,6 @@ importers:
       stockfish:
         specifier: ^18.0.8
         version: 18.0.8
-
-  libs/auth: {}
 
   libs/chess:
     dependencies:
@@ -683,6 +681,8 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+
+  libs/user: {}
 
 packages:
 

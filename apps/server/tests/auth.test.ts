@@ -8,8 +8,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { bootstrapUser } from "@velachess/auth";
-import { buildBootstrapUserDeps } from "../src/composition/auth.ts";
+import { bootstrapUser } from "@velachess/user";
+import { buildBootstrapUserDeps } from "../src/composition/user.ts";
 import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/infra-auth";
 import { eq } from "drizzle-orm";
 
