@@ -114,6 +114,9 @@ importers:
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
+      '@velachess/infra-storage':
+        specifier: workspace:*
+        version: link:../../libs/infra/storage
       '@velachess/insights':
         specifier: workspace:*
         version: link:../../libs/insights

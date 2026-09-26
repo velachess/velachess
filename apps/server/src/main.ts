@@ -8,6 +8,7 @@ import postgres from "postgres";
 
 import { sessionAdvisoryLock } from "@velachess/infra-db";
 import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
+import { createFileStore, resolveStorageEnv } from "@velachess/infra-storage";
 import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
 import { createDb } from "@velachess/infra-db";
 import { createWatchers } from "@velachess/analysis";
@@ -52,6 +53,7 @@ const analysisQueue = makeAnalysisQueue(boss, db);
 // (not in errors, not in this log). All rules live and are unit-tested
 // in libs/infra/auth/env.ts; this file only wires the result.
 const authEnv = resolveAuthEnv(process.env);
+const storageEnv = resolveStorageEnv(process.env);
 if (authEnv.insecureProductionTransport) {
   apiLogger.warn(
     { baseUrl: authEnv.baseUrl },
@@ -108,6 +110,7 @@ const app = createApp({
   syncQueue: makeSyncQueue(boss, db),
   scheduler: makeScheduler(),
   lock,
+  files: createFileStore(storageEnv.root),
 });
 
 const port = Number(process.env["PORT"] ?? 3000);

@@ -5,11 +5,17 @@ import { readAvatar, type ReadAvatarDeps } from "../read-avatar.ts";
 const USER = "d3b07384-d9a0-4c9b-8f4e-000000000001";
 const OTHER = "d3b07384-d9a0-4c9b-8f4e-000000000002";
 
-const webp = new Uint8Array([
-  0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x99,
-]);
+/** Built the way the real store builds its copies: a sized allocation, so
+ * the buffer type matches the port rather than widening. */
+function bytesOf(values: number[]): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(values.length);
+  out.set(values);
+  return out;
+}
 
-function store(objects: Record<string, Uint8Array>) {
+const webp = bytesOf([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x99]);
+
+function store(objects: Record<string, Uint8Array<ArrayBuffer>>) {
   const asked: string[] = [];
   const deps: ReadAvatarDeps = {
     getAvatarObject: async (key) => {
@@ -54,7 +60,7 @@ describe("reading an avatar", () => {
    * restored backup — get no Content-Type invented for them. */
   it("treats unrecognisable bytes as no avatar at all", async () => {
     const { deps } = store({
-      [`avatars/${USER}.webp`]: new TextEncoder().encode("<svg onload=1/>"),
+      [`avatars/${USER}.webp`]: bytesOf([...new TextEncoder().encode("<svg onload=1/>")]),
     });
 
     expect(await readAvatar(deps, USER)).toBeNull();

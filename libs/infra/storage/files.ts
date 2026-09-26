@@ -11,9 +11,16 @@ import { randomUUID } from "node:crypto";
 export interface FileStore {
   /** Throws for a key that would resolve outside the root. */
   put(key: string, bytes: Uint8Array): Promise<void>;
-  /** `null` — not a throw — when the object is absent, so "no avatar" is
-   * an answer a caller can map to a 404 rather than a 500. */
-  get(key: string): Promise<Uint8Array | null>;
+  /**
+   * `null` — not a throw — when the object is absent, so "no avatar" is an
+   * answer a caller can map to a 404 rather than a 500.
+   *
+   * `Uint8Array<ArrayBuffer>`, not the bare `Uint8Array` that now defaults
+   * to `ArrayBufferLike`: the store always hands back a copy it owns, and
+   * saying so is what lets a caller pass it straight to `Response`, whose
+   * `BodyInit` will not take the widened type.
+   */
+  get(key: string): Promise<Uint8Array<ArrayBuffer> | null>;
   /** Absent is success: remove is idempotent by construction. */
   remove(key: string): Promise<void>;
 }
@@ -74,9 +81,14 @@ export function createFileStore(root: string): FileStore {
         // readFile hands back. Buffer is a Uint8Array subclass, so the
         // type would pass either way, but it carries Node-only behaviour
         // (its own toJSON, and pooled backing memory a view could alias)
-        // across a boundary whose contract says Uint8Array. One copy of
-        // an avatar-sized object is not worth the ambiguity.
-        return new Uint8Array(contents);
+        // across a boundary whose contract says Uint8Array. One copy of an
+        // avatar-sized object is not worth the ambiguity.
+        //
+        // Sized-then-set rather than `new Uint8Array(contents)` so the
+        // buffer type is the concrete ArrayBuffer the contract promises.
+        const copy = new Uint8Array(contents.byteLength);
+        copy.set(contents);
+        return copy;
       } catch (error) {
         if (isMissing(error)) return null;
         throw error;

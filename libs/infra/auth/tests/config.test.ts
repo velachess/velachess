@@ -97,3 +97,43 @@ describe("cookies", () => {
     ).toBe(false);
   });
 });
+
+/**
+ * The avatar lifecycle rests on Better Auth writing `user.image` when it
+ * creates a user and never again. That is the default, which is exactly
+ * why it needs pinning: enabling either flag below would silently restore
+ * a provider picture over an uploaded avatar, and over the deliberate
+ * "no picture" state a user chose.
+ *
+ * Read from the installed 1.7.2:
+ * `api/routes/callback.mjs:232` gates the sign-in overwrite on
+ * `overrideUserInfoOnSignIn`, and `oauth2/link-account.mjs:320` gates the
+ * link-time overwrite on `accountLinking.updateUserInfoOnLink !== true`.
+ * Neither is behaviour a test process can drive — a real token exchange
+ * would be needed — so the option is the seam.
+ */
+describe("who owns user.image", () => {
+  // Asserted as whole objects rather than one absent key each: TypeScript
+  // infers these from the literals we pass, so a test naming the key would
+  // not even compile while the key is absent — and would stop being a
+  // guard the moment it appeared. An exhaustive match fails on any added
+  // option, which is the actual thing worth catching.
+  it("passes Google no option that could overwrite user.image on sign-in", () => {
+    const { options } = createAuth({
+      ...base,
+      google: { clientId: "client-id", clientSecret: "client-secret" },
+    });
+
+    expect(options.socialProviders?.google).toEqual({
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectURI: "https://chess.example.com/api/auth/callback/google",
+    });
+  });
+
+  it("passes no account-linking option that could overwrite it either", () => {
+    const { options } = createAuth(base);
+
+    expect(options.account).toEqual({ modelName: "authAccounts" });
+  });
+});

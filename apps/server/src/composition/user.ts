@@ -7,9 +7,15 @@
  * identical adapter.
  */
 import type { Auth } from "@velachess/infra-auth";
-import { countUsers, markEmailVerified } from "@velachess/infra-db";
+import { countUsers, markEmailVerified, writeAvatarState } from "@velachess/infra-db";
 import type { Database, ExecutionLock } from "@velachess/infra-db";
-import type { BootstrapUserDeps } from "@velachess/user";
+import type { FileStore } from "@velachess/infra-storage";
+import type {
+  BootstrapUserDeps,
+  ReadAvatarDeps,
+  RemoveAvatarDeps,
+  SetAvatarDeps,
+} from "@velachess/user";
 
 export function buildBootstrapUserDeps(
   db: Database,
@@ -22,4 +28,27 @@ export function buildBootstrapUserDeps(
     markEmailVerified: (userId) => markEmailVerified(db, userId),
     tryAcquireLock: (key) => lock.tryAcquire(key),
   };
+}
+
+/**
+ * The only place the file store and the user module meet. Each builder
+ * hands the slice the exact functions it declared, so no route file and no
+ * slice ever holds a `FileStore` or a `Database`.
+ */
+export function buildSetAvatarDeps(db: Database, files: FileStore): SetAvatarDeps {
+  return {
+    putAvatarObject: (key, bytes) => files.put(key, bytes),
+    writeAvatarState: (userId, next) => writeAvatarState(db, userId, next),
+  };
+}
+
+export function buildRemoveAvatarDeps(db: Database, files: FileStore): RemoveAvatarDeps {
+  return {
+    removeAvatarObject: (key) => files.remove(key),
+    writeAvatarState: (userId, next) => writeAvatarState(db, userId, next),
+  };
+}
+
+export function buildReadAvatarDeps(files: FileStore): ReadAvatarDeps {
+  return { getAvatarObject: (key) => files.get(key) };
 }

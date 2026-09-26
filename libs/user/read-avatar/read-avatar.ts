@@ -11,14 +11,20 @@ import {
   type AvatarMediaType,
 } from "../avatar.ts";
 
-type GetAvatarObject = (key: string) => Promise<Uint8Array | null>;
+/**
+ * `Uint8Array<ArrayBuffer>`, not the bare `Uint8Array` that now widens to
+ * `ArrayBufferLike`: a stored object is a standalone copy, and saying so is
+ * what lets the route hand these bytes to a Response without a cast or a
+ * second copy.
+ */
+type GetAvatarObject = (key: string) => Promise<Uint8Array<ArrayBuffer> | null>;
 
 export interface ReadAvatarDeps {
   getAvatarObject: GetAvatarObject;
 }
 
 export interface StoredAvatar {
-  bytes: Uint8Array;
+  bytes: Uint8Array<ArrayBuffer>;
   mediaType: AvatarMediaType;
 }
 

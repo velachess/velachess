@@ -1,7 +1,12 @@
 /** API harness: the shared loop harness + the real app. Only what is
  * api-specific lives here — everything else comes from test-utils. */
 
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { createAuth, type Auth } from "@velachess/infra-auth";
+import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
 import {
   appendProgress,
@@ -74,6 +79,8 @@ export async function createApiHarness(
   // this twin; the mounted instance rejects POST /auth/sign-up/email.
   const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 
+  const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
+
   const deps: ApiDeps = {
     db: harness.db,
     auth,
@@ -88,6 +95,9 @@ export async function createApiHarness(
     syncQueue: harness.syncQueue,
     scheduler: makeScheduler(),
     lock: harness.lock,
+    // A real store over a temp dir, like every other dependency here:
+    // nothing is mocked away, so a test proves the bytes round-trip.
+    files: createFileStore(filesRoot),
     // GET /games fills read-through; the suite must not reach the network.
     sync,
   };
@@ -177,6 +187,7 @@ export async function createApiHarness(
     close: async () => {
       deps.watchers.close();
       await harness.close();
+      await rm(filesRoot, { recursive: true, force: true });
     },
   };
 }

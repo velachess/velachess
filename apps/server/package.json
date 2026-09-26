@@ -26,6 +26,7 @@
     "@velachess/user": "workspace:*",
     "@velachess/overview": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
+    "@velachess/infra-storage": "workspace:*",
     "@velachess/repertoires": "workspace:*",
     "@velachess/scheduler": "workspace:*",
     "hono": "^4.13.5",
