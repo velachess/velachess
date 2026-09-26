@@ -16,6 +16,23 @@ export async function markEmailVerified(db: Database, userId: string) {
   await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
 }
 
+/**
+ * The only writer of `users.image` in this repo — Better Auth writes it
+ * once at user creation and never again. Both columns move together
+ * because the pair is the state: an `image` without its source, or a
+ * source without its `image`, is a row nothing can interpret.
+ */
+export async function writeAvatarState(
+  db: Database,
+  userId: string,
+  next: { image: string | null; avatarSource: string | null },
+) {
+  await db
+    .update(users)
+    .set({ image: next.image, avatarSource: next.avatarSource })
+    .where(eq(users.id, userId));
+}
+
 let seq = 0;
 
 /**

@@ -5,7 +5,7 @@ const testPath = "(?:^|/)(?:tests|e2e)/|[.](?:test|spec)[.](?:[cm]?[jt]sx?)$";
 // libs/application package these were migrated out of is gone as of
 // migration phase 9.
 const businessModules =
-  "accounts|games|repertoires|drills|insights|deviations|overview|auth|analysis";
+  "accounts|games|repertoires|drills|insights|deviations|overview|user|analysis";
 
 const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${businessModules}|infra|chess|scheduler|ui/src))/`;
 

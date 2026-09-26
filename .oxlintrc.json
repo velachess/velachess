@@ -209,6 +209,43 @@
       }
     },
     {
+      "files": ["libs/infra/storage/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@velachess/accounts",
+                  "@velachess/analysis",
+                  "@velachess/chess",
+                  "@velachess/deviations",
+                  "@velachess/drills",
+                  "@velachess/games",
+                  "@velachess/insights",
+                  "@velachess/overview",
+                  "@velachess/repertoires",
+                  "@velachess/scheduler",
+                  "@velachess/user"
+                ],
+                "message": "libs/infra/storage moves bytes under a root \u2014 keys, policy and meaning belong to its callers."
+              },
+              {
+                "group": [
+                  "@velachess/infra-db",
+                  "@velachess/infra-db/**",
+                  "@velachess/infra-auth",
+                  "@velachess/infra-auth/**"
+                ],
+                "message": "Storage knows nothing about rows or sessions \u2014 the composition root pairs them."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["libs/infra/platforms/providers/chess-com.ts"],
       "rules": {
         "no-await-in-loop": "off"

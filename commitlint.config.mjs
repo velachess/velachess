@@ -26,9 +26,11 @@ const scopes = [
   "queue",
   "repertoire",
   "scheduler",
+  "storage",
   "test-utils",
   "drill",
   "ui",
+  "user",
   // Cross-cutting, so they are not workspaces:
   "agents", // roles, skills, AGENTS.md
   "docs",

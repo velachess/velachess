@@ -67,6 +67,13 @@ services:
       # step 6), and an installation with users ignores them either way.
       VELACHESS_BOOTSTRAP_USER_EMAIL: ${VELACHESS_BOOTSTRAP_USER_EMAIL:-}
       VELACHESS_BOOTSTRAP_USER_PASSWORD: ${VELACHESS_BOOTSTRAP_USER_PASSWORD:-}
+      # Uploaded files — profile pictures today. Absolute, and a mount
+      # point rather than a path in the image: the library refuses a
+      # relative root in production precisely because that writes into the
+      # container layer, where `up --build` deletes it.
+      VELACHESS_STORAGE_DIR: /data
+    volumes:
+      - velachess_files:/data
     ports:
       # Host side overridable — 3000 is a popular port (AdGuard, Grafana…).
       # The container always listens on 3000; point VITE_API_TARGET at
@@ -91,3 +98,7 @@ services:
 
 volumes:
   velachess_pgdata:
+  # Belongs in the backup set alongside the database: losing it degrades
+  # every custom avatar to initials, which the UI handles, but the images
+  # are gone.
+  velachess_files:

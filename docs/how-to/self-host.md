@@ -141,6 +141,26 @@ it cannot attribute, and falls back to a **single shared bucket for the
 whole site** — three failed sign-ins by anyone lock out everyone, with
 nothing but one log line to say so.
 
+## Where uploaded files live
+
+Profile pictures are the only binary VelaChess stores, and they do not go
+in Postgres. The compose file mounts the `velachess_files` volume at
+`/data` and points `VELACHESS_STORAGE_DIR` at it. Inside, one object per
+user: `avatars/<user-uuid>.webp`.
+
+**Back it up with the database, not instead of it.** The two hold halves
+of the same fact — the row carries the URL, the volume carries the bytes —
+so restoring one without the other leaves avatars that 404. Losing the
+volume alone is survivable: every affected user falls back to their
+initials, which is the same path an account that never uploaded one takes.
+Nothing breaks, and nobody is locked out.
+
+The API refuses to boot with a relative `VELACHESS_STORAGE_DIR` in
+production. A relative path resolves against the container's working
+directory, which means uploads land in the image's own layer and the next
+`docker compose up --build` deletes them — a deployment that looks healthy
+until the first restart.
+
 ## Sign-in with Google (optional)
 
 Set both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Setting one

@@ -12,9 +12,10 @@ import {
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
 
+import { AvatarField } from "./avatar-field.tsx";
 import { useRenameSelf } from "./queries.ts";
+import { useTransientSuccess } from "./use-transient-success.ts";
 import type { SessionUser } from "../../auth/client.ts";
-import { UserAvatar } from "../../auth/user-avatar.tsx";
 import { z } from "../../libs/zod.ts";
 
 const PROFILE_COPY = {
@@ -34,6 +35,7 @@ const PROFILE_COPY = {
 export function ProfileForm({ user }: { user: SessionUser }) {
   const { i18n } = useLingui();
   const rename = useRenameSelf();
+  useTransientSuccess(rename.isSuccess, rename.reset);
 
   const form = useForm({
     defaultValues: { name: user.name },
@@ -46,13 +48,7 @@ export function ProfileForm({ user }: { user: SessionUser }) {
     <section className="flex flex-col gap-4">
       <h3 className="text-sm font-medium">{i18n._(PROFILE_COPY.title)}</h3>
 
-      <div className="flex items-center gap-3">
-        <UserAvatar user={user} size="lg" />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{user.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-        </div>
-      </div>
+      <AvatarField user={user} />
 
       <form
         className="max-w-sm"
@@ -108,15 +104,38 @@ export function ProfileForm({ user }: { user: SessionUser }) {
             <FieldDescription>{i18n._(PROFILE_COPY.emailFixed)}</FieldDescription>
           </Field>
 
-          <Field orientation="horizontal">
-            <Button type="submit" disabled={rename.isPending}>
-              {rename.isPending ? i18n._(PROFILE_COPY.saving) : i18n._(PROFILE_COPY.save)}
-            </Button>
-            {rename.isSuccess && !rename.isPending && (
-              <FieldDescription>{i18n._(PROFILE_COPY.saved)}</FieldDescription>
-            )}
-            {rename.isError && <FieldError>{i18n._(PROFILE_COPY.saveFailed)}</FieldError>}
-          </Field>
+          {/*
+            Save speaks for the editable fields and nothing else. Dirty is
+            derived from the persisted name rather than tracked: the
+            session is the truth, and invalidating it after a rename makes
+            this false again on its own. Tracking it separately would be a
+            second copy of the same fact — and would have to know not to
+            count the avatar, which persists on its own the moment it
+            changes and is never part of this form.
+          */}
+          <form.Subscribe selector={(state) => state.values.name}>
+            {(name) => {
+              const isDirty = name.trim() !== user.name;
+
+              return (
+                <Field orientation="horizontal">
+                  <Button type="submit" disabled={rename.isPending || !isDirty}>
+                    {rename.isPending
+                      ? i18n._(PROFILE_COPY.saving)
+                      : i18n._(PROFILE_COPY.save)}
+                  </Button>
+                  {rename.isSuccess && !rename.isPending && (
+                    <FieldDescription className="text-success">
+                      {i18n._(PROFILE_COPY.saved)}
+                    </FieldDescription>
+                  )}
+                  {rename.isError && (
+                    <FieldError>{i18n._(PROFILE_COPY.saveFailed)}</FieldError>
+                  )}
+                </Field>
+              );
+            }}
+          </form.Subscribe>
         </FieldGroup>
       </form>
     </section>

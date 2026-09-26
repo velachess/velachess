@@ -23,6 +23,11 @@ import {
   buildSyncAccountDeps,
 } from "./composition/accounts.ts";
 import {
+  buildReadAvatarDeps,
+  buildRemoveAvatarDeps,
+  buildSetAvatarDeps,
+} from "./composition/user.ts";
+import {
   buildDrillSummaryDeps,
   buildGetAnalysisDeps,
   buildRequestAnalysisDeps,
@@ -54,6 +59,7 @@ import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { defaultHook } from "./validation.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
+import { userRoutes } from "./routes/user.ts";
 import { deviationsRoutes } from "./routes/deviations.ts";
 import { gamesRoutes } from "./routes/games.ts";
 import { repertoiresRoutes } from "./routes/repertoires.ts";
@@ -206,6 +212,14 @@ export function createApp(deps: ApiDeps) {
       rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
     )
     .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
+    .route(
+      "/me",
+      userRoutes({
+        set: buildSetAvatarDeps(deps.db, deps.files),
+        remove: buildRemoveAvatarDeps(deps.db, deps.files),
+        read: buildReadAvatarDeps(deps.files),
+      }),
+    )
     .route(
       "/accounts",
       accountsRoutes({

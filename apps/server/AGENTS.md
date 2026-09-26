@@ -24,8 +24,8 @@ details? }` contract.
 ## Composition root files
 
 `src/composition/<module>.ts` — one file per business module that needs
-wiring (currently `accounts`, `analysis`, `auth`, `deviations`, `drills`,
-`games`, `insights`, `overview`, `repertoires`). Each exports one
+wiring (currently `accounts`, `analysis`, `deviations`, `drills`, `games`,
+`insights`, `overview`, `repertoires`, `user`). Each exports one
 `build<Module>Deps(...)` function per route handler that adapts real infra
 (`deps.db`, `deps.analysisQueue`, `deps.scheduler`, ...) and other modules'
 `index.ts` capabilities into the exact narrow dependency shape that

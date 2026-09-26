@@ -31,8 +31,8 @@ libs/drills       exercise identity, FSRS card state, the training queue
 libs/insights     cross-module reporting aggregates
 libs/deviations   the judgment-table read
 libs/overview     the dashboard aggregate
-libs/auth         user bootstrap (package @velachess/auth)
-libs/infra        db, queue, engine, logger, platforms, and auth adapters
+libs/user         the person: first-user bootstrap and profile avatar
+libs/infra        db, queue, engine, logger, platforms, storage, and auth
 libs/chess        chess rules and notation
 libs/scheduler    FSRS wrapper
 libs/ui           shared design system and chess presentation
@@ -123,14 +123,15 @@ fix whichever is wrong.
 | insights    | `@velachess/insights`    | `libs/insights/`    |
 | deviations  | `@velachess/deviations`  | `libs/deviations/`  |
 | overview    | `@velachess/overview`    | `libs/overview/`    |
-| auth        | `@velachess/auth`        | `libs/auth/`        |
+| user        | `@velachess/user`        | `libs/user/`        |
 
-`libs/infra/*`'s six packages are `@velachess/infra-db`,
+`libs/infra/*`'s seven packages are `@velachess/infra-db`,
 `@velachess/infra-queue`, `@velachess/infra-engine`,
-`@velachess/infra-logger`, `@velachess/infra-platforms`, and
-`@velachess/infra-auth` — the `infra-` prefix keeps them visually distinct
+`@velachess/infra-logger`, `@velachess/infra-platforms`,
+`@velachess/infra-storage`, and `@velachess/infra-auth` — the `infra-`
+prefix keeps them visually distinct
 from business modules at the import site, including from the business
-`@velachess/auth` above.
+`@velachess/user` above.
 
 ## Principles
 
@@ -197,7 +198,7 @@ Always-relevant subtree rules belong in the nearest `AGENTS.md`:
 - `apps/worker/AGENTS.md` — delivery consumer ownership.
 - `libs/<module>/AGENTS.md` — one per business module (`accounts`, `games`,
   `repertoires`, `analysis`, `drills`, `insights`, `deviations`, `overview`,
-  `auth`) — what it owns, its `index.ts` surface, and its cross-module
+  `user`) — what it owns, its `index.ts` surface, and its cross-module
   dependency edges.
 - `libs/infra/AGENTS.md` — technical adapters and portability.
 - `libs/ui/AGENTS.md` — design-system ownership.

@@ -81,7 +81,7 @@ libs/repertoires/  extract-repertoire/  list-repertoires/  add-chapter/ …
 libs/insights/     get-insights/
 libs/overview/     get-overview/
 libs/deviations/   list-deviations/
-libs/auth/         bootstrap-user/
+libs/user/         bootstrap-user/
 ```
 
 Each top-level module is its own workspace package (`@velachess/accounts`,

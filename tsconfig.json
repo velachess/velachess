@@ -39,6 +39,8 @@
       "@velachess/analysis": ["./libs/analysis/index.ts"],
       "@velachess/scheduler": ["./libs/scheduler/index.ts"],
       "@velachess/scheduler/*": ["./libs/scheduler/*"],
+      "@velachess/infra-storage": ["./libs/infra/storage/index.ts"],
+      "@velachess/infra-storage/*": ["./libs/infra/storage/*"],
       "@velachess/infra-queue": ["./libs/infra/queue/index.ts"],
       "@velachess/infra-queue/*": ["./libs/infra/queue/*"],
       "@velachess/infra-auth": ["./libs/infra/auth/index.ts"],
@@ -50,7 +52,7 @@
       "@velachess/games": ["./libs/games/index.ts"],
       "@velachess/insights": ["./libs/insights/index.ts"],
       "@velachess/repertoires": ["./libs/repertoires/index.ts"],
-      "@velachess/auth": ["./libs/auth/index.ts"],
+      "@velachess/user": ["./libs/user/index.ts"],
       "@velachess/test-utils": ["./libs/test-utils/index.ts"],
       "@velachess/test-utils/*": ["./libs/test-utils/*"]
     }

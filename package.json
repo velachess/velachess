@@ -32,7 +32,7 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "knip": "knip",
-    "architecture": "dependency-cruise $(find apps/server apps/worker apps/web/src apps/site/src libs/accounts libs/games libs/repertoires libs/analysis libs/drills libs/insights libs/deviations libs/overview libs/auth libs/infra libs/chess libs/scheduler libs/ui/src \\( -name '*.ts' -o -name '*.tsx' \\) -not -path '*/node_modules/*' 2>/dev/null)",
+    "architecture": "dependency-cruise $(find apps/server apps/worker apps/web/src apps/site/src libs/accounts libs/games libs/repertoires libs/analysis libs/drills libs/insights libs/deviations libs/overview libs/user libs/infra libs/chess libs/scheduler libs/ui/src \\( -name '*.ts' -o -name '*.tsx' \\) -not -path '*/node_modules/*' 2>/dev/null)",
     "check": "pnpm typecheck && pnpm lint && pnpm architecture && pnpm knip",
     "test:root": "vitest run --project root",
     "test": "turbo run test test:root",
