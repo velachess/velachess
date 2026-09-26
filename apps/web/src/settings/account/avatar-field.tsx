@@ -1,3 +1,4 @@
+import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { useRemoveAvatar, useSetAvatar } from "./queries.ts";
 import type { SessionUser } from "../../auth/client.ts";
 import { UserAvatar } from "../../auth/user-avatar.tsx";
+import { z } from "../../libs/zod.ts";
 
 const AVATAR_COPY = {
   change: msg`Change your picture`,
@@ -38,7 +40,7 @@ const AVATAR_COPY = {
 } as const;
 
 /** What the file input offers, and what a picked file is checked against —
- * one list, so the dialog and the refusal cannot disagree. */
+ * one list, so the picker and the refusal cannot disagree. */
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"] as const;
 
 /**
@@ -49,6 +51,24 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp"] as const;
  */
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
+/**
+ * The picked file's own rules, with their messages, in one place — the
+ * shape `games/import/sources.ts` uses for the same reason: a refusal and
+ * the text explaining it should not be able to drift apart.
+ *
+ * `accept` on the input is a hint, not a gate. It filters the picker's
+ * default view, a person can switch it to all files, and a drag-and-drop
+ * bypasses it entirely, so the type check here is the real one.
+ */
+const buildFileSchema = (translate: (message: MessageDescriptor) => string) =>
+  z
+    .instanceof(File)
+    .refine(
+      (file) => ACCEPTED.includes(file.type as (typeof ACCEPTED)[number]),
+      translate(AVATAR_COPY.wrongType),
+    )
+    .refine((file) => file.size <= MAX_SOURCE_BYTES, translate(AVATAR_COPY.tooLarge));
+
 /** Kept under the API's own ceiling so the crop's quality stepping settles
  * the size here rather than the server refusing it. */
 const MAX_ENCODED_BYTES = 120 * 1024;
@@ -56,13 +76,11 @@ const MAX_ENCODED_BYTES = 120 * 1024;
 /** Stable, because the label points at it by id. */
 const FILE_INPUT_ID = "avatar-file";
 
-type Refusal = "wrong-type" | "too-large";
-
 export function AvatarField({ user }: { user: SessionUser }) {
   const { i18n } = useLingui();
   const [source, setSource] = useState<string | null>(null);
   const [cropped, setCropped] = useState<Blob | null>(null);
-  const [refusal, setRefusal] = useState<Refusal | null>(null);
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   const save = useSetAvatar();
   const remove = useRemoveAvatar();
@@ -77,21 +95,18 @@ export function AvatarField({ user }: { user: SessionUser }) {
   function pick(file: File | undefined) {
     if (!file) return;
 
-    // Both refusals happen before any decode, so a wrong file costs nothing
-    // and the message arrives immediately.
-    if (!ACCEPTED.includes(file.type as (typeof ACCEPTED)[number])) {
-      setRefusal("wrong-type");
-      return;
-    }
-    if (file.size > MAX_SOURCE_BYTES) {
-      setRefusal("too-large");
+    // Checked before any decode, so a wrong file costs nothing and the
+    // message arrives immediately.
+    const checked = buildFileSchema((message) => i18n._(message)).safeParse(file);
+    if (!checked.success) {
+      setRefusal(checked.error.issues[0]?.message ?? null);
       return;
     }
 
     setRefusal(null);
     save.reset();
     remove.reset();
-    setSource(URL.createObjectURL(file));
+    setSource(URL.createObjectURL(checked.data));
   }
 
   async function submit() {
@@ -166,10 +181,7 @@ export function AvatarField({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      {refusal === "wrong-type" && (
-        <FieldError>{i18n._(AVATAR_COPY.wrongType)}</FieldError>
-      )}
-      {refusal === "too-large" && <FieldError>{i18n._(AVATAR_COPY.tooLarge)}</FieldError>}
+      {refusal !== null && <FieldError>{refusal}</FieldError>}
       {save.isSuccess && <FieldDescription>{i18n._(AVATAR_COPY.saved)}</FieldDescription>}
       {remove.isSuccess && (
         <FieldDescription>{i18n._(AVATAR_COPY.removed)}</FieldDescription>
