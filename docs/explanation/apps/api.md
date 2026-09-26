@@ -35,6 +35,41 @@ one creates a tracked account owned by the current VelaChess user. The same
 public handle may be tracked independently by another user with its own cursor
 and game rows.
 
+## The avatar
+
+`POST /me/avatar` takes the cropped image as base64 in a JSON body, small
+enough to fit the global body limit unchanged — the browser re-encodes to a
+512-square WebP first, so no multipart path and no raised ceiling. `POST`
+rather than `PUT` because the server decides the resulting URL and returns
+it. `DELETE /me/avatar` falls back to initials.
+
+The bytes come back from `GET /me/avatar`, authenticated and self-scoped:
+there is no id in the URL, so the storage key is derived from the session's
+user and one user's read cannot reach another's object. There is no public
+bucket and no signed URL.
+
+Three properties of that read are security, not tuning. `Content-Type` is
+sniffed from the stored bytes rather than echoed from whatever was uploaded.
+`private` plus `Vary: Cookie` is what stops a shared cache answering one
+user with another's picture, and `immutable` is only safe because the URL
+carries a version that changes on every upload. A `default-src 'none';
+sandbox` CSP, on top of the global `nosniff`, means a file that is both
+valid image and valid markup can neither be read as a document nor execute.
+
+Nothing re-encodes server-side — there is no image-processing dependency.
+What stands in for sanitising is the sniff, the format allowlist, the size
+ceiling, those headers, and the fact that the bytes only ever return to
+their owner from an API that serves no HTML. The browser's canvas re-encode
+also strips EXIF, so orientation and GPS never leave the device; a direct
+API caller can still upload EXIF-bearing bytes, which are their own data
+and returned only to them.
+
+`users.image` holds the effective URL and `users.avatar_source` records who
+last set it. Better Auth writes `image` once, when it creates the user from
+an OAuth profile, and never again — both of its overwrite paths are opt-in
+and unset, pinned by a test in `libs/infra/auth/tests/config.test.ts`. The
+application owns the column after that.
+
 ## Import and refresh
 
 `POST /accounts` creates/connects a tracked account and performs the initial
