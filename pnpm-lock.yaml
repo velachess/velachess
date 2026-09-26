@@ -567,6 +567,12 @@ importers:
         specifier: ^0.5.8
         version: 0.5.8
 
+  libs/infra/storage:
+    dependencies:
+      envalid:
+        specifier: ^8.2.0
+        version: 8.2.0
+
   libs/insights:
     dependencies:
       '@velachess/chess':

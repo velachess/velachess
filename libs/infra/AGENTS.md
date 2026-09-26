@@ -1,8 +1,8 @@
 # Agent Guide — `libs/infra`
 
 Extends `../../AGENTS.md`. Each child library owns one technical mechanism
-behind a narrow public surface: database, queue, engine, logger, platforms, or
-authentication.
+behind a narrow public surface: database, queue, engine, logger, platforms,
+file storage, or authentication.
 
 - Infra does not import any business module (`libs/accounts`, `libs/games`, …)
   or any app. Composition roots wire adapters to the narrow types a

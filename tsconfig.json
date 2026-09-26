@@ -39,6 +39,8 @@
       "@velachess/analysis": ["./libs/analysis/index.ts"],
       "@velachess/scheduler": ["./libs/scheduler/index.ts"],
       "@velachess/scheduler/*": ["./libs/scheduler/*"],
+      "@velachess/infra-storage": ["./libs/infra/storage/index.ts"],
+      "@velachess/infra-storage/*": ["./libs/infra/storage/*"],
       "@velachess/infra-queue": ["./libs/infra/queue/index.ts"],
       "@velachess/infra-queue/*": ["./libs/infra/queue/*"],
       "@velachess/infra-auth": ["./libs/infra/auth/index.ts"],

@@ -32,7 +32,7 @@ libs/insights     cross-module reporting aggregates
 libs/deviations   the judgment-table read
 libs/overview     the dashboard aggregate
 libs/user         the person: first-user bootstrap and profile avatar
-libs/infra        db, queue, engine, logger, platforms, and auth adapters
+libs/infra        db, queue, engine, logger, platforms, storage, and auth
 libs/chess        chess rules and notation
 libs/scheduler    FSRS wrapper
 libs/ui           shared design system and chess presentation
@@ -125,10 +125,11 @@ fix whichever is wrong.
 | overview    | `@velachess/overview`    | `libs/overview/`    |
 | user        | `@velachess/user`        | `libs/user/`        |
 
-`libs/infra/*`'s six packages are `@velachess/infra-db`,
+`libs/infra/*`'s seven packages are `@velachess/infra-db`,
 `@velachess/infra-queue`, `@velachess/infra-engine`,
-`@velachess/infra-logger`, `@velachess/infra-platforms`, and
-`@velachess/infra-auth` — the `infra-` prefix keeps them visually distinct
+`@velachess/infra-logger`, `@velachess/infra-platforms`,
+`@velachess/infra-storage`, and `@velachess/infra-auth` — the `infra-`
+prefix keeps them visually distinct
 from business modules at the import site, including from the business
 `@velachess/user` above.
 
