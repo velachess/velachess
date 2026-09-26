@@ -43,23 +43,23 @@
     "site:quality": "pnpm --filter @velachess/site build && pnpm --filter @velachess/site test && pnpm site:lighthouse"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@playwright/test": "1.63.0",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.2",
     "@velachess/accounts": "workspace:*",
     "@velachess/drills": "workspace:*",
     "@velachess/games": "workspace:*",
     "@velachess/repertoires": "workspace:*",
     "dependency-cruiser": "^18.2.0",
     "jsdom": "^30.0.1",
-    "knip": "^6.34.0",
-    "lefthook": "^2.1.12",
-    "oxfmt": "^0.67.0",
-    "oxlint": "^1.82.0",
+    "knip": "^6.37.0",
+    "lefthook": "^2.1.14",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
     "turbo": "^2.10.12",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   },
   "engines": {
     "node": ">=22"
