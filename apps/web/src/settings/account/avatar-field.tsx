@@ -130,6 +130,28 @@ export function AvatarField({ user }: { user: SessionUser }) {
     setSource(URL.createObjectURL(checked.data));
   }
 
+  /**
+   * One message at a time, resolved in priority order rather than as four
+   * independent conditions — two of them can be true at once, and stacked
+   * messages are what makes the block change height.
+   *
+   * The tones are the distinction that matters to the person reading: a
+   * refusal is a file they can swap, a failure is something that went
+   * wrong on our side.
+   */
+  function currentFeedback(): {
+    tone: "success" | "warning" | "error";
+    text: string;
+  } | null {
+    if (refusal !== null) return { tone: "warning", text: refusal };
+    if (remove.isError) return { tone: "error", text: i18n._(AVATAR_COPY.removeFailed) };
+    if (save.isSuccess) return { tone: "success", text: i18n._(AVATAR_COPY.saved) };
+    if (remove.isSuccess) return { tone: "success", text: i18n._(AVATAR_COPY.removed) };
+    return null;
+  }
+
+  const feedback = currentFeedback();
+
   async function submit() {
     if (!cropped) return;
     try {
@@ -161,7 +183,14 @@ export function AvatarField({ user }: { user: SessionUser }) {
               />
             }
           >
-            <UserAvatar user={user} size="lg" />
+            {/*
+              56px, larger than anywhere else in the app, because here the
+              avatar is the subject rather than a label. No `size` prop:
+              `lg` sets its height through a `data-[size=lg]:` variant that
+              a plain utility cannot reliably override, while the default's
+              bare `size-8` merges cleanly.
+            */}
+            <UserAvatar user={user} className="size-14" />
             {/*
               The badge is always there, because an affordance that only
               appears on hover tells a touch user nothing — they would have
@@ -174,9 +203,9 @@ export function AvatarField({ user }: { user: SessionUser }) {
             />
             <span
               aria-hidden="true"
-              className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full border border-background bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-aria-expanded:bg-primary group-aria-expanded:text-primary-foreground"
+              className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full border border-background bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-aria-expanded:bg-primary group-aria-expanded:text-primary-foreground"
             >
-              <Camera className="size-2.5" />
+              <Camera className="size-3" />
             </span>
           </DropdownMenuTrigger>
 
@@ -226,14 +255,21 @@ export function AvatarField({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      {refusal !== null && <FieldError>{refusal}</FieldError>}
-      {/* Transient, like the form's: the avatar persisted the moment it
-          changed, so a message that lingers would read as pending state. */}
-      {save.isSuccess && <FieldDescription>{i18n._(AVATAR_COPY.saved)}</FieldDescription>}
-      {remove.isSuccess && (
-        <FieldDescription>{i18n._(AVATAR_COPY.removed)}</FieldDescription>
-      )}
-      {remove.isError && <FieldError>{i18n._(AVATAR_COPY.removeFailed)}</FieldError>}
+      {/*
+        Always rendered, so a message arriving or timing out never moves the
+        form beneath it. `min-h-6` clears one line of `text-sm
+        leading-normal`; without it the block collapses to nothing and the
+        page jumps twice per upload.
+      */}
+      <div className="min-h-6">
+        {feedback?.tone === "success" && (
+          <FieldDescription className="text-success">{feedback.text}</FieldDescription>
+        )}
+        {feedback?.tone === "warning" && (
+          <FieldError className="text-warning">{feedback.text}</FieldError>
+        )}
+        {feedback?.tone === "error" && <FieldError>{feedback.text}</FieldError>}
+      </div>
 
       <Dialog
         open={source !== null}

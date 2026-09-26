@@ -125,7 +125,9 @@ export function ProfileForm({ user }: { user: SessionUser }) {
                       : i18n._(PROFILE_COPY.save)}
                   </Button>
                   {rename.isSuccess && !rename.isPending && (
-                    <FieldDescription>{i18n._(PROFILE_COPY.saved)}</FieldDescription>
+                    <FieldDescription className="text-success">
+                      {i18n._(PROFILE_COPY.saved)}
+                    </FieldDescription>
                   )}
                   {rename.isError && (
                     <FieldError>{i18n._(PROFILE_COPY.saveFailed)}</FieldError>
