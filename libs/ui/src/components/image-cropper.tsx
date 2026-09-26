@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
 import { cn } from "../lib/utils.ts";
@@ -52,9 +52,27 @@ export function ImageCropper({
   // Annotated, or `as const` on ZOOM narrows the state to the literal 1.
   const [zoom, setZoom] = useState<number>(ZOOM.min);
 
+  /**
+   * Encodes are concurrent and take unequal time — the quality loop runs
+   * once for a flat image and four times for a busy photograph — so a
+   * drag that settles twice can resolve out of order and hand the parent
+   * the earlier crop last. The person would then save a position they had
+   * already moved away from.
+   *
+   * A counter is enough: only the newest request may report. Nothing to
+   * cancel, because the work is CPU-bound and already started; the stale
+   * answer is simply dropped.
+   */
+  const latest = useRef(0);
+
   const handleCropComplete = useCallback(
     (_area: Area, pixels: Area) => {
-      void cropToWebp(src, pixels, maxBytes).then(onCropped);
+      latest.current += 1;
+      const request = latest.current;
+
+      void cropToWebp(src, pixels, maxBytes).then((blob) => {
+        if (request === latest.current) onCropped(blob);
+      });
     },
     [src, maxBytes, onCropped],
   );

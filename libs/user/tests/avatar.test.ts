@@ -4,7 +4,6 @@ import {
   AVATAR_MAX_BYTES,
   avatarStorageKey,
   avatarUrl,
-  isStoredAvatar,
   sniffAvatarMediaType,
 } from "../avatar.ts";
 
@@ -64,12 +63,6 @@ describe("addressing", () => {
 
     expect(url).toBe("/api/me/avatar?v=1700000000000");
     expect(url).not.toContain("avatars/");
-  });
-
-  it("tells our own URLs from a provider's", () => {
-    expect(isStoredAvatar("/api/me/avatar?v=1")).toBe(true);
-    expect(isStoredAvatar("https://lh3.googleusercontent.com/a/xyz")).toBe(false);
-    expect(isStoredAvatar(null)).toBe(false);
   });
 });
 

@@ -82,10 +82,3 @@ export function avatarStorageKey(userId: string): string {
 export function avatarUrl(version: number): string {
   return `/api/me/avatar?v=${version}`;
 }
-
-/** Whether an `image` value is one of ours rather than a provider's
- * absolute URL — the difference between having an object to delete and
- * having nothing but a link to forget. */
-export function isStoredAvatar(image: string | null): boolean {
-  return image?.startsWith("/api/me/avatar") ?? false;
-}

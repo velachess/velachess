@@ -179,7 +179,7 @@ export function AvatarField({ user }: { user: SessionUser }) {
               <button
                 type="button"
                 aria-label={i18n._(AVATAR_COPY.open)}
-                className="group relative rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="group relative cursor-pointer rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
             }
           >

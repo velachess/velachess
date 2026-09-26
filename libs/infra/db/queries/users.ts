@@ -16,17 +16,6 @@ export async function markEmailVerified(db: Database, userId: string) {
   await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
 }
 
-/** What the avatar slices need to decide their next write: the effective
- * URL and who last set it. `null` for a user that does not exist, so a
- * caller can tell that apart from a user with no picture. */
-export async function readAvatarState(db: Database, userId: string) {
-  const [row] = await db
-    .select({ image: users.image, avatarSource: users.avatarSource })
-    .from(users)
-    .where(eq(users.id, userId));
-  return row ?? null;
-}
-
 /**
  * The only writer of `users.image` in this repo — Better Auth writes it
  * once at user creation and never again. Both columns move together
