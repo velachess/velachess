@@ -1,9 +1,15 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Button, buttonVariants } from "@velachess/ui/components/button";
+import { Button } from "@velachess/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@velachess/ui/components/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +20,18 @@ import {
 } from "@velachess/ui/components/dialog";
 import { FieldDescription, FieldError } from "@velachess/ui/components/field";
 import { ImageCropper } from "@velachess/ui/components/image-cropper";
-import { Pencil } from "@velachess/ui/icons";
+import { Camera, Trash2 } from "@velachess/ui/icons";
 import { Spinner } from "@velachess/ui/components/spinner";
 
 import { useRemoveAvatar, useSetAvatar } from "./queries.ts";
+import { useTransientSuccess } from "./use-transient-success.ts";
 import type { SessionUser } from "../../auth/client.ts";
 import { UserAvatar } from "../../auth/user-avatar.tsx";
 import { z } from "../../libs/zod.ts";
 
 const AVATAR_COPY = {
-  change: msg`Change your picture`,
+  open: msg`Change your picture`,
+  change: msg`Change picture`,
   remove: msg`Remove picture`,
   dialogTitle: msg`Crop your picture`,
   dialogDescription: msg`Drag to reposition, and zoom to fill the circle.`,
@@ -78,12 +86,15 @@ const FILE_INPUT_ID = "avatar-file";
 
 export function AvatarField({ user }: { user: SessionUser }) {
   const { i18n } = useLingui();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<string | null>(null);
   const [cropped, setCropped] = useState<Blob | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
 
   const save = useSetAvatar();
   const remove = useRemoveAvatar();
+  useTransientSuccess(save.isSuccess, save.reset);
+  useTransientSuccess(remove.isSuccess, remove.reset);
 
   /**
    * An object URL pins its File in memory until revoked, so the revoke is
@@ -134,64 +145,90 @@ export function AvatarField({ user }: { user: SessionUser }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex max-w-sm items-center gap-3">
-        <div className="relative">
-          <UserAvatar user={user} size="lg" />
-          {/*
-            A real label, not a button that clicks a hidden input: the
-            label's text *is* the input's accessible name, so there is one
-            control with one name rather than two competing for it, and
-            activating it opens the picker with no script. Styled through
-            `buttonVariants` rather than rendered as a Button, so the text
-            stays the label's own child — which both screen readers and the
-            a11y lint rule can see.
-          */}
-          <label
-            htmlFor={FILE_INPUT_ID}
-            className={buttonVariants({
-              variant: "secondary",
-              size: "icon-xs",
-              className: "absolute -bottom-1 -right-1 rounded-full shadow-sm",
-            })}
+        {/*
+          The whole avatar is the control, with the overlay as the hint
+          rather than a second target beside it. The actions live in a menu
+          because there are two of them and one is destructive — a bare
+          click would have to guess which.
+        */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                aria-label={i18n._(AVATAR_COPY.open)}
+                className="group relative rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              />
+            }
           >
-            <Pencil />
-            <span className="sr-only">{i18n._(AVATAR_COPY.change)}</span>
-          </label>
-          <input
-            id={FILE_INPUT_ID}
-            type="file"
-            className="sr-only"
-            accept={ACCEPTED.join(",")}
-            onChange={(event) => {
-              pick(event.target.files?.[0]);
-              // Cleared so picking the same file twice still fires change.
-              event.target.value = "";
-            }}
-          />
-        </div>
+            <UserAvatar user={user} size="lg" />
+            {/*
+              The badge is always there, because an affordance that only
+              appears on hover tells a touch user nothing — they would have
+              to guess the avatar is a control. The dim is the hover
+              response on top of it.
+            */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-foreground/0 transition-colors group-hover:bg-foreground/20 group-aria-expanded:bg-foreground/20"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full border border-background bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-aria-expanded:bg-primary group-aria-expanded:text-primary-foreground"
+            >
+              <Camera className="size-2.5" />
+            </span>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => fileInput.current?.click()}>
+              <Camera />
+              {i18n._(AVATAR_COPY.change)}
+            </DropdownMenuItem>
+
+            {user.image && (
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={remove.isPending}
+                onClick={() => {
+                  setRefusal(null);
+                  save.reset();
+                  remove.mutate();
+                }}
+              >
+                <Trash2 />
+                {i18n._(AVATAR_COPY.remove)}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Never focused and never the affordance — the menu item is. It
+            stays reachable by label so a test can attach a file to it. */}
+        <input
+          ref={fileInput}
+          id={FILE_INPUT_ID}
+          type="file"
+          tabIndex={-1}
+          className="sr-only"
+          accept={ACCEPTED.join(",")}
+          aria-label={i18n._(AVATAR_COPY.change)}
+          onChange={(event) => {
+            pick(event.target.files?.[0]);
+            // Cleared so picking the same file twice still fires change.
+            event.target.value = "";
+          }}
+        />
 
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{user.name}</p>
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>
         </div>
-
-        {user.image && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto shrink-0"
-            disabled={remove.isPending}
-            onClick={() => {
-              setRefusal(null);
-              save.reset();
-              remove.mutate();
-            }}
-          >
-            {i18n._(AVATAR_COPY.remove)}
-          </Button>
-        )}
       </div>
 
       {refusal !== null && <FieldError>{refusal}</FieldError>}
+      {/* Transient, like the form's: the avatar persisted the moment it
+          changed, so a message that lingers would read as pending state. */}
       {save.isSuccess && <FieldDescription>{i18n._(AVATAR_COPY.saved)}</FieldDescription>}
       {remove.isSuccess && (
         <FieldDescription>{i18n._(AVATAR_COPY.removed)}</FieldDescription>

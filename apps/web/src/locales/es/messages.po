@@ -254,11 +254,15 @@ msgstr ""
 msgid "Bullet"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:29
+#: src/settings/account/avatar-field.tsx:39
 msgid "Cancel"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:24
+#: src/settings/account/avatar-field.tsx:34
+msgid "Change picture"
+msgstr ""
+
+#: src/settings/account/avatar-field.tsx:33
 msgid "Change your picture"
 msgstr ""
 
@@ -270,7 +274,7 @@ msgstr ""
 msgid "Chess.com username"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:36
+#: src/settings/account/avatar-field.tsx:46
 msgid "Choose a JPEG, PNG or WebP image."
 msgstr ""
 
@@ -387,19 +391,19 @@ msgstr ""
 msgid "Couldn't reach the server. Try again."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:35
+#: src/settings/account/avatar-field.tsx:45
 msgid "Couldn't remove it. Try again."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:34
+#: src/settings/account/avatar-field.tsx:44
 msgid "Couldn't save that picture. Try again."
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:31
+#: src/settings/account/profile-form.tsx:32
 msgid "Couldn't save that. Try again."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:26
+#: src/settings/account/avatar-field.tsx:36
 msgid "Crop your picture"
 msgstr ""
 
@@ -424,7 +428,7 @@ msgstr ""
 msgid "Deviations"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:27
+#: src/settings/account/avatar-field.tsx:37
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr ""
 
@@ -460,7 +464,7 @@ msgid "Due now"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:39
-#: src/settings/account/profile-form.tsx:26
+#: src/settings/account/profile-form.tsx:27
 msgid "Email"
 msgstr ""
 
@@ -476,7 +480,7 @@ msgstr ""
 msgid "endgame"
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:24
+#: src/settings/account/profile-form.tsx:25
 msgid "Enter a name."
 msgstr ""
 
@@ -600,7 +604,7 @@ msgstr ""
 msgid "How VelaChess looks on this device."
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:23
+#: src/settings/account/profile-form.tsx:24
 msgid "How you're shown in the app."
 msgstr ""
 
@@ -694,7 +698,7 @@ msgstr ""
 msgid "It keeps the position healthy without giving anything away."
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:25
+#: src/settings/account/profile-form.tsx:26
 msgid "Keep it under 100 characters."
 msgstr ""
 
@@ -813,7 +817,7 @@ msgstr ""
 msgid "Mute move sounds"
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:22
+#: src/settings/account/profile-form.tsx:23
 msgid "Name"
 msgstr ""
 
@@ -955,11 +959,11 @@ msgstr ""
 msgid "PGN file"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:33
+#: src/settings/account/avatar-field.tsx:43
 msgid "Picture removed."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:32
+#: src/settings/account/avatar-field.tsx:42
 msgid "Picture updated."
 msgstr ""
 
@@ -1028,7 +1032,7 @@ msgstr ""
 msgid "Previous move"
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:21
+#: src/settings/account/profile-form.tsx:22
 msgid "Profile"
 msgstr ""
 
@@ -1059,7 +1063,7 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:25
+#: src/settings/account/avatar-field.tsx:35
 msgid "Remove picture"
 msgstr ""
 
@@ -1098,20 +1102,20 @@ msgstr ""
 msgid "Right."
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:28
+#: src/settings/account/profile-form.tsx:29
 msgid "Save"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:30
+#: src/settings/account/avatar-field.tsx:40
 msgid "Save picture"
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:30
+#: src/settings/account/profile-form.tsx:31
 msgid "Saved."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:31
-#: src/settings/account/profile-form.tsx:29
+#: src/settings/account/avatar-field.tsx:41
+#: src/settings/account/profile-form.tsx:30
 msgid "Saving…"
 msgstr ""
 
@@ -1242,7 +1246,7 @@ msgstr ""
 msgid "That doesn't look like an email address."
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:37
+#: src/settings/account/avatar-field.tsx:47
 msgid "That image is too large. Choose one under 8 MB."
 msgstr ""
 
@@ -1487,7 +1491,7 @@ msgstr ""
 msgid "Your book, from your own play"
 msgstr ""
 
-#: src/settings/account/profile-form.tsx:27
+#: src/settings/account/profile-form.tsx:28
 msgid "Your email is tied to how you signed up and can't be changed here."
 msgstr ""
 
@@ -1535,6 +1539,6 @@ msgstr ""
 msgid "Your repertoire plays:"
 msgstr ""
 
-#: src/settings/account/avatar-field.tsx:28
+#: src/settings/account/avatar-field.tsx:38
 msgid "Zoom"
 msgstr ""

@@ -226,6 +226,11 @@ async function openAccount() {
   return renderApp({ path: "/settings/account" });
 }
 
+/** The avatar is the control, and its menu holds both actions. */
+async function openAvatarMenu(user: { click: (element: Element) => Promise<void> }) {
+  await user.click(await screen.findByRole("button", { name: "Change your picture" }));
+}
+
 describe("the avatar", () => {
   it("falls back to initials for an account with no picture", async () => {
     sessionActive();
@@ -259,7 +264,8 @@ describe("changing the avatar", () => {
   it("uploads a cropped picture and shows it in the shell too", async () => {
     const { user } = await openAccount();
 
-    await user.upload(await screen.findByLabelText("Change your picture"), imageFile());
+    await openAvatarMenu(user);
+    await user.upload(await screen.findByLabelText("Change picture"), imageFile());
     await user.click(await screen.findByRole("button", { name: "Save picture" }));
 
     expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
@@ -277,7 +283,8 @@ describe("changing the avatar", () => {
     sessionActive({ ...TEST_USER, image: "/api/me/avatar?v=3" });
     const { user } = await renderApp({ path: "/settings/account" });
 
-    await user.click(await screen.findByRole("button", { name: "Remove picture" }));
+    await openAvatarMenu(user);
+    await user.click(await screen.findByRole("menuitem", { name: "Remove picture" }));
 
     expect(await screen.findByText("Picture removed.")).toBeInTheDocument();
     await waitFor(() => {
@@ -296,7 +303,7 @@ describe("changing the avatar", () => {
    */
   it("refuses a file that is not an image we accept", async () => {
     await openAccount();
-    const input = await screen.findByLabelText("Change your picture");
+    const input = await screen.findByLabelText("Change picture");
 
     fireEvent.change(input, {
       target: {
@@ -316,7 +323,7 @@ describe("changing the avatar", () => {
     const { user } = await openAccount();
 
     await user.upload(
-      await screen.findByLabelText("Change your picture"),
+      await screen.findByLabelText("Change picture"),
       imageFile({ bytes: 9 * 1024 * 1024 }),
     );
 
@@ -336,7 +343,7 @@ describe("changing the avatar", () => {
     );
     const { user } = await openAccount();
 
-    await user.upload(await screen.findByLabelText("Change your picture"), imageFile());
+    await user.upload(await screen.findByLabelText("Change picture"), imageFile());
     await user.click(await screen.findByRole("button", { name: "Save picture" }));
 
     expect(
@@ -344,5 +351,48 @@ describe("changing the avatar", () => {
     ).toBeInTheDocument();
     // Still open, so the user can retry without picking the file again.
     expect(screen.getByRole("button", { name: "Save picture" })).toBeInTheDocument();
+  });
+});
+
+/**
+ * The avatar persists the moment it changes; the form's Save speaks for the
+ * editable fields and nothing else. Keeping those apart is what stops Save
+ * from implying the picture still needs saving.
+ */
+describe("what Save is responsible for", () => {
+  it("is unavailable while nothing has been edited", async () => {
+    await openAccount();
+
+    expect(await screen.findByRole("button", { name: "Save" })).toBeDisabled();
+  });
+
+  it("becomes available once the name differs, and goes quiet again after saving", async () => {
+    const { user } = await openAccount();
+    const name = await screen.findByDisplayValue(TEST_USER.name);
+
+    await user.type(name, " Jr");
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Saved.")).toBeInTheDocument();
+    // The session now carries the new name, so the field matches what is
+    // stored and there is nothing left to save.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    });
+  });
+
+  it("stays unavailable when only the picture changed", async () => {
+    const { user } = await openAccount();
+
+    await openAvatarMenu(user);
+    await user.upload(await screen.findByLabelText("Change picture"), imageFile());
+    await user.click(await screen.findByRole("button", { name: "Save picture" }));
+    expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    // And the picture's own confirmation is not mistaken for the form's.
+    expect(screen.queryByText("Saved.")).not.toBeInTheDocument();
   });
 });

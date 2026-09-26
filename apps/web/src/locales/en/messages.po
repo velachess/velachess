@@ -254,11 +254,15 @@ msgstr "Built from your games"
 msgid "Bullet"
 msgstr "Bullet"
 
-#: src/settings/account/avatar-field.tsx:29
+#: src/settings/account/avatar-field.tsx:39
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/settings/account/avatar-field.tsx:24
+#: src/settings/account/avatar-field.tsx:34
+msgid "Change picture"
+msgstr "Change picture"
+
+#: src/settings/account/avatar-field.tsx:33
 msgid "Change your picture"
 msgstr "Change your picture"
 
@@ -270,7 +274,7 @@ msgstr "Chapter"
 msgid "Chess.com username"
 msgstr "Chess.com username"
 
-#: src/settings/account/avatar-field.tsx:36
+#: src/settings/account/avatar-field.tsx:46
 msgid "Choose a JPEG, PNG or WebP image."
 msgstr "Choose a JPEG, PNG or WebP image."
 
@@ -387,19 +391,19 @@ msgstr "Couldn't reach the server. Try again in a moment."
 msgid "Couldn't reach the server. Try again."
 msgstr "Couldn't reach the server. Try again."
 
-#: src/settings/account/avatar-field.tsx:35
+#: src/settings/account/avatar-field.tsx:45
 msgid "Couldn't remove it. Try again."
 msgstr "Couldn't remove it. Try again."
 
-#: src/settings/account/avatar-field.tsx:34
+#: src/settings/account/avatar-field.tsx:44
 msgid "Couldn't save that picture. Try again."
 msgstr "Couldn't save that picture. Try again."
 
-#: src/settings/account/profile-form.tsx:31
+#: src/settings/account/profile-form.tsx:32
 msgid "Couldn't save that. Try again."
 msgstr "Couldn't save that. Try again."
 
-#: src/settings/account/avatar-field.tsx:26
+#: src/settings/account/avatar-field.tsx:36
 msgid "Crop your picture"
 msgstr "Crop your picture"
 
@@ -424,7 +428,7 @@ msgstr "Date"
 msgid "Deviations"
 msgstr "Deviations"
 
-#: src/settings/account/avatar-field.tsx:27
+#: src/settings/account/avatar-field.tsx:37
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr "Drag to reposition, and zoom to fill the circle."
 
@@ -460,7 +464,7 @@ msgid "Due now"
 msgstr "Due now"
 
 #: src/auth/sign-in/sign-in-screen.tsx:39
-#: src/settings/account/profile-form.tsx:26
+#: src/settings/account/profile-form.tsx:27
 msgid "Email"
 msgstr "Email"
 
@@ -476,7 +480,7 @@ msgstr "End session"
 msgid "endgame"
 msgstr "endgame"
 
-#: src/settings/account/profile-form.tsx:24
+#: src/settings/account/profile-form.tsx:25
 msgid "Enter a name."
 msgstr "Enter a name."
 
@@ -600,7 +604,7 @@ msgstr "Got them — opening your games."
 msgid "How VelaChess looks on this device."
 msgstr "How VelaChess looks on this device."
 
-#: src/settings/account/profile-form.tsx:23
+#: src/settings/account/profile-form.tsx:24
 msgid "How you're shown in the app."
 msgstr "How you're shown in the app."
 
@@ -694,7 +698,7 @@ msgstr "It hands over a real part of the advantage."
 msgid "It keeps the position healthy without giving anything away."
 msgstr "It keeps the position healthy without giving anything away."
 
-#: src/settings/account/profile-form.tsx:25
+#: src/settings/account/profile-form.tsx:26
 msgid "Keep it under 100 characters."
 msgstr "Keep it under 100 characters."
 
@@ -813,7 +817,7 @@ msgstr "Move sounds"
 msgid "Mute move sounds"
 msgstr "Mute move sounds"
 
-#: src/settings/account/profile-form.tsx:22
+#: src/settings/account/profile-form.tsx:23
 msgid "Name"
 msgstr "Name"
 
@@ -955,11 +959,11 @@ msgstr "Performance"
 msgid "PGN file"
 msgstr "PGN file"
 
-#: src/settings/account/avatar-field.tsx:33
+#: src/settings/account/avatar-field.tsx:43
 msgid "Picture removed."
 msgstr "Picture removed."
 
-#: src/settings/account/avatar-field.tsx:32
+#: src/settings/account/avatar-field.tsx:42
 msgid "Picture updated."
 msgstr "Picture updated."
 
@@ -1028,7 +1032,7 @@ msgstr "Previous"
 msgid "Previous move"
 msgstr "Previous move"
 
-#: src/settings/account/profile-form.tsx:21
+#: src/settings/account/profile-form.tsx:22
 msgid "Profile"
 msgstr "Profile"
 
@@ -1059,7 +1063,7 @@ msgstr "Reading your games…"
 msgid "Reload"
 msgstr "Reload"
 
-#: src/settings/account/avatar-field.tsx:25
+#: src/settings/account/avatar-field.tsx:35
 msgid "Remove picture"
 msgstr "Remove picture"
 
@@ -1098,20 +1102,20 @@ msgstr "Right now: {games} games imported, {analysed} deeply analysed."
 msgid "Right."
 msgstr "Right."
 
-#: src/settings/account/profile-form.tsx:28
+#: src/settings/account/profile-form.tsx:29
 msgid "Save"
 msgstr "Save"
 
-#: src/settings/account/avatar-field.tsx:30
+#: src/settings/account/avatar-field.tsx:40
 msgid "Save picture"
 msgstr "Save picture"
 
-#: src/settings/account/profile-form.tsx:30
+#: src/settings/account/profile-form.tsx:31
 msgid "Saved."
 msgstr "Saved."
 
-#: src/settings/account/avatar-field.tsx:31
-#: src/settings/account/profile-form.tsx:29
+#: src/settings/account/avatar-field.tsx:41
+#: src/settings/account/profile-form.tsx:30
 msgid "Saving…"
 msgstr "Saving…"
 
@@ -1242,7 +1246,7 @@ msgstr "System follows your operating system's setting."
 msgid "That doesn't look like an email address."
 msgstr "That doesn't look like an email address."
 
-#: src/settings/account/avatar-field.tsx:37
+#: src/settings/account/avatar-field.tsx:47
 msgid "That image is too large. Choose one under 8 MB."
 msgstr "That image is too large. Choose one under 8 MB."
 
@@ -1487,7 +1491,7 @@ msgstr "Your {phase} is your most solid stretch"
 msgid "Your book, from your own play"
 msgstr "Your book, from your own play"
 
-#: src/settings/account/profile-form.tsx:27
+#: src/settings/account/profile-form.tsx:28
 msgid "Your email is tied to how you signed up and can't be changed here."
 msgstr "Your email is tied to how you signed up and can't be changed here."
 
@@ -1535,6 +1539,6 @@ msgstr "Your preparation said"
 msgid "Your repertoire plays:"
 msgstr "Your repertoire plays:"
 
-#: src/settings/account/avatar-field.tsx:28
+#: src/settings/account/avatar-field.tsx:38
 msgid "Zoom"
 msgstr "Zoom"
