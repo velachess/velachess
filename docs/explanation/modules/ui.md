@@ -16,9 +16,21 @@ re-exported through `exports`.
 The Trophy registry is declared too, so gamification components would land
 here as well. None are installed: there is no screen for them yet.
 
-Nothing else is a UI dependency. `AppFrame` and friends are our files
-arranging registry parts, so changing the frame changes an arrangement,
-not a dependency.
+`AppFrame` and friends are our files arranging registry parts, so changing
+the frame changes an arrangement, not a dependency.
+
+One component is neither registry code nor an arrangement. `ImageCropper`
+is ours, written over `react-easy-crop` — the only third-party UI
+dependency here that is not a registry install. The registry's obvious
+candidate wraps `react-image-crop`, which has no zoom, and its encode step
+exports a full-resolution PNG at quality 1.0 with smoothing off: megabytes
+from a phone photo, aliased when scaled down. It also ships without a
+licence, which rules it out for this repo (`CONTRIBUTING.md`). What the
+dependency buys is drag, pinch and wheel zoom over a constrained crop
+area — gesture state, not an arrangement of parts — and `react-easy-crop`
+is MIT with one transitive dependency. The encode is ours: a fixed 512²
+square, smoothing on, WebP with quality stepped down to fit a byte
+ceiling the caller names.
 
 ## Layout: frame first
 
