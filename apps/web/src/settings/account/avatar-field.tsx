@@ -1,7 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, buttonVariants } from "@velachess/ui/components/button";
 import {
@@ -85,9 +85,19 @@ export function AvatarField({ user }: { user: SessionUser }) {
   const save = useSetAvatar();
   const remove = useRemoveAvatar();
 
+  /**
+   * An object URL pins its File in memory until revoked, so the revoke is
+   * tied to the URL's own lifetime rather than to one exit path. Revoking
+   * in a close handler alone leaks twice: picking a second file replaces
+   * `source` without closing, and navigating away unmounts without
+   * closing. Cleanup runs with the previous value in both cases.
+   */
+  useEffect(() => {
+    if (source === null) return;
+    return () => URL.revokeObjectURL(source);
+  }, [source]);
+
   function closeDialog() {
-    // The object URL is ours to release; the cropper only reads it.
-    if (source) URL.revokeObjectURL(source);
     setSource(null);
     setCropped(null);
   }
@@ -123,7 +133,7 @@ export function AvatarField({ user }: { user: SessionUser }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
+      <div className="flex max-w-sm items-center gap-3">
         <div className="relative">
           <UserAvatar user={user} size="lg" />
           {/*
@@ -168,7 +178,7 @@ export function AvatarField({ user }: { user: SessionUser }) {
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto"
+            className="ml-auto shrink-0"
             disabled={remove.isPending}
             onClick={() => {
               setRefusal(null);
