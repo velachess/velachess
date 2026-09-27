@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
-// react-doctor-disable-next-line react-doctor/prefer-dynamic-import
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
 import type { BadgeTone } from "../chess/board-theme.ts";
 import { BADGE_TONE_COLOR } from "../chess/board-theme.ts";
@@ -36,23 +35,19 @@ function CustomDot({
   cx,
   cy,
   payload,
-  selectedPly,
   defaultColor,
   onSelectPly,
 }: {
   cx?: number | undefined;
   cy?: number | undefined;
   payload: EvaluationPoint;
-  selectedPly?: number | undefined;
   defaultColor: string;
   onSelectPly?: ((ply: number) => void) | undefined;
 }) {
   if (cx === undefined || cy === undefined) return null;
 
-  const isSelected = selectedPly === payload.ply;
   const color = getPointColor(payload.tone, defaultColor);
-  const radius = isSelected ? 4 : payload.tone ? 3 : 2;
-  const strokeWidth = isSelected ? 2 : 0;
+  const radius = payload.tone ? 3 : 2;
 
   return (
     <circle
@@ -61,7 +56,7 @@ function CustomDot({
       r={radius}
       fill={color}
       stroke="var(--background)"
-      strokeWidth={strokeWidth}
+      strokeWidth={0}
       className={cn("transition-all duration-150", onSelectPly && "cursor-pointer")}
       onClick={() => onSelectPly?.(payload.ply)}
       tabIndex={0}
@@ -72,33 +67,6 @@ function CustomDot({
         }
       }}
     />
-  );
-}
-
-function CustomTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: EvaluationPoint }>;
-}) {
-  if (!active || !payload?.length) return null;
-
-  const point = payload[0]?.payload;
-  if (!point?.san) return null;
-
-  const color = getPointColor(point.tone);
-
-  return (
-    <div className="rounded border bg-background p-2 text-sm shadow-md">
-      <div className="font-medium" style={{ color }}>
-        {point.san}
-      </div>
-      {point.label && <div className="text-muted-foreground">{point.label}</div>}
-      {point.score && (
-        <div className="font-mono text-xs text-muted-foreground">{point.score}</div>
-      )}
-    </div>
   );
 }
 
@@ -125,13 +93,12 @@ export function EvaluationChart({
           cx={cx}
           cy={cy}
           payload={payload}
-          selectedPly={selectedPly}
           defaultColor={color}
           onSelectPly={onSelectPly}
         />
       );
     },
-    [selectedPly, color, onSelectPly],
+    [color, onSelectPly],
   );
 
   return (
@@ -144,7 +111,9 @@ export function EvaluationChart({
         <LineChart data={chartData} margin={{ top: 6, right: 6, bottom: 6, left: 6 }}>
           <XAxis dataKey="ply" hide />
           <YAxis domain={domain ?? ["auto", "auto"]} hide />
-          <Tooltip content={<CustomTooltip />} />
+          {typeof selectedPly === "number" && (
+            <ReferenceLine x={selectedPly} stroke={color} strokeWidth={1} />
+          )}
           <Line
             type="linear"
             dataKey="value"
