@@ -20,7 +20,7 @@ export interface EvalGraphProps {
   totalPlies: number;
   /** The ply currently selected in the replay. */
   selectedPly?: number;
-  /** Called when a dot on the graph is clicked. */
+  /** Called with the nearest move when anywhere on the graph is clicked. */
   onSelectPly?: (ply: number) => void;
 }
 

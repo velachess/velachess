@@ -1,6 +1,18 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 // react-doctor-disable-next-line react-doctor/prefer-dynamic-import
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  DefaultZIndexes,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZIndexLayer,
+  useChartHeight,
+  useChartWidth,
+  useXAxisInverseDataSnapScale,
+} from "recharts";
 
 import type { BadgeTone } from "../chess/board-theme.ts";
 import { BADGE_TONE_COLOR } from "../chess/board-theme.ts";
@@ -62,8 +74,7 @@ function CustomDot({
       fill={color}
       stroke="var(--background)"
       strokeWidth={strokeWidth}
-      className={cn("transition-all duration-150", onSelectPly && "cursor-pointer")}
-      onClick={() => onSelectPly?.(payload.ply)}
+      className="transition-all duration-150"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -102,6 +113,40 @@ function CustomTooltip({
   );
 }
 
+/** The whole plot is the click target, not just the 2px dots: the x scale snaps a click to the nearest ply. */
+function PlotClickTarget({
+  onSelectPly,
+}: {
+  onSelectPly?: ((ply: number) => void) | undefined;
+}) {
+  const width = useChartWidth();
+  const height = useChartHeight();
+  const snapToNearestPly = useXAxisInverseDataSnapScale();
+  if (!onSelectPly || !width || !height || !snapToNearestPly) return null;
+
+  return (
+    <ZIndexLayer zIndex={DefaultZIndexes.activeDot + 1}>
+      <rect
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        fill="transparent"
+        data-slot="evaluation-chart-click-target"
+        className="cursor-pointer"
+        // ZIndexLayer's group is focusable; letting the click focus it rings the whole chart.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={(event) => {
+          const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+          if (!bounds) return;
+          const ply = snapToNearestPly(event.clientX - bounds.left);
+          if (typeof ply === "number") onSelectPly(ply);
+        }}
+      />
+    </ZIndexLayer>
+  );
+}
+
 export function EvaluationChart({
   data,
   domain,
@@ -111,8 +156,6 @@ export function EvaluationChart({
   selectedPly,
   onSelectPly,
 }: EvaluationChartProps) {
-  const chartData = useMemo(() => data, [data]);
-
   const renderDot = useCallback(
     (props: Record<string, unknown>) => {
       const { cx, cy, payload } = props as {
@@ -141,7 +184,11 @@ export function EvaluationChart({
         height="100%"
         initialDimension={{ width: 320, height: 80 }}
       >
-        <LineChart data={chartData} margin={{ top: 6, right: 6, bottom: 6, left: 6 }}>
+        <LineChart
+          data={data}
+          margin={{ top: 6, right: 6, bottom: 6, left: 6 }}
+          accessibilityLayer={false}
+        >
           <XAxis dataKey="ply" hide />
           <YAxis domain={domain ?? ["auto", "auto"]} hide />
           <Tooltip content={<CustomTooltip />} />
@@ -154,6 +201,7 @@ export function EvaluationChart({
             activeDot={{ r: 4, fill: color, stroke: "var(--background)", strokeWidth: 2 }}
             isAnimationActive={false}
           />
+          <PlotClickTarget onSelectPly={onSelectPly} />
         </LineChart>
       </ResponsiveContainer>
     </div>
