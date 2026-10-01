@@ -51,7 +51,7 @@
     "@velachess/drills": "workspace:*",
     "@velachess/games": "workspace:*",
     "@velachess/repertoires": "workspace:*",
-    "dependency-cruiser": "^18.2.0",
+    "dependency-cruiser": "^18.4.0",
     "jsdom": "^30.0.1",
     "knip": "^6.37.0",
     "lefthook": "^2.1.14",
