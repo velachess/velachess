@@ -25,12 +25,12 @@
     "./charts/*": "./src/charts/*.tsx"
   },
   "dependencies": {
-    "@base-ui/react": "^1.7.0",
+    "@base-ui/react": "^1.8.0",
     "@tanstack/react-table": "^9.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "flag-icons": "^7.5.0",
-    "lucide-react": "^1.42.0",
+    "lucide-react": "^1.48.0",
     "react-chessboard": "^5.12.1",
     "react-easy-crop": "^6.2.3",
     "recharts": "3.10.1",
