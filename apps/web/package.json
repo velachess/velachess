@@ -22,7 +22,7 @@
     "@tanstack/react-router": "^1.170.40",
     "@tanstack/react-start": "^1.168.59",
     "@tanstack/react-table": "^9.2.4",
-    "better-auth": "1.7.2",
+    "better-auth": "1.7.6",
     "eventsource": "^5.1.1",
     "hono": "^4.13.5",
     "react": "^19.2.8",
