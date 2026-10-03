@@ -18,8 +18,8 @@
     "@velachess/ui": "workspace:*",
     "motion": "^13.2.0",
     "next": "16.3.6",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@babel/core": "^8.0.6",
@@ -34,8 +34,8 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
     "vitest": "^5.0.1"
