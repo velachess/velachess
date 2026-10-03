@@ -67,7 +67,7 @@
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
     "packageExtensions": {
-      "dependency-cruiser@18.2.0": {
+      "dependency-cruiser": {
         "dependencies": {
           "typescript": "6.0.3"
         }
