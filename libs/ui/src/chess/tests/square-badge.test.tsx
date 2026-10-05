@@ -2,9 +2,8 @@
 import { render } from "@testing-library/react";
 import { expect, it } from "vitest";
 
-import { BADGE_TONES } from "../board-theme.ts";
+import { BADGE_TONES, type BadgeEdges } from "../board-theme.ts";
 import { SquareBadge } from "../square-badge.tsx";
-import type { BadgeEdges } from "../square-badge.tsx";
 
 const INTERIOR: BadgeEdges = { right: false, top: false };
 

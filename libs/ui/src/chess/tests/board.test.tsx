@@ -12,7 +12,8 @@ import { act, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { Board, badgeEdgesOf } from "../board.tsx";
+import { Board } from "../board.tsx";
+import { badgeEdgesOf } from "../board-theme.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

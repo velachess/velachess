@@ -7,7 +7,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { BookOpen, Check } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
-import { BADGE_TONE_COLOR, type BadgeTone } from "./board-theme.ts";
+import { BADGE_TONE_COLOR, type BadgeEdges, type BadgeTone } from "./board-theme.ts";
 
 /** The mark's ink: light on the tones dark enough to carry it. */
 const TONE_INK = {
@@ -71,12 +71,6 @@ const BADGE_MARK = {
   blunder: Blunder,
   book: BookOpen,
 } as const satisfies Record<BadgeTone, ComponentType<MarkProps>>;
-
-/** Which of the board's edges the badge's square touches at its corner. */
-export interface BadgeEdges {
-  right: boolean;
-  top: boolean;
-}
 
 export interface SquareBadgeProps {
   tone: BadgeTone;
