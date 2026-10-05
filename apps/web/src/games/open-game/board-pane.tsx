@@ -2,7 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
 import { Board } from "@velachess/ui/chess/board";
-import type { SquareBadgeSpec } from "@velachess/ui/chess/board";
+import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 import {
   BOARD_STAGE_WIDTH,
   BoardColumn,
@@ -162,8 +162,9 @@ function evaluationOf(grade: GradedPly | undefined) {
 function badgesFor(
   square: string | undefined,
   grade: GradedPly | undefined,
-): Record<string, SquareBadgeSpec> | undefined {
+): Record<string, BadgeTone> | undefined {
   if (!square || !grade) return undefined;
-  const badge = badgeForCategory(grade.category);
-  return badge ? { [square]: badge } : undefined;
+  const tone = badgeForCategory(grade.category);
+  if (!tone) return undefined;
+  return { [square]: tone };
 }

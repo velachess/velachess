@@ -13,6 +13,7 @@ import type { ReactElement, ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { Board } from "../board.tsx";
+import { badgeEdgesOf } from "../board-theme.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -134,13 +135,13 @@ it("clears user-drawn arrows when the position changes", () => {
 });
 
 it("renders a badge only on the square that has one", () => {
-  render(<Board fen={START} badges={{ e4: { tone: "blunder", label: "??" } }} />);
+  render(<Board fen={START} badges={{ e4: "blunder" }} />);
 
   const marked = render(captured.squareRenderer({ square: "e4" }));
-  expect(marked.container.textContent).toBe("??");
+  expect(marked.container.querySelector("svg")).not.toBeNull();
 
   const bare = render(captured.squareRenderer({ square: "d4" }));
-  expect(bare.container.textContent).toBe("");
+  expect(bare.container.querySelector("svg")).toBeNull();
 });
 
 it("animates by default and holds still on request", () => {
@@ -370,3 +371,23 @@ it("draws a requested move apart from the grade colours", () => {
   expect(suggested?.endSquare).toBe("f3");
   expect(suggested?.color).not.toBe(best?.color);
 });
+
+// A badge sits on its square's top-right corner. Where that corner is the
+// board's own edge, it is pushed inward instead of leaving the board.
+it.each([
+  { square: "e4", orientation: "white", edges: { right: false, top: false } },
+  { square: "h4", orientation: "white", edges: { right: true, top: false } },
+  { square: "e8", orientation: "white", edges: { right: false, top: true } },
+  { square: "h8", orientation: "white", edges: { right: true, top: true } },
+  // The board's left and bottom edges never hold a badge's corner.
+  { square: "a1", orientation: "white", edges: { right: false, top: false } },
+  { square: "a4", orientation: "black", edges: { right: true, top: false } },
+  { square: "e1", orientation: "black", edges: { right: false, top: true } },
+  { square: "a1", orientation: "black", edges: { right: true, top: true } },
+  { square: "h8", orientation: "black", edges: { right: false, top: false } },
+] as const)(
+  "finds the edges of $square with $orientation at the bottom",
+  ({ square, orientation, edges }) => {
+    expect(badgeEdgesOf(square, orientation)).toEqual(edges);
+  },
+);
