@@ -1,4 +1,5 @@
 import type { MoveSquares } from "@velachess/chess";
+import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
 import { squaresOfSanAt } from "./move.ts";
 import type { DrillItem } from "./queries.ts";
@@ -100,7 +101,7 @@ export function verdictArrows(
   playedMove?: MoveSquares;
   bestMove?: MoveSquares;
   lastMove?: MoveSquares;
-  badges?: Record<string, { tone: "ok"; label: string }>;
+  badges?: Record<string, BadgeTone>;
 } {
   const answer = attempt?.answer;
   if (!answer) return {};
@@ -112,7 +113,7 @@ export function verdictArrows(
   if (answer.correct) {
     return {
       ...(played ? { lastMove: played } : {}),
-      ...(played ? { badges: { [played.to]: { tone: "ok" as const, label: "✓" } } } : {}),
+      ...(played ? { badges: { [played.to]: "ok" as const } } : {}),
     };
   }
 

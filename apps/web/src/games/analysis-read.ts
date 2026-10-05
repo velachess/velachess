@@ -142,14 +142,8 @@ const CATEGORY_BADGE: Partial<Record<MoveCategory, BadgeTone>> = {
   blunder: "blunder",
 };
 
-const BEST_MOVE_GLYPH = "✓";
-
-export function badgeForCategory(
-  category: MoveCategory,
-): { tone: BadgeTone; label: string } | null {
-  const tone = CATEGORY_BADGE[category];
-  if (!tone) return null;
-  return { tone, label: glyphOf(category) ?? BEST_MOVE_GLYPH };
+export function badgeForCategory(category: MoveCategory): BadgeTone | null {
+  return CATEGORY_BADGE[category] ?? null;
 }
 
 /** Translated category names for UI display. */

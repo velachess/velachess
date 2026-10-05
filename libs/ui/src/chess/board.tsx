@@ -15,7 +15,7 @@ import { Chessboard } from "react-chessboard";
 import type { Arrow } from "react-chessboard";
 import { useState } from "react";
 import type { LegalDestination } from "@velachess/chess";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 
 import { cn } from "../lib/utils.ts";
 import {
@@ -44,13 +44,6 @@ export interface BoardMove {
 export interface BoardArrow {
   from: string;
   to: string;
-}
-
-export interface SquareBadgeSpec {
-  tone: BadgeTone;
-  /** Glyph or icon. Words come from the caller — this package cannot
-   * translate, so it never invents any. */
-  label: ReactNode;
 }
 
 export interface BoardProps {
@@ -82,7 +75,7 @@ export interface BoardProps {
    * choice stays the answer rather than one of three suggestions. */
   alternatives?: readonly BoardArrow[];
   /** Marks keyed by square — a grade, or the book. */
-  badges?: Readonly<Record<string, SquareBadgeSpec>> | undefined;
+  badges?: Readonly<Record<string, BadgeTone>> | undefined;
   /**
    * Legal destinations from a square, already classified by whether they
    * capture. Absent means no hints — a replay board is being read, not
@@ -295,16 +288,14 @@ export function Board({
           // Since we render badges, nothing was ever consuming the hints,
           // so they have to be applied here by hand.
           squareRenderer: ({ square, children }) => {
-            const badge = badges?.[square];
+            const tone = badges?.[square];
             return (
               <div
                 className="relative flex h-full w-full items-center justify-center"
                 style={hints[square]}
               >
                 {children}
-                {badge !== undefined && (
-                  <SquareBadge tone={badge.tone}>{badge.label}</SquareBadge>
-                )}
+                {tone !== undefined && <SquareBadge tone={tone} />}
               </div>
             );
           },

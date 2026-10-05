@@ -134,13 +134,13 @@ it("clears user-drawn arrows when the position changes", () => {
 });
 
 it("renders a badge only on the square that has one", () => {
-  render(<Board fen={START} badges={{ e4: { tone: "blunder", label: "??" } }} />);
+  render(<Board fen={START} badges={{ e4: "blunder" }} />);
 
   const marked = render(captured.squareRenderer({ square: "e4" }));
-  expect(marked.container.textContent).toBe("??");
+  expect(marked.container.querySelector("svg")).not.toBeNull();
 
   const bare = render(captured.squareRenderer({ square: "d4" }));
-  expect(bare.container.textContent).toBe("");
+  expect(bare.container.querySelector("svg")).toBeNull();
 });
 
 it("animates by default and holds still on request", () => {

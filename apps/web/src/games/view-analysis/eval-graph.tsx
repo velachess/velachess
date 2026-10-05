@@ -55,14 +55,14 @@ export function EvalGraph({
         };
       }
 
-      const badge = badgeForCategory(point.category);
+      const tone = badgeForCategory(point.category);
       const san = point.san ?? "";
 
       return {
         ply: point.ply,
         value: point.winChance,
-        tone: badge?.tone,
-        label: badge ? i18n._(CATEGORY_LABELS[point.category]) : undefined,
+        tone: tone ?? undefined,
+        label: tone ? i18n._(CATEGORY_LABELS[point.category]) : undefined,
         san,
         score: formatScore(point.evalAfter),
       };

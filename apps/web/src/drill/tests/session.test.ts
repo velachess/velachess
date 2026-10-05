@@ -102,7 +102,7 @@ describe("verdict", () => {
     });
 
     expect(shown.lastMove).toEqual({ from: "f3", to: "e5" });
-    expect(shown.badges?.["e5"]?.tone).toBe("ok");
+    expect(shown.badges?.["e5"]).toBe("ok");
     // Nothing to contrast a correct move with.
     expect(shown.playedMove).toBeUndefined();
     expect(shown.bestMove).toBeUndefined();
