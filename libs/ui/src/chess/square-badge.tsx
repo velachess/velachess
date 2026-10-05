@@ -72,23 +72,33 @@ const BADGE_MARK = {
   book: BookOpen,
 } as const satisfies Record<BadgeTone, ComponentType<MarkProps>>;
 
-export interface SquareBadgeProps {
-  tone: BadgeTone;
+/** Which of the board's edges the badge's square touches at its corner. */
+export interface BadgeEdges {
+  right: boolean;
+  top: boolean;
 }
 
-export function SquareBadge({ tone }: SquareBadgeProps) {
+export interface SquareBadgeProps {
+  tone: BadgeTone;
+  edges: BadgeEdges;
+}
+
+export function SquareBadge({ tone, edges }: SquareBadgeProps) {
   const Mark = BADGE_MARK[tone];
 
   return (
     <span
       aria-hidden
-      // Nudged past the corner so it reads as attached to the square
-      // rather than sitting inside it, which is where every board in the
-      // benchmark puts it. The shadow, not a ring, lifts it off a piece
-      // underneath — a ring in one fixed colour reads as a border.
+      // Centred on the square's top-right corner, so it sits at the
+      // meeting point of four squares and reads as attached to the move.
+      // On the board's own edge that would leave the board, so it is
+      // pushed inward instead. The shadow, not a ring, lifts it off a
+      // piece underneath — a ring in one fixed colour reads as a border.
       className={cn(
-        "pointer-events-none absolute -top-1 -right-1 z-10 grid size-[42%]",
+        "pointer-events-none absolute top-0 right-0 z-10 grid size-[42%]",
         "place-items-center rounded-full shadow-md",
+        !edges.right && "translate-x-1/2",
+        !edges.top && "-translate-y-1/2",
         TONE_INK[tone],
       )}
       style={{ backgroundColor: BADGE_TONE_COLOR[tone] }}

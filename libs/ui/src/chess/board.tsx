@@ -30,9 +30,26 @@ import {
   arrowAlternativeColor,
 } from "./board-theme.ts";
 import { SquareBadge } from "./square-badge.tsx";
+import type { BadgeEdges } from "./square-badge.tsx";
 import type { BadgeTone } from "./board-theme.ts";
 
 export type BoardSide = "white" | "black";
+
+/** The file and rank that run along the right and top edges, as seen from the bottom seat. */
+const BOARD_EDGES = {
+  white: { file: "h", rank: "8" },
+  black: { file: "a", rank: "1" },
+} as const satisfies Record<BoardSide, { file: string; rank: string }>;
+
+/**
+ * Whether a square's top-right corner is on the board's right or top edge.
+ * A badge sits on that corner, and there it would leave the board.
+ */
+export function badgeEdgesOf(square: string, orientation: BoardSide): BadgeEdges {
+  const [file, rank] = square;
+  const edges = BOARD_EDGES[orientation];
+  return { right: file === edges.file, top: rank === edges.rank };
+}
 
 export interface BoardMove {
   from: string;
@@ -295,7 +312,9 @@ export function Board({
                 style={hints[square]}
               >
                 {children}
-                {tone !== undefined && <SquareBadge tone={tone} />}
+                {tone !== undefined && (
+                  <SquareBadge tone={tone} edges={badgeEdgesOf(square, orientation)} />
+                )}
               </div>
             );
           },
