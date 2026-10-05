@@ -99,7 +99,7 @@ msgstr ""
 msgid "{opening} is costing you points"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:37
+#: src/games/open-game/game-crumb.tsx:15
 msgid "{opponent} vs you"
 msgstr ""
 
@@ -125,7 +125,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:39
+#: src/games/open-game/game-crumb.tsx:17
 msgid "{white} vs {black}"
 msgstr ""
 

@@ -99,7 +99,7 @@ msgstr "{moves} of your moves there, over {games, plural, one {# analysed game} 
 msgid "{opening} is costing you points"
 msgstr "{opening} is costing you points"
 
-#: src/games/open-game/game-analysis.tsx:37
+#: src/games/open-game/game-crumb.tsx:15
 msgid "{opponent} vs you"
 msgstr "{opponent} vs you"
 
@@ -125,7 +125,7 @@ msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
-#: src/games/open-game/game-analysis.tsx:39
+#: src/games/open-game/game-crumb.tsx:17
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
