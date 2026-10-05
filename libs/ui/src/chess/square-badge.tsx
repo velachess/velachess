@@ -7,7 +7,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { BookOpen, Check } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
-import { BADGE_TONE_COLOR, type BadgeTone } from "./board-theme.ts";
+import { BADGE_TONE_COLOR, type BadgeEdges, type BadgeTone } from "./board-theme.ts";
 
 /** The mark's ink: light on the tones dark enough to carry it. */
 const TONE_INK = {
@@ -74,21 +74,27 @@ const BADGE_MARK = {
 
 export interface SquareBadgeProps {
   tone: BadgeTone;
+  edges: BadgeEdges;
 }
 
-export function SquareBadge({ tone }: SquareBadgeProps) {
+export function SquareBadge({ tone, edges }: SquareBadgeProps) {
   const Mark = BADGE_MARK[tone];
 
   return (
     <span
       aria-hidden
-      // Nudged past the corner so it reads as attached to the square
-      // rather than sitting inside it, which is where every board in the
-      // benchmark puts it. The shadow, not a ring, lifts it off a piece
-      // underneath — a ring in one fixed colour reads as a border.
+      // Centred on the square's top-right corner, so it sits at the
+      // meeting point of four squares and reads as attached to the move.
+      // On the board's own edge that would leave the board, so it is
+      // pushed inward, with a small margin, instead. The shadow, not a ring, lifts it off a
+      // piece underneath — a ring in one fixed colour reads as a border.
       className={cn(
-        "pointer-events-none absolute -top-1 -right-1 z-10 grid size-[42%]",
+        "pointer-events-none absolute z-10 grid size-[42%]",
         "place-items-center rounded-full shadow-md",
+        !edges.right && "right-0 translate-x-1/2",
+        edges.right && "right-1/24",
+        !edges.top && "top-0 -translate-y-1/2",
+        edges.top && "top-1/24",
         TONE_INK[tone],
       )}
       style={{ backgroundColor: BADGE_TONE_COLOR[tone] }}

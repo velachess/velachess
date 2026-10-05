@@ -40,6 +40,31 @@ export const BADGE_TONE_COLOR: Record<BadgeTone, string> = {
   book: cssVar(TOKEN.highlight),
 };
 
+/** Which of the board's edges a badge's square touches at its corner. */
+export interface BadgeEdges {
+  right: boolean;
+  top: boolean;
+}
+
+/** The file and rank that run along the right and top edges, as seen from the bottom seat. */
+const BOARD_EDGES = {
+  white: { file: "h", rank: "8" },
+  black: { file: "a", rank: "1" },
+} as const;
+
+/**
+ * Whether a square's top-right corner is on the board's right or top edge.
+ * A badge sits on that corner, and there it would leave the board.
+ */
+export function badgeEdgesOf(
+  square: string,
+  orientation: keyof typeof BOARD_EDGES,
+): BadgeEdges {
+  const [file, rank] = square;
+  const edges = BOARD_EDGES[orientation];
+  return { right: file === edges.file, top: rank === edges.rank };
+}
+
 /**
  * Arrow colours, as strings the library hands to SVG.
  *

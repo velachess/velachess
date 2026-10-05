@@ -28,6 +28,7 @@ import {
   MAX_ARROWS,
   NOTATION_STYLE,
   arrowAlternativeColor,
+  badgeEdgesOf,
 } from "./board-theme.ts";
 import { SquareBadge } from "./square-badge.tsx";
 import type { BadgeTone } from "./board-theme.ts";
@@ -295,7 +296,9 @@ export function Board({
                 style={hints[square]}
               >
                 {children}
-                {tone !== undefined && <SquareBadge tone={tone} />}
+                {tone !== undefined && (
+                  <SquareBadge tone={tone} edges={badgeEdgesOf(square, orientation)} />
+                )}
               </div>
             );
           },
