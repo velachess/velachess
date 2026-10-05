@@ -17,7 +17,7 @@ import { useBreadcrumbTrail } from "./breadcrumb-trail.ts";
 export interface BoardScreenProps {
   /** The page's own name — the last crumb, which the router cannot know
    * because it needs data the route hasn't loaded. */
-  page: string;
+  page: ReactNode;
   /** Crumbs between the router's trail and this page, as
    * `<BreadcrumbItem>`s — a chapter's repertoire, for instance. */
   crumbs?: ReactNode;

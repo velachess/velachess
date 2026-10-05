@@ -14,10 +14,12 @@ import { CHESS_SOUND_EVENT, useChessSounds } from "../../chess-sounds/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { flairImageOf } from "../import/queries.ts";
+import { PLATFORMS } from "../list/columns.tsx";
 import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
+  resolvedSeatOf,
   seatIdentityOf,
   seatOf,
   suggestedArrow,
@@ -30,8 +32,15 @@ import { useAnalysis } from "../watch-analysis/use-analysis.ts";
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
   loadError: msg`Couldn't load analysis.`,
+  // Opponent first, then you: the trail answers "which game is this?"
+  // from your own seat.
+  versusYou: msg`{opponent} vs you`,
+  // Your seat is unknown (an unattributed PGN), so nobody is "you".
   matchup: msg`{white} vs {black}`,
 } as const;
+
+/** Between the facts in the trail — punctuation, not copy. */
+const CRUMB_SEPARATOR = " · ";
 
 const SCORESHEET_SKELETON_CELLS = Array.from(
   { length: 24 },
@@ -143,22 +152,51 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const white = seat(game.whiteName, game.whiteRating, "white");
   const black = seat(game.blackName, game.blackRating, "black");
 
-  const orientation = seatOf(
-    game,
-    myAccounts.map((account) => account.username),
-  );
+  const myUsernames = myAccounts.map((account) => account.username);
+  const orientation = seatOf(game, myUsernames);
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
-  const matchup = i18n._({
-    ...ANALYSE_COPY.matchup,
-    values: { white: white.name, black: black.name },
-  });
+  // "You" is a claim, so it needs evidence. The board falls back to white
+  // when nobody knows which seat is yours; the trail does not.
+  const mySeat = resolvedSeatOf(game, myUsernames);
+  const date = game.playedAt
+    ? i18n.date(new Date(game.playedAt), {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+      })
+    : "—";
+  const matchup = mySeat
+    ? i18n._({
+        ...ANALYSE_COPY.versusYou,
+        values: { opponent: mySeat === "white" ? black.name : white.name },
+      })
+    : i18n._({
+        ...ANALYSE_COPY.matchup,
+        values: { white: white.name, black: black.name },
+      });
+  const { icon: SourceIcon, label: sourceName } = PLATFORMS[game.source];
+  const crumb = (
+    <>
+      {matchup}
+      {CRUMB_SEPARATOR}
+      {date}
+      {CRUMB_SEPARATOR}
+      {/* A PGN file is not a provider, so it has no mark of its own. */}
+      {game.source !== "pgn" && (
+        <SourceIcon className="mr-1 inline size-4 align-text-bottom" />
+      )}
+      {sourceName}
+      {CRUMB_SEPARATOR}
+      {game.result}
+    </>
+  );
   const top = orientation === "white" ? black : white;
   const bottom = orientation === "white" ? white : black;
 
   return (
-    <BoardScreen page={matchup}>
+    <BoardScreen page={crumb}>
       <BoardPane
         fen={replay.fen}
         orientation={orientation}

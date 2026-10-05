@@ -191,16 +191,25 @@ export function whiteShareOf(score: GradedPly["evalAfter"]): number {
   return (scoreToWinChance(score) + 1) / SHARE_SPAN;
 }
 
-/** Board perspective: stored `perspective` if resolved, else tracked usernames (mirrors server's `resolveGamePerspective`); white by default. */
+/** The seat the person played: stored `perspective` if resolved, else tracked usernames (mirrors server's `resolveGamePerspective`). `null` is a fact — an unattributed PGN — not a gap to paper over. */
+export function resolvedSeatOf(
+  game: { perspective: "white" | "black" | null; whiteName: string; blackName: string },
+  mine: readonly string[],
+): "white" | "black" | null {
+  if (game.perspective) return game.perspective;
+
+  const names = new Set(mine.map((name) => name.toLowerCase()));
+  if (names.has(game.blackName.toLowerCase())) return "black";
+  if (names.has(game.whiteName.toLowerCase())) return "white";
+  return null;
+}
+
+/** Board perspective: the resolved seat, else white — somewhere for the board to start, not evidence about who the person is. */
 export function seatOf(
   game: { perspective: "white" | "black" | null; whiteName: string; blackName: string },
   mine: readonly string[],
 ): "white" | "black" {
-  if (game.perspective) return game.perspective;
-
-  const names = mine.map((name) => name.toLowerCase());
-  if (names.includes(game.blackName.toLowerCase())) return "black";
-  return "white";
+  return resolvedSeatOf(game, mine) ?? "white";
 }
 
 export interface SeatIdentity {

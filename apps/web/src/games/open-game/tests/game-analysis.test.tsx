@@ -13,6 +13,7 @@ import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
+import type { Game } from "../../list/queries.ts";
 
 /**
  * The screen through the route, over HTTP. Opening a game is the whole
@@ -170,7 +171,11 @@ describe("game analysis", () => {
       "href",
       "/games",
     );
-    expect(within(nav).getByText("yurimutti vs gothamchess")).toBeInTheDocument();
+    // The date is left loose here: its exact rendering is pinned, at a
+    // timezone-safe hour, in the breadcrumb tests below.
+    expect(within(nav).getAllByRole("link").at(-1)?.textContent).toMatch(
+      /^gothamchess vs you · .+ · Chess\.com · 1-0$/,
+    );
 
     await user.click(within(nav).getByRole("link", { name: "Games" }));
     expect(await screen.findByRole("heading", { name: "Games" })).toBeInTheDocument();
@@ -307,6 +312,125 @@ describe("game analysis", () => {
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The last crumb names the game being read: who you played, when, where,
+ * and how it ended. Each case reads the text off the trail the way a
+ * person would, so a rule that drifts in the screen fails by name.
+ *
+ * Dates sit at midday UTC so the calendar day holds in any timezone a
+ * developer's machine happens to be set to.
+ */
+describe("game breadcrumb", () => {
+  const PLAYED_AT = "2026-08-22T12:00:00.000Z";
+
+  beforeEach(() => {
+    deviceHasImported();
+  });
+
+  /** Renders the game and hands back its last crumb: the page's own name, not the trail leading to it. */
+  const openCrumb = async (overrides: Partial<Game>) => {
+    const game = aGame({ playedAt: PLAYED_AT, ...overrides });
+    addGames(game);
+    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    const rendered = await renderApp({ path: `/games/${game.id}` });
+    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    // The trail's last link: both it and "Games" are `aria-current`, so the
+    // page itself is told apart by coming last.
+    return { crumb: within(nav).getAllByRole("link").at(-1)!, ...rendered };
+  };
+
+  it("names the opponent first when you played white", async () => {
+    const { crumb } = await openCrumb({
+      whiteName: ME,
+      blackName: "grin_gyt",
+      perspective: "white",
+      result: "0-1",
+    });
+
+    expect(crumb.textContent).toBe("grin_gyt vs you · 8/22/2026 · Chess.com · 0-1");
+  });
+
+  it("names the opponent first when you played black", async () => {
+    const { crumb } = await openCrumb({
+      whiteName: "grin_gyt",
+      blackName: ME,
+      perspective: "black",
+      source: "lichess",
+      result: "1-0",
+    });
+
+    expect(crumb.textContent).toBe("grin_gyt vs you · 8/22/2026 · Lichess · 1-0");
+  });
+
+  it("names an imported PGN game by its source", async () => {
+    const { crumb } = await openCrumb({ source: "pgn", result: "1/2-1/2" });
+
+    expect(crumb.textContent).toBe("gothamchess vs you · 8/22/2026 · PGN · 1/2-1/2");
+    // A file is not a provider: no mark, and nothing left behind where one
+    // would have gone (the text above has no stray gap either).
+    expect(crumb.querySelector("svg")).toBeNull();
+  });
+
+  it("gives each provider its own icon", async () => {
+    // The icon is decorative — the name stands right beside it — so it has
+    // no accessible handle to find it by; its markup is the only evidence.
+    const icons: (string | undefined)[] = [];
+    for (const source of ["chess_com", "lichess"] as const) {
+      const { crumb, unmount } = await openCrumb({ source });
+      icons.push(crumb.querySelector("svg")?.innerHTML);
+      unmount();
+    }
+
+    expect(icons.every(Boolean)).toBe(true);
+    expect(new Set(icons).size).toBe(2);
+  });
+
+  it("shows a dash when the game has no date", async () => {
+    const { crumb } = await openCrumb({ playedAt: null });
+
+    expect(crumb.textContent).toBe("gothamchess vs you · — · Chess.com · 1-0");
+  });
+
+  it("shows * for a game with no result yet", async () => {
+    const { crumb } = await openCrumb({ result: "*" });
+
+    expect(crumb.textContent).toBe("gothamchess vs you · 8/22/2026 · Chess.com · *");
+  });
+
+  it("finds you as black by your tracked account when no seat is stored", async () => {
+    const { crumb } = await openCrumb({
+      perspective: null,
+      whiteName: "magnus",
+      blackName: ME,
+    });
+
+    expect(crumb.textContent).toBe("magnus vs you · 8/22/2026 · Chess.com · 1-0");
+  });
+
+  it("finds you as white by your tracked account when no seat is stored", async () => {
+    const { crumb } = await openCrumb({
+      perspective: null,
+      whiteName: ME,
+      blackName: "magnus",
+    });
+
+    expect(crumb.textContent).toBe("magnus vs you · 8/22/2026 · Chess.com · 1-0");
+  });
+
+  it("does not call anyone you when your seat is unknown", async () => {
+    // A PGN that names you on neither side. The board falls back to white
+    // so it has somewhere to start; the trail would be stating a fact.
+    const { crumb } = await openCrumb({
+      perspective: null,
+      whiteName: "magnus",
+      blackName: "hikaru",
+      source: "pgn",
+    });
+
+    expect(crumb.textContent).toBe("magnus vs hikaru · 8/22/2026 · PGN · 1-0");
   });
 });
 
