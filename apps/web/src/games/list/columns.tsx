@@ -29,7 +29,7 @@ const GAMES_COLUMNS_COPY = {
 } as const;
 
 /** Platform names are proper nouns — not translated. */
-const PLATFORMS = {
+export const PLATFORMS = {
   chess_com: { icon: ChessComIcon, label: "Chess.com" },
   lichess: { icon: LichessIcon, label: "Lichess" },
   pgn: { icon: FileText, label: "PGN" },

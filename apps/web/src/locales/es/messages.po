@@ -99,6 +99,10 @@ msgstr ""
 msgid "{opening} is costing you points"
 msgstr ""
 
+#: src/games/open-game/game-crumb.tsx:15
+msgid "{opponent} vs you"
+msgstr ""
+
 #: src/repertoire/repertoire-detail.tsx:36
 msgid "{rate} adherence"
 msgstr ""
@@ -121,7 +125,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:33
+#: src/games/open-game/game-crumb.tsx:17
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -337,7 +341,7 @@ msgstr ""
 msgid "Correspondence"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:32
+#: src/games/open-game/game-analysis.tsx:34
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr ""
@@ -734,7 +738,7 @@ msgstr ""
 msgid "Loading the chapter…"
 msgstr ""
 
-#: src/games/open-game/game-analysis.tsx:31
+#: src/games/open-game/game-analysis.tsx:33
 msgid "Loading the game…"
 msgstr ""
 

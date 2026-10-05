@@ -18,11 +18,13 @@ import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
+  resolvedSeatOf,
   seatIdentityOf,
   seatOf,
   suggestedArrow,
 } from "../analysis-read.ts";
 import { BoardPane } from "./board-pane.tsx";
+import { GameCrumb } from "./game-crumb.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
 import { useAnalysis } from "../watch-analysis/use-analysis.ts";
@@ -30,7 +32,6 @@ import { useAnalysis } from "../watch-analysis/use-analysis.ts";
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
   loadError: msg`Couldn't load analysis.`,
-  matchup: msg`{white} vs {black}`,
 } as const;
 
 const SCORESHEET_SKELETON_CELLS = Array.from(
@@ -143,22 +144,23 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const white = seat(game.whiteName, game.whiteRating, "white");
   const black = seat(game.blackName, game.blackRating, "black");
 
-  const orientation = seatOf(
-    game,
-    myAccounts.map((account) => account.username),
-  );
+  const myUsernames = myAccounts.map((account) => account.username);
+  const orientation = seatOf(game, myUsernames);
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
-  const matchup = i18n._({
-    ...ANALYSE_COPY.matchup,
-    values: { white: white.name, black: black.name },
-  });
+  // "You" is a claim, so it needs evidence. The board falls back to white
+  // when nobody knows which seat is yours; the trail does not.
+  const mySeat = resolvedSeatOf(game, myUsernames);
   const top = orientation === "white" ? black : white;
   const bottom = orientation === "white" ? white : black;
 
   return (
-    <BoardScreen page={matchup}>
+    <BoardScreen
+      page={
+        <GameCrumb game={game} white={white.name} black={black.name} mySeat={mySeat} />
+      }
+    >
       <BoardPane
         fen={replay.fen}
         orientation={orientation}

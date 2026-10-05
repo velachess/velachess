@@ -99,6 +99,10 @@ msgstr "{moves} of your moves there, over {games, plural, one {# analysed game} 
 msgid "{opening} is costing you points"
 msgstr "{opening} is costing you points"
 
+#: src/games/open-game/game-crumb.tsx:15
+msgid "{opponent} vs you"
+msgstr "{opponent} vs you"
+
 #: src/repertoire/repertoire-detail.tsx:36
 msgid "{rate} adherence"
 msgstr "{rate} adherence"
@@ -121,7 +125,7 @@ msgstr "{rate} of {count, plural, one {# game} other {# games}}"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
-#: src/games/open-game/game-analysis.tsx:33
+#: src/games/open-game/game-crumb.tsx:17
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
@@ -337,7 +341,7 @@ msgstr "Correct."
 msgid "Correspondence"
 msgstr "Correspondence"
 
-#: src/games/open-game/game-analysis.tsx:32
+#: src/games/open-game/game-analysis.tsx:34
 #: src/games/request-analysis/analysis-status.tsx:12
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
@@ -734,7 +738,7 @@ msgstr "Light"
 msgid "Loading the chapter…"
 msgstr "Loading the chapter…"
 
-#: src/games/open-game/game-analysis.tsx:31
+#: src/games/open-game/game-analysis.tsx:33
 msgid "Loading the game…"
 msgstr "Loading the game…"
 
