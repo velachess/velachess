@@ -15,7 +15,7 @@
     "@velachess/fixtures": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "stockfish": "^18.0.8"
+    "stockfish": "^19.0.0"
   },
   "type": "module",
   "exports": {

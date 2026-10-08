@@ -19,7 +19,7 @@
   "devDependencies": {
     "@velachess/accounts": "workspace:*",
     "@velachess/games": "workspace:*",
-    "stockfish": "^18.0.8"
+    "stockfish": "^19.0.0"
   },
   "type": "module",
   "exports": {
