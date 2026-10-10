@@ -57,7 +57,7 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
           if (event.key === "Escape") event.preventDefault();
         }}
       >
-        {/* Three slides, exclusive by construction: syncing wins, then a
+        {/* Three views, exclusive by construction: syncing wins, then a
             tour step if there is one, and the import when the steps run
             out. Each condition says which of the three it is. */}
         {syncing && <SyncingSlide />}

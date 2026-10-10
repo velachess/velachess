@@ -20,7 +20,7 @@ Why this project is GPL
     chessops (GPL-3.0-or-later) — https://github.com/niklasf/chessops
     implements the rules VelaChess is built on: legality and move
     generation, SAN and UCI, FEN and EPD, and the PGN tree with variations
-    that the repertoire model depends on. libs/chess is a façade over it
+    that game review depends on. libs/chess is a façade over it
     and nothing else in the workspace imports it directly. It is linked
     into this program, and so this program carries the same licence.
 

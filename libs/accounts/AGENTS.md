@@ -10,13 +10,8 @@ refresh — change together whenever a provider integration changes.
 `GameWithStatus`, `ListAccountGamesDeps`, `RefreshOutcome`,
 `SyncAccountDeps`, `SyncDeps`, `SyncOutcome`.
 
-Cross-module dependencies (all satisfied at the composition root, never a
-direct package import):
-
-- Declares `EnsureCandidateRepertoires`, wired from `repertoires`'
-  `ensureCandidateRepertoires`.
-- Declares `LandNewGames`, wired from `games`' `landNewGames` — the same
-  real handler `games/import-pgn`'s own composition uses.
+Cross-module dependencies: none. Provider HTTP, the database and the queue
+are all reached through dependency types the composition root satisfies.
 
 No other business module depends on `@velachess/accounts`.
 

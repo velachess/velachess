@@ -12,10 +12,8 @@ job trigger?" — and nothing else:
 
 - **sync** → `processAccountSync` (`@velachess/accounts`): pull what's new,
   insist on completeness (partial saves kept, cursor not advanced, delivery
-  fails and retries), then judge the owner's games and seed the exercises
-  their severities allow. Judging is replay: refreshing an archive of
-  hundreds of games costs hundreds of replays, not hundreds of engine
-  runs. The worker never learns what follows sync.
+  fails and retries). Sync persists games and never runs Stockfish. The
+  worker never learns what follows sync.
 - **analysis** → `completeAnalysis` (`@velachess/analysis`): returns only on
   terminal truth (run by us, cached, or game gone) and THROWS when a live
   executor owns the run — pg-boss's retry schedule decides when the
@@ -26,7 +24,7 @@ job trigger?" — and nothing else:
 
 ## Lifecycle
 
-`index.ts`: `boss.start()` → `ensureQueues` (idempotent: policies,
+`src/main.ts`: `boss.start()` → `ensureQueues` (idempotent: policies,
 retry, DLQs, expiration + heartbeat, send-path warm-up) → `await
 registerConsumers` — registration is awaited, so a consumer that cannot
 register kills the process instead of logging "consuming" over dead
@@ -50,7 +48,7 @@ auto-refreshes heartbeats).
 ## Tests
 
 `tests/worker.test.ts` over the real harness: the background loop (one
-sync job → games → judgments, with the engine untouched), a deliberately
+sync job → games, with the engine untouched), a deliberately
 enqueued analysis producing a real report, analysis
 idempotence on an already-analyzed game, the throw-to-retry path for a
 missing account, and both sides of the running-is-not-terminal contract

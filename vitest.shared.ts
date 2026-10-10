@@ -19,7 +19,6 @@ export const aliases = {
   ),
   "@velachess/infra-db": path.resolve(import.meta.dirname, "./libs/infra/db"),
   "@velachess/analysis": path.resolve(import.meta.dirname, "./libs/analysis"),
-  "@velachess/scheduler": path.resolve(import.meta.dirname, "./libs/scheduler"),
   "@velachess/infra-queue": path.resolve(import.meta.dirname, "./libs/infra/queue"),
   "@velachess/test-utils": path.resolve(import.meta.dirname, "./libs/test-utils"),
   "@velachess/ui": path.resolve(import.meta.dirname, "./libs/ui/src"),

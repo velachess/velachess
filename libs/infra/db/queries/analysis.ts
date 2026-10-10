@@ -1,12 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import {
-  analysisProgress,
-  deviations,
-  gameAnalyses,
-  type StoredGradedPly,
-} from "../schema.ts";
+import { analysisProgress, gameAnalyses, type StoredGradedPly } from "../schema.ts";
 
 export async function saveAnalysis(
   db: Database,
@@ -111,21 +106,4 @@ export async function countProgress(db: Database, gameId: string) {
 /** Called once the report has landed — the durable record supersedes these. */
 export async function clearProgress(db: Database, gameId: string) {
   await db.delete(analysisProgress).where(eq(analysisProgress.gameId, gameId));
-}
-
-/** Fills the severity columns cycle 0 left nullable. */
-export async function applyEngineSignal(
-  db: Database,
-  deviationId: string,
-  signal: {
-    cpLoss: number | null;
-    engineCategory: "ok" | "inaccuracy" | "mistake" | "blunder";
-  },
-) {
-  const [updated] = await db
-    .update(deviations)
-    .set({ cpLoss: signal.cpLoss, engineCategory: signal.engineCategory })
-    .where(eq(deviations.id, deviationId))
-    .returning();
-  return updated ?? null;
 }

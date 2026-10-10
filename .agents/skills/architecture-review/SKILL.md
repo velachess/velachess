@@ -39,7 +39,7 @@ Read the nearest `AGENTS.md`, `docs/explanation/architecture.md`, and
    composition root wires the real implementation in.
 3. Keep HTTP translation in `apps/server`, delivery translation in
    `apps/worker`, technical mechanisms in `libs/infra`, and stable shared domain
-   rules in the existing domain libraries (`libs/chess`, `libs/scheduler`) or,
+   rules in the existing domain library (`libs/chess`) or,
    when only one module's slices need it, as a module-root pure policy (no
    DB/queue/provider dependency of its own).
 4. Group frontend code by user or domain behavior; shared UI and global
@@ -53,8 +53,7 @@ the behavior with the request or event that changes it.
 
 Route specialized questions instead of reproducing their rules:
 
-- Chess, ingestion, engine, or training boundaries: the corresponding domain
-  skill.
+- Chess, ingestion, or engine boundaries: the corresponding domain skill.
 - Queue/worker behavior that is already inconsistent: `debug-pipeline`.
 
 Do not change domain behavior inside a readability refactor. Report a proven

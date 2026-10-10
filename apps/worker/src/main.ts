@@ -12,7 +12,7 @@ import { createDb } from "@velachess/infra-db";
 import { EngineSession } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { logger } from "@velachess/infra-logger";
-import { createBoss, ensureQueues, makeAnalysisQueue } from "@velachess/infra-queue";
+import { createBoss, ensureQueues } from "@velachess/infra-queue";
 
 import { registerConsumers } from "./worker.ts";
 
@@ -54,7 +54,6 @@ const lock = sessionAdvisoryLock({
 await registerConsumers(boss, {
   db,
   analyze: { makeSession, tryAcquireLock: (key) => lock.tryAcquire(key) },
-  analysisQueue: makeAnalysisQueue(boss, db),
   log: workerLogger,
 });
 

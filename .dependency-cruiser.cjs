@@ -4,10 +4,9 @@ const testPath = "(?:^|/)(?:tests|e2e)/|[.](?:test|spec)[.](?:[cm]?[jt]sx?)$";
 // under libs/ (see AGENTS.md "Modules and slices"). The former
 // libs/application package these were migrated out of is gone as of
 // migration phase 9.
-const businessModules =
-  "accounts|games|repertoires|drills|insights|deviations|overview|user|analysis";
+const businessModules = "accounts|games|user|analysis";
 
-const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${businessModules}|infra|chess|scheduler|ui/src))/`;
+const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${businessModules}|infra|chess|ui/src))/`;
 
 // apps/web verticals born from eliminating shared/ (see docs/explanation/apps/web.md).
 // Only these expose an index.ts public surface; pre-existing verticals
@@ -30,7 +29,7 @@ module.exports = {
       name: "no-libs-to-apps",
       severity: "error",
       from: {
-        path: `^libs/(?:${businessModules}|infra|chess|scheduler|ui/src)/`,
+        path: `^libs/(?:${businessModules}|infra|chess|ui/src)/`,
         pathNot: testPath,
       },
       to: { path: "^apps/(?:server|worker|web|site)/" },
@@ -39,7 +38,7 @@ module.exports = {
       name: "no-hono-outside-server",
       severity: "error",
       from: {
-        path: `^libs/(?:${businessModules}|infra|chess|scheduler)/`,
+        path: `^libs/(?:${businessModules}|infra|chess)/`,
         pathNot: testPath,
       },
       to: { path: externalPackage("hono") },
@@ -62,7 +61,7 @@ module.exports = {
       name: "domain-stays-pure",
       severity: "error",
       from: {
-        path: "^libs/(?:chess|scheduler)/",
+        path: "^libs/chess/",
         pathNot: testPath,
       },
       to: {
@@ -88,11 +87,11 @@ module.exports = {
     {
       name: "routes-no-direct-domain-behavior",
       comment:
-        "A route must not execute shared domain behavior itself (e.g. converting an EPD to a FEN, building a repertoire tree, running scheduler math). That behavior belongs to the business-module slice that owns the use case; the route only maps the slice's result onto HTTP. Type-only references (e.g. a vocabulary type for a query schema) are unaffected. `analysis` dropped out once it became a business module (migration phase 7) — routes reaching its index.ts is the same intended pattern as every other business module, covered by routes-no-module-internals instead.",
+        "A route must not execute shared domain behavior itself (e.g. converting an EPD to a FEN, parsing a PGN). That behavior belongs to the business-module slice that owns the use case; the route only maps the slice's result onto HTTP. Type-only references (e.g. a vocabulary type for a query schema) are unaffected. `analysis` dropped out once it became a business module (migration phase 7) — routes reaching its index.ts is the same intended pattern as every other business module, covered by routes-no-module-internals instead.",
       severity: "error",
       from: { path: "^apps/server/src/routes/", pathNot: testPath },
       to: {
-        path: "^libs/(?:chess|scheduler)/",
+        path: "^libs/chess/",
         dependencyTypesNot: ["type-only"],
       },
     },
@@ -184,7 +183,7 @@ module.exports = {
     {
       name: "no-intra-module-slice-imports",
       comment:
-        "A slice never imports a sibling slice's handler, same module or not — that's what a declared dependency + the composition root are for. Module-level pure-policy files live at the module root (e.g. libs/repertoires/tree.ts), one path segment up from any slice folder, so this pattern alone tells them apart from a slice's own files.",
+        "A slice never imports a sibling slice's handler, same module or not — that's what a declared dependency + the composition root are for. Module-level pure-policy files live at the module root (e.g. libs/analysis/score.ts), one path segment up from any slice folder, so this pattern alone tells them apart from a slice's own files.",
       severity: "error",
       from: {
         path: `^libs/(${businessModules})/([^/]+)/`,
@@ -200,8 +199,8 @@ module.exports = {
       severity: "error",
       from: {
         path: [
-          "^libs/(?:accounts|games|repertoires|analysis|drills|insights|deviations|overview)/",
-          "^libs/(?:chess|scheduler)/",
+          "^libs/(?:accounts|games|analysis)/",
+          "^libs/chess/",
           "^libs/infra/db/",
           "^apps/worker/src/",
         ],
@@ -221,7 +220,7 @@ module.exports = {
       from: { path: "^libs/infra/auth/", pathNot: testPath },
       to: {
         path: [
-          `^libs/(?:scheduler|infra/queue|chess|${businessModules})/`,
+          `^libs/(?:infra/queue|chess|${businessModules})/`,
           externalPackage("hono"),
         ],
       },

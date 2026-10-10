@@ -3,7 +3,7 @@
 The UCI engine library, exposed in the workspace as `@velachess/infra-engine`. It
 parses and builds UCI protocol messages, abstracts
 Stockfish transport, and exposes engine sessions; it should not classify moves,
-judge repertoires, persist reports, or decide when an engine run starts.
+persist reports, or decide when an engine run starts.
 
 ## Dependencies
 

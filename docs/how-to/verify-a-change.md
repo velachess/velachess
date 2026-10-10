@@ -63,9 +63,9 @@ to assert on, is `docs/how-to/write-a-test.md`.
 ## Typecheck the workspace you touched
 
 The root `tsc --noEmit` covers the workspace, but an app or library with its own
-`tsconfig.json` can still be wrong in isolation — `apps/web` once
-compiled zero files because it inherited an `exclude` that matched
-itself, and the root pass said nothing. When you change one app or library:
+`tsconfig.json` can still be wrong in isolation — an inherited `exclude`
+that matches the app itself compiles zero files, and the root pass says
+nothing. When you change one app or library:
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit

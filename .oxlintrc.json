@@ -76,10 +76,6 @@
                 "message": "libs/chess is a leaf rules package."
               },
               {
-                "group": ["@velachess/scheduler", "@velachess/scheduler/**"],
-                "message": "libs/chess is a leaf rules package."
-              },
-              {
                 "group": ["@/app/**", "@/components/**", "@/features/**"],
                 "message": "Packages must not depend on UI code. UI depends on packages, not the reverse."
               }
@@ -220,13 +216,7 @@
                   "@velachess/accounts",
                   "@velachess/analysis",
                   "@velachess/chess",
-                  "@velachess/deviations",
-                  "@velachess/drills",
                   "@velachess/games",
-                  "@velachess/insights",
-                  "@velachess/overview",
-                  "@velachess/repertoires",
-                  "@velachess/scheduler",
                   "@velachess/user"
                 ],
                 "message": "libs/infra/storage moves bytes under a root \u2014 keys, policy and meaning belong to its callers."

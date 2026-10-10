@@ -27,7 +27,7 @@ function AppLayout() {
     <AppShell>
       <Outlet />
       {/* Over every screen, not one screen: an empty account has nothing
-          to list, drill or review anywhere behind the wall. */}
+          to list or review anywhere behind the wall. */}
       <OnboardingOverlay />
     </AppShell>
   );

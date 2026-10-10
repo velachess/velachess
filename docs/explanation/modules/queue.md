@@ -70,9 +70,9 @@ table instead.
 ## Transactional enqueue
 
 `enqueue(dbOrTx, id)` accepts a Drizzle database _or transaction_ and
-routes pg-boss's insert through it (`fromDrizzle`). Judgment persistence
-and analysis enqueue commit or roll back together — no judged-but-never-
-analyzed limbo.
+routes pg-boss's insert through it (`fromDrizzle`). An enqueue made inside a
+caller's transaction commits or rolls back together with that
+transaction's other writes.
 
 `ensureQueues` warms pg-boss's send path per queue (a real send +
 immediate delete). Without it, the first send does an own-connection

@@ -2,7 +2,7 @@
 
 The ingestion library. It fetches or accepts external game sources and
 normalizes them into the shape persisted by `@velachess/infra-db`; it should not
-store rows, judge repertoires, analyze moves, or own user-facing workflows.
+store rows, analyze moves, or own user-facing workflows.
 
 ## Dependencies
 

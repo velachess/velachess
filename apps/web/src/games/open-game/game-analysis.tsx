@@ -96,7 +96,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     isLoading,
     hasFailed,
     replay,
-    drills,
     graded,
     isAnalyzing,
     analysisFailed,
@@ -183,7 +182,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       />
 
       <AnalysisPanel
-        drills={drills}
         onShowBest={(san) => setPreview({ ply: replay.ply, san })}
         game={game}
         replay={replay}

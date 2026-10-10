@@ -1,13 +1,11 @@
 // @vitest-environment node
 /**
  * Worker consumers over the real harness: pg-boss delivers, consumers call
- * application, the loop runs sync → judge → analysis in the background.
+ * application, the loop runs sync → analysis in the background.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  addChapter,
-  createRepertoire,
   createUser,
   getAnalysis,
   getTrackedAccountForUser,
@@ -15,7 +13,7 @@ import {
   upsertTrackedAccount,
 } from "@velachess/infra-db";
 import { listGamesWithStatus } from "@velachess/accounts";
-import { LOOPER_REPERTOIRE_PGN, LOOPER_USERNAME } from "@velachess/fixtures";
+import { LOOPER_USERNAME } from "@velachess/fixtures";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -56,27 +54,15 @@ beforeAll(async () => {
       tryAcquireLock: (key) => h.lock.tryAcquire(key),
       depth: 8,
     },
-    analysisQueue: h.analysisQueue,
     sync: { fetch: chessComFixtureFetch() },
     log: testLogger,
   };
 
-  // Seed the user's side: repertoire + tracked account, as the api would.
+  // Seed the user's side: a tracked account, as the api would.
   const user = await createUser(h.db);
   userId = user.id;
   const account = await upsertTrackedAccount(h.db, user.id, "chess_com", LOOPER_USERNAME);
   accountId = account.id;
-  const repertoire = await createRepertoire(h.db, {
-    userId: user.id,
-    name: "White e4",
-    color: "white",
-  });
-  await addChapter(h.db, {
-    repertoireId: repertoire.id,
-    name: "French",
-    pgn: LOOPER_REPERTOIRE_PGN,
-    sortOrder: 0,
-  });
 }, 120_000);
 
 afterAll(async () => {
@@ -84,43 +70,40 @@ afterAll(async () => {
 });
 
 describe("worker consumers", () => {
-  it("a sync job lands and judges the games — and starts no engine", async () => {
+  it("a sync job lands the games — and starts no engine", async () => {
     await registerConsumers(h.boss, deps);
     await h.syncQueue.enqueue(h.db, accountId);
 
-    // sync consumer: games land and are judged (replay, not Stockfish)
     const games = await poll(async () => {
       const rows = (await gamesWithStatus(userId, accountId))!;
-      return rows.length === 2 && rows.every((r) => r.judgmentType !== null)
-        ? rows
-        : null;
+      return rows.length === 2 ? rows : null;
     }, 60_000);
-    const deviant = games.find((g) => g.judgmentType === "deviation")!;
-    expect(deviant).toBeDefined();
 
-    // Refreshing an archive is a routine, not a fanout: the deviation is
-    // recorded and nothing was sent to the engine.
-    expect(await h.analysisQueue.getState(deviant.id)).toBe("none");
-    expect(await getAnalysis(h.db, deviant.id)).toBeNull();
+    // Refreshing an archive is a routine, not a fanout: nothing was sent
+    // to the engine.
+    for (const game of games) {
+      expect(await h.analysisQueue.getState(game.id)).toBe("none");
+      expect(await getAnalysis(h.db, game.id)).toBeNull();
+    }
   }, 120_000);
 
   it("an enqueued analysis job produces a real engine report", async () => {
     // What opening a game does: one deliberate enqueue, one run.
     const games = (await gamesWithStatus(userId, accountId))!;
-    const deviant = games.find((g) => g.judgmentType === "deviation")!;
-    await h.analysisQueue.enqueue(h.db, deviant.id);
+    const first = games[0]!;
+    await h.analysisQueue.enqueue(h.db, first.id);
 
-    const analysis = await poll(() => getAnalysis(h.db, deviant.id), 60_000);
+    const analysis = await poll(() => getAnalysis(h.db, first.id), 60_000);
     expect(analysis.depth).toBe(8);
     expect(analysis.positions.length).toBeGreaterThan(0);
   }, 120_000);
 
   it("an analysis job for an already-analyzed game completes without a second run", async () => {
     const games = (await gamesWithStatus(userId, accountId))!;
-    const deviant = games.find((g) => g.judgmentType === "deviation")!;
-    const before = await getAnalysis(h.db, deviant.id);
-    await consumeAnalysisJob(deps, { gameId: deviant.id }); // no throw, no re-run
-    const after = await getAnalysis(h.db, deviant.id);
+    const first = games[0]!;
+    const before = await getAnalysis(h.db, first.id);
+    await consumeAnalysisJob(deps, { gameId: first.id }); // no throw, no re-run
+    const after = await getAnalysis(h.db, first.id);
     expect(after!.id).toBe(before!.id);
   });
 
@@ -134,31 +117,31 @@ describe("worker consumers", () => {
     // An "interactive" holder owns the lock and hasn't persisted: the
     // delivery must fail (for pg-boss to redeliver later), never complete.
     const games = (await gamesWithStatus(userId, accountId))!;
-    const inBook = games.find((g) => g.judgmentType !== "deviation")!;
-    const release = await h.lock.tryAcquire(`analysis:${inBook.id}`);
+    const second = games[1]!;
+    const release = await h.lock.tryAcquire(`analysis:${second.id}`);
     expect(release).not.toBeNull();
 
-    await expect(consumeAnalysisJob(deps, { gameId: inBook.id })).rejects.toThrow(
+    await expect(consumeAnalysisJob(deps, { gameId: second.id })).rejects.toThrow(
       /running elsewhere/,
     );
-    expect(await getAnalysis(h.db, inBook.id)).toBeNull();
+    expect(await getAnalysis(h.db, second.id)).toBeNull();
 
     // The holder vanished without persisting — the redelivery (here: the
     // next consume call) takes over and finishes the work.
     await release!();
-    await consumeAnalysisJob(deps, { gameId: inBook.id });
-    expect((await getAnalysis(h.db, inBook.id))?.positions.length).toBeGreaterThan(0);
+    await consumeAnalysisJob(deps, { gameId: second.id });
+    expect((await getAnalysis(h.db, second.id))?.positions.length).toBeGreaterThan(0);
   }, 60_000);
 
   it("running while the holder's report already landed completes the delivery", async () => {
-    // The deviant is analyzed; a held lock plus a persisted report means
+    // The first game is analyzed; a held lock plus a persisted report means
     // the holder finished — the delivery is satisfied without a throw.
     const games = (await gamesWithStatus(userId, accountId))!;
-    const deviant = games.find((g) => g.judgmentType === "deviation")!;
-    const release = await h.lock.tryAcquire(`analysis:${deviant.id}`);
+    const first = games[0]!;
+    const release = await h.lock.tryAcquire(`analysis:${first.id}`);
     expect(release).not.toBeNull();
 
-    await consumeAnalysisJob(deps, { gameId: deviant.id }); // no throw
+    await consumeAnalysisJob(deps, { gameId: first.id }); // no throw
     await release!();
   }, 30_000);
 });

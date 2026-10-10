@@ -185,7 +185,7 @@ describe("coming back from Google without a session", () => {
     await user.type(screen.getByLabelText("Password"), TEST_PASSWORD);
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games"));
   });
 });
 

@@ -4,16 +4,15 @@
  * acceptance criteria: one library across sources, idempotent re-import,
  * duplicate-only success, per-game perspective in mixed-color files,
  * cross-user independence of the same file, no connected account, no
- * engine, and the existing judge → deviations flow afterwards.
+ * and no engine.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   IMPORTED_PLAYER_NAME,
   MIXED_COLOR_PGN,
-  NAMED_DEVIATION_GAME_PGN,
-  NAMED_IN_BOOK_GAME_PGN,
-  RUY_LOPEZ_REPERTOIRE_PGN,
+  NAMED_SECOND_GAME_PGN,
+  NAMED_FIRST_GAME_PGN,
 } from "@velachess/fixtures";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
@@ -85,7 +84,7 @@ describe("POST /games/import", () => {
     const duplicatesOnly = await owner.request(
       "/games/import",
       json({
-        pgn: NAMED_IN_BOOK_GAME_PGN + NAMED_DEVIATION_GAME_PGN,
+        pgn: NAMED_FIRST_GAME_PGN + NAMED_SECOND_GAME_PGN,
         playerName: IMPORTED_PLAYER_NAME,
       }),
     );
@@ -113,7 +112,7 @@ describe("POST /games/import", () => {
     const response = await owner.request(
       "/games/import",
       json({
-        pgn: "complete garbage\n\n" + NAMED_IN_BOOK_GAME_PGN,
+        pgn: "complete garbage\n\n" + NAMED_FIRST_GAME_PGN,
         playerName: IMPORTED_PLAYER_NAME,
       }),
     );
@@ -138,42 +137,23 @@ describe("POST /games/import", () => {
   });
 });
 
-describe("imported games join the existing flow", () => {
-  it("judge runs against the book, and the deviation reaches GET /deviations", async () => {
+describe("imported games join the library", () => {
+  it("lists them without queueing Stockfish", async () => {
     const owner = (await harness.signUp("pgn-flow@api.test")).app;
-
-    // The user declares preparation BEFORE importing, like a real setup.
-    const repertoire = (await (
-      await owner.request("/repertoires", json({ name: "Ruy", color: "white" }))
-    ).json()) as { id: string };
-    await owner.request(`/repertoires/${repertoire.id}/chapters`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "Spanish", pgn: RUY_LOPEZ_REPERTOIRE_PGN }),
-    });
 
     const imported = await owner.request(
       "/games/import",
       json({
-        pgn: NAMED_DEVIATION_GAME_PGN + NAMED_IN_BOOK_GAME_PGN,
+        pgn: NAMED_SECOND_GAME_PGN + NAMED_FIRST_GAME_PGN,
         playerName: IMPORTED_PLAYER_NAME,
       }),
     );
-    const outcome = (await imported.json()) as { imported: number; judged: number };
+    const outcome = (await imported.json()) as { imported: number };
     expect(outcome.imported).toBe(2);
-    // Both games were judged by the pass that import itself ran.
-    expect(outcome.judged).toBe(2);
-
-    // The deviation the player left their own book with is listed.
-    const deviations = (await (await owner.request("/deviations")).json()) as {
-      gameId: string;
-      playedSan: string | null;
-    }[];
-    expect(deviations).toHaveLength(1);
-    expect(deviations[0]!.playedSan).toBe("Bc4");
 
     // Import never queued Stockfish — analysis waits for an opened game.
     const games = (await library(owner)).games;
+    expect(games).toHaveLength(2);
     for (const game of games) {
       expect(await harness.deps.analysisQueue.getState(game.id)).toBe("none");
     }

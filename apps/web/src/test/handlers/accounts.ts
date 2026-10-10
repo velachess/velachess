@@ -12,7 +12,7 @@ interface TrackedAccountRow {
   syncState: QueueState;
 }
 
-/** What the server says this user tracks. The dashboard reads it to tell
+/** What the server says this user tracks. The onboarding reads it to tell
  * "never started" from "connected and empty" — the two states that used
  * to render identically as four zeroes. */
 let trackedAccounts: TrackedAccountRow[] = [];
@@ -87,6 +87,6 @@ export const accountsHandlers = [
       );
     }
 
-    return HttpResponse.json({ saved: outcome.saved, judged: 0, seeded: 0 });
+    return HttpResponse.json({ saved: outcome.saved });
   }),
 ];

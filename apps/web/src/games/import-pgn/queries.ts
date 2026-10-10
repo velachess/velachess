@@ -1,13 +1,11 @@
 import { api, parseResponse } from "../../api/index.ts";
 import { useMutation, useQueryClient } from "../../libs/react-query.ts";
 
-/** What POST /games/import reports, all three counts at once. */
+/** What POST /games/import reports, the three counts at once. */
 export type ImportPgnOutcome = {
   imported: number;
   duplicates: number;
   rejected: number;
-  judged: number;
-  seeded: number;
 };
 
 export interface ImportPgnInput {

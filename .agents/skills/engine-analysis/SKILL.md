@@ -1,11 +1,11 @@
 ---
 name: engine-analysis
-description: Change or review VelaChess Stockfish execution, engine sessions, UCI scores, mate and centipawn normalization, side-to-move perspective, per-ply classification, analysis locking, queue execution, persistence, progress, retry, or re-analysis behavior. Use for libs/infra/engine, libs/analysis, application analysis slices, or worker analysis consumers.
+description: Change or review VelaChess Stockfish execution, engine sessions, UCI scores, mate and centipawn normalization, side-to-move perspective, per-ply classification, analysis locking, queue execution, persistence, progress, retry, or re-analysis behavior. Use for libs/infra/engine, libs/analysis, or the worker analysis consumer.
 ---
 
 # Work on engine analysis
 
-Keep three concerns separate:
+Keep two concerns separate:
 
 - `libs/infra/engine` owns UCI transport and session mechanics.
 - `libs/analysis` owns pure score normalization and per-ply classification at

@@ -25,8 +25,8 @@ const SYNC_COPY = {
   retry: msg`Try again in a moment.`,
 } as const;
 
-// Parameterised, so it lives outside the const table the way the insights
-// coverage line does. The wait is the one fact that makes this toast
+// Parameterised, so it lives outside the const table the way other
+// parameterised messages do. The wait is the one fact that makes this toast
 // actionable — "a moment" invites an immediate retry; a number does not.
 const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 

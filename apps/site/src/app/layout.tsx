@@ -18,8 +18,8 @@ const spaceGrotesk = localFont({
 });
 
 const META_COPY = {
-  title: msg`VelaChess - Turn your games into training`,
-  description: msg`Import your Chess.com and Lichess games, understand recurring mistakes, and train the positions that cost you points.`,
+  title: msg`VelaChess - Review your games with Stockfish`,
+  description: msg`Import your Chess.com and Lichess games, or a PGN, and review every move with Stockfish on the board.`,
 } as const;
 
 const THEME_BOOTSTRAP = `${themeInitScript({ storageKey: "velachess-theme" })};document.documentElement.classList.remove("no-js")`;

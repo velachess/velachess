@@ -2,11 +2,9 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { streamSSE } from "hono/streaming";
 
 import {
-  drillSummaryFor,
   getAnalysisReport,
   requestAnalysisForUser,
   startAnalysisForUser,
-  type DrillSummaryDeps,
   type GetAnalysisDeps,
   type RequestAnalysisDeps,
   type Watchers,
@@ -14,11 +12,9 @@ import {
 import {
   getGameForReview,
   importPgnForUser,
-  judgeGamesForUser,
   openLibrary,
   type GetGameDeps,
   type ImportPgnDeps,
-  type JudgeGamesDeps,
   type ListGamesDeps,
 } from "@velachess/games";
 
@@ -41,10 +37,6 @@ const libraryQuery = z.object({
     .enum(["win", "loss", "draw"])
     .optional()
     .describe("From the player's side, not the scoresheet's"),
-  verdict: z
-    .enum(["deviation", "gap", "book-ended", "completed", "unjudged"])
-    .optional()
-    .describe("The repertoire's verdict; `unjudged` means no book saw the game"),
   timeClass: z
     .enum(["bullet", "blitz", "rapid", "classical"])
     .optional()
@@ -56,7 +48,7 @@ const libraryQuery = z.object({
 /**
  * The name is what the PGN headers call them — the one identity a
  * hand-written file can carry. Optional at the API: without it games
- * still land, just unattributed and unjudgeable.
+ * still land, just unattributed.
  */
 const importPgnSchema = z.object({
   pgn: z.string().min(1).describe("One or more games in PGN format"),
@@ -74,7 +66,7 @@ const importPgnSchema = z.object({
  * Drizzle query, never a declared interface, so this is the one place
  * that shape is written out by hand. `apps/web`'s games-list table reads
  * these fields directly (caught by the RPC typecheck gate, same lesson
- * as `/insights` and `/games/{id}`), so a loose record isn't an option
+ * as `/games/{id}`), so a loose record isn't an option
  * here either. `playedAt` travels as ISO text on the wire, not a `Date`.
  */
 const gameListRowSchema = z.object({
@@ -91,9 +83,6 @@ const gameListRowSchema = z.object({
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
   openingName: z.string().nullable(),
-  repertoireName: z.string().nullable(),
-  judgmentType: z.string().nullable(),
-  judgmentPly: z.number().int().nullable(),
   analyzed: z.boolean(),
 });
 
@@ -102,7 +91,7 @@ const gameListRowSchema = z.object({
  * `createdAt` travel as ISO text on the wire, not a `Date` — `apps/web`'s
  * `gameQuery` spreads this response directly into `ReplayableGame` and
  * reads `rawPgn` off it, so this needs real fields, not a loose record
- * (caught by the RPC typecheck gate, same lesson as `/insights`). */
+ * (caught by the RPC typecheck gate). */
 const seatIdentitySchema = z.object({
   avatarUrl: z.string().nullable(),
   flair: z.string().nullable(),
@@ -167,8 +156,6 @@ const importOutcomeSchema = z.object({
     .int()
     .describe("Games this user already had — skipped as a no-op"),
   rejected: z.number().int().describe("Chunks that failed to parse"),
-  judged: z.number().int(),
-  seeded: z.number().int(),
 });
 
 const importPgnRoute = createRoute({
@@ -176,7 +163,7 @@ const importPgnRoute = createRoute({
   path: "/import",
   summary: "Import games from a PGN upload",
   description:
-    "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `playerName` resolves which side is theirs per game, so one file may mix White and Black, and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors. New games feed the same repertoire → judgment → seeding pass a sync runs.",
+    "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `playerName` resolves which side is theirs per game, so one file may mix White and Black, and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors.",
   request: {
     body: { content: { "application/json": { schema: importPgnSchema } } },
   },
@@ -184,26 +171,6 @@ const importPgnRoute = createRoute({
     200: {
       description: "What landed and what didn't, all three counts at once",
       content: { "application/json": { schema: importOutcomeSchema } },
-    },
-  },
-});
-
-const judgeOutcomeSchema = z.object({
-  judged: z.number().int(),
-  skipped: z.number().int(),
-  enqueuedForAnalysis: z.number().int(),
-});
-
-const judgeGamesRoute = createRoute({
-  method: "post",
-  path: "/judge",
-  summary: "Judge all unjudged games against the user's repertoires",
-  description:
-    "Replay only — no engine. Deviations wait for a severity until the game is opened and analyzed.",
-  responses: {
-    200: {
-      description: "Judgment outcome",
-      content: { "application/json": { schema: judgeOutcomeSchema } },
     },
   },
 });
@@ -256,22 +223,6 @@ const gameAnalysisRecordSchema = z
   })
   .describe("Persisted engine report for a game");
 
-/** Mirrors `@velachess/analysis`'s `DrillSummary`. */
-const drillSummarySchema = z
-  .object({
-    eligible: z
-      .number()
-      .int()
-      .describe("Plies on the user's side this game would drill, seeded or not."),
-    seeded: z.number().int().describe("Of those, the ones that already are an exercise."),
-    triaged: z
-      .boolean()
-      .describe(
-        "False while triage still owes this game exercises. The screen waits instead of announcing zero, which reads as 'nothing to drill'.",
-      ),
-  })
-  .describe("What the report's drill CTA counts. Present with `analysis`.");
-
 function toWireAnalysis<T extends { createdAt: Date }>(analysis: T) {
   return Object.assign({}, analysis, { createdAt: analysis.createdAt.toISOString() });
 }
@@ -301,7 +252,6 @@ const analysisReportSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal(ANALYSIS_STATUS.COMPLETED),
     analysis: gameAnalysisRecordSchema,
-    drills: drillSummarySchema,
   }),
   analysisProgressBase.extend({ status: z.literal(ANALYSIS_STATUS.CREATED) }),
   analysisProgressBase.extend({ status: z.literal(ANALYSIS_STATUS.QUEUED) }),
@@ -329,7 +279,6 @@ const getAnalysisRoute = createRoute({
 const analyzeCompletedSchema = z.object({
   status: z.literal(ANALYSIS_STATUS.COMPLETED),
   analysis: gameAnalysisRecordSchema,
-  drills: drillSummarySchema,
 });
 const analyzeAcceptedSchema = z.object({
   status: z.enum([
@@ -425,17 +374,15 @@ function watchDeadline() {
 
 /** Narrow composed deps per handler — routes never see a Database,
  * AnalysisQueue, or Watchers-building object directly. `analysis` bundles
- * the four narrow contracts the analysis endpoints below declared,
+ * the three narrow contracts the analysis endpoints below declared,
  * assembled at `apps/server/src/composition/analysis.ts`. */
 export interface GamesRouteDeps {
   get: GetGameDeps;
   list: ListGamesDeps;
   importPgn: ImportPgnDeps;
-  judge: JudgeGamesDeps;
   analysis: {
     getAnalysis: GetAnalysisDeps;
     requestAnalysis: RequestAnalysisDeps;
-    drillSummary: DrillSummaryDeps;
     watchers: Watchers;
   };
 }
@@ -469,18 +416,13 @@ export function gamesRoutes(deps: GamesRouteDeps) {
       })
       // Manual PGN upload: no account, no cursor, no sync lifecycle —
       // and no engine. The slice persists with conflict-ignore (re-import
-      // of the same file is a counted no-op) and runs the same
-      // land-new-games tail a sync runs.
+      // of the same file is a counted no-op).
       .openapi(importPgnRoute, async (c) => {
         const outcome = await importPgnForUser(
           deps.importPgn,
           c.get("userId"),
           c.req.valid("json"),
         );
-        return c.json(outcome, 200);
-      })
-      .openapi(judgeGamesRoute, async (c) => {
-        const outcome = await judgeGamesForUser(deps.judge, c.get("userId"));
         return c.json(outcome, 200);
       })
       .openapi(getGameRoute, async (c) => {
@@ -505,8 +447,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
       })
       .openapi(getAnalysisRoute, async (c) => {
         const gameId = c.req.valid("param").id;
-        // Ownership, and the shaping — report + drill count together,
-        // progress absent-not-zero — all live in the get-analysis slice;
+        // Ownership, and the shaping — progress absent-not-zero — all live in the get-analysis slice;
         // this route only maps its answer onto HTTP.
         const report = await getAnalysisReport(
           deps.analysis.getAnalysis,
@@ -520,7 +461,6 @@ export function gamesRoutes(deps: GamesRouteDeps) {
             {
               status: ANALYSIS_STATUS.COMPLETED,
               analysis: toWireAnalysis(report.analysis),
-              drills: report.drills,
             },
             200,
           );
@@ -539,8 +479,8 @@ export function gamesRoutes(deps: GamesRouteDeps) {
         const gameId = c.req.valid("param").id;
         // Ownership, and the decision to start the engine when nothing is
         // running yet, both live in the request-analysis slice — the only
-        // engine trigger in the system: your games spend the CPU, and the
-        // drills a run seeds land in your queue — nobody else's.
+        // engine trigger in the system: your games spend the CPU — nobody
+        // else's.
         const request = await startAnalysisForUser(
           deps.analysis.requestAnalysis,
           c.get("userId"),
@@ -549,14 +489,10 @@ export function gamesRoutes(deps: GamesRouteDeps) {
         if (request.status === ANALYSIS_STATUS.NOT_FOUND)
           return c.json({ error: GAME_NOT_FOUND_ERROR }, 404);
         if (request.status === ANALYSIS_STATUS.COMPLETED) {
-          // The CTA's count rides with the report it belongs to: a second
-          // round trip would let the two disagree on screen.
-          const drills = await drillSummaryFor(deps.analysis.drillSummary, gameId);
           return c.json(
             {
               status: ANALYSIS_STATUS.COMPLETED,
               analysis: toWireAnalysis(request.analysis),
-              drills,
             },
             200,
           );

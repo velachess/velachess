@@ -81,7 +81,7 @@ describe("the wall", () => {
 
     const { router } = await renderApp({ path: "/login" });
 
-    expect(router.state.location.pathname).toBe("/");
+    expect(router.state.location.pathname).toBe("/games");
   });
 
   it("does not let a remembered chess account stand in for a session", async () => {
@@ -127,7 +127,7 @@ describe("signing in", () => {
     const { router, user } = await renderApp({ path: "/login" });
     await signIn(user);
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games"));
   });
 
   it("resumes where the guard interrupted", async () => {
@@ -220,7 +220,7 @@ describe("what a sign-in outcome depends on", () => {
     const { router, user } = await renderApp({ path: "/login" });
     await signIn(user);
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games"));
   });
 
   it("reads a 401 without Better Auth's credential code as unavailability", async () => {

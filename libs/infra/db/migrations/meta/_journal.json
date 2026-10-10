@@ -148,6 +148,13 @@
       "when": 1790446504087,
       "tag": "0020_avatar_source",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791645503271,
+      "tag": "0021_games_and_analysis",
+      "breakpoints": true
     }
   ]
 }

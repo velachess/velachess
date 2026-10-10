@@ -28,44 +28,20 @@ import {
   buildSetAvatarDeps,
 } from "./composition/user.ts";
 import {
-  buildDrillSummaryDeps,
   buildGetAnalysisDeps,
   buildRequestAnalysisDeps,
 } from "./composition/analysis.ts";
 import {
-  buildCountDrillQueueDeps,
-  buildGetNextDrillDeps,
-  buildSubmitAnswerDeps,
-} from "./composition/drills.ts";
-import { buildDeviationsDeps } from "./composition/deviations.ts";
-import {
   buildGetGameDeps,
   buildImportPgnDeps,
-  buildJudgeGamesDeps,
   buildListGamesDeps,
 } from "./composition/games.ts";
-import { buildInsightsDeps } from "./composition/insights.ts";
-import { buildOverviewDeps } from "./composition/overview.ts";
-import {
-  buildAddChapterDeps,
-  buildCreateRepertoireDeps,
-  buildDeleteRepertoireDeps,
-  buildExtractRepertoireDeps,
-  buildGetChapterDeps,
-  buildGetRepertoireDeps,
-  buildListRepertoiresDeps,
-} from "./composition/repertoires.ts";
 import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { defaultHook } from "./validation.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
 import { userRoutes } from "./routes/user.ts";
-import { deviationsRoutes } from "./routes/deviations.ts";
 import { gamesRoutes } from "./routes/games.ts";
-import { repertoiresRoutes } from "./routes/repertoires.ts";
-import { drillRoutes } from "./routes/drill.ts";
-import { overviewRoutes } from "./routes/overview.ts";
-import { insightsRoutes } from "./routes/insights.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -183,7 +159,7 @@ export function createApp(deps: ApiDeps) {
         title: "VelaChess API",
         version: "0.1.0",
         description:
-          "Sync games, judge them against your repertoire, analyze deviations with an engine, and drill the fixes on a spaced-repetition schedule.",
+          "Import your games from Chess.com, Lichess or PGN and review them with Stockfish.",
       },
     })
     // Interactive documentation, reading the generated spec above — public
@@ -225,8 +201,8 @@ export function createApp(deps: ApiDeps) {
       accountsRoutes({
         list: buildListAccountsDeps(deps.db, deps.syncQueue),
         games: buildListAccountGamesDeps(deps.db),
-        connect: buildImportAccountDeps(deps.db, deps.analysisQueue, deps.sync?.fetch),
-        sync: buildSyncAccountDeps(deps.db, deps.analysisQueue, deps.sync?.fetch),
+        connect: buildImportAccountDeps(deps.db, deps.sync?.fetch),
+        sync: buildSyncAccountDeps(deps.db, deps.sync?.fetch),
       }),
     )
     .route(
@@ -234,39 +210,14 @@ export function createApp(deps: ApiDeps) {
       gamesRoutes({
         get: buildGetGameDeps(deps.db, deps.sync?.fetch),
         list: buildListGamesDeps(deps.db),
-        importPgn: buildImportPgnDeps(deps.db, deps.analysisQueue),
-        judge: buildJudgeGamesDeps(deps.db, deps.analysisQueue),
+        importPgn: buildImportPgnDeps(deps.db),
         analysis: {
           getAnalysis: buildGetAnalysisDeps(deps.db, deps.analysisQueue),
           requestAnalysis: buildRequestAnalysisDeps(deps.db, deps.analysisQueue),
-          drillSummary: buildDrillSummaryDeps(deps.db),
           watchers: deps.watchers,
         },
       }),
-    )
-    .route("/deviations", deviationsRoutes(buildDeviationsDeps(deps.db)))
-    .route(
-      "/repertoires",
-      repertoiresRoutes({
-        list: buildListRepertoiresDeps(deps.db),
-        create: buildCreateRepertoireDeps(deps.db),
-        extract: buildExtractRepertoireDeps(deps.db),
-        detail: buildGetRepertoireDeps(deps.db),
-        remove: buildDeleteRepertoireDeps(deps.db),
-        addChapter: buildAddChapterDeps(deps.db),
-        chapter: buildGetChapterDeps(deps.db),
-      }),
-    )
-    .route(
-      "/drill",
-      drillRoutes({
-        queue: buildCountDrillQueueDeps(deps.db),
-        next: buildGetNextDrillDeps(deps.db, deps.scheduler),
-        answer: buildSubmitAnswerDeps(deps.db, deps.scheduler),
-      }),
-    )
-    .route("/overview", overviewRoutes(buildOverviewDeps(deps.db)))
-    .route("/insights", insightsRoutes(buildInsightsDeps(deps.db)));
+    );
 
   // One JSON error contract everywhere. HTTPException is hono's own
   // "stop this request" signal (middleware throws it, a handler may):

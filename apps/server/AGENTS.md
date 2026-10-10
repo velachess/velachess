@@ -24,21 +24,18 @@ the only place transport concerns belong.
 ## Composition root files
 
 `src/composition/<module>.ts` — one file per business module that needs
-wiring (currently `accounts`, `analysis`, `deviations`, `drills`, `games`,
-`insights`, `overview`, `repertoires`, `user`). Each exports one
+wiring (currently `accounts`, `analysis`, `games`, `user`). Each exports one
 `build<Module>Deps(...)` function per route handler that adapts real infra
-(`deps.db`, `deps.analysisQueue`, `deps.scheduler`, ...) and other modules'
+(`deps.db`, `deps.analysisQueue`, `deps.syncQueue`, ...) and other modules'
 `index.ts` capabilities into the exact narrow dependency shape that
 module's slice declared — this is the composition root, in the sense
 root `AGENTS.md`'s "Modules and slices" section defines it. `server.ts`
 calls the builder inline at the route-mount line
-(`.route("/overview", overviewRoutes(buildOverviewDeps(deps.db)))`) — a
+(`.route("/accounts", accountsRoutes({ list: buildListAccountsDeps(...), ... }))`) — a
 route file receives only the narrow composed object, never `deps` (the
-whole `ApiDeps` bag) itself. Read `src/composition/games.ts` for the
-richest example: it composes both `games`' own route handlers and the
-cross-module dependencies `accounts`' composition needs from `games`
-(`landNewGames`), since a module's composition file is also where a
-sibling module sources a capability it depends on.
+whole `ApiDeps` bag) itself. Read `src/composition/analysis.ts` for the
+richest example: it composes the request, watch and get slices, which
+reach each other only through declared dependencies.
 
 When a module needs something from another module, its composition
 builder imports that module's `index.ts` (never a deep path) and adapts
@@ -50,7 +47,7 @@ composition file, not constructing dependencies ad hoc inside the route.
 ## Route → module usage
 
 `pnpm architecture` blocks a route from reaching `libs/infra` directly
-(`routes-no-direct-infra`), from executing chess/scheduler domain behavior
+(`routes-no-direct-infra`), from executing chess domain behavior
 itself (`routes-no-direct-domain-behavior`), and from deep-importing a
 business module's internals (`routes-no-module-internals`) — a module's
 `index.ts` is the only structurally reachable file, both by package
@@ -58,8 +55,8 @@ business module's internals (`routes-no-module-internals`) — a module's
 no `"./*"` escape hatch to review around.
 
 - A module may deliberately expose more than one entry point (e.g.
-  `analysis`'s `getAnalysisReport` alongside `drillSummaryFor`) — a route
-  composing both is normal, not a violation.
+  `analysis`'s `getAnalysisReport` alongside `requestAnalysisForUser`) — a
+  route composing both is normal, not a violation.
 - If a route needs something not currently exported, that's a module-design
   decision, not a route workaround: the module's `index.ts` grows an
   explicit new export, or the behavior belongs somewhere else entirely. See

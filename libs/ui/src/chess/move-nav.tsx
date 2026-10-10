@@ -1,12 +1,9 @@
 /**
  * [UI/chess] Stepping through a position, once.
  *
- * Game Review walks a scoresheet and Repertoire Study walks a variation
- * tree, but "back one, forward one, start again" is the same gesture in
- * both, and a second implementation of it is a second set of keyboard
- * hints, hit areas and disabled rules to keep in sync. What differs is
- * only what a step *means*, which is the caller's business — this owns
- * the buttons and nothing else.
+ * "Back one, forward one, start again" is one gesture; what a step
+ * *means* is the caller's business — this owns the buttons and nothing
+ * else.
  *
  * 44px tall on touch, smaller on pointer: the thumb needs the height.
  * Copy arrives translated, like every other string in this package.

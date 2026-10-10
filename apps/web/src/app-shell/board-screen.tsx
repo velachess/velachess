@@ -18,9 +18,6 @@ export interface BoardScreenProps {
   /** The page's own name — the last crumb, which the router cannot know
    * because it needs data the route hasn't loaded. */
   page: ReactNode;
-  /** Crumbs between the router's trail and this page, as
-   * `<BreadcrumbItem>`s — a chapter's repertoire, for instance. */
-  crumbs?: ReactNode;
   /** The board column and its context panel, in that order. */
   children: ReactNode;
 }
@@ -29,13 +26,10 @@ export interface BoardScreenProps {
  * The frame every board screen shares: a breadcrumb that stays put, and
  * a board beside its context panel below it.
  *
- * Game Review, Repertoire Study and Repertoire Practice are three
- * questions about one position — what happened, what is prepared, can I
- * recall it — and a person who learns to read one should recognise the
- * next. So the scroll boundary, the trail and the two-column stage are
- * decided here once; each screen brings only its own two children.
+ * The scroll boundary, the trail and the two-column stage are decided
+ * here once; each screen brings only its own two children.
  */
-export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
+export function BoardScreen({ page, children }: BoardScreenProps) {
   const { i18n } = useLingui();
   const trail = useBreadcrumbTrail();
 
@@ -63,7 +57,6 @@ export function BoardScreen({ page, crumbs, children }: BoardScreenProps) {
               <BreadcrumbSeparator />
             </Fragment>
           ))}
-          {crumbs}
           <BreadcrumbItem>
             <BreadcrumbPage>{page}</BreadcrumbPage>
           </BreadcrumbItem>

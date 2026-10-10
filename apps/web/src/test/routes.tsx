@@ -7,8 +7,6 @@ import {
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
-import { Dashboard } from "../dashboard/dashboard.tsx";
-import { Drill } from "../drill/drill.tsx";
 import { GameAnalysis } from "../games/open-game/game-analysis.tsx";
 import { GamesList } from "../games/games-list.tsx";
 import { ImportGames } from "../games/import/import-games.tsx";
@@ -21,13 +19,6 @@ import { LanguageRegionScreen } from "../settings/language-region/language-regio
 import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { gamesSearchSchema } from "../games/list/filters.ts";
-import { drillSearchSchema } from "../drill/queries.ts";
-import { Insights } from "../insights/insights.tsx";
-import { ChapterStudy } from "../repertoire/chapter-study.tsx";
-import { RepertoireDetail } from "../repertoire/repertoire-detail.tsx";
-import { RepertoireLanding } from "../repertoire/repertoire-landing.tsx";
-import { RepertoirePractice } from "../repertoire/repertoire-practice.tsx";
-import { practiceSearchSchema } from "../repertoire/queries.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 import type { QueryClientType } from "../libs/react-query.ts";
 
@@ -82,10 +73,12 @@ const gamesRoute = createRoute({
   component: Outlet,
 });
 
-const dashboardRoute = createRoute({
+const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/",
-  component: Dashboard,
+  beforeLoad: () => {
+    throw redirect({ to: "/games", replace: true });
+  },
 });
 
 const gamesIndexRoute = createRoute({
@@ -101,62 +94,13 @@ const analysisRoute = createRoute({
   component: GameAnalysis,
 });
 
-const drillRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/drill",
-  staticData: { crumb: msg`Drill` },
-  validateSearch: drillSearchSchema,
-  component: Drill,
-});
-
-// Same real-nesting reason as /games: the study screen's breadcrumb
-// reads the layout's crumb off an ancestor match.
-const repertoireRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/repertoire",
-  staticData: { crumb: msg`Repertoire` },
-  component: Outlet,
-});
-
-const repertoireIndexRoute = createRoute({
-  getParentRoute: () => repertoireRoute,
-  path: "/",
-  component: RepertoireLanding,
-});
-
-const repertoireDetailRoute = createRoute({
-  getParentRoute: () => repertoireRoute,
-  path: "/$repertoireId",
-  component: RepertoireDetail,
-});
-
-const repertoirePracticeRoute = createRoute({
-  getParentRoute: () => repertoireRoute,
-  path: "/$repertoireId/practice",
-  validateSearch: practiceSearchSchema,
-  component: RepertoirePractice,
-});
-
-const chapterStudyRoute = createRoute({
-  getParentRoute: () => repertoireRoute,
-  path: "/$repertoireId/$chapterId",
-  component: ChapterStudy,
-});
-
-const insightsRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/insights",
-  staticData: { crumb: msg`Insights` },
-  component: Insights,
-});
-
 const importRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/import",
   component: ImportGames,
 });
 
-// Nested for real, like /games and /repertoire: the account screen is
+// Nested for real, like /games: the account screen is
 // reached from the shell's user menu, so the link has to resolve against
 // the same tree the menu renders inside.
 const settingsRoute = createRoute({
@@ -262,16 +206,8 @@ const crashRoute = createRoute({
 
 export const testRouteTree = rootRoute.addChildren([
   appRoute.addChildren([
-    dashboardRoute,
+    indexRoute,
     gamesRoute.addChildren([gamesIndexRoute, analysisRoute]),
-    repertoireRoute.addChildren([
-      repertoireIndexRoute,
-      repertoireDetailRoute,
-      repertoirePracticeRoute,
-      chapterStudyRoute,
-    ]),
-    drillRoute,
-    insightsRoute,
     importRoute,
     settingsRoute.addChildren([
       settingsIndexRoute,

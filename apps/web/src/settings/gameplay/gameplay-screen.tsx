@@ -8,7 +8,7 @@ import { SoundToggle } from "../../chess-sounds/index.ts";
 const GAMEPLAY_COPY = {
   title: msg`Gameplay`,
   description: msg`Board interaction preferences.`,
-  soundHint: msg`Plays a sound for moves, captures, checks, and castling while reviewing or drilling.`,
+  soundHint: msg`Plays a sound for moves, captures, checks, and castling while reviewing a game.`,
 } as const;
 
 /** Settings → Gameplay: board preferences. Sound is the first — its

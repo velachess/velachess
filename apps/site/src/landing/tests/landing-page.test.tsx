@@ -8,23 +8,22 @@ describe("landing page", () => {
     render(<LandingPage />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Turn your games into training." }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Review your games with Stockfish.",
+      }),
     ).toBeInTheDocument();
     const analysis = screen.getByRole("heading", {
       name: "See the moment the game changed.",
     });
-    const drill = screen.getByRole("heading", {
-      name: "The analysis becomes a training loop.",
-    });
     const workflow = screen.getByRole("heading", {
-      name: "One loop, grounded in your games.",
+      name: "From import to review.",
     });
     const finalCta = screen.getByRole("heading", {
-      name: "Train on the games you actually play.",
+      name: "Review the games you actually play.",
     });
 
-    expect(analysis).toAppearBefore(drill);
-    expect(drill).toAppearBefore(workflow);
+    expect(analysis).toAppearBefore(workflow);
     expect(workflow).toAppearBefore(finalCta);
     expect(
       screen.queryByRole("heading", { name: "Keep the useful parts of every game." }),

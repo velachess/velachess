@@ -43,7 +43,7 @@ the behavior. Use an explicit `tests/` directory when the owner has several
 tests or helpers; use a colocated `*.test.ts` or `*.test.tsx` when that is
 clearer. App-specific browser specs stay with their app.
 Test-only data and assets go in a `fixtures/` directory inside that `tests/`
-directory (`tests/fixtures/landing-drill.ts`); do not use `__fixtures__` or a
+directory (`tests/fixtures/landing-game-analysis.ts`); do not use `__fixtures__` or a
 `.fixture` suffix.
 
 Root `tests/` is only for repository-owned checks with no package owner. Root

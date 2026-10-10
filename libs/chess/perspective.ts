@@ -2,13 +2,10 @@
  * Which side is "you" in a game. Stored perspective wins (a manual PGN
  * import resolved it per game); synced games derive it from the tracked
  * account username vs the player names — the normalizer can't know who
- * "you" are, the tracked account can. Null = not determinable, not
- * judgeable.
+ * "you" are, the tracked account can. Null = not determinable.
  *
- * Moved here (from libs/application/perspective.ts) so every business
- * module that needs it — games, repertoires, insights — can import a
- * pure, dependency-free function without reaching into another module's
- * package and risking a cross-module import cycle.
+ * Lives here so every business module that needs it can import a pure,
+ * dependency-free function without reaching into another module's package.
  */
 
 export interface PerspectiveSource {

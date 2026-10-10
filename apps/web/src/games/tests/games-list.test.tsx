@@ -120,7 +120,7 @@ describe("games list", () => {
   });
 
   it("says there are no imported games when the library is empty", async () => {
-    await renderApp();
+    await renderApp({ emptyLibrary: true });
 
     expect(
       await screen.findByText(

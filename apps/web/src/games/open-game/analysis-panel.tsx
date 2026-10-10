@@ -7,12 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@velachess/ui/componen
 import { evalCurve, summarize } from "../analysis-read.ts";
 import { AnalysisStatus } from "../request-analysis/analysis-status.tsx";
 import { EvalGraph } from "../view-analysis/eval-graph.tsx";
-import { DrillCta } from "../view-analysis/drill-cta.tsx";
 import { GameReport } from "../view-analysis/game-report.tsx";
 import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "../view-analysis/move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
-import type { DrillCount, GradedPly, ReplayableGame } from "../analysis-contract.ts";
+import type { GradedPly, ReplayableGame } from "../analysis-contract.ts";
 import { ReplayControls } from "./replay-controls.tsx";
 import type { ChessReplay } from "./use-chess-replay.ts";
 
@@ -30,8 +29,6 @@ export interface AnalysisPanelProps {
   game: ReplayableGame;
   replay: ChessReplay;
   graded: GradedPly[];
-  /** What the report's drill CTA counts. Absent until analysis lands. */
-  drills: DrillCount | undefined;
   /** Show the engine's move on the board, from the Move tab. */
   onShowBest: (san: string) => void;
   isAnalyzing: boolean;
@@ -61,7 +58,6 @@ export function AnalysisPanel({
   game,
   replay,
   graded,
-  drills,
   onShowBest,
   isAnalyzing,
   hasFailed,
@@ -132,9 +128,6 @@ export function AnalysisPanel({
             openingName={game.openingName}
             openingEco={game.openingEco}
           />
-          <div className="p-4 pt-0">
-            <DrillCta drills={drills} />
-          </div>
         </TabsContent>
       </Tabs>
 

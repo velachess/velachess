@@ -2,7 +2,7 @@
 
 Facts about the shipped analysis pipeline: engine configuration, classification
 rules, and persisted shapes. The reasoning behind these choices lives inline in
-`libs/analysis`'s own doc comments (`winchance.ts`, `engine-category.ts`,
+`libs/analysis`'s own doc comments (`winchance.ts`, `move-category.ts`,
 `process-analysis/classify-move.ts`, `process-analysis/analyze-game.ts`) and
 this module's `tests/lichess-reference.test.ts`.
 
@@ -22,7 +22,8 @@ this module's `tests/lichess-reference.test.ts`.
 Analysis has one trigger: `POST /games/:id/analyze` enqueues (pg-boss); the
 worker executes. Execution ownership is the session advisory lock
 `analysis:${gameId}` (`libs/infra/db/advisory-lock.ts`), separate from queue
-dedup. Drill triage runs after completion.
+dedup. On completion the report is saved in one transaction and the
+in-flight `analysis_progress` rows are cleared.
 
 ## Classification
 
@@ -31,25 +32,16 @@ dedup. Drill triage runs after completion.
   (`libs/analysis/winchance.ts`).
 - Loss per move: `max(0, (winChance(before) − winChance(after)) · sign(mover))`
   on the [-1, 1] scale. Gaining eval is never punished.
-- Categories: `best | good | inaccuracy | mistake | blunder`. Thresholds on
+- Categories (`MoveCategory`, `libs/analysis/move-category.ts`):
+  `best | good | inaccuracy | mistake | blunder`. Thresholds on
   win-chance loss: **0.10** inaccuracy, **0.20** mistake, **0.30** blunder
   (5/10/15 percentage points of win probability) —
   `libs/analysis/process-analysis/classify-move.ts`.
 - A move equal to the engine's first PV move is `best` regardless of loss; the
   raw `winChanceLoss` is still stored.
-- `toEngineCategory` collapses `best`/`good` → `ok` for the `deviations`
-  severity enum (`ok | inaccuracy | mistake | blunder`).
-- `cpLoss` is mover-POV in centipawns; null when either eval is a mate score.
 - Each `evalAfter` is reused as the next ply's `evalBefore` — one search per
   position total. A terminal final position (mate/stalemate) gets
   `{mate: ±1}` / `{cp: 0}` assigned directly, no search.
-
-## Game phase heuristic
-
-`gamePhaseOf(fen)` (`libs/insights/get-insights/phase.ts`): endgame at ≤ 6 majors+minors;
-middlegame at ≤ 10, or when a back rank holds < 4 pieces; otherwise opening.
-Only the placement field of the FEN is read. Consumers: insight sources only —
-classification does not use phase.
 
 ## Persistence
 
@@ -63,19 +55,16 @@ classification does not use phase.
 - `analysis_progress`: per-ply streaming rows under a fresh `run_id` per
   attempt; unique `(run_id, index)`; deleted once the report lands. Readers
   follow the newest run only.
-- `deviations.cp_loss` / `deviations.engine_category`: filled from the report
-  via `engineSignalForDeviation` — at completion (same transaction as the
-  report save), or at judge time when a cached report already exists.
 
 ## Entry points
 
 - `libs/analysis/process-analysis/analyze-game.ts` → `analyzeGame`
 - `libs/analysis/process-analysis/classify-move.ts` → `classifyMove`,
   `scoreToWinChance`
-- `libs/analysis/engine-category.ts` → `toEngineCategory`, `cpLoss`
-- `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`,
-  `tryStartAnalysis`
-- `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`
+- `libs/analysis/move-category.ts` → `MoveCategory`
+- `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`, `tryStartAnalysis`
+- `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`,
+  `GET /:id/analysis/events` (SSE progress)
 - `apps/worker/src/consumers/analysis.ts` → `consumeAnalysisJob`
 
 ## Currently unused

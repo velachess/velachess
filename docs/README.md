@@ -25,10 +25,6 @@ pairs with the explanation module doc that carries the reasoning.
   synchronization, cursors, and game deduplication
 - [Opening data](reference/opening-data.md) — what opening information is
   stored, how names are derived, who consumes them
-- [Repertoire](reference/repertoire.md) — extraction parameters, judgment
-  types and contracts, adherence floors
-- [Drills](reference/drills.md) — origins, eligibility and selection rules,
-  queue contract, FSRS configuration
 - [Glossary](reference/glossary.md) — the chess domain vocabulary
 - [Repository layout](reference/repository-layout.md)
 

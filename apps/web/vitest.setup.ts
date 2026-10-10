@@ -20,7 +20,6 @@ import { resetBackendStatus } from "./src/backend-status/index.ts";
 import { resetBackendRecoveryProbe } from "./src/query/index.ts";
 import { resetArchive } from "./src/test/archive.ts";
 import { resetTrackedAccounts } from "./src/test/handlers/accounts.ts";
-import { resetRepertoires } from "./src/test/handlers/repertoires.ts";
 import { resetAuthScenario } from "./src/test/handlers/auth.ts";
 import { resetDevice } from "./src/test/device.ts";
 import { server } from "./src/test/server.ts";
@@ -102,7 +101,6 @@ afterEach(() => {
   server.resetHandlers();
   resetAuthScenario();
   resetTrackedAccounts();
-  resetRepertoires();
   resetBackendRecoveryProbe();
   resetBackendStatus();
   resetArchive();

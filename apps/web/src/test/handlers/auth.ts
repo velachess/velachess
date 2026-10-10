@@ -54,7 +54,7 @@ type AuthScenario =
   | { kind: "unavailable" };
 
 // Signed in is the default the rest of the suite runs under — a games or
-// drill test shouldn't have to log in first to test games or drill.
+// games test shouldn't have to log in first.
 let scenario: AuthScenario = { kind: "signed-in", user: TEST_USER };
 
 export function sessionActive(user: TestSessionUser = TEST_USER): TestSessionUser {

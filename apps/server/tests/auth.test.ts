@@ -329,7 +329,7 @@ describe("secure cookies behind TLS", () => {
 
 describe("the session gate", () => {
   it("rejects an unauthenticated request with 401, uniformly", async () => {
-    for (const path of ["/overview", "/games", "/repertoires", "/drill/queue"]) {
+    for (const path of ["/games", "/accounts"]) {
       // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);
@@ -340,18 +340,13 @@ describe("the session gate", () => {
     const cookie = await harness.signIn("admin@velachess.local", "dev-password");
     expect(cookie).toContain("=");
 
-    const response = await harness.app.request("/overview", {
+    const response = await harness.app.request("/games", {
       headers: { cookie },
     });
     expect(response.status).toBe(200);
-    // A fresh admin owns nothing — the counts prove the request resolved
-    // to a real, scoped user rather than to anything ambient.
-    expect(await response.json()).toEqual({
-      games: 0,
-      deviations: 0,
-      exercises: 0,
-      dueCards: 0,
-    });
+    // A fresh admin owns nothing — the empty library proves the request
+    // resolved to a real, scoped user rather than to anything ambient.
+    expect(await response.json()).toMatchObject({ games: [], total: 0 });
   });
 
   it("rejects a wrong password and sets no session", async () => {
@@ -366,7 +361,7 @@ describe("the session gate", () => {
 
   it("logout ends access for the cookie that held it", async () => {
     const cookie = await harness.signIn("admin@velachess.local", "dev-password");
-    expect((await harness.app.request("/overview", { headers: { cookie } })).status).toBe(
+    expect((await harness.app.request("/games", { headers: { cookie } })).status).toBe(
       200,
     );
 
@@ -378,7 +373,7 @@ describe("the session gate", () => {
 
     // Database-backed sessions are the reason this is immediate: the row
     // is gone, so the same cookie is now nobody.
-    expect((await harness.app.request("/overview", { headers: { cookie } })).status).toBe(
+    expect((await harness.app.request("/games", { headers: { cookie } })).status).toBe(
       401,
     );
   });
@@ -449,75 +444,5 @@ describe("ownership isolation", () => {
       (await bob.request(`/games/${gameId}/analyze`, { method: "POST" })).status,
     ).toBe(404);
     expect((await bob.request(`/games/${gameId}/analysis/events`)).status).toBe(404);
-  });
-
-  it("a stranger's repertoire cannot be read, extended or deleted", async () => {
-    const created = (await (
-      await alice.request("/repertoires", json({ name: "White e4", color: "white" }))
-    ).json()) as { id: string };
-
-    expect((await bob.request(`/repertoires/${created.id}`)).status).toBe(404);
-    expect(
-      (
-        await bob.request(
-          `/repertoires/${created.id}/chapters`,
-          json({ name: "Trap", pgn: "1. e4 *" }),
-        )
-      ).status,
-    ).toBe(404);
-    expect(
-      (await bob.request(`/repertoires/${created.id}`, { method: "DELETE" })).status,
-    ).toBe(404);
-
-    // Still Alice's, chapters untouched.
-    const still = (await (await alice.request(`/repertoires/${created.id}`)).json()) as {
-      chapters: unknown[];
-    };
-    expect(still.chapters).toHaveLength(0);
-  });
-
-  it("a stranger's exercise cannot be answered", async () => {
-    // Seeded at the db layer — the triage pipeline has its own suites;
-    // what this test owns is the wall around POST /drill/answer.
-    const aliceUsers = (await (await alice.request("/accounts")).json()) as {
-      id: string;
-    }[];
-    expect(aliceUsers.length).toBeGreaterThan(0);
-    const { upsertExercise } = await import("@velachess/infra-db");
-    const aliceRows = await harness.db.select().from(schema.trackedAccounts);
-    const aliceUserId = aliceRows.find((row) => row.id === aliceUsers[0]!.id)!.userId;
-    // The provenance must reference a real game — Alice imported one.
-    const [aliceGame] = (await (
-      await alice.request(`/accounts/${aliceUsers[0]!.id}/games`)
-    ).json()) as { id: string }[];
-    // A Queen's Gambit position (1.d4 d5 2.c4), deliberately outside the
-    // book Alice's import derived from her 1.e4 archive: exercises are
-    // keyed by position, so seeding the STARTING position would collide
-    // with the derived book's first decision and inherit its answer.
-    await upsertExercise(harness.db, aliceUserId, {
-      positionKey: "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq -",
-      expectedSans: ["e6"],
-      origin: { kind: "engine-blunder", gameId: aliceGame!.id, ply: 4 },
-    });
-
-    // Scoped to the engine origin so the pick is this exercise and not a
-    // line position from the derived book.
-    const next = await alice.request("/drill/next?source=engine-blunder");
-    expect(next.status).toBe(200);
-    const item = (await next.json()) as { exerciseId: string };
-
-    // Bob answering Alice's exercise: 404, and her card does not move.
-    const attack = await bob.request(
-      "/drill/answer",
-      json({ exerciseId: item.exerciseId, san: "e6" }),
-    );
-    expect(attack.status).toBe(404);
-
-    const answered = await alice.request(
-      "/drill/answer",
-      json({ exerciseId: item.exerciseId, san: "e6" }),
-    );
-    expect(answered.status).toBe(200);
-    expect(((await answered.json()) as { correct: boolean }).correct).toBe(true);
   });
 });

@@ -14,7 +14,7 @@ export function resetDevice(): void {
 /** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. */
 export function deviceHasImported(): RememberedAccount {
   const account = archiveAccount();
-  // The server's side of the same fact — the dashboard asks it, not the device.
+  // The server's side of the same fact — the onboarding asks it, not the device.
   accountIsTracked({
     id: account.id,
     platform: account.platform,

@@ -13,6 +13,7 @@
  * flex item `nav` sizes, and the fixed-width pill would go back to
  * shrink-wrapping the label.
  */
+import { Fragment } from "react";
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";
@@ -55,12 +56,14 @@ export function NavBar<TItem extends NavDockItem>({
         className,
       )}
     >
-      {items.map((item) =>
-        renderItem(
-          item,
-          <NavBarItemContent item={item} isActive={item.id === activeId} />,
-        ),
-      )}
+      {items.map((item) => (
+        <Fragment key={item.id}>
+          {renderItem(
+            item,
+            <NavBarItemContent item={item} isActive={item.id === activeId} />,
+          )}
+        </Fragment>
+      ))}
 
       {footer ? <div className="ml-auto flex items-center">{footer}</div> : null}
     </nav>

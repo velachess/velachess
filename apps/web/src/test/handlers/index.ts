@@ -2,11 +2,7 @@ import { http, HttpResponse } from "msw";
 
 import { accountsHandlers } from "./accounts.ts";
 import { authHandlers } from "./auth.ts";
-import { drillHandlers } from "./drill.ts";
 import { gamesHandlers } from "./games.ts";
-import { insightsHandlers } from "./insights.ts";
-import { overviewHandlers } from "./overview.ts";
-import { repertoiresHandlers } from "./repertoires.ts";
 
 /**
  * The network as it behaves when nothing has gone wrong, grouped by the
@@ -22,8 +18,4 @@ export const handlers = [
   ...authHandlers,
   ...gamesHandlers,
   ...accountsHandlers,
-  ...drillHandlers,
-  ...insightsHandlers,
-  ...overviewHandlers,
-  ...repertoiresHandlers,
 ];

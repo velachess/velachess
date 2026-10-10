@@ -87,8 +87,6 @@ const listAccountsRoute = createRoute({
 
 const syncOutcomeSchema = z.object({
   saved: z.number().int().describe("Games new to the archive"),
-  judged: z.number().int(),
-  seeded: z.number().int(),
 });
 
 const rateLimitedSchema = errorResponseSchema.extend({
@@ -100,7 +98,7 @@ const syncAccountRoute = createRoute({
   path: "/{id}/sync",
   summary: "Pull what's new for this account",
   description:
-    "Interactive and synchronous: fetch, judge the new games against the repertoire, seed the exercises their severities allow, and report what changed. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
+    "Interactive and synchronous: fetch, persist and report what changed. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
   request: { params: idParamSchema },
   responses: {
     200: {
@@ -128,15 +126,13 @@ const accountGameSchema = z.object({
   playedAt: z.string().nullable(),
   perspective: z.string().nullable(),
   openingName: z.string().nullable(),
-  judgmentType: z.string().nullable(),
-  judgmentPly: z.number().int().nullable(),
   analyzed: z.boolean(),
 });
 
 const accountGamesRoute = createRoute({
   method: "get",
   path: "/{id}/games",
-  summary: "Games of the account with judgment and analysis status",
+  summary: "Games of the account with analysis status",
   request: { params: idParamSchema },
   responses: {
     200: {
@@ -223,14 +219,7 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
           );
         }
 
-        return c.json(
-          {
-            saved: outcome.saved,
-            judged: outcome.judged,
-            seeded: outcome.seeded,
-          },
-          200,
-        );
+        return c.json({ saved: outcome.saved }, 200);
       })
       .openapi(accountGamesRoute, async (c) => {
         // Scoped lookup lives in the slice now: someone else's account id

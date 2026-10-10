@@ -1,14 +1,9 @@
 /**
  * [UI/chess] The board screen's layout grammar, in one place.
  *
- * Three screens ask three different questions of the same position —
- * Game Review asks what happened, Repertoire Study asks what is
- * prepared, Repertoire Practice asks whether you can recall it — and all
- * three answer it the same way: one dominant board with a context panel
- * beside it. That sameness is the point. A person who learned to read
- * one of these screens has learned all three, so the board's size, the
- * panel's width budget and the way they stack on a narrow window are a
- * shared decision, not three coincidences.
+ * A screen about a position is one dominant board with a context panel
+ * beside it, so the board's size, the panel's width budget and the way
+ * they stack on a narrow window are one shared decision.
  *
  * Responsive contract:
  *   >= 1024px  board | panel, sharing one screenful

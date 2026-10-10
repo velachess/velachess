@@ -1,11 +1,6 @@
 import { expect, test as base, type Page, type Route } from "@playwright/test";
 
 import {
-  landingDrill,
-  landingDrillAnswer,
-  landingDrillQueue,
-} from "../../apps/web/src/drill/tests/fixtures/landing-drill.ts";
-import {
   LANDING_GAME_ID,
   LANDING_PLAYER,
   landingCompletedAnalysis,
@@ -61,20 +56,8 @@ async function handleApi(route: Route) {
     await fulfillJson(route, [account]);
     return;
   }
-  if (method === "GET" && pathname === "/api/overview") {
-    await fulfillJson(route, { games: 48, deviations: 9, exercises: 8, dueCards: 6 });
-    return;
-  }
-  if (method === "GET" && pathname === "/api/drill/queue") {
-    await fulfillJson(route, landingDrillQueue);
-    return;
-  }
-  if (method === "GET" && pathname === "/api/drill/next") {
-    await fulfillJson(route, landingDrill);
-    return;
-  }
-  if (method === "POST" && pathname === "/api/drill/answer") {
-    await fulfillJson(route, landingDrillAnswer);
+  if (method === "GET" && pathname === "/api/games") {
+    await fulfillJson(route, { games: [landingGame], total: 1, page: 1, pageSize: 25 });
     return;
   }
   if (method === "GET" && pathname === `/api/games/${LANDING_GAME_ID}`) {

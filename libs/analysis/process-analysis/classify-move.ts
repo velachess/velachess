@@ -1,4 +1,4 @@
-import type { MoveCategory } from "../engine-category.ts";
+import type { MoveCategory } from "../move-category.ts";
 import type { WhitePovScore } from "../score.ts";
 import { CP_CEILING, winChance } from "../winchance.ts";
 

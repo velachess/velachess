@@ -6,9 +6,9 @@ relevant in that subtree.
 
 ## Product
 
-VelaChess imports a player's chess.com and Lichess history, derives a personal
-opening repertoire, detects departures from habitual lines, confirms harmful
-mistakes with Stockfish, and schedules training with FSRS.
+VelaChess imports a player's chess.com and Lichess history (or a PGN file) and
+lets them review each game with Stockfish: every move graded, the better
+continuation shown on the board, the results saved.
 
 The same core must work in local development, self-hosted installations, and
 hosted deployments. Keep domain behavior portable and environment/provider
@@ -24,17 +24,11 @@ apps/web          TanStack Start product SPA
 apps/site         Next.js static public site
 
 libs/accounts     tracked-account lifecycle: connect, list, refresh
-libs/games        the game record and replay-against-repertoire behavior
-libs/repertoires  the repertoire/chapter aggregate and its adherence stats
+libs/games        the game record: read, list and import PGN
 libs/analysis     the Stockfish job lifecycle: request, watch, process, get
-libs/drills       exercise identity, FSRS card state, the training queue
-libs/insights     cross-module reporting aggregates
-libs/deviations   the judgment-table read
-libs/overview     the dashboard aggregate
 libs/user         the person: first-user bootstrap and profile avatar
 libs/infra        db, queue, engine, logger, platforms, storage, and auth
 libs/chess        chess rules and notation
-libs/scheduler    FSRS wrapper
 libs/ui           shared design system and chess presentation
 libs/fixtures     pure test data
 libs/test-utils   shared test harness
@@ -66,17 +60,17 @@ modules (see `docs/explanation/architecture.md` for the full rationale).
 This section is the precise model; when code and this section disagree,
 fix whichever is wrong.
 
-- **Slice** — owns one behavior (e.g. `sync-account`, `judge-games`).
+- **Slice** — owns one behavior (e.g. `sync-account`, `import-pgn`).
   Declares its own narrow dependency function types, in its own
   vocabulary, for everything external: DB reads/writes, queue enqueue,
   provider HTTP, and any other slice's behavior. A slice never imports or
-  receives a `Database`, `AnalysisQueue`, `SyncQueue`, `Scheduler`, or
+  receives a `Database`, `AnalysisQueue`, `SyncQueue`, or
   another slice's handler directly.
 - **Module** — a package under `libs/<module>` grouping slices that change
-  together (e.g. `games` owns `judge-games`, `import-pgn`,
-  `land-new-games`). May hold shared **pure** policies/calculators at the
+  together (e.g. `analysis` owns `request-analysis`,
+  `process-analysis`, `watch-analysis`). May hold shared **pure** policies/calculators at the
   module root (no DB/queue/provider dependency of their own — e.g.
-  `libs/repertoires/tree.ts`).
+  `libs/analysis/accuracy.ts`).
 - **Module API (`index.ts`)** — what the module offers the rest of the
   system. The only file reachable from outside the module, structurally
   (package `exports`, non-wildcard `tsconfig.json` paths) and by
@@ -113,17 +107,12 @@ fix whichever is wrong.
 
 ### Module → package → path
 
-| Module      | Package                  | Path                |
-| ----------- | ------------------------ | ------------------- |
-| accounts    | `@velachess/accounts`    | `libs/accounts/`    |
-| games       | `@velachess/games`       | `libs/games/`       |
-| repertoires | `@velachess/repertoires` | `libs/repertoires/` |
-| analysis    | `@velachess/analysis`    | `libs/analysis/`    |
-| drills      | `@velachess/drills`      | `libs/drills/`      |
-| insights    | `@velachess/insights`    | `libs/insights/`    |
-| deviations  | `@velachess/deviations`  | `libs/deviations/`  |
-| overview    | `@velachess/overview`    | `libs/overview/`    |
-| user        | `@velachess/user`        | `libs/user/`        |
+| Module   | Package               | Path             |
+| -------- | --------------------- | ---------------- |
+| accounts | `@velachess/accounts` | `libs/accounts/` |
+| games    | `@velachess/games`    | `libs/games/`    |
+| analysis | `@velachess/analysis` | `libs/analysis/` |
+| user     | `@velachess/user`     | `libs/user/`     |
 
 `libs/infra/*`'s seven packages are `@velachess/infra-db`,
 `@velachess/infra-queue`, `@velachess/infra-engine`,
@@ -140,7 +129,7 @@ from business modules at the import site, including from the business
   long.
 - Before building infrastructure, ask whether the current library or platform
   already owns it. Prefer native Better Auth, Hono, Postgres, Drizzle,
-  pg-boss, Turborepo, TanStack, React, chessops, Stockfish, and FSRS
+  pg-boss, Turborepo, TanStack, React, chessops, and Stockfish
   primitives over local replacements.
 - Domain decisions are pure; effects belong at application/infra boundaries.
   Do not duplicate server state or derive the same fact through competing
@@ -159,15 +148,13 @@ from business modules at the import site, including from the business
 ## Critical invariants
 
 - The engine has one product trigger: opening a game. Importing and refreshing
-  fetch, persist, judge, and seed; they do not fan Stockfish analysis across an
-  archive.
-- Judgment plus any requested analysis enqueue commit together. An analysis
-  report plus the severity it fills commit together.
+  fetch and persist; they do not fan Stockfish analysis across an archive.
+- An analysis report commits in one transaction.
 - pg-boss owns delivery, retry, backoff, concurrency, heartbeat, and dead
   letters. The database session advisory lock owns analysis execution across
   HTTP and worker callers.
 - Derived game perspective, result, and time class use one semantic rule across
-  filters, lists, analysis, and training.
+  filters, lists, and analysis.
 - Public and authenticated behavior must remain valid behind local, self-hosted,
   and hosted origins. Never weaken cookies, redirects, authorization, or tenant
   scoping for one deployment mode.
@@ -197,8 +184,7 @@ Always-relevant subtree rules belong in the nearest `AGENTS.md`:
 - `apps/server/AGENTS.md` — HTTP, validation, auth middleware, and OpenAPI.
 - `apps/worker/AGENTS.md` — delivery consumer ownership.
 - `libs/<module>/AGENTS.md` — one per business module (`accounts`, `games`,
-  `repertoires`, `analysis`, `drills`, `insights`, `deviations`, `overview`,
-  `user`) — what it owns, its `index.ts` surface, and its cross-module
+  `analysis`, `user`) — what it owns, its `index.ts` surface, and its cross-module
   dependency edges.
 - `libs/infra/AGENTS.md` — technical adapters and portability.
 - `libs/ui/AGENTS.md` — design-system ownership.
@@ -211,7 +197,6 @@ Task-dependent procedures live under `.agents/skills/`:
 - Import, sync, providers, identity, or deduplication: `game-ingestion`.
 - Stockfish, evaluations, classification, or analysis persistence:
   `engine-analysis`.
-- Repertoires, deviations, exercises, or FSRS: `repertoire-training`.
 - Cross-boundary inconsistent data: `debug-pipeline`.
 - Change review: `code-review`, which routes to the relevant domain skills.
 - Auth, OAuth, secrets, redirects, authorization, or outbound HTTP:
