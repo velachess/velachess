@@ -25,16 +25,22 @@ it("gives every tone a mark of its own", () => {
   expect(new Set(marks).size).toBe(BADGE_TONES.length);
 });
 
-it.each(BADGE_CORNERS)("anchors itself to the %s corner", (corner) => {
+it.each(BADGE_CORNERS)("tucks itself into the %s corner of its own square", (corner) => {
   const { container } = render(<SquareBadge tone="blunder" corner={corner} />);
 
-  // The badge straddles the corner, so each one needs its own pair of
-  // edge offsets and its own translate — a single class cannot serve two.
+  // Inset from both edges it names, and from neither of the others: a
+  // badge centred on the corner would straddle four squares and read as
+  // belonging to whichever one the eye picked.
   const className = container.firstElementChild!.className;
   const [vertical, horizontal] = corner.split("-") as [
     "top" | "bottom",
     "left" | "right",
   ];
-  expect(className).toContain(`${vertical}-0`);
-  expect(className).toContain(`${horizontal}-0`);
+  const opposite = { top: "bottom", bottom: "top", left: "right", right: "left" };
+
+  expect(className).toContain(`${vertical}-[`);
+  expect(className).toContain(`${horizontal}-[`);
+  expect(className).not.toContain(`${opposite[vertical]}-[`);
+  expect(className).not.toContain(`${opposite[horizontal]}-[`);
+  expect(className).not.toContain("translate");
 });

@@ -99,14 +99,6 @@ function screenCellOf(square: string, orientation: "white" | "black"): Vector | 
   return { x, y };
 }
 
-/** Whether a corner of this cell would hang off the board. */
-function isOnBoardEdge(cell: Vector, corner: BadgeCorner): boolean {
-  const { x, y } = CORNER_DIRECTION[corner];
-  const atVerticalEdge = (x > 0 && cell.x === LAST) || (x < 0 && cell.x === 0);
-  const atHorizontalEdge = (y > 0 && cell.y === LAST) || (y < 0 && cell.y === 0);
-  return atVerticalEdge || atHorizontalEdge;
-}
-
 function normalise({ x, y }: Vector): Vector | null {
   const length = Math.hypot(x, y);
   return length === 0 ? null : { x: x / length, y: y / length };
@@ -195,14 +187,14 @@ export function badgeCornerOf(
   const cell = screenCellOf(square, orientation);
   if (!cell) return BADGE_CORNERS[0];
 
-  const candidates = BADGE_CORNERS.filter((corner) => !isOnBoardEdge(cell, corner));
-  const usable = candidates.length > 0 ? candidates : BADGE_CORNERS;
-  if (arrows.length === 0) return usable[0]!;
+  // Every corner is in play: the badge sits inside its own square, so
+  // none of them can take it off the board.
+  if (arrows.length === 0) return BADGE_CORNERS[0];
 
-  let best = usable[0]!;
+  let best: BadgeCorner = BADGE_CORNERS[0];
   let bestScore = Infinity;
 
-  for (const corner of usable) {
+  for (const corner of BADGE_CORNERS) {
     const offset = CORNER_DIRECTION[corner];
     // The corner itself: half a cell out from the square's centre.
     const point = { x: cell.x + offset.x / 2, y: cell.y + offset.y / 2 };

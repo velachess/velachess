@@ -66,14 +66,21 @@ const BADGE_MARK = {
 /**
  * Each corner, written out.
  *
+ * The badge sits wholly inside its own square, tucked against the
+ * corner rather than centred on it. Centred, it straddles the point
+ * where four squares meet and belongs to none of them — which went
+ * unnoticed while it always took the same corner and became wrong the
+ * moment it started moving: a mark on d4's bottom-left corner reads as
+ * a mark on c3.
+ *
  * Tailwind reads source as text, so these cannot be assembled from the
- * corner name — the class has to appear here in full to be generated.
+ * corner name — each class has to appear here in full to be generated.
  */
 const CORNER_POSITION: Record<BadgeCorner, string> = {
-  "top-right": "top-0 right-0 translate-x-1/2 -translate-y-1/2",
-  "top-left": "top-0 left-0 -translate-x-1/2 -translate-y-1/2",
-  "bottom-right": "right-0 bottom-0 translate-x-1/2 translate-y-1/2",
-  "bottom-left": "bottom-0 left-0 -translate-x-1/2 translate-y-1/2",
+  "top-right": "top-[6%] right-[6%]",
+  "top-left": "top-[6%] left-[6%]",
+  "bottom-right": "right-[6%] bottom-[6%]",
+  "bottom-left": "bottom-[6%] left-[6%]",
 };
 
 export interface SquareBadgeProps {

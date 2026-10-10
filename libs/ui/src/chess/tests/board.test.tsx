@@ -376,29 +376,44 @@ it("draws a requested move apart from the grade colours", () => {
   expect(suggested?.color).not.toBe(best?.color);
 });
 
-// With no arrow in play a badge keeps the top-right corner, unless that
-// corner would hang off the board.
+// The badge sits inside its own square, so no corner can take it off
+// the board and every square starts from the same default.
 it.each([
-  { square: "e4", orientation: "white", corner: "top-right" },
-  { square: "h4", orientation: "white", corner: "top-left" },
-  { square: "e8", orientation: "white", corner: "bottom-right" },
-  { square: "h8", orientation: "white", corner: "bottom-left" },
-  // The board's left and bottom edges never trouble the default corner.
-  { square: "a1", orientation: "white", corner: "top-right" },
-  // Flipping the board moves the same square to the opposite end.
-  { square: "a4", orientation: "black", corner: "top-left" },
-  { square: "e1", orientation: "black", corner: "bottom-right" },
-  { square: "a1", orientation: "black", corner: "bottom-left" },
-  { square: "h8", orientation: "black", corner: "top-right" },
+  { square: "e4", orientation: "white" },
+  { square: "h4", orientation: "white" },
+  { square: "e8", orientation: "white" },
+  { square: "h8", orientation: "white" },
+  { square: "a1", orientation: "white" },
+  { square: "a4", orientation: "black" },
+  { square: "e1", orientation: "black" },
+  { square: "a1", orientation: "black" },
+  { square: "h8", orientation: "black" },
 ] as const)(
-  "puts the badge on $square's $corner with $orientation at the bottom",
-  ({ square, orientation, corner }) => {
-    expect(badgeCornerOf(square, orientation, [])).toBe(corner);
+  "leaves $square on the default corner with no arrow in play, $orientation at the bottom",
+  ({ square, orientation }) => {
+    expect(badgeCornerOf(square, orientation, [])).toBe("top-right");
   },
 );
 
-// The reason this exists: the graded move's square is routinely where the
-// engine's suggestion lands, and the arrow comes in along one diagonal.
+// Flipping the board moves a square to the opposite end, so the corner
+// the arrow runs through moves with it.
+//
+// The choice is not the mirror image, and cannot be: when an arrow
+// leaves three corners equally clear the stable tie-break picks by
+// declaration order, and that order does not flip with the board.
+// Stability across renders is worth more than symmetry across a flip —
+// what has to hold is that neither orientation lands on the corner the
+// arrow actually crosses.
+it.each(["white", "black"] as const)(
+  "avoids the crossed corner with %s at the bottom",
+  (orientation) => {
+    const crossed = orientation === "white" ? "top-right" : "bottom-left";
+    expect(badgeCornerOf("d4", orientation, [{ from: "e5", to: "d4" }])).not.toBe(
+      crossed,
+    );
+  },
+);
+
 it("steps off the corner the arrow arrives through", () => {
   // 3. d4?! is graded on d4; the engine answers exd4, whose arrow enters
   // d4 from e5 — through d4's top-right corner, where the badge used to
@@ -431,11 +446,13 @@ it("dodges an arrow that leaves the square too, not only one that lands", () => 
   expect(badgeCornerOf("d4", "white", [{ from: "d4", to: "e5" }])).not.toBe("top-right");
 });
 
-it("keeps the badge on the board even when the arrow points inward", () => {
-  // h8's only corners that stay on the board are the lower-left pair, so
-  // an arrow arriving from the middle cannot push the badge off the edge.
-  const corner = badgeCornerOf("h8", "white", [{ from: "a1", to: "h8" }]);
-  expect(["bottom-left", "bottom-right", "top-left"]).toContain(corner);
+it("has every corner available on a corner square", () => {
+  // The badge is inset inside its own square, so even h8 — two sides on
+  // the board's edge — can use any of the four. An arrow along the long
+  // diagonal must still move it off the corner it runs through.
+  expect(badgeCornerOf("h8", "white", [{ from: "a1", to: "h8" }])).not.toBe(
+    "bottom-left",
+  );
 });
 
 it("breaks a tie the same way every time", () => {
