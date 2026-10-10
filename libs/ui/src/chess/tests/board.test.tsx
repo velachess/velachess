@@ -13,7 +13,7 @@ import type { ReactElement, ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { Board } from "../board.tsx";
-import { badgeCornerOf } from "../board-theme.ts";
+import { badgeEdgesOf } from "../board-theme.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -36,6 +36,11 @@ interface CapturedOptions {
   darkSquareStyle: { backgroundColor: string };
   squareStyles: Record<string, { backgroundColor?: string; backgroundImage?: string }>;
   arrows: CapturedArrow[] | undefined;
+  arrowOptions: {
+    arrowLengthReducerDenominator: number;
+    arrowStartOffset: number;
+    opacity: number;
+  };
   clearArrowsOnPositionChange: boolean;
   squareRenderer: (args: { square: string; children?: ReactNode }) => ReactElement;
   onPieceDrop: (args: { sourceSquare: string; targetSquare: string | null }) => boolean;
@@ -376,106 +381,36 @@ it("draws a requested move apart from the grade colours", () => {
   expect(suggested?.color).not.toBe(best?.color);
 });
 
-// The badge sits inside its own square, so no corner can take it off
-// the board and every square starts from the same default.
+// A badge sits on its square's top-right corner. Where that corner is the
+// board's own edge, it is pushed inward instead of leaving the board.
 it.each([
-  { square: "e4", orientation: "white" },
-  { square: "h4", orientation: "white" },
-  { square: "e8", orientation: "white" },
-  { square: "h8", orientation: "white" },
-  { square: "a1", orientation: "white" },
-  { square: "a4", orientation: "black" },
-  { square: "e1", orientation: "black" },
-  { square: "a1", orientation: "black" },
-  { square: "h8", orientation: "black" },
+  { square: "e4", orientation: "white", edges: { right: false, top: false } },
+  { square: "h4", orientation: "white", edges: { right: true, top: false } },
+  { square: "e8", orientation: "white", edges: { right: false, top: true } },
+  { square: "h8", orientation: "white", edges: { right: true, top: true } },
+  // The board's left and bottom edges never hold a badge's corner.
+  { square: "a1", orientation: "white", edges: { right: false, top: false } },
+  { square: "a4", orientation: "black", edges: { right: true, top: false } },
+  { square: "e1", orientation: "black", edges: { right: false, top: true } },
+  { square: "a1", orientation: "black", edges: { right: true, top: true } },
+  { square: "h8", orientation: "black", edges: { right: false, top: false } },
 ] as const)(
-  "leaves $square on the default corner with no arrow in play, $orientation at the bottom",
-  ({ square, orientation }) => {
-    expect(badgeCornerOf(square, orientation, [])).toBe("top-right");
+  "finds the edges of $square with $orientation at the bottom",
+  ({ square, orientation, edges }) => {
+    expect(badgeEdgesOf(square, orientation)).toEqual(edges);
   },
 );
 
-// Flipping the board moves a square to the opposite end, so the corner
-// the arrow runs through moves with it.
-//
-// The choice is not the mirror image, and cannot be: when an arrow
-// leaves three corners equally clear the stable tie-break picks by
-// declaration order, and that order does not flip with the board.
-// Stability across renders is worth more than symmetry across a flip —
-// what has to hold is that neither orientation lands on the corner the
-// arrow actually crosses.
-it.each(["white", "black"] as const)(
-  "avoids the crossed corner with %s at the bottom",
-  (orientation) => {
-    const crossed = orientation === "white" ? "top-right" : "bottom-left";
-    expect(badgeCornerOf("d4", orientation, [{ from: "e5", to: "d4" }])).not.toBe(
-      crossed,
-    );
-  },
-);
+it("trims the arrowhead and keeps the arrows translucent", () => {
+  render(<Board fen={START} bestMove={{ from: "e2", to: "e4" }} />);
 
-it("steps off the corner the arrow arrives through", () => {
-  // 3. d4?! is graded on d4; the engine answers exd4, whose arrow enters
-  // d4 from e5 — through d4's top-right corner, where the badge used to
-  // sit. It has to move, and not to the corner on the same diagonal.
-  expect(badgeCornerOf("d4", "white", [{ from: "e5", to: "d4" }])).not.toBe("top-right");
-  expect(badgeCornerOf("d4", "white", [{ from: "e5", to: "d4" }])).not.toBe(
-    "bottom-left",
-  );
-});
-
-it("dodges an arrow that only crosses the corner on its way past", () => {
-  // Qh4# runs d8-h4. It never touches g4, so a check that only looked at
-  // the arrow's endpoints left the badge sitting on it — the diagonal
-  // threads the exact point where g4, g5, h4 and h5 meet, which is where
-  // the top-right badge is drawn.
-  expect(badgeCornerOf("g4", "white", [{ from: "d8", to: "h4" }])).not.toBe("top-right");
-});
-
-it("reads the arrow's bearing, not its distance", () => {
-  // Both arrows end on d4 from the same side of the board but at
-  // different lengths. A corner is judged by the heading the arrow runs
-  // along, so the far one has to be dodged exactly like the near one.
-  expect(badgeCornerOf("d4", "white", [{ from: "e5", to: "d4" }])).toBe(
-    badgeCornerOf("d4", "white", [{ from: "h8", to: "d4" }]),
-  );
-});
-
-it("dodges an arrow that leaves the square too, not only one that lands", () => {
-  // The badge marks a played move, and that move's own arrow starts here.
-  expect(badgeCornerOf("d4", "white", [{ from: "d4", to: "e5" }])).not.toBe("top-right");
-});
-
-it("has every corner available on a corner square", () => {
-  // The badge is inset inside its own square, so even h8 — two sides on
-  // the board's edge — can use any of the four. An arrow along the long
-  // diagonal must still move it off the corner it runs through.
-  expect(badgeCornerOf("h8", "white", [{ from: "a1", to: "h8" }])).not.toBe(
-    "bottom-left",
-  );
-});
-
-it("breaks a tie the same way every time", () => {
-  // An arrow along the rank leaves the two corners on each side equally
-  // clear; declaration order decides, so the badge cannot oscillate.
-  const arrows = [{ from: "a4", to: "d4" }] as const;
-  const first = badgeCornerOf("d4", "white", arrows);
-
-  expect(badgeCornerOf("d4", "white", arrows)).toBe(first);
-  expect(badgeCornerOf("d4", "white", [...arrows])).toBe(first);
-});
-
-it("weighs every arrow that touches the square", () => {
-  // Two arrows closing in on the same square from both upper diagonals
-  // leave only the lower corners clear.
-  const corner = badgeCornerOf("d4", "white", [
-    { from: "e5", to: "d4" },
-    { from: "c5", to: "d4" },
-  ]);
-
-  expect(corner.startsWith("bottom")).toBe(true);
-});
-
-it("ignores an arrow that does not touch the square", () => {
-  expect(badgeCornerOf("d4", "white", [{ from: "a1", to: "a8" }])).toBe("top-right");
+  // A quarter of a square off the head clears the destination piece,
+  // where the library's default eighth plants it on top of one. The
+  // tail stays at the origin's centre, overlapping the piece that
+  // moves — that overlap is what reads as "this piece goes there".
+  expect(captured.arrowOptions.arrowLengthReducerDenominator).toBe(4);
+  expect(captured.arrowOptions.arrowStartOffset).toBe(0);
+  // Well under the library's 0.65: an arrow annotates the position
+  // rather than becoming an object on it.
+  expect(captured.arrowOptions.opacity).toBe(0.45);
 });

@@ -4,7 +4,6 @@
  * properties in `styles/theme.css` — no literal colours here.
  */
 
-import { chessColumnToColumnIndex, chessRowToRowIndex } from "react-chessboard";
 import type { CSSProperties } from "react";
 
 /** Custom properties this module reads. Declared in `styles/theme.css`. */
@@ -41,176 +40,29 @@ export const BADGE_TONE_COLOR: Record<BadgeTone, string> = {
   book: cssVar(TOKEN.highlight),
 };
 
-/**
- * Where on a square a badge sits.
- *
- * Listed best-first: the order is the tie-break, so two corners that are
- * equally clear always resolve the same way and the badge never
- * oscillates between them across renders.
- */
-export const BADGE_CORNERS = [
-  "top-right",
-  "top-left",
-  "bottom-right",
-  "bottom-left",
-] as const;
-
-export type BadgeCorner = (typeof BADGE_CORNERS)[number];
-
-/** A move an arrow is drawn for, in the only terms this needs. */
-export interface ArrowSquares {
-  from: string;
-  to: string;
+/** Which of the board's edges a badge's square touches at its corner. */
+export interface BadgeEdges {
+  right: boolean;
+  top: boolean;
 }
 
-type Vector = { x: number; y: number };
-
-/** Each corner as a unit-ish direction from the square's centre, on screen. */
-const CORNER_DIRECTION: Record<BadgeCorner, Vector> = {
-  "top-right": { x: 1, y: -1 },
-  "top-left": { x: -1, y: -1 },
-  "bottom-right": { x: 1, y: 1 },
-  "bottom-left": { x: -1, y: 1 },
-};
-
-/** A standard board. The library's helpers take these as arguments. */
-const BOARD_SIZE = 8;
-const LAST = BOARD_SIZE - 1;
+/** The file and rank that run along the right and top edges, as seen from the bottom seat. */
+const BOARD_EDGES = {
+  white: { file: "h", rank: "8" },
+  black: { file: "a", rank: "1" },
+} as const;
 
 /**
- * A square in screen cells, which is what a corner is about: flipping
- * the board moves the "top-right" corner to the other end of the
- * position.
- *
- * The conversion is react-chessboard's own, orientation included —
- * the same one it lays the squares out with, so a corner computed here
- * cannot drift from where the square is actually drawn.
+ * Whether a square's top-right corner is on the board's right or top edge.
+ * A badge sits on that corner, and there it would leave the board.
  */
-function screenCellOf(square: string, orientation: "white" | "black"): Vector | null {
-  const file = square[0];
-  const rank = square[1];
-  if (file === undefined || rank === undefined || square.length !== 2) return null;
-
-  const x = chessColumnToColumnIndex(file, BOARD_SIZE, orientation);
-  const y = chessRowToRowIndex(rank, BOARD_SIZE, orientation);
-  if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
-  if (x < 0 || x > LAST || y < 0 || y > LAST) return null;
-
-  return { x, y };
-}
-
-function normalise({ x, y }: Vector): Vector | null {
-  const length = Math.hypot(x, y);
-  return length === 0 ? null : { x: x / length, y: y / length };
-}
-
-/** Distance from a point to a line segment, all in board cells. */
-function distanceToSegment(point: Vector, from: Vector, to: Vector): number {
-  const run = { x: to.x - from.x, y: to.y - from.y };
-  const lengthSquared = run.x * run.x + run.y * run.y;
-  if (lengthSquared === 0) return Math.hypot(point.x - from.x, point.y - from.y);
-
-  const along = ((point.x - from.x) * run.x + (point.y - from.y) * run.y) / lengthSquared;
-  const clamped = Math.min(1, Math.max(0, along));
-  return Math.hypot(
-    point.x - (from.x + clamped * run.x),
-    point.y - (from.y + clamped * run.y),
-  );
-}
-
-/** How far from a corner an arrow still crowds it, in board cells. */
-const PROXIMITY_REACH = 1;
-
-/**
- * How badly one arrow spoils one corner.
- *
- * Two things put an arrow on a corner, and checking only one misses half
- * the collisions.
- *
- * An arrow that starts or ends on this square runs along a bearing and
- * plants its head at the centre, sweeping the whole half of the square
- * on that side. That is judged by direction, because every corner sits
- * the same distance from a line through the middle.
- *
- * An arrow that merely passes by never touches the square and can still
- * cross a corner exactly: the engine's Qh4# runs d8-h4, threading the
- * point where g4, g5, h4 and h5 meet — a corner of the very square the
- * played g4 was graded on. That one is judged by distance, since its
- * bearing says nothing about this square.
- */
-function arrowPenaltyAt(
-  corner: Vector,
+export function badgeEdgesOf(
   square: string,
-  cell: Vector,
-  orientation: "white" | "black",
-  arrow: ArrowSquares,
-): number {
-  const from = screenCellOf(arrow.from, orientation);
-  const to = screenCellOf(arrow.to, orientation);
-  if (!from || !to) return 0;
-
-  // Inside half a cell the arrow is drawn over the badge; past a full
-  // cell it is irrelevant. The ramp between keeps the ordering stable
-  // instead of flipping on a rounding error.
-  const distance = distanceToSegment(corner, from, to);
-  const proximity = Math.max(0, 1 - distance / PROXIMITY_REACH);
-
-  const other = arrow.to === square ? from : arrow.from === square ? to : null;
-  if (!other) return proximity;
-
-  const heading = normalise({ x: other.x - cell.x, y: other.y - cell.y });
-  const direction = normalise({ x: corner.x - cell.x, y: corner.y - cell.y });
-  if (!heading || !direction) return proximity;
-
-  // Only an arrow on this corner's side counts against it. One heading
-  // the other way leaves the corner alone, and a signed sum would let
-  // two opposed arrows cancel a collision that is really there.
-  const alignment = Math.max(0, direction.x * heading.x + direction.y * heading.y);
-  return proximity + alignment;
-}
-
-/**
- * The corner of `square` a badge should take.
- *
- * A badge used to live on the top-right corner always, which collides
- * with any arrow that reaches or crosses that corner — and the engine's
- * suggestion routinely lands on the square the played move was graded
- * on. Corners that would hang off the board are dropped first (a square
- * always keeps at least the one facing the board's middle), then the
- * least crowded of what is left wins.
- */
-export function badgeCornerOf(
-  square: string,
-  orientation: "white" | "black",
-  arrows: readonly ArrowSquares[] = [],
-): BadgeCorner {
-  const cell = screenCellOf(square, orientation);
-  if (!cell) return BADGE_CORNERS[0];
-
-  // Every corner is in play: the badge sits inside its own square, so
-  // none of them can take it off the board.
-  if (arrows.length === 0) return BADGE_CORNERS[0];
-
-  let best: BadgeCorner = BADGE_CORNERS[0];
-  let bestScore = Infinity;
-
-  for (const corner of BADGE_CORNERS) {
-    const offset = CORNER_DIRECTION[corner];
-    // The corner itself: half a cell out from the square's centre.
-    const point = { x: cell.x + offset.x / 2, y: cell.y + offset.y / 2 };
-    const score = arrows.reduce(
-      (total, arrow) => total + arrowPenaltyAt(point, square, cell, orientation, arrow),
-      0,
-    );
-    // Strictly less keeps declaration order as the tie-break, so an
-    // equally clear corner never steals the place from the preferred one.
-    if (score < bestScore) {
-      best = corner;
-      bestScore = score;
-    }
-  }
-
-  return best;
+  orientation: keyof typeof BOARD_EDGES,
+): BadgeEdges {
+  const [file, rank] = square;
+  const edges = BOARD_EDGES[orientation];
+  return { right: file === edges.file, top: rank === edges.rank };
 }
 
 /**

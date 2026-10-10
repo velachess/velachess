@@ -7,7 +7,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { BookOpen, Check } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
-import { BADGE_TONE_COLOR, type BadgeCorner, type BadgeTone } from "./board-theme.ts";
+import { BADGE_TONE_COLOR, type BadgeEdges, type BadgeTone } from "./board-theme.ts";
 
 interface MarkProps {
   className: string;
@@ -63,55 +63,36 @@ const BADGE_MARK = {
   book: BookOpen,
 } as const satisfies Record<BadgeTone, ComponentType<MarkProps>>;
 
-/**
- * Each corner, written out.
- *
- * The badge sits wholly inside its own square, tucked against the
- * corner rather than centred on it. Centred, it straddles the point
- * where four squares meet and belongs to none of them — which went
- * unnoticed while it always took the same corner and became wrong the
- * moment it started moving: a mark on d4's bottom-left corner reads as
- * a mark on c3.
- *
- * Tailwind reads source as text, so these cannot be assembled from the
- * corner name — each class has to appear here in full to be generated.
- */
-const CORNER_POSITION: Record<BadgeCorner, string> = {
-  "top-right": "top-[6%] right-[6%]",
-  "top-left": "top-[6%] left-[6%]",
-  "bottom-right": "right-[6%] bottom-[6%]",
-  "bottom-left": "bottom-[6%] left-[6%]",
-};
-
 export interface SquareBadgeProps {
   tone: BadgeTone;
-  /** Which corner to sit on — `badgeCornerOf` picks it. */
-  corner: BadgeCorner;
+  edges: BadgeEdges;
 }
 
-export function SquareBadge({ tone, corner }: SquareBadgeProps) {
+export function SquareBadge({ tone, edges }: SquareBadgeProps) {
   const Mark = BADGE_MARK[tone];
 
   return (
     <span
       aria-hidden
       data-slot="square-badge"
-      data-corner={corner}
-      // Centred on a corner of the square, so it sits at the meeting
-      // point of four squares and reads as attached to the move. Which
-      // corner is the caller's call: it depends on the board's edges and
-      // on where the arrows run. The shadow, not a ring, lifts it off a
-      // piece underneath — a ring in one fixed colour reads as a border.
-      //
       // Just under a third of the square: enough to read the mark, small
       // enough that it annotates the position instead of outweighing the
       // piece it points at.
+      //
+      // Centred on the square's top-right corner, so it sits at the
+      // meeting point of four squares and reads as attached to the move.
+      // On the board's own edge that would leave the board, so it is
+      // pushed inward, with a small margin, instead. The shadow, not a ring, lifts it off a
+      // piece underneath — a ring in one fixed colour reads as a border.
       className={cn(
         "pointer-events-none absolute z-10 grid size-[32%]",
         // One ink for every tone: a badge that changes text colour with
         // its grade reads as two different components.
         "place-items-center rounded-full text-white shadow-sm",
-        CORNER_POSITION[corner],
+        !edges.right && "right-0 translate-x-1/2",
+        edges.right && "right-1/24",
+        !edges.top && "top-0 -translate-y-1/2",
+        edges.top && "top-1/24",
       )}
       style={{ backgroundColor: BADGE_TONE_COLOR[tone] }}
     >

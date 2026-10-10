@@ -28,10 +28,10 @@ import {
   MAX_ARROWS,
   NOTATION_STYLE,
   arrowAlternativeColor,
-  badgeCornerOf,
+  badgeEdgesOf,
 } from "./board-theme.ts";
 import { SquareBadge } from "./square-badge.tsx";
-import type { ArrowSquares, BadgeTone } from "./board-theme.ts";
+import type { BadgeTone } from "./board-theme.ts";
 
 /**
  * Arrow geometry, so an arrow annotates the move without burying the
@@ -205,21 +205,6 @@ function withArrows(
   return drawn.length > 0 ? { arrows: drawn } : {};
 }
 
-/**
- * The arrows as the badge needs them: which squares each one touches.
- *
- * Read back off what `withArrows` actually produced rather than rebuilt
- * from the same inputs. Those two lists would have to agree on order
- * and on the `MAX_ARROWS` cap, and a badge that dodged an arrow the
- * board never drew would be the first sign they had stopped agreeing.
- */
-function arrowSquaresOf(drawn: Arrow[] | undefined): ArrowSquares[] {
-  return (drawn ?? []).map((arrow) => ({
-    from: arrow.startSquare,
-    to: arrow.endSquare,
-  }));
-}
-
 export function Board({
   fen,
   orientation = "white",
@@ -242,8 +227,6 @@ export function Board({
   // re-implementing the board.
   const [selected, setSelected] = useState<string | null>(null);
   const hints = hintsOf(showLegalMoves === "off" ? null : selected, legalTargetsOf);
-  const drawnArrows = withArrows(bestMove, alternatives, playedMove, suggestedMove);
-  const arrowSquares = arrowSquaresOf(drawnArrows.arrows);
 
   /**
    * Click to move: pick a piece, then click where it goes.
@@ -319,7 +302,7 @@ export function Board({
           // Spread rather than assigned: `exactOptionalPropertyTypes` makes
           // an explicit `undefined` a different thing from an absent key,
           // and `ChessboardOptions` asks for the key to be absent.
-          ...drawnArrows,
+          ...withArrows(bestMove, alternatives, playedMove, suggestedMove),
           arrowOptions: ARROW_GEOMETRY,
           // Right-drag arrows are the library's, and free. Clearing them
           // on a position change matters here: without it a mark drawn
@@ -340,10 +323,7 @@ export function Board({
               >
                 {children}
                 {tone !== undefined && (
-                  <SquareBadge
-                    tone={tone}
-                    corner={badgeCornerOf(square, orientation, arrowSquares)}
-                  />
+                  <SquareBadge tone={tone} edges={badgeEdgesOf(square, orientation)} />
                 )}
               </div>
             );
