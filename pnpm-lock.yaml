@@ -380,8 +380,8 @@ importers:
         specifier: ^3.4.0
         version: 3.4.9
       stockfish:
-        specifier: ^18.0.8
-        version: 18.0.8
+        specifier: ^19.0.0
+        version: 19.0.0
 
   libs/accounts:
     dependencies:
@@ -414,8 +414,8 @@ importers:
         specifier: workspace:*
         version: link:../games
       stockfish:
-        specifier: ^18.0.8
-        version: 18.0.8
+        specifier: ^19.0.0
+        version: 19.0.0
 
   libs/chess:
     dependencies:
@@ -533,8 +533,8 @@ importers:
         specifier: ^0.31.10
         version: 0.31.10
       stockfish:
-        specifier: ^18.0.8
-        version: 18.0.8
+        specifier: ^19.0.0
+        version: 19.0.0
 
   libs/infra/engine:
     devDependencies:
@@ -542,8 +542,8 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
       stockfish:
-        specifier: ^18.0.8
-        version: 18.0.8
+        specifier: ^19.0.0
+        version: 19.0.0
 
   libs/infra/logger:
     dependencies:
@@ -639,8 +639,8 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(kysely@0.29.5)(pg@8.23.0)(postgres@3.4.9)
       stockfish:
-        specifier: ^18.0.8
-        version: 18.0.8
+        specifier: ^19.0.0
+        version: 19.0.0
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8
@@ -6361,8 +6361,8 @@ packages:
     resolution: {integrity: sha512-eCPu1qRxPVkl5605OTWF8Wz40b4Mf45NY5LQmVPQ599knfs5QhASUm9GbJ5BDMDOXgrnh0wyEdvzmL//YMlw0A==}
     engines: {node: '>=18'}
 
-  stockfish@18.0.8:
-    resolution: {integrity: sha512-z+f2UMPXLylDBGjv9e9zU8QulY7hUl8MYHesLRrdddewlOXjJrUSmtNmbtID1/F72EPhq0CCkCNxgWS5MQVWtQ==}
+  stockfish@19.0.0:
+    resolution: {integrity: sha512-jDyYLbqNpboQcMs5HodTHI2CrKL74zkQWb1+sgoNXw5HI6avTblW4G0X7afFt3BBOc6VbTSkOV64EUxm/DWSpg==}
     hasBin: true
 
   strict-event-emitter@0.5.1:
@@ -12388,7 +12388,7 @@ snapshots:
 
   stdin-discarder@0.3.2: {}
 
-  stockfish@18.0.8: {}
+  stockfish@19.0.0: {}
 
   strict-event-emitter@0.5.1: {}
 

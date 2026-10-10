@@ -28,7 +28,7 @@ async function makeSession(): Promise<EngineSession> {
   const transport = engineCmd
     ? new ChildProcessTransport(engineCmd, [])
     : new ChildProcessTransport(process.execPath, [
-        require.resolve("stockfish/bin/stockfish-18-lite-single.js"),
+        require.resolve("stockfish/bin/stockfish-19-lite-single.js"),
       ]);
   const session = new EngineSession(transport);
   await session.init();

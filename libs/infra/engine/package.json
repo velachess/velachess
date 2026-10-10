@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@velachess/fixtures": "workspace:*",
-    "stockfish": "^18.0.8"
+    "stockfish": "^19.0.0"
   },
   "type": "module"
 }

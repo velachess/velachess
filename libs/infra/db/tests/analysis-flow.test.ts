@@ -39,7 +39,7 @@ import {
 import { createTestDb, createUserRow } from "./test-db.ts";
 
 const require = createRequire(import.meta.url);
-const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");
+const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
 
 async function makeStockfishSession(): Promise<EngineSession> {
   const session = new EngineSession(
@@ -160,7 +160,7 @@ describe("engine severity → judgment (real Stockfish)", () => {
       if (event.type === "done") positions.push(...event.positions);
     }
     await saveAnalysis(db, game.id, {
-      engineVersion: "stockfish-18-lite",
+      engineVersion: "stockfish-19-lite",
       depth: 10,
       positions,
     });
