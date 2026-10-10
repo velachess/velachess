@@ -7,7 +7,7 @@ import { EngineSession } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 
 const require = createRequire(import.meta.url);
-const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");
+const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
 
 export async function makeStockfishSession(): Promise<EngineSession> {
   const session = new EngineSession(

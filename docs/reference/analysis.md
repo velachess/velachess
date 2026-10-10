@@ -10,7 +10,7 @@ this module's `tests/lichess-reference.test.ts`.
 
 | Setting          | Value                                                                                                                                                                          |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Binary           | `ENGINE_CMD` env var if set; otherwise `stockfish` npm `^18.0.8` (`stockfish-18-lite-single.js`, single-threaded WASM) run as a Node child process — `apps/worker/src/main.ts` |
+| Binary           | `ENGINE_CMD` env var if set; otherwise `stockfish` npm `^19.0.0` (`stockfish-19-lite-single.js`, single-threaded WASM) run as a Node child process — `apps/worker/src/main.ts` |
 | Depth            | **12** — `deps.depth ?? 12` in `process-analysis.ts`; the worker passes no depth, so `analyzeGame`'s own default of 14 is never used in production                             |
 | UCI options      | None set. No Threads, no Hash, no MultiPV — `EngineSession.setOption` has no production caller. Only `multipv === 1` info lines are read                                       |
 | Search           | `go depth <N>` once per mainline position                                                                                                                                      |

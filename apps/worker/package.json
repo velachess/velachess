@@ -21,7 +21,7 @@
     "@velachess/infra-queue": "workspace:*",
     "@velachess/repertoires": "workspace:*",
     "postgres": "^3.4.0",
-    "stockfish": "^18.0.8"
+    "stockfish": "^19.0.0"
   },
   "type": "module"
 }

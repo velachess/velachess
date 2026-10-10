@@ -29,7 +29,7 @@
     "@velachess/infra-storage": "workspace:*",
     "@velachess/repertoires": "workspace:*",
     "@velachess/scheduler": "workspace:*",
-    "hono": "^4.13.5",
+    "hono": "^4.13.13",
     "postgres": "^3.4.0",
     "zod": "^4.4.3"
   },
