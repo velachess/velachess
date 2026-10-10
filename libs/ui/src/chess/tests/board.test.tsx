@@ -36,6 +36,11 @@ interface CapturedOptions {
   darkSquareStyle: { backgroundColor: string };
   squareStyles: Record<string, { backgroundColor?: string; backgroundImage?: string }>;
   arrows: CapturedArrow[] | undefined;
+  arrowOptions: {
+    arrowLengthReducerDenominator: number;
+    arrowStartOffset: number;
+    opacity: number;
+  };
   clearArrowsOnPositionChange: boolean;
   squareRenderer: (args: { square: string; children?: ReactNode }) => ReactElement;
   onPieceDrop: (args: { sourceSquare: string; targetSquare: string | null }) => boolean;
@@ -61,7 +66,11 @@ function hintAt(square: string): string | undefined {
   return style?.backgroundImage ?? style?.backgroundColor;
 }
 
-vi.mock("react-chessboard", () => ({
+// Only the component is stubbed. The module's own constants stay real,
+// because the wrapper builds its arrow geometry on top of them and a
+// hand-written stand-in would drift from the library's defaults.
+vi.mock("react-chessboard", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-chessboard")>()),
   Chessboard: ({ options }: { options: CapturedOptions }) => {
     captured = options;
     return <div />;
@@ -391,3 +400,17 @@ it.each([
     expect(badgeEdgesOf(square, orientation)).toEqual(edges);
   },
 );
+
+it("trims the arrowhead and keeps the arrows translucent", () => {
+  render(<Board fen={START} bestMove={{ from: "e2", to: "e4" }} />);
+
+  // A quarter of a square off the head clears the destination piece,
+  // where the library's default eighth plants it on top of one. The
+  // tail stays at the origin's centre, overlapping the piece that
+  // moves — that overlap is what reads as "this piece goes there".
+  expect(captured.arrowOptions.arrowLengthReducerDenominator).toBe(4);
+  expect(captured.arrowOptions.arrowStartOffset).toBe(0);
+  // Well under the library's 0.65: an arrow annotates the position
+  // rather than becoming an object on it.
+  expect(captured.arrowOptions.opacity).toBe(0.45);
+});

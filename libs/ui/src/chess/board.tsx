@@ -11,7 +11,7 @@
  * whether the move was legal.
  */
 
-import { Chessboard } from "react-chessboard";
+import { Chessboard, defaultArrowOptions } from "react-chessboard";
 import type { Arrow } from "react-chessboard";
 import { useState } from "react";
 import type { LegalDestination } from "@velachess/chess";
@@ -32,6 +32,31 @@ import {
 } from "./board-theme.ts";
 import { SquareBadge } from "./square-badge.tsx";
 import type { BadgeTone } from "./board-theme.ts";
+
+/**
+ * Arrow geometry, so an arrow annotates the move without burying the
+ * piece it lands on.
+ *
+ * The tail stays at the centre of the origin square, overlapping the
+ * piece being moved: that overlap is what reads as "this piece goes
+ * there". Pulling it back to the square's edge, as `arrowStartOffset`
+ * does, leaves the arrow floating free of the piece it belongs to.
+ *
+ * The head is the only end worth trimming. The library's default stops
+ * an eighth of a square short, which plants it over the destination
+ * piece; a quarter back clears the silhouette and still lands the head
+ * well inside the square.
+ */
+const ARROW_GEOMETRY = {
+  ...defaultArrowOptions,
+  arrowLengthReducerDenominator: 4,
+  // Well under the library's 0.65. An arrow is an annotation laid over
+  // the position, so the pieces it crosses have to stay readable
+  // through it, and two arrows that cross should not stack into a
+  // third, darker shape. Per-arrow weight still rides in the colours
+  // (`arrowAlternativeColor`), which this scales rather than replaces.
+  opacity: 0.45,
+} as const;
 
 export type BoardSide = "white" | "black";
 
@@ -278,6 +303,7 @@ export function Board({
           // an explicit `undefined` a different thing from an absent key,
           // and `ChessboardOptions` asks for the key to be absent.
           ...withArrows(bestMove, alternatives, playedMove, suggestedMove),
+          arrowOptions: ARROW_GEOMETRY,
           // Right-drag arrows are the library's, and free. Clearing them
           // on a position change matters here: without it a mark drawn
           // on move 12 is still hanging there on move 13.
