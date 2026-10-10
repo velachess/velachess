@@ -11,7 +11,7 @@
  * whether the move was legal.
  */
 
-import { Chessboard } from "react-chessboard";
+import { Chessboard, defaultArrowOptions } from "react-chessboard";
 import type { Arrow } from "react-chessboard";
 import { useState } from "react";
 import type { LegalDestination } from "@velachess/chess";
@@ -28,10 +28,29 @@ import {
   MAX_ARROWS,
   NOTATION_STYLE,
   arrowAlternativeColor,
-  badgeEdgesOf,
+  badgeCornerOf,
 } from "./board-theme.ts";
 import { SquareBadge } from "./square-badge.tsx";
-import type { BadgeTone } from "./board-theme.ts";
+import type { ArrowSquares, BadgeTone } from "./board-theme.ts";
+
+/**
+ * Arrow geometry, so an arrow annotates the move without burying the
+ * piece it lands on.
+ *
+ * The tail stays at the centre of the origin square, overlapping the
+ * piece being moved: that overlap is what reads as "this piece goes
+ * there". Pulling it back to the square's edge, as `arrowStartOffset`
+ * does, leaves the arrow floating free of the piece it belongs to.
+ *
+ * The head is the only end worth trimming. The library's default stops
+ * an eighth of a square short, which plants it over the destination
+ * piece; a quarter back clears the silhouette and still lands the head
+ * well inside the square.
+ */
+const ARROW_GEOMETRY = {
+  ...defaultArrowOptions,
+  arrowLengthReducerDenominator: 4,
+} as const;
 
 export type BoardSide = "white" | "black";
 
@@ -180,6 +199,25 @@ function withArrows(
   return drawn.length > 0 ? { arrows: drawn } : {};
 }
 
+/**
+ * The arrows as the badge needs them: which squares each one touches.
+ *
+ * Built from the same inputs as `withArrows`, so the badge dodges
+ * exactly the arrows that get drawn — including the right-drag ones the
+ * library owns, which it does not, since those are the viewer's own
+ * marks and are cleared on the next move.
+ */
+function arrowSquaresOf(
+  bestMove: BoardArrow | undefined,
+  alternatives: readonly BoardArrow[],
+  playedMove: BoardArrow | undefined,
+  suggestedMove: BoardArrow | undefined,
+): ArrowSquares[] {
+  return [suggestedMove, playedMove, bestMove, ...alternatives]
+    .filter((move) => move !== undefined)
+    .map((move) => ({ from: move.from, to: move.to }));
+}
+
 export function Board({
   fen,
   orientation = "white",
@@ -202,6 +240,7 @@ export function Board({
   // re-implementing the board.
   const [selected, setSelected] = useState<string | null>(null);
   const hints = hintsOf(showLegalMoves === "off" ? null : selected, legalTargetsOf);
+  const arrowSquares = arrowSquaresOf(bestMove, alternatives, playedMove, suggestedMove);
 
   /**
    * Click to move: pick a piece, then click where it goes.
@@ -278,6 +317,7 @@ export function Board({
           // an explicit `undefined` a different thing from an absent key,
           // and `ChessboardOptions` asks for the key to be absent.
           ...withArrows(bestMove, alternatives, playedMove, suggestedMove),
+          arrowOptions: ARROW_GEOMETRY,
           // Right-drag arrows are the library's, and free. Clearing them
           // on a position change matters here: without it a mark drawn
           // on move 12 is still hanging there on move 13.
@@ -297,7 +337,10 @@ export function Board({
               >
                 {children}
                 {tone !== undefined && (
-                  <SquareBadge tone={tone} edges={badgeEdgesOf(square, orientation)} />
+                  <SquareBadge
+                    tone={tone}
+                    corner={badgeCornerOf(square, orientation, arrowSquares)}
+                  />
                 )}
               </div>
             );
