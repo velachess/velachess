@@ -33,19 +33,17 @@ pnpm db:migrate
 
 **5. Write the query beside it.** A migration with no query is a column
 nobody reads. Queries live in `libs/infra/db/queries/`, grouped by concern
-(`games.ts`, `status.ts`, `drill.ts`, …), not one file per table.
+(`games.ts`, `status.ts`, `analysis.ts`, `tracked-accounts.ts`, …), not one file per table.
 
 **6. Test it over the real migrations.** The `db` project boots PGlite
 and runs every migration before the first assertion, so a test that
-passes has exercised your SQL. Add the case to the matching file in
+passes has run your SQL. Add the case to the matching file in
 `libs/infra/db/tests/`.
 
 ## Conventions
 
-- **Name for the change, not the table.** `0006_train.sql`,
-  `0008_pgboss.sql` — the file says what became possible.
-- **Nullable from day one** for anything a later cycle fills. Columns
-  the analysis cycle populates exist as `null` long before it runs.
+- **Name for the change, not the table.** `0016_rate_limits.sql`,
+  `0021_games_and_analysis.sql` — the file says what became possible.
 - **The column stores a fact; the query answers a question.** Do not add
   a column that duplicates something derivable. `perspective` looked
   like a column and turned out to be a derivation from the tracked

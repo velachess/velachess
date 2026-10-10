@@ -5,8 +5,8 @@
  * directly. This module unifies both into a single resolution.
  *
  * This is provider-specific URL parsing, not chess-domain logic. The
- * resolved name is persisted during normalization; consumers like
- * repertoire extraction work with the canonical `openingName` field.
+ * resolved name is persisted during normalization; consumers work
+ * with the canonical `openingName` field.
  */
 
 /**

@@ -10,16 +10,11 @@ import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
 import {
   appendProgress,
-  applyEngineSignal,
   clearProgress,
   getAnalysis,
   getGame,
-  listJudgmentsByGame,
   saveAnalysis,
-  userIdForGame,
 } from "@velachess/infra-db";
-import { triageAndSeed } from "@velachess/drills";
-import { makeScheduler } from "@velachess/scheduler";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -93,7 +88,6 @@ export async function createApiHarness(
     // A short interval: the suite should not wait out a production poll.
     watchers: createWatchers(buildWatcherDeps(harness.db, harness.analysisQueue, 50)),
     syncQueue: harness.syncQueue,
-    scheduler: makeScheduler(),
     lock: harness.lock,
     // A real store over a temp dir, like every other dependency here:
     // nothing is mocked away, so a test proves the bytes round-trip.
@@ -114,14 +108,8 @@ export async function createApiHarness(
     getAnalysis: (gameId) => getAnalysis(harness.db, gameId),
     withTransaction: (fn) => harness.db.transaction(fn),
     saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    listJudgmentsByGame: (tx, gameId) => listJudgmentsByGame(tx, gameId),
-    applyEngineSignal: (tx, deviationId, signal) =>
-      applyEngineSignal(tx, deviationId, signal).then(() => {}),
     appendProgress: (entry) => appendProgress(harness.db, entry),
     clearProgress: (gameId) => clearProgress(harness.db, gameId),
-    userIdForGame: (gameId) => userIdForGame(harness.db, gameId),
-    seedDrillsForGame: (userId, gameId) =>
-      triageAndSeed(harness.db, userId, { gameId }).then(() => {}),
     depth: 8,
   };
 

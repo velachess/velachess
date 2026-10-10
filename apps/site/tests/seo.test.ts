@@ -12,7 +12,7 @@ function contentOf(selector: string): string | null {
 
 describe("site output", () => {
   it("publishes the title, description, canonical URL, and language", () => {
-    expect(page.title).toBe("VelaChess - Turn your games into training");
+    expect(page.title).toBe("VelaChess - Review your games with Stockfish");
     expect(contentOf('meta[name="description"]')).toContain(
       "Import your Chess.com and Lichess games",
     );
@@ -46,7 +46,7 @@ describe("site output", () => {
     const levels = headings.map((heading) => Number(heading.tagName.slice(1)));
 
     expect(headings.filter((heading) => heading.tagName === "H1")).toHaveLength(1);
-    expect(headings[0]?.textContent).toContain("Turn your games into training.");
+    expect(headings[0]?.textContent).toContain("Review your games with Stockfish.");
     for (let index = 1; index < levels.length; index += 1) {
       expect(levels[index]! - levels[index - 1]!).toBeLessThanOrEqual(1);
     }

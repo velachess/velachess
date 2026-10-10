@@ -10,7 +10,6 @@ import type { Auth } from "@velachess/infra-auth";
 import type { Database } from "@velachess/infra-db";
 import type { AnalysisQueue, SyncQueue } from "@velachess/infra-queue";
 import type { FileStore } from "@velachess/infra-storage";
-import type { Scheduler } from "@velachess/scheduler";
 import type { Watchers } from "@velachess/analysis";
 
 /**
@@ -36,7 +35,6 @@ export interface ApiDeps {
   signInMethods: SignInMethods;
   analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
-  scheduler: Scheduler;
   /** Held for the advisory-lock plumbing; the API runs no engine itself. */
   lock: ExecutionLock;
   /** One poll loop per game, shared by everyone watching it. */

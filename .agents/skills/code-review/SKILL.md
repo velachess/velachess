@@ -19,7 +19,6 @@ approve, or post comments unless the user separately authorizes that action.
    - PGN/FEN/moves/perspective -> `chess-domain`
    - import/provider/cursor/dedup -> `game-ingestion`
    - Stockfish/evaluation/classification -> `engine-analysis`
-   - repertoire/deviation/exercise/FSRS -> `repertoire-training`
    - inconsistent cross-boundary state -> `debug-pipeline`
    - auth/secrets/redirects/outbound HTTP -> `security-review`
    - UI ownership/composition -> `ui-before-you-build`

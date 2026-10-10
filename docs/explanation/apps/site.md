@@ -29,8 +29,9 @@ Lucide icons. Nothing was extracted from `apps/web`: the reusable parts
 already had the correct owner, while TanStack navigation and product
 screens remain framework-specific.
 
-The screenshots are produced from deterministic fixtures inside the real
-`apps/web` game-analysis and drill slices. `e2e/capture/` at the repository root
+The landing screenshot is produced from deterministic fixtures
+(`e2e/capture/staged-product.fixture.ts`) inside the real `apps/web`
+game-analysis slice. `e2e/capture/` at the repository root
 uses Playwright's own `webServer`, routing, viewport and screenshot APIs;
 `pnpm site:capture` writes only the final WebP files into
 `apps/site/public/product`.

@@ -8,10 +8,8 @@ import { AppFrame } from "@velachess/ui/layout/app-frame";
 import { NavBar } from "@velachess/ui/layout/nav-bar";
 import { NavDock } from "@velachess/ui/layout/nav-dock";
 
-import { drillQueueQuery } from "../drill/queries.ts";
-import { useQuery } from "../libs/react-query.ts";
 import { BackendStatusBanner } from "../backend-status/index.ts";
-import { activeNavId, navItemsFor, NAV_ROUTES, type AppNavItem } from "./nav-items.ts";
+import { activeNavId, NAV_ITEMS, NAV_ROUTES, type AppNavItem } from "./nav-items.ts";
 import { UserMenu } from "./user-menu.tsx";
 
 const SHELL_COPY = {
@@ -45,14 +43,7 @@ function renderBarItem(item: AppNavItem, content: React.ReactNode) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { i18n } = useLingui();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { data: queue } = useQuery(drillQueueQuery());
-
-  const items = navItemsFor({ drillQueue: queue });
   const activeId = activeNavId(pathname);
-  // Dashboard is the landing screen a phone user reaches by opening the
-  // app, not a tab worth a permanent slot next to the four screens people
-  // actually switch between during a session.
-  const barItems = items.filter((item) => item.id !== "dashboard");
 
   return (
     <AppFrame
@@ -60,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       skipLabel={i18n._(SHELL_COPY.skipToContent)}
       nav={
         <NavDock
-          items={items}
+          items={NAV_ITEMS}
           brand={<VelaChessMark size="micro" className="size-5" />}
           label={i18n._(SHELL_COPY.mainNav)}
           activeId={activeId}
@@ -70,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
       navFallback={
         <NavBar
-          items={barItems}
+          items={NAV_ITEMS}
           label={i18n._(SHELL_COPY.mainNavBar)}
           activeId={activeId}
           footer={<UserMenu />}

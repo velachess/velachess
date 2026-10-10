@@ -3,7 +3,7 @@
 Everything visual the app is made of: the theme, the primitives, the
 frame, the icons, and the chess board. One rule holds the package
 together — **nothing in here knows what the product is about**. Grep it
-for `game`, `board`, `repertoire` or `mistake` outside `chess/` and it
+for `game`, `board`, `analysis` or `mistake` outside `chess/` and it
 comes back empty; it imports no router, so it works in any app.
 
 ## Where components come from
@@ -13,8 +13,7 @@ the local CLI from `libs/ui`; its `components.json` routes files here, so
 third-party component code is ours: versioned, editable, reviewed, and
 re-exported through `exports`.
 
-The Trophy registry is declared too, so gamification components would land
-here as well. None are installed: there is no screen for them yet.
+The Trophy registry is declared too; no components from it are installed.
 
 `AppFrame` and friends are our files arranging registry parts, so changing
 the frame changes an arrangement, not a dependency.
@@ -110,8 +109,8 @@ mark is never tinted with either.
 Board overlays follow one rule — indigo for _where_ (selection, last
 move, primary arrows), Ice Cyan `--info` for information, `--board-check`
 for check. `--board-check` is the same ink as `--destructive` on purpose:
-two reds a shade apart read as two different alarms. Nothing renders it
-yet; the token exists so the rule does.
+two reds a shade apart read as two different alarms. Nothing renders it;
+the token exists so the rule does.
 
 ### Contrast
 

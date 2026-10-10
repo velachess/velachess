@@ -31,8 +31,7 @@ const gameSchema = z.object({
 
 const monthResponseSchema = z.object({ games: z.array(gameSchema) });
 
-/** A year of archives on a first sync — a single month starves insights
- * (trend windows, per-opening samples); the cursor limits later syncs. */
+/** A year of archives on a first sync — a single month leaves little to review; the cursor limits later syncs. */
 const DEFAULT_BOOTSTRAP_MONTHS = 12;
 
 function monthOf(archiveUrl: string): string {

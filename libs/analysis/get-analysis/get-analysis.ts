@@ -1,21 +1,15 @@
 /**
  * GetAnalysis — one shape for "show me this game's analysis".
- * `completed` bundles the report with the drill CTA's count to avoid a second round trip that could disagree with it.
  * Progress fields stay absent (not zero) until a run exists — "not started" and "started, graded none" differ.
  */
 import type {
   AnalysisRequest,
   GameAnalysisRecord,
 } from "../request-analysis/request-analysis.ts";
-import {
-  drillSummaryFor,
-  type DrillSummary,
-  type DrillSummaryDeps,
-} from "./drill-summary.ts";
 
 export type AnalysisReport =
   | { status: "not-found" }
-  | { status: "completed"; analysis: GameAnalysisRecord; drills: DrillSummary }
+  | { status: "completed"; analysis: GameAnalysisRecord }
   | {
       status: "created" | "queued" | "running" | "failed";
       graded?: number;
@@ -32,7 +26,7 @@ type CountProgress = (
   gameId: string,
 ) => Promise<{ graded: number; total: number } | null>;
 
-export interface GetAnalysisDeps extends DrillSummaryDeps {
+export interface GetAnalysisDeps {
   requestAnalysisForUser: RequestAnalysisForUser;
   countProgress: CountProgress;
 }
@@ -46,8 +40,7 @@ export async function getAnalysisReport(
   if (request.status === "not-found") return { status: "not-found" };
 
   if (request.status === "completed") {
-    const drills = await drillSummaryFor(deps, gameId);
-    return { status: "completed", analysis: request.analysis, drills };
+    return { status: "completed", analysis: request.analysis };
   }
 
   const progress = await deps.countProgress(gameId);

@@ -20,8 +20,7 @@ export interface ReplayControlsProps {
 /**
  * Stepping a game, in the shared vocabulary.
  *
- * The buttons themselves are `MoveNav` — the same ones Repertoire Study
- * uses — so this file is only the translation from a replay to that
+ * The buttons themselves are `MoveNav` — the shared ones — so this file is only the translation from a replay to that
  * component's plain callbacks, plus this screen's words for them. No
  * reset: the scoresheet already reaches every ply in one click.
  *

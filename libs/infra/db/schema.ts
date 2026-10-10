@@ -19,8 +19,6 @@ import {
   bigint,
   bigserial,
   boolean,
-  check,
-  doublePrecision,
   index,
   integer,
   jsonb,
@@ -56,10 +54,9 @@ export const platformEnum = pgEnum("platform", ["chess_com", "lichess"]);
  *
  * Better Auth owns the columns and writes them through its Drizzle
  * adapter — but the table keeps its name and, crucially, its `uuid`
- * primary key, because `tracked_accounts`, `repertoires` and `exercises`
- * all reference it. Better Auth is configured with
+ * primary key, because `tracked_accounts` and `games` reference it. Better Auth is configured with
  * `advanced.database.generateId: "uuid"` so it produces ids this column
- * accepts; the alternative was retyping three foreign keys to text.
+ * accepts; the alternative was retyping the foreign keys to text.
  *
  * A VelaChess user is NOT a chess.com or Lichess account. Those are
  * `tracked_accounts`, and one user may hold several.
@@ -358,139 +355,6 @@ export const games = pgTable(
   ],
 );
 
-/**
- * How a repertoire came to exist, which decides what extraction may touch.
- * 'extracted' = a candidate derived from games — evidence, not intent —
- * that re-extraction may replace wholesale. 'manual' = declared or edited
- * preparation, which extraction must never silently overwrite. A manual
- * edit to an extracted repertoire confirms it (flips it to 'manual').
- */
-export const repertoireSourceEnum = pgEnum("repertoire_source", ["manual", "extracted"]);
-
-export const repertoires = pgTable(
-  "repertoires",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    // One side per repertoire. Reuses perspectiveEnum — same values, same
-    // zod origin; a second white/black enum would just drift.
-    color: perspectiveEnum("color").notNull(),
-    source: repertoireSourceEnum("source").notNull().default("manual"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [index("repertoires_user_id").on(table.userId)],
-);
-
-export const repertoireChapters = pgTable(
-  "repertoire_chapters",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    repertoireId: uuid("repertoire_id")
-      .notNull()
-      .references(() => repertoires.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    sortOrder: integer("sort_order").notNull(),
-    // Source of truth for the tree — rebuilt on read by buildRepertoireTree.
-    // PGN validity is the caller's job; db does not parse.
-    pgn: text("pgn").notNull(),
-    /** null = standard starting position. */
-    startingFen: text("starting_fen"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    index("repertoire_chapters_repertoire_id").on(table.repertoireId),
-    unique("repertoire_chapters_repertoire_sort").on(table.repertoireId, table.sortOrder),
-  ],
-);
-
-/**
- * Values align 1:1 with DeviationEvent.type in libs/games/judge-games, plus
- * "completed" for DeviationResult.event === null (whole game stayed in
- * book) and "unmatched" for a game no chapter of the repertoire could
- * judge — a different starting universe, or no chapter at all. Persisted
- * rather than skipped so an unmatched game is a countable answer instead
- * of an eternally pending one.
- *
- * The product vocabulary maps 1:1 onto these storage names: completed =
- * held, deviation = player-left, gap = opponent-left, book-ended =
- * repertoire-ended. Mutually exclusive by construction — one judgment row
- * per (game, repertoire) carries exactly one.
- */
-export const deviationTypeEnum = pgEnum("deviation_type", [
-  "deviation",
-  "gap",
-  "book-ended",
-  "completed",
-  "unmatched",
-]);
-
-/** Filled by the analysis cycle; nullable columns exist from day one. */
-export const engineCategoryEnum = pgEnum("engine_category", [
-  "ok",
-  "inaccuracy",
-  "mistake",
-  "blunder",
-]);
-
-/**
- * One judgment per (game, repertoire) — not "one deviation". Event columns
- * are null exactly when type = 'completed'. Name snapshots survive
- * repertoire deletion (the reason repertoire_id/chapter_id are nullable
- * with set null).
- */
-export const deviations = pgTable(
-  "deviations",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    repertoireId: uuid("repertoire_id").references(() => repertoires.id, {
-      onDelete: "set null",
-    }),
-    chapterId: uuid("chapter_id").references(() => repertoireChapters.id, {
-      onDelete: "set null",
-    }),
-    repertoireNameSnapshot: text("repertoire_name_snapshot").notNull(),
-    /** Null for 'unmatched' — no chapter judged the game, so none to name. */
-    chapterNameSnapshot: text("chapter_name_snapshot"),
-    type: deviationTypeEnum("type").notNull(),
-    inBookPlies: integer("in_book_plies").notNull(),
-    /** Total mainline plies of the judged game — the "too short to count"
-     * floor in adherence metrics needs it. Nullable: judgments predating
-     * the column. */
-    gamePlies: integer("game_plies"),
-    ply: integer("ply"),
-    positionKey: text("position_key"),
-    playedSan: text("played_san"),
-    /** Only for type = 'deviation'. */
-    expectedSans: jsonb("expected_sans").$type<string[]>(),
-    cpLoss: integer("cp_loss"),
-    engineCategory: engineCategoryEnum("engine_category"),
-    drillable: boolean("drillable").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    // Re-judging upserts instead of duplicating. Matches current findDeviation
-    // (at most one event per game); cycle 2.1 widens to (game, repertoire, ply)
-    // if multiple deviations per game ever ship.
-    uniqueIndex("deviations_game_repertoire").on(table.gameId, table.repertoireId),
-    index("deviations_repertoire_id").on(table.repertoireId),
-    index("deviations_chapter_id").on(table.chapterId),
-  ],
-);
-
 /** Structural mirror of @velachess/analysis's GradedPly — declared
  * locally so drizzle-kit's schema loader never touches the chess toolchain.
  * Compatibility is asserted at typecheck in tests/schema.test.ts (a
@@ -528,8 +392,7 @@ export const gameAnalyses = pgTable(
  * A run's graded positions, as they land. Deliberately NOT part of the
  * report.
  *
- * `game_analyses` is the durable record and commits in one transaction
- * with every judgment's severity. Progress cannot live in that
+ * `game_analyses` is the durable record and commits in one transaction. Progress cannot live in that
  * transaction — an uncommitted row is invisible to the connection
  * streaming it — so it is written and committed one position at a time,
  * and deleted once the report lands. Losing these rows costs nothing.
@@ -565,166 +428,6 @@ export const analysisProgress = pgTable(
   ],
 );
 
-export const drillGradeEnum = pgEnum("training_grade", ["again", "hard", "good", "easy"]);
-
-/** One exercise per (user, position) — the same deviation point reached in
- * two games merges here, with provenance in exercise_sources. */
-export const exercises = pgTable(
-  "exercises",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    positionKey: text("position_key").notNull(),
-    expectedSans: jsonb("expected_sans").$type<string[]>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("exercises_user_position").on(table.userId, table.positionKey),
-    index("exercises_user_id").on(table.userId),
-  ],
-);
-
-/**
- * Where a drill came from. Named rather than inferred from which column
- * is filled: a nullable column per origin with a `CHECK` listing the
- * combinations works for two and becomes patchwork at the third, and
- * `curated` — the fixed catalogue, mate-in-two and the like — is already
- * on the way.
- */
-/** The kinds an exercise can trace back to. Named so the application can
- * speak the enum instead of restating its strings. */
-export type DrillOriginKind = (typeof drillOriginEnum)["enumValues"][number];
-
-export const drillOriginEnum = pgEnum("drill_origin", [
-  "repertoire-deviation",
-  "engine-blunder",
-  "repertoire-line",
-]);
-
-/**
- * A drill's provenance. One exercise can have several: identity is
- * (user, position), so deviating from your preparation in a position and
- * later blundering in the same one is one exercise with two records here.
- *
- * The engine origin is a natural key rather than a foreign key because
- * graded plies are not rows — they live as `jsonb` on `game_analyses`.
- * Creating a table of plies to win the FK would mean migrating how every
- * analysis is stored for the sake of one relationship.
- */
-export const exerciseSources = pgTable(
-  "exercise_sources",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    exerciseId: uuid("exercise_id")
-      .notNull()
-      .references(() => exercises.id, { onDelete: "cascade" }),
-    origin: drillOriginEnum("origin").notNull(),
-    deviationId: uuid("deviation_id").references(() => deviations.id, {
-      onDelete: "cascade",
-    }),
-    gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }),
-    ply: integer("ply"),
-    /** repertoire-line only: the chapter whose tree produced the decision
-     * position. Cascade — a deleted chapter takes its line-sources with
-     * it, while the exercise (keyed on user + position) and its card
-     * survive through any other source they have. */
-    chapterId: uuid("chapter_id").references(() => repertoireChapters.id, {
-      onDelete: "cascade",
-    }),
-  },
-  (table) => [
-    // Partial uniqueness per origin — idempotency without inventing a
-    // sentinel value to keep a composite primary key alive.
-    uniqueIndex("exercise_sources_deviation")
-      .on(table.exerciseId, table.deviationId)
-      .where(sql`${table.deviationId} IS NOT NULL`),
-    uniqueIndex("exercise_sources_ply")
-      .on(table.exerciseId, table.gameId, table.ply)
-      .where(sql`${table.gameId} IS NOT NULL`),
-    uniqueIndex("exercise_sources_chapter")
-      .on(table.exerciseId, table.chapterId)
-      .where(sql`${table.chapterId} IS NOT NULL`),
-    index("exercise_sources_deviation_id").on(table.deviationId),
-    index("exercise_sources_game_id").on(table.gameId),
-    index("exercise_sources_chapter_id").on(table.chapterId),
-    // Each origin brings exactly the columns it needs, and no others.
-    check(
-      "exercise_sources_origin_shape",
-      sql`(${table.origin} = 'repertoire-deviation'
-             AND ${table.deviationId} IS NOT NULL
-             AND ${table.gameId} IS NULL AND ${table.ply} IS NULL
-             AND ${table.chapterId} IS NULL)
-          OR (${table.origin} = 'engine-blunder'
-             AND ${table.deviationId} IS NULL
-             AND ${table.gameId} IS NOT NULL AND ${table.ply} IS NOT NULL
-             AND ${table.chapterId} IS NULL)
-          OR (${table.origin} = 'repertoire-line'
-             AND ${table.deviationId} IS NULL
-             AND ${table.gameId} IS NULL AND ${table.ply} IS NULL
-             AND ${table.chapterId} IS NOT NULL)`,
-    ),
-  ],
-);
-
-export const drillResponses = pgTable(
-  "training_responses",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    exerciseId: uuid("exercise_id")
-      .notNull()
-      .references(() => exercises.id, { onDelete: "cascade" }),
-    correct: boolean("correct").notNull(),
-    grade: drillGradeEnum("grade").notNull(),
-    responseTimeMs: integer("response_time_ms"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index("training_responses_exercise_id").on(table.exerciseId)],
-);
-
-export const cardPhaseEnum = pgEnum("card_phase", [
-  "new",
-  "learning",
-  "review",
-  "relearning",
-]);
-
-/** One scheduled card per exercise. "Is it due" is derived at read time
- * from `due` vs. now — never stored. */
-export const cards = pgTable(
-  "cards",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    exerciseId: uuid("exercise_id")
-      .notNull()
-      .references(() => exercises.id, { onDelete: "cascade" }),
-    due: timestamp("due", { withTimezone: true }).notNull(),
-    stability: doublePrecision("stability").notNull(),
-    difficulty: doublePrecision("difficulty").notNull(),
-    elapsedDays: integer("elapsed_days").notNull().default(0),
-    scheduledDays: integer("scheduled_days").notNull().default(0),
-    learningSteps: integer("learning_steps").notNull().default(0),
-    reps: integer("reps").notNull().default(0),
-    lapses: integer("lapses").notNull().default(0),
-    phase: cardPhaseEnum("phase").notNull(),
-    lastReview: timestamp("last_review", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("cards_exercise_id").on(table.exerciseId),
-    index("cards_due").on(table.due),
-  ],
-);
-
 export type GameAnalysisRow = typeof gameAnalyses.$inferSelect;
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
@@ -734,15 +437,3 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type AuthAccount = typeof authAccounts.$inferSelect;
-export type Repertoire = typeof repertoires.$inferSelect;
-export type NewRepertoire = typeof repertoires.$inferInsert;
-export type RepertoireChapter = typeof repertoireChapters.$inferSelect;
-export type NewRepertoireChapter = typeof repertoireChapters.$inferInsert;
-export type Deviation = typeof deviations.$inferSelect;
-export type NewDeviation = typeof deviations.$inferInsert;
-export type Exercise = typeof exercises.$inferSelect;
-export type NewExercise = typeof exercises.$inferInsert;
-export type DrillResponse = typeof drillResponses.$inferSelect;
-export type NewDrillResponse = typeof drillResponses.$inferInsert;
-export type Card = typeof cards.$inferSelect;
-export type NewCard = typeof cards.$inferInsert;

@@ -269,7 +269,7 @@ it("leaves a board with no hint source unmarked", () => {
 /**
  * The verdict, drawn instead of written.
  *
- * A drill says "this is what you did, that is what was there" with two
+ * A review says "this is what you did, that is what was there" with two
  * arrows in the grade colours the game report already uses — so a mistake
  * looks the same in both places and neither needs a sentence.
  */
@@ -297,7 +297,7 @@ it("draws nothing for a position with no verdict yet", () => {
 });
 
 it("can be told not to show legal moves at all", () => {
-  // A harder drill withholds the help without giving up the function
+  // A plain board withholds the help without giving up the function
   // that computes it, so the same board serves both.
   render(
     <Board fen={START} showLegalMoves="off" legalTargetsOf={() => KNIGHT_OPENINGS} />,

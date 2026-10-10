@@ -1,6 +1,6 @@
 /**
- * ListAccountGames — one tracked handle's games with judgment type and
- * analysis presence, the read model the account screen renders.
+ * ListAccountGames — one tracked handle's games with analysis presence,
+ * the read model the account screen renders.
  */
 import type { TrackedAccount } from "@velachess/infra-db";
 
@@ -17,8 +17,6 @@ export interface GameWithStatus {
   playedAt: Date | null;
   perspective: string | null;
   openingName: string | null;
-  judgmentType: string | null;
-  judgmentPly: number | null;
   analyzed: boolean;
 }
 

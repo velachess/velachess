@@ -11,7 +11,7 @@ rather than his.
 > Couple along the axis of change.
 
 The unit of the application is a **request/use case** — RequestAnalysis,
-SyncAccount, SubmitAnswer — not a technical layer. Code that changes with
+SyncAccount, ImportPgn — not a technical layer. Code that changes with
 one behavior lives with that behavior. Changing a behavior should touch
 its slice, not a stack of global layers.
 
@@ -41,14 +41,13 @@ HTTP  → apps/server → libs/<module> (index.ts) → <slice>
 job   → apps/worker → libs/<module> (index.ts) → <slice>
 ```
 
-`libs/` splits into flat business modules, technical infra, and a small
-set of justified domain libraries. See root `AGENTS.md`'s "Modules and
+`libs/` splits into flat business modules, technical infra, and a
+justified domain library. See root `AGENTS.md`'s "Modules and
 slices" for the full module → package → path table; the layout:
 
 ```
 libs/
-  accounts/, games/, repertoires/, analysis/, drills/,
-  insights/, deviations/, overview/, auth/
+  accounts/, games/, analysis/, user/
                     one package per business module — see root AGENTS.md
   infra/            technical mechanisms, one library each
     db/             drizzle client, schema, migrations, shared queries, advisory lock
@@ -57,39 +56,32 @@ libs/
     logger/         structured logging          (workspace import @velachess/infra-logger)
     platforms/      chess.com/Lichess clients   (workspace import @velachess/infra-platforms)
     auth/           Better Auth configuration   (identity mechanism, not behavior)
+    storage/        object storage for uploaded files
   chess/            rules, PGN, FEN — shared by many modules AND apps/web
-  scheduler/        the FSRS wrapper
   ui/               the design system (apps/web and apps/site primitives)
   fixtures/, test-utils/   test infrastructure
 ```
 
-Each domain library (`chess`, `scheduler`) is a stable concept with no
-DB/queue/provider dependency of its own, used across several modules and,
-for chess, by the frontend too. A module-level pure policy that only one
-module's slices need (e.g. `libs/repertoires/tree.ts`) lives at that
-module's root instead of a separate domain library — see the module doc
-comments for the current set.
+The domain library `chess` is a stable concept with no DB/queue/provider
+dependency of its own, used across several modules and by the frontend too.
+A module-level pure policy that only one module's slices need (e.g.
+`libs/analysis/accuracy.ts`) lives at that module's root instead of a
+separate domain library — see the module doc comments for the current set.
 
 ## A slice
 
 ```
 libs/accounts/     connect-account/  sync-account/  list-accounts/  list-account-games/
-libs/games/        list-games/  judge-games/  import-pgn/  get-game/  land-new-games/
+libs/games/        list-games/  import-pgn/  get-game/
 libs/analysis/     request-analysis/  process-analysis/  get-analysis/  watch-analysis/
-libs/drills/       seed-exercises/  get-next-drill/  submit-answer/  count-drill-queue/
-libs/repertoires/  extract-repertoire/  list-repertoires/  add-chapter/ …
-libs/insights/     get-insights/
-libs/overview/     get-overview/
-libs/deviations/   list-deviations/
-libs/user/         bootstrap-user/
+libs/user/         bootstrap-user/  set-avatar/  read-avatar/  remove-avatar/
 ```
 
 Each top-level module is its own workspace package (`@velachess/accounts`,
 `@velachess/games`, …), with `index.ts` as its only reachable surface —
 see root `AGENTS.md`. A slice contains whatever that behavior needs — a
 single file for a trivial read, several for a complex process — and there
-is **no mandatory internal template**. `get-overview` is one file holding
-its own SQL; `process-analysis` is an execution engine with locking and
+is **no mandatory internal template**. `get-game` is one file; `process-analysis` is an execution engine with locking and
 streaming. That difference is intentional.
 
 Slices start as the simplest thing that works — usually a transaction
@@ -124,23 +116,12 @@ Order of preference when code seems shared:
 Documented exceptions that exist today, each with its reason at the
 definition site:
 
-- `libs/chess/perspective.ts` — the "which side is you" rule, used by
-  `games/judge-games`, `repertoires/extract-repertoire`, and `insights`;
-  one rule, several modules, no DB/queue dependency of its own.
-- `games/land-new-games` — the shared post-import/post-sync tail
-  (`ensureCandidateRepertoires` → `judgeGamesForUser` → seed) that
-  `accounts/sync-account` and `games/import-pgn` both need: a single real
-  slice, external to every caller including its own module-mate
-  `import-pgn`, wired through each caller's own declared dependency and
-  the composition root — never a same-package shortcut. See root
-  `AGENTS.md`'s "Modules and slices".
 - `sync-account` exposes both the HTTP trigger (`refreshAccount`) and the
   delivery-agnostic core (`processAccountSync`) the worker invokes — one
   behavior, two entry points.
 - Multi-consumer queries stay in `libs/infra/db/queries/` (tracked
-  accounts, games, deviations, analysis, cards). A query used by exactly
-  one slice belongs in the slice — `get-overview`, `list-deviations`,
-  `seed-exercises` and `get-next-drill` carry their own.
+  accounts, games, analysis, users). A query used by exactly one slice
+  belongs in the slice.
 
 ## Dependency direction, enforced
 
@@ -181,14 +162,14 @@ route translates into.
 
 ## The frontend follows the same idea
 
-`apps/web/src` groups by area (`games/`, `drill/`, `insights/`,
-`repertoire/`, `auth/`) with **no global `components/`, `hooks/`,
+`apps/web/src` groups by area (`games/`, `auth/`, `onboarding/`,
+`settings/`, `app-shell/`) with **no global `components/`, `hooks/`,
 `utils/` buckets** — that has been the rule here since before this
 document, and it extends to cross-vertical infrastructure too: there is
 no `shared/` grab-bag, only more verticals named for what they do, each
 with an `index.ts` as its public surface. As areas grow, organize within
 them by user behavior
-(`games/import-game/`, `drill/submit-drill-move/`) rather than by
+(`games/import/`, `games/request-analysis/`) rather than by
 technical kind. Presentation primitives stay in `libs/ui`. A thin wrapper
 around a third-party package (`zod`, `hono/client`, `@tanstack/react-query`)
 lives in `src/libs/` — never business logic, never a second `shared/` under

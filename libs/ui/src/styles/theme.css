@@ -46,7 +46,7 @@
   --chart-1: var(--brand); /* primary series */
   --chart-2: #8eebff; /* secondary series */
   --chart-3: #768196; /* reference / baseline */
-  --chart-4: #f1e67a; /* guided insight */
+  --chart-4: #f1e67a; /* highlight */
   --chart-5: color-mix(in oklab, var(--brand) 62%, #f4f6fa); /* tint of chart-1 */
   --shadow-ink: #000000;
 

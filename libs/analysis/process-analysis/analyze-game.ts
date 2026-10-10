@@ -9,7 +9,7 @@ import type { Game, PgnNodeData } from "@velachess/chess";
 import { replayMainline } from "@velachess/chess";
 import type { EngineSession, EngineUpdate } from "@velachess/infra-engine";
 
-import type { MoveCategory } from "../engine-category.ts";
+import type { MoveCategory } from "../move-category.ts";
 import { classifyMove } from "./classify-move.ts";
 import type { WhitePovScore } from "../score.ts";
 import { toWhitePov } from "../score.ts";

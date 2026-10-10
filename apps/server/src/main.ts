@@ -19,7 +19,6 @@ import {
   makeAnalysisQueue,
   makeSyncQueue,
 } from "@velachess/infra-queue";
-import { makeScheduler } from "@velachess/scheduler";
 
 import { createApp } from "./server.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
@@ -108,7 +107,6 @@ const app = createApp({
   analysisQueue,
   watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
   syncQueue: makeSyncQueue(boss, db),
-  scheduler: makeScheduler(),
   lock,
   files: createFileStore(storageEnv.root),
 });

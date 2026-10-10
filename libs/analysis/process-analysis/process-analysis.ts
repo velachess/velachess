@@ -13,7 +13,6 @@ import type { Database, Game, GameAnalysisRow } from "@velachess/infra-db";
 import type { EngineSession } from "@velachess/infra-engine";
 
 import { analyzeGame, type AnalysisEvent, type GradedPly } from "./analyze-game.ts";
-import { engineSignalForDeviation } from "../deviation-signal.ts";
 
 /** Database and a Drizzle transaction share this type in this codebase
  * (see libs/infra/db/client.ts) — named locally so this slice's own
@@ -30,18 +29,6 @@ type SaveAnalysis = (
   gameId: string,
   data: { engineVersion: string; depth: number; positions: GradedPly[] },
 ) => Promise<GameAnalysisRow>;
-type ListJudgmentsByGame = (
-  tx: Tx,
-  gameId: string,
-) => Promise<{ id: string; ply: number | null }[]>;
-type ApplyEngineSignal = (
-  tx: Tx,
-  deviationId: string,
-  signal: {
-    cpLoss: number | null;
-    engineCategory: "ok" | "inaccuracy" | "mistake" | "blunder";
-  },
-) => Promise<void>;
 /** Committed outside any transaction on purpose — see `appendProgress`'s
  * own doc comment at the query site. */
 type AppendProgress = (entry: {
@@ -52,9 +39,6 @@ type AppendProgress = (entry: {
   position: GradedPly;
 }) => Promise<void>;
 type ClearProgress = (gameId: string) => Promise<void>;
-type UserIdForGame = (gameId: string) => Promise<string | null>;
-/** Cross-module (drills), same shape whether same module or not. */
-type SeedDrillsForGame = (userId: string, gameId: string) => Promise<void>;
 
 export interface AnalyzeDeps {
   makeSession: () => Promise<EngineSession>;
@@ -63,12 +47,8 @@ export interface AnalyzeDeps {
   getAnalysis: GetAnalysis;
   withTransaction: WithTransaction;
   saveAnalysis: SaveAnalysis;
-  listJudgmentsByGame: ListJudgmentsByGame;
-  applyEngineSignal: ApplyEngineSignal;
   appendProgress: AppendProgress;
   clearProgress: ClearProgress;
-  userIdForGame: UserIdForGame;
-  seedDrillsForGame: SeedDrillsForGame;
   depth?: number;
   engineVersion?: string;
 }
@@ -106,32 +86,15 @@ export async function completeAnalysis(deps: AnalyzeDeps, gameId: string): Promi
   if (result.status === "started") {
     result.execution.start();
     await result.execution.result;
-    await seedDrillsFor(deps, gameId);
     return;
   }
-  if (result.status !== "running") {
-    // Completed (cached) or not found. A cached report may predate the
-    // engine drill origin, so triage runs anyway — it is idempotent, and
-    // this is what backfills games analysed before drills existed.
-    if (result.status === "completed") await seedDrillsFor(deps, gameId);
-    return;
-  }
+  // Completed (cached) or not found: nothing left to do.
+  if (result.status !== "running") return;
 
   // Someone alive holds the lock. If their report already landed, the
   // operation is satisfied; otherwise it cannot complete on this attempt.
   if (await deps.getAnalysis(gameId)) return;
   throw new Error(`analysis of ${gameId} running elsewhere — cannot complete now`);
-}
-
-/**
- * Drills follow analysis as one use case, so the worker never learns the ordering.
- * Failures aren't swallowed: a persistently broken triage should be visible, not silently emptying the drill queue.
- */
-async function seedDrillsFor(deps: AnalyzeDeps, gameId: string): Promise<void> {
-  const userId = await deps.userIdForGame(gameId);
-  // A pasted PGN nobody claimed has no "you" to attribute mistakes to.
-  if (!userId) return;
-  await deps.seedDrillsForGame(userId, gameId);
 }
 
 export async function tryStartAnalysis(
@@ -208,23 +171,9 @@ export async function tryStartAnalysis(
           emitter.emit("event", event);
         }
 
-        // Atomic completion: report + judgment severity in one transaction.
-        const analysis = await deps.withTransaction(async (tx) => {
-          const saved = await deps.saveAnalysis(tx, gameId, {
-            engineVersion,
-            depth,
-            positions,
-          });
-          const judgments = await deps.listJudgmentsByGame(tx, gameId);
-          for (const judgment of judgments) {
-            if (judgment.ply === null) continue;
-            const signal = engineSignalForDeviation(positions, judgment.ply);
-            // Same transaction as the report save — must commit together.
-            // oxlint-disable-next-line eslint/no-await-in-loop
-            if (signal) await deps.applyEngineSignal(tx, judgment.id, signal);
-          }
-          return saved;
-        });
+        const analysis = await deps.withTransaction((tx) =>
+          deps.saveAnalysis(tx, gameId, { engineVersion, depth, positions }),
+        );
 
         // The report supersedes the running commentary.
         await deps.clearProgress(gameId);

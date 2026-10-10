@@ -119,7 +119,7 @@ want the value gone in every sense.
 
 ```bash
 curl -fsS http://localhost:3000/health          # {"ok":true}
-curl -is  http://localhost:3000/overview | head -1   # HTTP/1.1 401 — the gate holds
+curl -is  http://localhost:3000/games | head -1   # HTTP/1.1 401 — the gate holds
 ```
 
 A restart now logs `first-user bootstrap … status: skipped,

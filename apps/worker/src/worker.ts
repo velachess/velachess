@@ -7,12 +7,7 @@
 import type { SyncDeps } from "@velachess/accounts";
 import type { Database } from "@velachess/infra-db";
 import { logger, type Logger } from "@velachess/infra-logger";
-import type {
-  AnalysisJobData,
-  AnalysisQueue,
-  PgBoss,
-  SyncJobData,
-} from "@velachess/infra-queue";
+import type { AnalysisJobData, PgBoss, SyncJobData } from "@velachess/infra-queue";
 import { QUEUES } from "@velachess/infra-queue";
 
 import type { EngineDeps } from "./composition/analysis.ts";
@@ -28,7 +23,6 @@ export interface WorkerDeps {
    * `composition/analysis.ts`'s `buildAnalyzeDeps`, the same way
    * `consumers/accounts.ts` completes `SyncAccountDeps` from `db`. */
   analyze: EngineDeps;
-  analysisQueue: AnalysisQueue;
   sync?: SyncDeps;
   log?: Logger;
   /** Parallel engine runs (pg-boss localConcurrency on the analysis

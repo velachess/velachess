@@ -14,18 +14,14 @@ import {
   getAnalysis,
   getGame,
   getGameForUser,
-  listEngineDrillCandidates,
   listProgress,
-  userIdForGame,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import { seedsFor } from "@velachess/drills";
 import {
   requestAnalysis as requestAnalysisSlice,
   requestAnalysisForUser as requestAnalysisForUserSlice,
 } from "@velachess/analysis";
 import type {
-  DrillSummaryDeps,
   GetAnalysisDeps,
   RequestAnalysisDeps,
   WatcherDeps,
@@ -48,22 +44,12 @@ export function buildRequestAnalysisDeps(
   };
 }
 
-export function buildDrillSummaryDeps(db: Database): DrillSummaryDeps {
-  return {
-    userIdForGame: (gameId) => userIdForGame(db, gameId),
-    listEngineDrillCandidates: (userId, scope) =>
-      listEngineDrillCandidates(db, userId, scope),
-    seedsFor,
-  };
-}
-
 export function buildGetAnalysisDeps(
   db: Database,
   analysisQueue: AnalysisQueue,
 ): GetAnalysisDeps {
   const requestAnalysisDeps = buildRequestAnalysisDeps(db, analysisQueue);
   return {
-    ...buildDrillSummaryDeps(db),
     requestAnalysisForUser: (userId, gameId) =>
       requestAnalysisForUserSlice(requestAnalysisDeps, userId, gameId),
     countProgress: (gameId) => countProgress(db, gameId),

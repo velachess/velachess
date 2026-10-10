@@ -10,16 +10,12 @@
 import type { AnalyzeDeps } from "@velachess/analysis";
 import {
   appendProgress,
-  applyEngineSignal,
   clearProgress,
   getAnalysis,
   getGame,
-  listJudgmentsByGame,
   saveAnalysis,
-  userIdForGame,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import { triageAndSeed } from "@velachess/drills";
 
 /** The engine/lock bits `main.ts` and this app's own tests provide —
  * everything `AnalyzeDeps` needs that isn't derivable from `db`. */
@@ -35,13 +31,7 @@ export function buildAnalyzeDeps(db: Database, engine: EngineDeps): AnalyzeDeps 
     getAnalysis: (gameId) => getAnalysis(db, gameId),
     withTransaction: (fn) => db.transaction(fn),
     saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    listJudgmentsByGame: (tx, gameId) => listJudgmentsByGame(tx, gameId),
-    applyEngineSignal: (tx, deviationId, signal) =>
-      applyEngineSignal(tx, deviationId, signal).then(() => {}),
     appendProgress: (entry) => appendProgress(db, entry),
     clearProgress: (gameId) => clearProgress(db, gameId),
-    userIdForGame: (gameId) => userIdForGame(db, gameId),
-    seedDrillsForGame: (userId, gameId) =>
-      triageAndSeed(db, userId, { gameId }).then(() => {}),
   };
 }

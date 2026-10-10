@@ -33,9 +33,8 @@ does not restate it.
 - `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
 - Two vocabularies, one boundary. Data keeps the domain's name (a
-  `deviation` is a deviation, `engineCategory` stays `engineCategory`);
-  screens, routes and folders are named after the user's job — `mistakes`,
-  `drill`, `repertoire`. A module usually spans several endpoints, so it
+  `winChanceLoss` stays `winChanceLoss`); screens, routes and folders are
+  named after the user's job — `games`, `import`, `settings`. A module usually spans several endpoints, so it
   is named for the job, not the endpoint. The mapping lives in the
   vertical's `queries.ts` and its message constants, and nowhere else.
 - No literal text. Strings are Lingui messages declared with the `msg`
@@ -64,11 +63,9 @@ consistently avoid them, this makes it explicit:
   (`{ok && <A/>}` next to `{!ok && <B/>}`), not a chained ternary.
 - A value-producing conditional (not a JSX branch) extracts to a named
   function with early returns instead of a ternary chain. See
-  `src/onboarding/dashboard-state.ts`'s `dashboardState()` (five
-  sequential `if (...) return` guards producing a discriminated union) and
-  `src/dashboard/dashboard.tsx`'s `Counters`/`CounterCardValue`/
-  `CounterValue` (each a 2-3-way branch via sequential early returns) for
-  the pattern to follow.
+  `src/onboarding/onboarding-state.ts`'s `onboardingState()` (sequential
+  `if (...) return` guards producing a discriminated union) for the
+  pattern to follow.
 - A ternary in a prop or a plain non-JSX expression is fine. JSX branches
   use the patterns above, and nested ternaries are never acceptable.
 

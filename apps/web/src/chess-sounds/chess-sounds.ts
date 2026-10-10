@@ -28,7 +28,7 @@ export type ChessSoundEvent =
       fenBefore: string;
       san: string;
       /** Whose seat is watching. Omitted where there is no "opponent" —
-       * drilling and practising is always your own move. */
+       * there is no opponent to tell apart. */
       viewerColor?: Color | undefined;
     }
   | { type: typeof CHESS_SOUND_EVENT.GAME_START }

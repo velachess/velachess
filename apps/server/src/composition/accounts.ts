@@ -2,7 +2,7 @@
  * Composition root for the accounts module: adapts the DB client, queues,
  * and fetch-override fixture every route already carries into the narrow
  * readers/writers each accounts route's slice declared. Routes never see
- * a Database, AnalysisQueue, or SyncQueue value directly.
+ * a Database or SyncQueue value directly.
  *
  * `buildSyncAccountDeps` is shared by three call sites: `refreshAccount`'s
  * own route, `importAccount`'s `syncAccount` dependency (its own
@@ -33,13 +33,8 @@ import type {
   ListAccountsDeps,
   SyncAccountDeps,
 } from "@velachess/accounts";
-import { landNewGames as landNewGamesSlice } from "@velachess/games";
-import { ensureCandidateRepertoires } from "@velachess/repertoires";
-import { seedRepertoireLines } from "@velachess/drills";
 import type { FetchFn } from "@velachess/infra-platforms";
-import type { AnalysisQueue, SyncQueue } from "@velachess/infra-queue";
-
-import { buildLandNewGamesDeps } from "./games.ts";
+import type { SyncQueue } from "@velachess/infra-queue";
 
 export function buildListAccountsDeps(
   db: Database,
@@ -60,11 +55,7 @@ export function buildListAccountGamesDeps(db: Database): ListAccountGamesDeps {
   };
 }
 
-export function buildSyncAccountDeps(
-  db: Database,
-  analysisQueue: AnalysisQueue,
-  fetch?: FetchFn,
-): SyncAccountDeps {
+export function buildSyncAccountDeps(db: Database, fetch?: FetchFn): SyncAccountDeps {
   return {
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountForUser: (userId, accountId) =>
@@ -73,18 +64,15 @@ export function buildSyncAccountDeps(
     updateTrackedAccountCursor: (accountId, cursor) =>
       updateTrackedAccountCursor(db, accountId, cursor),
     markTrackedAccountSynced: (accountId) => markTrackedAccountSynced(db, accountId),
-    landNewGames: (userId, newGames) =>
-      landNewGamesSlice(buildLandNewGamesDeps(db, analysisQueue), userId, newGames),
     ...(fetch ? { fetch } : {}),
   };
 }
 
 export function buildImportAccountDeps(
   db: Database,
-  analysisQueue: AnalysisQueue,
   fetch?: FetchFn,
 ): ConnectAccountDeps {
-  const syncDeps = buildSyncAccountDeps(db, analysisQueue, fetch);
+  const syncDeps = buildSyncAccountDeps(db, fetch);
   return {
     findProviderProfiles: (seats) => findProviderProfiles(db, seats),
     upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
@@ -93,10 +81,6 @@ export function buildImportAccountDeps(
       upsertTrackedAccount(db, userId, platform, username),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     syncAccount: (accountId) => syncAccountSlice(syncDeps, accountId),
-    ensureCandidateRepertoires: (userId, opts) =>
-      ensureCandidateRepertoires(db, userId, opts, (candidateUserId, repertoireId) =>
-        seedRepertoireLines(db, candidateUserId, repertoireId),
-      ).then(() => {}),
     ...(fetch ? { fetch } : {}),
   };
 }

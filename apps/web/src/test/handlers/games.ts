@@ -60,8 +60,6 @@ export const gamesHandlers = [
       imported: pgnImport.incoming.length,
       duplicates: pgnImport.duplicates,
       rejected: pgnImport.rejected,
-      judged: 0,
-      seeded: 0,
     });
   }),
 

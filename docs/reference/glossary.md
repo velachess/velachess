@@ -16,8 +16,7 @@ documentation functions as the de facto canonical reference for UCI, the
 same way FIDE's text is canonical for rules.
 
 Out of scope: chess strategy and tactics vocabulary (fork, pin, zugzwang,
-opposition, and similar). Those are pattern/coaching concepts for a future
-analysis or drilling glossary, not representation/protocol concepts.
+opposition, and similar). Those are pattern/coaching concepts, not representation/protocol concepts.
 
 ## Games, positions, and notation
 
@@ -51,7 +50,7 @@ played." Because a RAV can contain another RAV, nested variations
 Specification.
 
 **NAG — Numeric Annotation Glyph**: A numeric, language-independent PGN
-annotation such as `$1` or `$2`; NAGs encode judgments traditionally shown
+annotation such as `$1` or `$2`; NAGs encode assessments traditionally shown
 as symbols such as "!", "?", "!!", or positional assessments. They let
 software store annotations consistently without depending on language or
 typography. Source note: PGN Specification.
@@ -67,7 +66,7 @@ piece placement, side to move, castling rights, and en-passant target, but
 drops the half-move clock and fullmove number. Two positions reached by
 different move orders often have identical piece placement and rights but
 different move counters — a full FEN treats them as different strings even
-though they're the same position for legality and preparation purposes; EPD
+though they're the same position for legality purposes; EPD
 collapses them to the same key. The full EPD standard also allows optional
 trailing "opcodes" (e.g. best-move or comment annotations); software that
 truncates a FEN to its first four fields for use as a position key is
@@ -208,57 +207,6 @@ engine developers to detect bugs in move generation, castling, en passant,
 promotion, and legality handling. Source note: Stockfish exposes perft
 specifically as a debugging function.
 
-**FSRS — Free Spaced Repetition Scheduler**: An open spaced-repetition
-algorithm that models memory per card with two continuous variables —
-stability (how slowly recall decays) and difficulty — updated on every
-review from a four-value answer (again/hard/good/easy), and schedules the
-next review for the moment predicted recall drops to a target retention.
-Cards move through four phases: new, learning, review, and relearning
-(after a lapse). Source note: open-spaced-repetition project, FSRS v6.
-
-**DUE**: A scheduled card whose next-review time has passed. Being due is
-a relationship between the card's stored due date and the clock — derived
-at read time, never stored as its own flag.
-
-**DRILLABLE**: A judged deviation that deserves to become a drilling
-exercise: the player's own move (not the opponent's), with a prepared
-answer to recall. Engine severity is deliberately not required — leaving a
-prepared line for an equally sound move is still a broken decision worth
-retraining, and the engine cannot see it. The engine-mistake drill origin
-covers the "did it hurt" question separately, with its own severity floor
-and per-game budget.
-
-**ADHERENCE**: How faithfully a player follows their own prepared
-repertoire in real games. A game is unfaithful only when the player
-deviates from their own prepared line; the opponent leaving book (a gap)
-or the preparation simply running out (book-ended) are not the player's
-fault and count as faithful. Adherence rate is faithful games over judged
-games; games below a minimum ply floor are skipped as too short to say
-anything. A companion pair of win rates — inside vs. outside book —
-answers the separate question of whether the preparation is actually
-helping.
-
-**JUDGMENT (VelaChess)**: The persisted outcome of comparing one game with
-one repertoire, exactly one of: "deviation" (the owner's own move left the
-prepared line), "gap" (the opponent played an unprepared reply),
-"book-ended" (the game continued past everything prepared), "completed"
-(the whole game stayed inside the tree), or "unmatched" (no chapter could
-judge the game). One judgment row per (game, repertoire); the walk stops at
-the first mismatch. See `docs/reference/repertoire.md`.
-
-**EXERCISE / DRILL (VelaChess)**: An exercise is one position (keyed by
-EPD, per user) with one or more accepted answers in SAN; a drill is the act
-of practising it. An exercise can carry several provenance records
-(origins): a repertoire deviation, an engine-flagged mistake, or a
-repertoire line's decision position. Scheduling is per exercise, through
-one FSRS card. See `docs/reference/drills.md`.
-
-**DECISION POSITION (VelaChess)**: A position in a repertoire chapter where
-it is the owner's turn and the tree prepares at least one response.
-Decision positions are the trainable unit of a chapter: each one seeds an
-exercise the moment the chapter lands. Transposing branches collapse into
-one decision position with the union of prepared responses.
-
 ## Engines and analysis
 
 **ENGINE**: A chess program that searches positions and evaluates candidate
@@ -363,30 +311,16 @@ time. Polyglot is a widely used opening-book file format. UCI itself
 defines no book format or requirement — opening-book handling is left to
 the controlling application. Source note: UCI/Stockfish documentation.
 
-**REPERTOIRE**: A player's prepared set of chosen replies for a given side
-(White or Black), covering some subset of opening theory: one committed
-move at each of the player's own decision points, and one or more
-anticipated replies at each opponent decision point. It is drilling and
-preparation content, not a rules or protocol concept — there is no single
-canonical file format the way there is for FEN or PGN, though PGN with
-variations (RAV) is the common way to encode one, since a repertoire's
-own-move/opponent-replies structure is naturally a tree. Distinct from an
-opening book (above): a book is typically a shared, often engine- or
-database-derived move-selection source; a repertoire is one player's own,
-specific, chosen preparation. Source note: no single canonical spec — chess
-drilling software commonly stores a repertoire as a PGN-with-variations
-tree or a proprietary equivalent.
-
 **TRANSPOSITION**: Reaching the identical position via two different move
 orders. In opening theory, transpositions matter because the resulting
-position determines what's actually "known" or "prepared," not the specific
-sequence of moves that got there. Software that keys stored positions by
+position determines how it is evaluated, not the specific sequence of
+moves that got there. Software that keys stored positions by
 move history rather than by the position itself will fail to recognize a
 transposition; keying by position instead (e.g. by EPD, above) is what
 makes recognition possible. Not to be confused with an engine's
 TRANSPOSITION TABLE (below) — that's a search-time cache keyed similarly by
 position, but it serves an unrelated purpose (reusing search work, not
-recognizing opening preparation). Source note: standard opening-theory
+recognizing repeated positions across move orders). Source note: standard opening-theory
 terminology across chess literature; contrast with TRANSPOSITION TABLE
 below.
 

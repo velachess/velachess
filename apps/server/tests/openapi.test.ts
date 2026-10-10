@@ -76,7 +76,7 @@ it("GET /openapi.json serves the document", async () => {
   expect(res.headers.get("content-type")).toContain("application/json");
   expect(spec.openapi).toBe("3.1.0");
   expect(spec.info.title).toBe("VelaChess API");
-  expect(Object.keys(spec.paths).length).toBeGreaterThanOrEqual(13);
+  expect(Object.keys(spec.paths).length).toBeGreaterThanOrEqual(12);
 });
 
 it("a representative route's request and response schemas come from its own Zod schemas, not a hand-written duplicate", () => {
@@ -128,16 +128,16 @@ function acceptsNull(schema: JsonSchema): boolean {
 it("nullable fields use OpenAPI 3.1 / JSON Schema semantics, not OpenAPI 3.0's `nullable: true`", () => {
   expect(JSON.stringify(spec)).not.toContain('"nullable":true');
 
-  // The issue's own drift example: chapterName is nullable in the real
-  // type (`libs/deviations/list-deviations`) but was a required, non-null
-  // string in the old hand-written doc.
-  const deviationsGet = spec.paths["/deviations"]?.["get"] as {
+  // openingName is nullable in the real type (`libs/games/list-games`) but
+  // was a required, non-null string in the old hand-written doc.
+  const gamesGet = spec.paths["/games"]?.["get"] as {
     responses: { "200": { content: { "application/json": { schema: JsonSchema } } } };
   };
-  const items = deviationsGet.responses["200"].content["application/json"].schema.items;
-  const chapterName = items?.properties?.["chapterName"];
-  expect(chapterName).toBeDefined();
-  expect(acceptsNull(chapterName!)).toBe(true);
+  const rows =
+    gamesGet.responses["200"].content["application/json"].schema.properties?.["games"];
+  const openingName = rows?.items?.properties?.["openingName"];
+  expect(openingName).toBeDefined();
+  expect(acceptsNull(openingName!)).toBe(true);
 });
 
 it("system routes are registered before the identity middleware", () => {

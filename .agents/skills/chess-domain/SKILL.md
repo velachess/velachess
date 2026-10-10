@@ -19,8 +19,7 @@ Use the references only for the concept touched:
 Prefer `libs/chess` and chessops primitives over new parsers or move models.
 Keep pure chess rules independent of accounts, providers, UI, database, and
 engine policy. Provider normalization and storage belong to `game-ingestion`;
-Stockfish scores and classifications belong to `engine-analysis`; repertoire
-meaning belongs to `repertoire-training`.
+Stockfish scores and classifications belong to `engine-analysis`.
 
 Verify live schemas and library APIs before acting on a reference. Add a rule
 here only when VelaChess has a non-obvious semantic decision or demonstrated

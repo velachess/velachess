@@ -7,15 +7,15 @@ same kind of string inline, duplicated and redefined slightly differently
 in each package's own test files.
 
 Pure data, no dependency on chessops or any other rules library. That's
-deliberate: `libs/chess` isn't the only future consumer — `engine`,
-`game-sources`, and `drilling` will all need chess positions to test
-against, and none of them should have to inherit a rules-library dependency
-just to import a FEN string.
+deliberate: `libs/chess` isn't the only consumer — the engine, platform and
+analysis suites also need chess positions to test against, and none of them
+should have to inherit a rules-library dependency just to import a FEN
+string.
 
 ## A fixture is only evidence of what it contains
 
-The `looper` games are bare — names, result, movetext — because judging
-needs nothing else. The games list then shipped broken while the suite
+The `looper` games are bare — names, result, movetext — because the
+import-and-analyze loop needs nothing else. The games list then shipped broken while the suite
 stayed green: every column it renders reads a tag those PGNs never had, so
 no test could tell "the pipeline drops the field" from "the field was
 never there". Every game read `Unfinished`, and nothing failed.
@@ -32,12 +32,16 @@ nothing about the rule that decides which side was you.
 positions.ts   named FEN constants — STARTING_POSITION, FOOLS_MATE_CHECKMATE,
                STALEMATE_KING_IN_CORNER, PAWN_PROMOTION_AVAILABLE,
                EN_PASSANT_AVAILABLE, CASTLING_AVAILABLE
-games.ts       named PGN constants — FOOLS_MATE_PGN
+games.ts       named PGN constants — FOOLS_MATE_PGN, ILLEGAL_MOVE_PGN, MULTI_GAME_PGN,
+               MIXED_COLOR_PGN, NAMED_FIRST_GAME_PGN, NAMED_SECOND_GAME_PGN,
+               IMPORTED_PLAYER_NAME
 chess-com.ts   real chess.com Published-Data API response shapes
 lichess.ts     real Lichess API response shapes
-looper.ts      the canonical full-loop scenario — one archive, two games
-               (one deviating from a white repertoire, one in book), shared
-               by the application/api/worker suites
+looper.ts      the canonical full-loop scenario — one chess.com archive, two
+               games (a loss and a win for `looper` as White), shared by the
+               application/api/worker suites
+listing.ts     the games-list scenario — `lister`'s archive, tagged the way
+               chess.com tags a real game, one game from each seat
 index.ts       public surface — re-exports all
 ```
 

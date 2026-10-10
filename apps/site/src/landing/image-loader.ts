@@ -8,10 +8,6 @@ const PRODUCT_IMAGE_VARIANTS = {
     small: "/product/game-analysis-640.webp",
     medium: "/product/game-analysis-768.webp",
   },
-  "/product/drill.webp": {
-    small: "/product/drill-640.webp",
-    medium: "/product/drill-768.webp",
-  },
 } as const;
 
 export default function productImageLoader({ src, width }: ImageLoaderProps) {

@@ -36,13 +36,6 @@ export type MoveCategory = GradedPly["category"];
 /** Severity order, best first — read off the schema so it can't drift from the API's list. */
 export const MOVE_CATEGORIES = gradedPlySchema.shape.category.options;
 
-type AnalysisState = InferResponseType<
-  (typeof api.games)[":id"]["analysis"]["$get"],
-  200
->;
-type CompletedAnalysis = Extract<AnalysisState, { status: "completed" }>;
-export type DrillCount = NonNullable<CompletedAnalysis["drills"]>;
-
 type GameResponse = InferResponseType<(typeof api.games)[":id"]["$get"], 200>;
 type AnalyzeCompleted = InferResponseType<
   (typeof api.games)[":id"]["analyze"]["$post"],
@@ -84,22 +77,6 @@ export function gameQuery(gameId: string) {
 /** Exported so leaving the screen can cancel the run it opened. */
 export function analysisKey(gameId: string) {
   return ["analyze", gameId] as const;
-}
-
-/**
- * Drill count for a game's report — re-fetched from the server, not
- * computed from graded plies, so it can't drift from the drill queue.
- */
-export function drillCountQuery(gameId: string) {
-  return queryOptions({
-    queryKey: ["analysis", gameId, "drills"] as const,
-    queryFn: async (): Promise<DrillCount | null> => {
-      const state = await parseResponse(
-        api.games[":id"].analysis.$get({ param: { id: gameId } }),
-      );
-      return state.status === "completed" ? (state.drills ?? null) : null;
-    },
-  });
 }
 
 /** One `GradedPly` per chunk, normalising a live stream, a cached report, or a poll/error status. */

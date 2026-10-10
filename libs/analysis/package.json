@@ -12,13 +12,10 @@
   },
   "dependencies": {
     "@velachess/chess": "workspace:*",
-    "@velachess/drills": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-engine": "workspace:*"
   },
   "devDependencies": {
-    "@velachess/accounts": "workspace:*",
-    "@velachess/games": "workspace:*",
     "stockfish": "^19.0.0"
   },
   "type": "module",

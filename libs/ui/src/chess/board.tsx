@@ -105,8 +105,7 @@ export interface BoardProps {
   /**
    * Legal destinations from a square, already classified by whether they
    * capture. Absent means no hints — a replay board is being read, not
-   * played, and marks on it would be noise, which is also how a harder
-   * drill turns them off.
+   * played, and marks on it would be noise.
    *
    * Asked of the caller rather than computed here: legality belongs to
    * chessops, and this component knows only about squares. Including
@@ -119,8 +118,7 @@ export interface BoardProps {
    *
    * `"selected"` marks the origin square, dots the quiet destinations and
    * rings the captures, once a piece is dragged or clicked. `"off"` shows
-   * nothing — a replay board is read rather than played, and a harder
-   * drill can withhold the help on purpose.
+   * nothing — a replay board is read rather than played.
    *
    * Named rather than inferred from `legalTargetsOf` being present: a
    * screen that turns the hints off should not have to drop the function

@@ -75,7 +75,7 @@ export const DEFAULT_SOURCE_ID: SourceId = SOURCE_IDS.chessCom;
 
 export const IMPORT_COPY = {
   title: msg`Import your games`,
-  description: msg`VelaChess reads your public game archive to find where you leave your own repertoire. No password needed.`,
+  description: msg`VelaChess reads your public game archive so you can review them with Stockfish. No password needed.`,
   submit: msg`Import`,
   submitting: msg`Reading your games…`,
   running: msg`Got them — opening your games.`,

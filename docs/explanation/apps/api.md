@@ -80,13 +80,13 @@ entry point remains available for refresh work no person is waiting on.
 
 `POST /games/import` is the manual source: PGN text uploaded without any
 connected account. It normalizes in-request, resolves the named player's seat
-per game, persists with user-scoped conflict-ignore (a duplicate-only upload
-succeeds with counts), and runs the same judge-and-seed tail — never Stockfish.
+per game, and persists with user-scoped conflict-ignore (a duplicate-only upload
+succeeds with counts) — never Stockfish.
 `GET /games` is the unified library: one filtered page of every game the caller
 owns across all sources, ownership read straight off `games.user_id`.
 
-All import paths persist, update candidate repertoires, judge, and seed. None of
-them run Stockfish.
+All import paths fetch or parse, normalize, and persist. None of them run
+Stockfish; analysis starts only when a person asks for it.
 
 ## Analysis and progress
 

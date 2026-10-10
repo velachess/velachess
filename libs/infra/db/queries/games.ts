@@ -3,7 +3,7 @@ import { and, desc, eq, getTableColumns, isNotNull, sql, type SQL } from "drizzl
 
 import type { Database } from "../client.ts";
 import { perspectiveSql } from "./perspective.ts";
-import { deviations, gameAnalyses, games, trackedAccounts } from "../schema.ts";
+import { gameAnalyses, games, trackedAccounts } from "../schema.ts";
 
 function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
@@ -102,7 +102,7 @@ export async function listGames(
 }
 
 /**
- * The full row, rawPgn included — board rendering and re-judging need it.
+ * The full row, rawPgn included — board rendering needs it.
  * Unscoped: for the WORKER and for internal reads that already trust the
  * id. HTTP handlers use `getGameForUser`.
  */
@@ -137,18 +137,14 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
 }
 
 /**
- * Game list with judgment type and analysis presence in one join — what a
- * game-list UI renders without N+1. rawPgn deliberately excluded.
- * Judgments accumulate per repertoire (cycle 6): DISTINCT ON picks the
- * most actionable one per game — a deviation beats any other type, then
- * the newest wins. Final ordering (playedAt desc) happens after the
- * distinct, in memory, because DISTINCT ON pins the SQL sort to game id.
- * Unscoped by owner — callers that need ownership enforced check the
- * tracked account first (see `@velachess/accounts`'s list-account-games).
+ * Game list with analysis presence in one join — what a game-list UI
+ * renders without N+1. rawPgn deliberately excluded. Unscoped by owner —
+ * callers that need ownership enforced check the tracked account first
+ * (see `@velachess/accounts`'s list-account-games).
  */
 export async function listGamesWithStatusForAccount(db: Database, accountId: string) {
-  const rows = await db
-    .selectDistinctOn([games.id], {
+  return db
+    .select({
       id: games.id,
       whiteName: games.whiteName,
       blackName: games.blackName,
@@ -156,21 +152,10 @@ export async function listGamesWithStatusForAccount(db: Database, accountId: str
       playedAt: games.playedAt,
       perspective: games.perspective,
       openingName: games.openingName,
-      judgmentType: deviations.type,
-      judgmentPly: deviations.ply,
       analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
     })
     .from(games)
-    .leftJoin(deviations, eq(deviations.gameId, games.id))
     .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
     .where(eq(games.accountId, accountId))
-    .orderBy(
-      games.id,
-      sql`case when ${deviations.type} = 'deviation' then 0 else 1 end`,
-      desc(deviations.createdAt),
-    );
-
-  return rows.toSorted(
-    (a, b) => (b.playedAt?.getTime() ?? 0) - (a.playedAt?.getTime() ?? 0),
-  );
+    .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id));
 }

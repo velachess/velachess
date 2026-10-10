@@ -6,7 +6,6 @@ import { Card, CardContent } from "@velachess/ui/components/card";
 import { ShimmerButton } from "@velachess/ui/components/shimmer-button";
 import {
   ArrowRight,
-  Dumbbell,
   Lightbulb,
   ScanSearch,
   Upload,
@@ -21,7 +20,6 @@ import { Reveal } from "./reveal.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";
 const GAME_ANALYSIS_IMAGE_SRC = "/product/game-analysis.webp";
-const DRILL_IMAGE_SRC = "/product/drill.webp";
 const GITHUB_URL = "https://github.com/velachess/velachess";
 const CONTRIBUTE_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 const SELF_HOST_URL = `${GITHUB_URL}/blob/main/docs/how-to/self-host.md`;
@@ -32,59 +30,48 @@ const COPY = {
   brand: msg`VelaChess`,
   product: msg`Product`,
   gameAnalysis: msg`Game Analysis`,
-  drill: msg`Drill`,
   project: msg`Project`,
   resources: msg`Resources`,
   publicBeta: msg`Public Beta 🎉`,
-  heroTitle: msg`Turn your games into training.`,
-  heroBody: msg`Import your Chess.com and Lichess games. VelaChess finds the decisions that cost you, then turns them into training built from the games you actually play.`,
+  heroTitle: msg`Review your games with Stockfish.`,
+  heroBody: msg`Import your Chess.com and Lichess games, or paste a PGN. VelaChess grades every move and shows the better continuation on the board.`,
   tryForFree: msg`Try for free`,
   tryVelaChess: msg`Try VelaChess`,
   analysisAlt: msg`VelaChess game analysis showing a blunder on move two`,
-  workflowTitle: msg`One loop, grounded in your games.`,
-  workflowBody: msg`Every step keeps the game you played, the mistake you made, and the position you need to remember connected.`,
+  workflowTitle: msg`From import to review.`,
+  workflowBody: msg`Every step keeps the game you played and the moves that changed it connected.`,
   importTitle: msg`Import`,
-  importBody: msg`Connect Chess.com or Lichess and bring your games together.`,
+  importBody: msg`Connect Chess.com or Lichess, or paste a PGN.`,
   analyzeTitle: msg`Analyze`,
   analyzeBody: msg`Stockfish grades the choices that changed your winning chances.`,
-  understandTitle: msg`Understand`,
-  understandBody: msg`Spot recurring mistakes and weaknesses in the openings you play.`,
-  trainTitle: msg`Train`,
-  trainBody: msg`Solve those positions again on a schedule that adapts to you.`,
-  productTitle: msg`Game Analysis becomes Drill.`,
-  productBody: msg`Move from a clear explanation of what changed to focused practice on the exact position.`,
+  reviewTitle: msg`Review`,
+  reviewBody: msg`Walk through the saved results on the board whenever you come back.`,
+  productTitle: msg`Every game, move by move.`,
+  productBody: msg`A clear explanation of what changed, saved so the next visit opens straight on the board.`,
   analysisTitle: msg`See the moment the game changed.`,
   analysisBody: msg`Walk through every move with Stockfish evaluation, clear move classification, and the better continuation shown on the board.`,
   inspectGames: msg`Inspect your games`,
-  drillTitle: msg`The analysis becomes a training loop.`,
-  drillBody: msg`Replay positions from your own mistakes, get immediate feedback, and let the next review arrive when it is useful.`,
-  drillAlt: msg`VelaChess drill showing feedback and the next review date`,
-  startDrilling: msg`Start drilling`,
   github: msg`GitHub`,
   contribute: msg`Contribute`,
   selfHost: msg`Self-host`,
-  finalTitle: msg`Train on the games you actually play.`,
-  finalBody: msg`Connect an account and turn your next mistake into a position you will remember.`,
+  finalTitle: msg`Review the games you actually play.`,
+  finalBody: msg`Connect an account and find the moment your next game changed.`,
   documentation: msg`Documentation`,
   license: msg`License`,
-  footerBody: msg`Personalized chess training from your own games.`,
-  copyright: msg`© VelaChess. Open-source chess training.`,
+  footerBody: msg`Chess game analysis from your own games.`,
+  copyright: msg`© VelaChess. Open-source chess analysis.`,
 } as const;
 
 const WORKFLOW = [
   { title: COPY.importTitle, body: COPY.importBody, icon: Upload },
   { title: COPY.analyzeTitle, body: COPY.analyzeBody, icon: ScanSearch },
-  { title: COPY.understandTitle, body: COPY.understandBody, icon: Lightbulb },
-  { title: COPY.trainTitle, body: COPY.trainBody, icon: Dumbbell },
+  { title: COPY.reviewTitle, body: COPY.reviewBody, icon: Lightbulb },
 ] as const;
 
 const FOOTER_GROUPS = [
   {
     title: COPY.product,
-    links: [
-      { label: COPY.gameAnalysis, href: "#game-analysis" },
-      { label: COPY.drill, href: "#drill" },
-    ],
+    links: [{ label: COPY.gameAnalysis, href: "#game-analysis" }],
   },
   {
     title: COPY.project,
@@ -163,7 +150,7 @@ function Workflow() {
   return (
     <section id="how-it-works" className="py-24 sm:py-32">
       <SectionIntro title={COPY.workflowTitle} body={COPY.workflowBody} />
-      <ol className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <ol className="relative z-10 grid grid-cols-1 md:grid-cols-3">
         {WORKFLOW.map((step, index) => (
           <WorkflowStep
             key={step.title.id}
@@ -257,45 +244,6 @@ function ProductShowcases() {
                 height={900}
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 className="w-full rounded-md border shadow-lg lg:col-span-3"
-              />
-            </CardContent>
-          </Card>
-        </Reveal>
-
-        <Reveal amount={0.3} durationMs={600} delayMs={150}>
-          <Card
-            id="drill"
-            className="group h-full border transition-shadow duration-300 hover:shadow-lg"
-          >
-            <CardContent className="grid items-center gap-8 p-6 lg:grid-cols-5 lg:p-8">
-              <div className="lg:order-2 lg:col-span-2">
-                <Badge variant="outline" className="mb-4">
-                  {i18n._(COPY.drill)}
-                </Badge>
-                <h2 className="mb-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-                  {i18n._(COPY.drillTitle)}
-                </h2>
-                <p className="text-lg leading-8 text-muted-foreground">
-                  {i18n._(COPY.drillBody)}
-                </p>
-                <a
-                  href={PRODUCT_URL}
-                  className={buttonVariants({
-                    className: "mt-8 rounded-full",
-                    variant: "outline",
-                  })}
-                >
-                  {i18n._(COPY.startDrilling)}
-                  <ArrowRight data-icon="inline-end" />
-                </a>
-              </div>
-              <Image
-                src={DRILL_IMAGE_SRC}
-                alt={i18n._(COPY.drillAlt)}
-                width={1440}
-                height={900}
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                className="w-full rounded-md border shadow-lg lg:order-1 lg:col-span-3"
               />
             </CardContent>
           </Card>

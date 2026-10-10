@@ -54,12 +54,10 @@ Empty success, not found, rate limiting, invalid response, unsupported variant,
 and partial failure are distinct outcomes. Unsupported variants are reported;
 they are never coerced into standard chess.
 
-Import and refresh fetch, persist, extract candidate repertoires, judge by
-replay, and seed from evidence already present. They do not run Stockfish.
-A PGN import shares that same tail — persist, then the
-extract → judge → seed pass — with no fetch half: normalization happens in
-the request, per game, resolving the named player's seat against White/Black
-so one file may mix colors.
+Import and refresh fetch and persist. They do not run Stockfish; analysis is
+requested separately per game. A PGN import has no fetch half: normalization
+happens in the request, per game, resolving the named player's seat against
+White/Black so one file may mix colors.
 
 ## Provider cursors
 

@@ -9,23 +9,15 @@
  * process (execute under the advisory lock, persist), watch (poll progress
  * for a live stream), and get (the composed read a game page renders).
  *
- * `engine-category.ts`/`score.ts`/`deviation-signal.ts` are module-level
- * pure policies (no DB/queue dependency of their own) — used by more than
- * one slice or module, so they live at the module root rather than inside
- * `process-analysis/`. `classifyMove`'s own machinery
+ * `score.ts`/`winchance.ts` are module-level pure policies (no DB/queue
+ * dependency of their own). `classifyMove`'s machinery
  * (`process-analysis/classify-move.ts`) stays private there: only
- * `process-analysis` uses it. `games/judge-games` and
- * `drills/seed-exercises` import `engineSignalForDeviation`/
- * `toEngineCategory` straight from here, no composition required.
- * `GradedPly` is exported for the same reason — `games/judge-games`
- * declares its own analysis-row shape around it.
+ * `process-analysis` uses it.
  *
  * `requestAnalysis` (unscoped) is exported alongside `requestAnalysisForUser`
  * so `apps/server/src/composition/analysis.ts` can wire `get-analysis` and
  * `watch-analysis`'s own declared dependency on their sibling slice
- * `request-analysis` to the same real handler — same pattern as
- * `games/index.ts` exposing `landNewGames` for its own module-mate
- * `import-pgn`.
+ * `request-analysis` to the same real handler.
  *
  * `scoreToWinChance` is exported for `apps/web/src/games/analysis-read.ts`,
  * the one consumer outside this whole module's graph. `completeAnalysis`
@@ -40,8 +32,6 @@
 
 export { getAnalysisReport } from "./get-analysis/get-analysis.ts";
 export type { AnalysisReport, GetAnalysisDeps } from "./get-analysis/get-analysis.ts";
-export { drillSummaryFor } from "./get-analysis/drill-summary.ts";
-export type { DrillSummary, DrillSummaryDeps } from "./get-analysis/drill-summary.ts";
 
 export {
   requestAnalysis,
@@ -74,7 +64,4 @@ export async function completeAnalysis(
   return run(deps, gameId);
 }
 
-export { engineSignalForDeviation } from "./deviation-signal.ts";
-export { toEngineCategory } from "./engine-category.ts";
-export type { EngineCategory } from "./engine-category.ts";
 export { scoreToWinChance } from "./process-analysis/classify-move.ts";

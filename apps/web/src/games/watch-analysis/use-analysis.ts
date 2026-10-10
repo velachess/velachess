@@ -2,13 +2,8 @@ import { useEffect } from "react";
 
 import { isRateLimitedError } from "../../api/index.ts";
 import { useQuery, useQueryClient } from "../../libs/react-query.ts";
-import {
-  analysisKey,
-  analysisQuery,
-  drillCountQuery,
-  gameQuery,
-} from "../analysis-contract.ts";
-import type { DrillCount, GradedPly, ReplayableGame } from "../analysis-contract.ts";
+import { analysisKey, analysisQuery, gameQuery } from "../analysis-contract.ts";
+import type { GradedPly, ReplayableGame } from "../analysis-contract.ts";
 import {
   useChessReplay,
   type ChessReplay,
@@ -26,8 +21,6 @@ export interface Analysis {
   replay: ChessReplay;
   /** Graded moves so far, in ply order. Grows while the run streams. */
   graded: GradedPly[];
-  /** What the report's drill CTA counts. Absent until analysis lands. */
-  drills: DrillCount | undefined;
   /** The run is open. `isFetching`, never `isPending`: `streamedQuery` writes each chunk via `setQueryData`, so success fires after the first graded move. */
   isAnalyzing: boolean;
   analysisFailed: boolean;
@@ -42,13 +35,6 @@ export function useAnalysis(
 ): Analysis {
   const game = useQuery(gameQuery(gameId));
   const analysis = useQuery(analysisQuery(gameId));
-  // Only once the run has finished: asking while the stream is open
-  // races it for the same endpoint, and the answer would count a report
-  // that is still being written.
-  const drills = useQuery({
-    ...drillCountQuery(gameId),
-    enabled: analysis.isSuccess && !analysis.isFetching,
-  });
   const queryClient = useQueryClient();
 
   // React Query keeps an in-flight query running after its last observer unmounts, so leaving mid-run held the connection open; cancelling aborts the stream's signal.
@@ -75,7 +61,6 @@ export function useAnalysis(
     retryGame: () => void game.refetch(),
     replay,
     graded: analysis.data ?? [],
-    drills: drills.data ?? undefined,
     isAnalyzing: analysis.isFetching,
     analysisFailed: analysis.isError,
     analysisRetryAfterSeconds: isRateLimitedError(analysis.error)

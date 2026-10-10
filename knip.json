@@ -50,10 +50,6 @@
     "libs/infra/db": {
       "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
-    },
-    "libs/scheduler": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
     }
   }
 }

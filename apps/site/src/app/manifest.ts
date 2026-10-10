@@ -6,7 +6,7 @@ import { i18n } from "../locales/index.ts";
 
 const MANIFEST_COPY = {
   name: msg`VelaChess`,
-  description: msg`Turn your games into training.`,
+  description: msg`Review your games with Stockfish.`,
 } as const;
 
 export const dynamic = "force-static";

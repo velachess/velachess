@@ -123,20 +123,20 @@ describe("rate limiting", () => {
 describe("the request edge", () => {
   it("refuses a body past the ceiling before parsing it", async () => {
     const oversized = "x".repeat(300 * 1024);
-    const response = await user.app.request("/repertoires", {
+    const response = await user.app.request("/games/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: oversized, color: "white" }),
+      body: JSON.stringify({ pgn: oversized, playerName: "looper" }),
     });
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({ error: "payload too large" });
   });
 
   it("accepts a normal body on the same route", async () => {
-    const response = await user.app.request("/repertoires", {
+    const response = await user.app.request("/games/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: "White e4", color: "white" }),
+      body: JSON.stringify({ pgn: "1. e4 e5 *", playerName: "looper" }),
     });
     expect(response.ok).toBe(true);
   });
@@ -145,14 +145,14 @@ describe("the request edge", () => {
     // The shape of a real CSRF attempt: a form on another origin, posting
     // with the browser's cookies attached. It is refused before the
     // session is even looked up.
-    const response = await harness.app.request("/repertoires", {
+    const response = await harness.app.request("/games/import", {
       method: "POST",
       headers: {
         origin: "https://evil.example",
         cookie: user.cookie,
         "content-type": "application/x-www-form-urlencoded",
       },
-      body: "name=Stolen&color=white",
+      body: "pgn=Stolen&playerName=looper",
     });
     expect(response.status).toBe(403);
     // Never `{ error: "" }` — hono's csrf throws without a message.
@@ -162,7 +162,7 @@ describe("the request edge", () => {
   it("rejects a cross-site request that declares no content type", async () => {
     // A missing Content-Type is form-postable too, so it is checked the
     // same way rather than waved through.
-    const response = await harness.app.request("/repertoires", {
+    const response = await harness.app.request("/games/import", {
       method: "POST",
       headers: { origin: "https://evil.example", cookie: user.cookie },
     });
@@ -170,14 +170,14 @@ describe("the request edge", () => {
   });
 
   it("lets the app's own origin through", async () => {
-    const response = await harness.app.request("/overview", {
+    const response = await harness.app.request("/games", {
       headers: { origin: ORIGIN, cookie: user.cookie },
     });
     expect(response.status).toBe(200);
   });
 
   it("sends the baseline security headers on every answer", async () => {
-    for (const path of ["/health", "/overview"]) {
+    for (const path of ["/health", "/games"]) {
       // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path, {
         headers: { cookie: user.cookie },
@@ -192,7 +192,7 @@ describe("the request edge", () => {
 
 describe("CORS", () => {
   it("answers a preflight from a trusted origin, with credentials", async () => {
-    const response = await harness.app.request("/overview", {
+    const response = await harness.app.request("/games", {
       method: "OPTIONS",
       headers: {
         origin: ORIGIN,
@@ -210,7 +210,7 @@ describe("CORS", () => {
   });
 
   it("declines to name an untrusted origin", async () => {
-    const response = await harness.app.request("/overview", {
+    const response = await harness.app.request("/games", {
       method: "OPTIONS",
       headers: { origin: "https://evil.example", "access-control-request-method": "GET" },
     });
@@ -250,15 +250,7 @@ describe("what sits above the session gate", () => {
     expect(session.status).toBe(200);
     expect(await session.json()).toBeNull();
 
-    for (const path of [
-      "/overview",
-      "/games",
-      "/repertoires",
-      "/deviations",
-      "/drill/queue",
-      "/insights",
-      "/accounts",
-    ]) {
+    for (const path of ["/games", "/accounts"]) {
       // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);

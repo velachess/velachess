@@ -121,7 +121,7 @@ export function replayMainline(
 
 /**
  * Minimal movetext emitter: SAN list → "1. e4 e6 2. d4 *". The inverse of
- * replayMainline for repertoire lines — no headers, no variations.
+ * replayMainline — no headers, no variations.
  */
 export function sansToPgn(sans: string[]): string {
   const parts: string[] = [];

@@ -18,7 +18,11 @@ import { QueryClientProvider, type QueryClientType } from "../libs/react-query.t
 import { onUnauthorized } from "../api/index.ts";
 import { createQueryClient } from "../query/index.ts";
 import { DefaultRouteError } from "../route-error.tsx";
+import { addGames, readArchive } from "./archive.ts";
+import { aGame } from "./games.ts";
 import { testRouteTree } from "./routes.tsx";
+
+const ANY_PAGE = { color: null, outcome: null, timeClass: null, page: 1, pageSize: 1 };
 
 /** The providers `__root.tsx` gives every screen, in the same order — kept identical so this list can't drift from the app. */
 function AppProviders({
@@ -41,20 +45,19 @@ function AppProviders({
   );
 }
 
-/** One screen's worth of UI, without a route — for states reached by props, not navigation. Same providers as the app. */
-export function renderInApp(ui: React.ReactNode) {
-  // Per render, never shared — a client that outlives a test carries the
-  // previous one's rows into the next.
-  return render(<AppProviders>{ui}</AppProviders>);
-}
-
 export interface RenderAppOptions {
   /** Where memory history starts, search string included. */
   path?: string;
+  /** Leave the library as the test staged it. By default an archive with no games gets one, so the first-run overlay stays out of screens that are not about it. */
+  emptyLibrary?: boolean;
 }
 
 /** Mounts the app at a route, for search params/navigation/guards. `router.load()` is awaited inside `act` so the caller gets the rendered screen, not pending. */
 export async function renderApp(options: RenderAppOptions = {}) {
+  if (options.emptyLibrary !== true && readArchive(ANY_PAGE).total === 0) {
+    addGames(aGame());
+  }
+
   // One client for the guards and the components — same wiring as
   // router.tsx, so a guard's session and a screen's session can't disagree.
   const queryClient = createQueryClient({ retry: false });
@@ -97,8 +100,8 @@ export function desktopNav() {
   return within(screen.getByRole("navigation", { name: "Main" }));
 }
 
-/** Same reasoning as {@link desktopNav}: a nav item's label (`Dashboard`,
- * `Insights`, `Drill`, …) sits in both navs too, so a page-content
+/** Same reasoning as {@link desktopNav}: a nav item's label (`Games`,
+ * `Settings`, …) sits in both navs too, so a page-content
  * assertion for the same word scopes to `main` — the one region that
  * isn't duplicated — rather than the whole document. */
 export function mainContent() {

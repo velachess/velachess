@@ -21,17 +21,15 @@ src/
   backend-status/ backend-availability state and the banner that shows it
   chess-sounds/   move-sound preference, mapping and playback
   i18n/           locale resolution and catalogue activation
-  dashboard/      the overview
   games/          everything you do to games
     import/         connect an account and pull games in
+    import-pgn/     paste or upload a PGN
     list/           filter and page owned games
-    open-game/      load the playable game record
+    open-game/      load the playable game record and review it on the board
     request-analysis/ view-analysis/ watch-analysis/
-  insights/       findings derived from owned games and analysis
   libs/           thin third-party facades only (zod, hono/client, React Query)
+  onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
-  repertoire/     the lines you actually play
-  drill/          spaced repetition over your worst mistakes
   settings/       account and product preferences
   routes/         routing only — a route imports a slice and mounts it
   router.tsx      router construction; route-error.tsx sits beside it
@@ -61,11 +59,11 @@ provider swap touches one file instead of every consumer.
 
 Data keeps the domain's name; screens are named after the user's job.
 
-| The API says   | The person sees             | Why                                                                                        |
-| -------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
-| `deviation`    | Deviations on the dashboard | The overview names this exact repertoire count; task-focused flows can still say Mistakes. |
-| `review` (SRS) | Drill                       | In chess products "Game Review" means analyzing a game — the collision is real.            |
-| `repertoire`   | Repertoire                  | Same word on both sides, and that's fine: it's a word players use, not a mechanism.        |
+| The API says  | The person sees  | Why                                                                                 |
+| ------------- | ---------------- | ----------------------------------------------------------------------------------- |
+| `analysis`    | Review           | The person reviews a game; analysis is the mechanism that produces the review.      |
+| `perspective` | You played white | The stored side is data; the screen says it from the person's own seat.             |
+| `blunder`     | Blunder          | Same word on both sides, and that's fine: it's a word players use, not a mechanism. |
 
 The rule is not "always differ" — it is "don't ship the mechanism's word
 to the user unless the screen names that exact metric". The mapping happens
@@ -84,8 +82,8 @@ once, at the edge, inside the slice.
   import source, and (persisted) which accounts this device imported.
 - **`useState`** — what dies with the component (text being typed).
 
-Derive instead of storing: the active nav item comes from the pathname,
-the Review badge from the stats cache. Nothing to desync, and no
+Derive instead of storing: the active nav item comes from the pathname.
+Nothing to desync, and no
 `useEffect` to keep them honest.
 
 ## The frame and the gate
@@ -105,8 +103,9 @@ login redirect search value accepts only an on-site path; `//host` and absolute
 URLs are rejected so it cannot become an open redirect.
 
 Onboarding is an overlay at the authenticated layout boundary, not a second
-identity system. `/import` stays reachable inside the product so a user can add
-another tracked account.
+identity system: a dialog of two intro slides and the import form covers the
+app while the library is empty. `/import` stays reachable inside the product so
+a user can add another tracked account.
 
 ## Identity
 
@@ -157,13 +156,13 @@ No literal text in JSX. Strings are declared as Lingui messages with the
 `msg` macro, in the file that uses them:
 
 ```tsx
-const MISTAKES_COPY = {
-  title: msg`Mistakes`,
-  empty: msg`Once your games are checked, your mistakes land here.`,
+const GAMES_COPY = {
+  title: msg`Games`,
+  description: msg`Every game you've imported, and how it went.`,
 } as const;
 
 const { i18n } = useLingui();
-<PageHeader title={i18n._(MISTAKES_COPY.title)} />;
+<PageHeader title={i18n._(GAMES_COPY.title)} />;
 ```
 
 Why descriptors rather than `<Trans>` everywhere: the constants stay

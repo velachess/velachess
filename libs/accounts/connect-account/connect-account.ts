@@ -44,11 +44,7 @@ type GetTrackedAccount = (accountId: string) => Promise<TrackedAccount | null>;
  * reads — this slice declares its dependency in its own vocabulary
  * rather than importing `SyncOutcome` from its module-mate's file.
  */
-type SyncAccount = (accountId: string) => Promise<{ saved: number }>;
-type EnsureCandidateRepertoires = (
-  userId: string,
-  opts: { newGames: number },
-) => Promise<void>;
+type SyncAccount = (accountId: string) => Promise<unknown>;
 
 export interface ConnectAccountDeps {
   findProviderProfiles: FindProviderProfiles;
@@ -57,7 +53,6 @@ export interface ConnectAccountDeps {
   upsertTrackedAccount: UpsertTrackedAccount;
   getTrackedAccount: GetTrackedAccount;
   syncAccount: SyncAccount;
-  ensureCandidateRepertoires: EnsureCandidateRepertoires;
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
   fetch?: FetchFn;
@@ -117,13 +112,6 @@ export async function importAccount(
   // carries it, in which case connecting costs no request at all.
   await warmProfileCache(deps, platform, username);
   const tracked = await deps.upsertTrackedAccount(userId, platform, username);
-  if (tracked.lastSyncedAt === null) {
-    const outcome = await deps.syncAccount(tracked.id);
-    // The first archive is also the first chance to derive a book, and
-    // the person is watching: waiting for a later sync would show them
-    // two empty sides right after an import that clearly had games.
-    // Judging follows on the next pass or an explicit /games/judge.
-    await deps.ensureCandidateRepertoires(userId, { newGames: outcome.saved });
-  }
+  if (tracked.lastSyncedAt === null) await deps.syncAccount(tracked.id);
   return (await deps.getTrackedAccount(tracked.id))!;
 }

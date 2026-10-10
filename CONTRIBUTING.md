@@ -82,18 +82,12 @@ apps/worker           pg-boss consumers — one-line adapters over use cases
 apps/web              TanStack Start SPA — one folder per domain slice
 libs/ui           design system — theme, shadcn primitives, chess board
 libs/accounts     tracked-account lifecycle: connect, list, refresh
-libs/games        the game record, replay-against-repertoire, land-new-games
-libs/repertoires  the repertoire/chapter aggregate, adherence, extraction
+libs/games        the game record: read, list and import PGN
 libs/analysis     move classification, the Stockfish job lifecycle
-libs/drills       exercise identity, FSRS card state, the training queue
-libs/insights     cross-module reporting aggregates
-libs/deviations   the judgment-table read
-libs/overview     the dashboard aggregate
 libs/user         the person: first-user bootstrap and profile avatar
 libs/chess        chess rules, PGN, FEN/EPD
 libs/infra/platforms       chess.com / Lichess sync
 libs/infra/engine       Stockfish UCI
-libs/scheduler    FSRS spaced repetition
 libs/infra/db           Drizzle schema, migrations, queries
 libs/infra/queue        pg-boss behind ports
 libs/test-utils   shared test harness (test-only)

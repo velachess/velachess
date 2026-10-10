@@ -4,14 +4,8 @@
  * One slice, two entry points: `refreshAccount` is the HTTP trigger
  * (interactive, rate-limited, answers the person who tapped refresh) and
  * `processAccountSync` is the delivery-agnostic core the worker's sync
- * consumer also invokes. They are one behavior — pull, judge, seed —
- * not two; what differs is who is waiting.
- *
- * `landNewGames` is declared here the same way import-pgn declares it
- * independently in `@velachess/games` — identical shape, expected
- * duplication: the implementation is singular, but every caller names its
- * own dependency in its own vocabulary. Composition wires both to the
- * same real `games` handler.
+ * consumer also invokes. They are one behavior — pull and persist — not
+ * two; what differs is who is waiting.
  */
 import type {
   ChessComCursor,
@@ -36,15 +30,6 @@ type UpdateTrackedAccountCursor = (
   cursor: ChessComCursor | LichessCursor,
 ) => Promise<void>;
 type MarkTrackedAccountSynced = (accountId: string) => Promise<void>;
-/**
- * Declared independently from import-pgn's identical-shaped type — the
- * implementation (games/land-new-games) is singular, but every caller
- * names its own dependency in its own vocabulary.
- */
-type LandNewGames = (
-  userId: string,
-  newGames: number,
-) => Promise<{ judged: number; seeded: number }>;
 
 export interface SyncAccountDeps {
   getTrackedAccount: GetTrackedAccount;
@@ -52,7 +37,6 @@ export interface SyncAccountDeps {
   saveGames: SaveGames;
   updateTrackedAccountCursor: UpdateTrackedAccountCursor;
   markTrackedAccountSynced: MarkTrackedAccountSynced;
-  landNewGames: LandNewGames;
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
   fetch?: FetchFn;
@@ -70,10 +54,6 @@ export interface SyncOutcome {
   saved: number;
   failures: number;
   complete: boolean;
-  /** Games the repertoire judged on this pass. */
-  judged: number;
-  /** Deviations that became exercises. */
-  seeded: number;
 }
 
 /** Cursor advances only on a complete pass — a partial page failure keeps
@@ -113,13 +93,10 @@ export async function syncAccount(
     await deps.markTrackedAccountSynced(accountId);
   }
 
-  // syncAccount is the fetch half; judging is the caller's business.
   return {
     saved: inserted,
     failures: result.failures.length,
     complete: result.complete,
-    judged: 0,
-    seeded: 0,
   };
 }
 
@@ -134,7 +111,7 @@ export async function syncAccount(
 export const SYNC_COOLDOWN_SECONDS = 60;
 
 export type RefreshOutcome =
-  | { status: "refreshed"; saved: number; judged: number; seeded: number }
+  | { status: "refreshed"; saved: number }
   | { status: "too-soon"; retryAfterSeconds: number }
   | { status: "not-found" };
 
@@ -149,7 +126,7 @@ export function secondsUntilRefreshAllowed(
 }
 
 /**
- * What the refresh button does: pull, judge, seed, and say what changed.
+ * What the refresh button does: pull, persist, and say what changed.
  *
  * Interactive and synchronous, like importing — someone waiting on a
  * button needs an answer, and "nothing new" is an answer. The queue stays
@@ -170,25 +147,14 @@ export async function refreshAccount(
   if (retryAfterSeconds > 0) return { status: "too-soon", retryAfterSeconds };
 
   const outcome = await processAccountSync(deps, accountId);
-  return {
-    status: "refreshed",
-    saved: outcome.saved,
-    judged: outcome.judged,
-    seeded: outcome.seeded,
-  };
+  return { status: "refreshed", saved: outcome.saved };
 }
 
 /**
- * The refresh routine, whole: pull what's new, insist on completeness (a
- * partial pass keeps its saves but the delivery must fail and retry from
- * the same cursor), then bring the drilling routines up to date — judge
- * the new games against the repertoire, and seed exercises from the
- * deviations that already carry a severity.
- *
- * No engine runs here, by design. Judging is replay; severity comes from
- * a report, and reports are produced by opening a game. So refreshing an
- * archive of hundreds of games costs hundreds of replays, not hundreds of
- * Stockfish runs.
+ * The refresh routine, whole: pull what's new and insist on completeness
+ * — a partial pass keeps its saves but the delivery must fail and retry
+ * from the same cursor. No engine runs here, by design: analysis has one
+ * trigger, opening a game.
  */
 export async function processAccountSync(
   deps: SyncAccountDeps,
@@ -198,15 +164,5 @@ export async function processAccountSync(
   if (!outcome.complete) {
     throw new Error(`sync of ${accountId} incomplete (${outcome.failures} failures)`);
   }
-
-  const account = await deps.getTrackedAccount(accountId);
-  if (!account?.userId) return outcome;
-
-  // Same tail import-pgn runs after landing new games: derived
-  // repertoires grow first so the fresh book judges this pass, judging
-  // replays against it, seeding reads the judgments. See
-  // @velachess/games's land-new-games.ts.
-  const landed = await deps.landNewGames(account.userId, outcome.saved);
-
-  return { ...outcome, judged: landed.judged, seeded: landed.seeded };
+  return outcome;
 }

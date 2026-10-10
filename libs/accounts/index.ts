@@ -8,9 +8,7 @@
  * `syncAccount`/`SyncAccountDeps` are exposed here for one reason beyond
  * `refreshAccount`/`processAccountSync`'s own use: `connect-account` (its
  * own module-mate) declares a `SyncAccount` dependency type and needs the
- * composition root to wire the real handler in — the same reason
- * `games/index.ts` exposes `landNewGames` for `import-pgn`'s own
- * composition to reach.
+ * composition root to wire the real handler in.
  */
 
 export { importAccount } from "./connect-account/connect-account.ts";

@@ -5,11 +5,11 @@
   </picture>
 </p>
 
-<h1 align="center">Turn your games into training</h1>
+<h1 align="center">Review your games with Stockfish</h1>
 
 <p align="center">
-  VelaChess imports your chess games, builds a repertoire from your play,
-  and turns useful positions into spaced-repetition exercises.
+  VelaChess imports your Chess.com and Lichess games, or a PGN file, and
+  grades every move with Stockfish so you can review each game on the board.
 </p>
 
 <p align="center">
@@ -21,13 +21,8 @@
 ## How it works
 
 ```text
-Chess.com / Lichess games / PGN Import
-  ├─→ Repertoire → decision positions and deviations ───────────────┐
-  └─→ Open a game → Stockfish (on demand) → engine-flagged mistakes ┤
-                                                                    ↓
-                                                                Exercises
-                                                                    ↓
-                                                                FSRS review
+Chess.com / Lichess / PGN file
+  └─→ Games library → open a game → Stockfish (on demand) → saved review
 ```
 
 ## Quick start

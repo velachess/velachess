@@ -1,7 +1,7 @@
 import type { GradedPly } from "../../../analysis-contract.ts";
 
 export const LANDING_PLAYER = "vela_player";
-export const LANDING_OPPONENT = "night_shift";
+const LANDING_OPPONENT = "night_shift";
 export const LANDING_GAME_ID = "landing-game-analysis";
 export const LANDING_GAME_PGN = "1. f3 e5 2. g4 Qh4# 0-1";
 
@@ -74,5 +74,4 @@ export const landingCompletedAnalysis = {
     depth: 18,
     positions: landingAnalysis,
   },
-  drills: { total: 1 },
 } as const;

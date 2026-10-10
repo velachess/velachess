@@ -8,11 +8,10 @@ resolves the named player's seat per game against the White/Black headers
 (case-insensitively), so one file may mix colors, and a game naming them on
 neither side stores `null`. Provider-synced games store `null`; VelaChess
 derives the side by matching the provenance account's username (left join —
-absent on manual rows) to the normalized player names. The current shared
-TypeScript rule is `libs/chess/perspective.ts` (a pure, dependency-free
-function every business module that needs it — games, repertoires,
-insights — imports directly); SQL consumers restate the same expression
-where importing it would break the infra-to-module boundary.
+absent on manual rows) to the normalized player names. The shared TypeScript
+rule is `libs/chess/perspective.ts` (a pure, dependency-free function);
+SQL consumers in `libs/infra/db/queries/perspective.ts` restate the same
+expression where importing it would break the infra-to-module boundary.
 
 Every consumer of an owner-derived fact must preserve the same semantics:
 
