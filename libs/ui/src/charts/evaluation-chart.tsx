@@ -62,10 +62,6 @@ function MoveDot({
       cy={cy}
       r={5}
       fill={BADGE_TONE_COLOR[payload.tone]}
-      // The curve runs under the dots; a ring in the page's own
-      // background is what keeps a dot legible where they cross.
-      stroke="var(--background)"
-      strokeWidth={1.5}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -102,7 +98,7 @@ function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
         x2={x}
         y1={0}
         y2={height}
-        stroke="var(--info)"
+        stroke="var(--chart-marker)"
         strokeWidth={2}
         data-slot="evaluation-chart-selected-ply"
       />

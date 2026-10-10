@@ -64,6 +64,11 @@
   --move-inaccuracy: oklch(0.79 0.15 85);
   --move-mistake: oklch(0.72 0.17 55);
   --move-blunder: oklch(0.6 0.22 25);
+  /* Where the board is, on a chart. Never themed, and deliberately
+     mid-lightness: the one band that clears 3:1 against both the dark
+     canvas (5.5:1) and the light one (3.3:1). Lighter reads better on
+     dark and then dissolves into a light panel. */
+  --chart-marker: oklch(0.6 0.16 160);
   /* The two armies, never themed: a bar that followed the squares would
      stop meaning "White is winning". */
   --eval-white: oklch(0.97 0.005 85);
