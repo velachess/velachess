@@ -9,15 +9,6 @@ import { BookOpen, Check } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
 import { BADGE_TONE_COLOR, type BadgeEdges, type BadgeTone } from "./board-theme.ts";
 
-/** The mark's ink: light on the tones dark enough to carry it. */
-const TONE_INK = {
-  ok: "text-white",
-  inaccuracy: "text-black/80",
-  mistake: "text-black/80",
-  blunder: "text-white",
-  book: "text-black/80",
-} as const satisfies Record<BadgeTone, string>;
-
 interface MarkProps {
   className: string;
 }
@@ -90,12 +81,13 @@ export function SquareBadge({ tone, edges }: SquareBadgeProps) {
       // piece underneath — a ring in one fixed colour reads as a border.
       className={cn(
         "pointer-events-none absolute z-10 grid size-[42%]",
-        "place-items-center rounded-full shadow-md",
+        // One ink for every tone: a badge that changes text colour with
+        // its grade reads as two different components.
+        "place-items-center rounded-full text-white shadow-md",
         !edges.right && "right-0 translate-x-1/2",
         edges.right && "right-1/24",
         !edges.top && "top-0 -translate-y-1/2",
         edges.top && "top-1/24",
-        TONE_INK[tone],
       )}
       style={{ backgroundColor: BADGE_TONE_COLOR[tone] }}
     >
