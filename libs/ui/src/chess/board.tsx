@@ -50,6 +50,12 @@ import type { ArrowSquares, BadgeTone } from "./board-theme.ts";
 const ARROW_GEOMETRY = {
   ...defaultArrowOptions,
   arrowLengthReducerDenominator: 4,
+  // Well under the library's 0.65. An arrow is an annotation laid over
+  // the position, so the pieces it crosses have to stay readable
+  // through it, and two arrows that cross should not stack into a
+  // third, darker shape. Per-arrow weight still rides in the colours
+  // (`arrowAlternativeColor`), which this scales rather than replaces.
+  opacity: 0.35,
 } as const;
 
 export type BoardSide = "white" | "black";
