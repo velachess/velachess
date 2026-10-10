@@ -7,6 +7,7 @@ import { and, count, desc, eq, isNotNull, notExists, sql, type SQL } from "drizz
 
 import type { Database } from "../client.ts";
 import { withPagination, type Paginated } from "./pagination.ts";
+import { perspectiveSql } from "./perspective.ts";
 import { deviations, gameAnalyses, games, trackedAccounts } from "../schema.ts";
 
 /** What the games screen filters by. Every field is optional: absent means
@@ -25,23 +26,6 @@ export interface GamePage {
   page: number;
   pageSize: number;
 }
-
-/**
- * Which side was you. `games.perspective` carries what a manual PGN
- * import resolved; synced games store null (the normalizer sees a PGN,
- * not an identity), so this derives it by matching the provenance
- * account's username against player names — same rule as
- * `resolveGamePerspective`. The account join is a LEFT join and may be
- * absent (a PGN row has none): a NULL username makes both comparisons
- * NULL, so such games answer from the stored column alone or stay null.
- */
-const perspectiveSql = sql<"white" | "black" | null>`coalesce(
-  ${games.perspective}::text,
-  case
-    when lower(${games.whiteName}) = lower(${trackedAccounts.username}) then 'white'
-    when lower(${games.blackName}) = lower(${trackedAccounts.username}) then 'black'
-  end
-)`;
 
 /**
  * Estimated duration in SQL, from the same rule the app uses. Written as

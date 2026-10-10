@@ -1,8 +1,9 @@
 import type { NormalizedGame } from "@velachess/infra-platforms";
-import { and, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, isNotNull, sql, type SQL } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { deviations, gameAnalyses, games } from "../schema.ts";
+import { perspectiveSql } from "./perspective.ts";
+import { deviations, gameAnalyses, games, trackedAccounts } from "../schema.ts";
 
 function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
@@ -111,16 +112,26 @@ export async function getGame(db: Database, gameId: string) {
 }
 
 /**
- * The full row, only if the caller owns it. Ownership is the row's own
- * `user_id` — no join, so a manually imported PGN is scoped exactly like
- * a synced game, and the check happens in the query rather than after
- * the fetch: there is no window where the row exists in memory for a
- * caller it does not belong to.
+ * The full row, only if the caller owns it, with the seat resolved.
+ *
+ * Ownership is still the row's own `user_id`, checked in the query
+ * rather than after the fetch: there is no window where the row exists
+ * in memory for a caller it does not belong to. The tracked-account
+ * join added for `perspective` is provenance only and never widens
+ * that — it is a LEFT join, so a manually imported PGN is scoped
+ * exactly like a synced game and simply has no account to match.
+ *
+ * `perspective` is derived rather than read straight off the column,
+ * because a synced game stores null there. Serving that null made the
+ * review screen fall back to guessing the seat from a list of handles
+ * the browser happens to remember, which seats the opponent at the
+ * bottom on any device that never ran the import.
  */
 export async function getGameForUser(db: Database, userId: string, gameId: string) {
   const [row] = await db
-    .select()
+    .select({ ...getTableColumns(games), perspective: perspectiveSql })
     .from(games)
+    .leftJoin(trackedAccounts, eq(trackedAccounts.id, games.accountId))
     .where(and(eq(games.id, gameId), eq(games.userId, userId)));
   return row ?? null;
 }
