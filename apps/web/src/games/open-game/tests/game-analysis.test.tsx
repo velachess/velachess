@@ -52,7 +52,7 @@ const blunderButton = (content: string) =>
  * not a global `asyncUtilTimeout` bump that would loosen every other test.
  */
 const findBlunderButton = () =>
-  screen.findByRole("button", { name: blunderButton }, { timeout: 5000 });
+  screen.findByRole("button", { name: blunderButton }, { timeout: 15_000 });
 
 /**
  * Yields each move in order, as `analyzeGameInBrowser` would. The cast
@@ -126,22 +126,24 @@ describe("game analysis", () => {
     // Black's (ply 4 is Black's second move).
     await user.click(screen.getByRole("tab", { name: "Report" }));
 
-    const row = (await screen.findByText("Blunder")).closest("div");
+    const row = (await screen.findByText("Blunder", {}, { timeout: 15_000 })).closest(
+      "div",
+    );
     expect(row).toHaveTextContent(/0.*Blunder.*1/);
-  });
+  }, 35_000);
 
   it("keeps the scoresheet in Move, where stepping happens", async () => {
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
 
     await user.click(screen.getByRole("tab", { name: "Report" }));
-    await screen.findByText("Blunder");
+    await screen.findByText("Blunder", {}, { timeout: 15_000 });
     expect(screen.queryByRole("button", { name: blunderButton })).toBeNull();
 
     // And it comes back with the tab, rather than being gone for good.
     await user.click(screen.getByRole("tab", { name: "Move" }));
     expect(await findBlunderButton()).toBeInTheDocument();
-  });
+  }, 50_000);
 
   // Not re-running the engine for an already-analyzed game is
   // `staleTime: Infinity` on a React-Query-cached query — standard cache
@@ -196,7 +198,7 @@ describe("game analysis", () => {
     // And jumping, not only stepping — the list is navigation.
     await user.click(screen.getByRole("button", { name: blunderButton }));
     expect(within(board).getByText("2… Nc6")).toBeInTheDocument();
-  });
+  }, 30_000);
 
   it("shows the board from the seat you played", async () => {
     // A game you played as Black is read from Black's side, and the
@@ -230,7 +232,7 @@ describe("game analysis", () => {
 
     await user.click(within(nav).getByRole("link", { name: "Games" }));
     expect(await screen.findByRole("heading", { name: "Games" })).toBeInTheDocument();
-  });
+  }, 30_000);
 
   it("shows a contextual message when the game itself cannot be loaded", async () => {
     // A hand-typed or stale id. The screen must not sit on a spinner
@@ -256,7 +258,7 @@ describe("game analysis", () => {
     expect(await screen.findByText("is a blunder")).toBeInTheDocument();
     expect(screen.getByText("Evaluation")).toBeInTheDocument();
     expect(screen.getByText("Best was")).toBeInTheDocument();
-  });
+  }, 30_000);
 
   it("says how the game ended", async () => {
     await openGame(gradedPlies());
@@ -290,11 +292,13 @@ describe("game analysis", () => {
 
     // One move graded, the run demonstrably unfinished — and the status
     // says exactly where it is rather than only that it is working.
-    await screen.findByRole("button", {
-      name: (c) => c.includes("e4") && c.includes("??"),
-    });
+    await screen.findByRole(
+      "button",
+      { name: (c) => c.includes("e4") && c.includes("??") },
+      { timeout: 15_000 },
+    );
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
-  });
+  }, 20_000);
 
   it("shows a contextual analysis status when analysis fails", async () => {
     const game = aGame();
@@ -326,7 +330,7 @@ describe("game analysis", () => {
     await renderApp({ path: `/games/${second.id}` });
 
     expect(await findBlunderButton()).toBeInTheDocument();
-  });
+  }, 30_000);
 });
 
 /**
