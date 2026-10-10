@@ -55,7 +55,7 @@ const ARROW_GEOMETRY = {
   // through it, and two arrows that cross should not stack into a
   // third, darker shape. Per-arrow weight still rides in the colours
   // (`arrowAlternativeColor`), which this scales rather than replaces.
-  opacity: 0.35,
+  opacity: 0.45,
 } as const;
 
 export type BoardSide = "white" | "black";
