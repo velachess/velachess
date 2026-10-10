@@ -9,9 +9,17 @@
  */
 import { parsePgn } from "@velachess/chess";
 import type { EngineSession } from "@velachess/infra-engine";
-import { analyzeGame, type GradedPly } from "@velachess/analysis";
+import { analyzeGame, type AnalysisEvent, type GradedPly } from "@velachess/analysis";
 
 import { createBrowserEngineSession } from "./create-browser-engine-session.ts";
+
+/** `AnalysisEvent["type"]`'s values, named — `satisfies` ties this to the
+ * real union, so a typo or a drift after that type changes is a type
+ * error here, not a silently-never-matching string at runtime. */
+const ANALYSIS_EVENT = {
+  POSITION: "position",
+  DONE: "done",
+} as const satisfies Record<string, AnalysisEvent["type"]>;
 
 export async function* analyzeGameInBrowser(
   rawPgn: string,
@@ -42,7 +50,7 @@ export async function* analyzeGameInBrowser(
   try {
     for await (const event of analyzeGame(game, makeSession, { depth })) {
       if (signal.aborted) return;
-      if (event.type === "position") yield event.position;
+      if (event.type === ANALYSIS_EVENT.POSITION) yield event.position;
     }
   } finally {
     signal.removeEventListener("abort", onAbort);

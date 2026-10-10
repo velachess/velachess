@@ -15,6 +15,10 @@ import { ENGINE_SCRIPT_URL } from "./engine-asset.ts";
 /** Conservative fixed default — not device-aware, a tuning knob for later. */
 const DEFAULT_HASH_MB = 16;
 
+/** UCI option names this adapter sets. Only `Hash` today — see the
+ * comment below for why `Threads` isn't one of them. */
+const UCI_OPTION = { HASH: "Hash" } as const;
+
 function isBrowserEngineSupported(): boolean {
   return typeof Worker !== "undefined" && typeof WebAssembly !== "undefined";
 }
@@ -34,7 +38,10 @@ export async function createBrowserEngineSession(
   // No Threads option: the lite-single build is single-threaded. Hash is
   // the only UCI option configured anywhere in this repo today (server
   // production sets none at all).
-  const hash: EngineOption = { name: "Hash", value: options.hashMb ?? DEFAULT_HASH_MB };
+  const hash: EngineOption = {
+    name: UCI_OPTION.HASH,
+    value: options.hashMb ?? DEFAULT_HASH_MB,
+  };
   session.setOption(hash);
 
   return session;
