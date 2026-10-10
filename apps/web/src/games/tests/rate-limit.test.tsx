@@ -16,6 +16,10 @@ import { server } from "../../test/server.ts";
  * instead of retry. So each screen that can hit one has to say when to
  * come back (the body's `retryAfterSeconds` — the client cannot read a
  * rejection's headers) and must not use the vocabulary of breakage.
+ *
+ * Game analysis no longer has a server leg to rate-limit — it runs
+ * entirely in the browser now — so that half of this file is gone; sync
+ * still hits the server and still needs this.
  */
 
 /** The refusal as the rate-limit middleware writes it. */
@@ -24,39 +28,6 @@ const rateLimited = (retryAfterSeconds: number) =>
     { error: "too many requests", retryAfterSeconds },
     { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } },
   );
-
-describe("a throttled analysis", () => {
-  beforeEach(() => deviceHasImported());
-
-  it("says it is a wait, with the wait, not a failure", async () => {
-    const game = aGame();
-    addGames(game);
-    server.use(http.post("/api/games/:id/analyze", () => rateLimited(42)));
-
-    await renderApp({ path: `/games/${game.id}` });
-
-    expect(await screen.findByText("Too many analyses at once.")).toBeInTheDocument();
-    expect(screen.getByText("Try again in 42 seconds.")).toBeInTheDocument();
-    // The failure vocabulary stays out of it — "couldn't load" invites
-    // an immediate retry, which is what the refusal asked not to get.
-    expect(screen.queryByText("Couldn't load analysis.")).not.toBeInTheDocument();
-  });
-
-  it("keeps the plain failure message for a genuine failure", async () => {
-    const game = aGame();
-    addGames(game);
-    server.use(
-      http.post("/api/games/:id/analyze", () =>
-        HttpResponse.json({ error: "internal error" }, { status: 500 }),
-      ),
-    );
-
-    await renderApp({ path: `/games/${game.id}` });
-
-    expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
-    expect(screen.queryByText(/Try again in \d+ seconds/)).not.toBeInTheDocument();
-  });
-});
 
 describe("a throttled sync", () => {
   beforeEach(() => {

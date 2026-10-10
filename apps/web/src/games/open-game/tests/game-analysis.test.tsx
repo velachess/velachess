@@ -1,24 +1,37 @@
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
-import { beforeEach, afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-
+import { fireEvent, screen, within } from "@testing-library/react";
 import {
-  addGames,
-  stageAnalysis,
-  stageSeatIdentities,
-  watchCount,
-  type AnalysisAnswer,
-} from "../../../test/archive.ts";
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+
+import type { GradedPly as EngineGradedPly } from "@velachess/analysis";
+
+import { addGames, stageSeatIdentities } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
-import { server } from "../../../test/server.ts";
+import type { GradedPly } from "../../analysis-contract.ts";
 import type { Game } from "../../list/queries.ts";
 
 /**
- * The screen through the route, over HTTP. Opening a game is the whole
- * interaction, so every test navigates and then reads what arrived.
+ * The screen through the route, over HTTP for the game itself; the engine
+ * is mocked at `analyzeGameInBrowser` — the same seam
+ * `use-browser-analysis.ts` calls through — rather than at the Worker/UCI
+ * level, which `libs/infra/engine` and `analyze-game-in-browser.test.ts`
+ * already cover.
  */
+
+vi.mock("../../browser-analysis/analyze-game-in-browser.ts", () => ({
+  analyzeGameInBrowser: vi.fn(),
+}));
+const { analyzeGameInBrowser } =
+  await import("../../browser-analysis/analyze-game-in-browser.ts");
 
 /** The staged run: every ply graded, with one blunder at Nc6 (ply 4). */
 const gradedPlies = () =>
@@ -30,13 +43,51 @@ const gradedPlies = () =>
 const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
+/**
+ * Yields each move in order, as `analyzeGameInBrowser` would. The cast
+ * bridges this test's zod-inferred `GradedPly` (from `analysis-contract.ts`,
+ * mirroring the API) against `@velachess/analysis`'s plain-interface one —
+ * identical fields, but `exactOptionalPropertyTypes` tells them apart at
+ * the type level even though the actual fixture values are interchangeable.
+ */
+function stageAnalysis(moves: GradedPly[]): void {
+  vi.mocked(analyzeGameInBrowser).mockImplementation(
+    async function* (_pgn, _depth, signal) {
+      for (const move of moves as unknown as EngineGradedPly[]) {
+        if (signal.aborted) return;
+        yield move;
+      }
+    },
+  );
+}
+
+/**
+ * A promise that never resolves on its own — standing in for "the engine
+ * hasn't finished this ply yet" within a test. Nothing cancels an
+ * in-flight query on unmount (by design), so each caller's resolver is
+ * tracked and flushed in `afterEach`; otherwise it would keep running in
+ * the background for the rest of the suite.
+ */
+let pendingForever: Array<() => void> = [];
+function neverResolves(): Promise<void> {
+  return new Promise((resolve) => pendingForever.push(resolve));
+}
+
+function stageFailedAnalysis(): void {
+  // Intentionally never yields: mocks a run that fails before grading anything.
+  // oxlint-disable-next-line eslint/require-yield
+  vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
+    throw new Error("engine failed");
+  });
+}
+
 const openGame = async (
-  answer?: AnalysisAnswer,
+  moves?: GradedPly[],
   identities?: Parameters<typeof stageSeatIdentities>[1],
 ) => {
   const game = aGame();
   addGames(game);
-  if (answer) stageAnalysis(game.id, answer);
+  if (moves) stageAnalysis(moves);
   if (identities) stageSeatIdentities(game.id, identities);
   const rendered = await renderApp({ path: `/games/${game.id}` });
   return { game, ...rendered };
@@ -45,10 +96,16 @@ const openGame = async (
 describe("game analysis", () => {
   beforeEach(() => {
     deviceHasImported();
+    vi.mocked(analyzeGameInBrowser).mockReset();
+  });
+
+  afterEach(() => {
+    for (const resolve of pendingForever) resolve();
+    pendingForever = [];
   });
 
   it("analyses the game on opening it", async () => {
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
 
     // The blunder carries its glyph on the move itself, in the list the
     // Move tab owns…
@@ -65,10 +122,7 @@ describe("game analysis", () => {
   });
 
   it("keeps the scoresheet in Move, where stepping happens", async () => {
-    // The list used to sit outside the tabs, so reading the report came
-    // with a move-by-move list underneath that had nothing to do with
-    // it — and the two then shared one scroll region.
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
     await screen.findByRole("button", { name: blunderButton });
 
     await user.click(screen.getByRole("tab", { name: "Report" }));
@@ -82,26 +136,15 @@ describe("game analysis", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens an already analyzed game straight from the cache", async () => {
-    await openGame({ kind: "cached", moves: gradedPlies() });
-
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
-  });
-
-  it("converges when another caller owns the run", async () => {
-    // The POST answers 202; the poll finds the other owner's report and
-    // the screen ends where it would have if we had run it ourselves.
-    await openGame({ kind: "elsewhere", moves: gradedPlies(), reads: 0 });
-
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
-  });
+  // Not re-running the engine for an already-analyzed game is
+  // `staleTime: Infinity` on a React-Query-cached query — standard cache
+  // behavior, not custom logic — and isn't independently checked here:
+  // `renderApp` hands every call a fresh `QueryClient`, so two calls in
+  // one test can't observe cache reuse the way reopening a game in the
+  // same running app would.
 
   it("steps through the game", async () => {
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
 
     const previous = await screen.findByRole("button", { name: "Previous move" });
     const next = screen.getByRole("button", { name: "Next move" });
@@ -132,7 +175,7 @@ describe("game analysis", () => {
     // unnamed divs, so a person using a screen reader also heard nothing
     // when they stepped. Both gaps were the same gap, and the live region
     // that fixed one is what makes this readable.
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
     await screen.findByRole("button", { name: blunderButton });
 
     // Scoped to the board: the insight card names the same move, and the
@@ -154,7 +197,7 @@ describe("game analysis", () => {
     // on the screen wrong in a way that looks deliberate.
     const game = aGame({ perspective: "black", whiteName: "magnus", blackName: ME });
     addGames(game);
-    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    stageAnalysis(gradedPlies());
     await renderApp({ path: `/games/${game.id}` });
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -164,7 +207,8 @@ describe("game analysis", () => {
   });
 
   it("gives its place in the trail, back to the games list", async () => {
-    const { user } = await openGame({ kind: "cached", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
+    await screen.findByRole("button", { name: blunderButton });
 
     const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
     expect(within(nav).getByRole("link", { name: "Games" })).toHaveAttribute(
@@ -191,7 +235,7 @@ describe("game analysis", () => {
   });
 
   it("explains the move the board is showing", async () => {
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
+    const { user } = await openGame(gradedPlies());
     await screen.findByRole("button", { name: blunderButton });
 
     // At the start there is no move to explain, and the card says so
@@ -208,7 +252,7 @@ describe("game analysis", () => {
   });
 
   it("says how the game ended", async () => {
-    await openGame({ kind: "cached", moves: gradedPlies() });
+    await openGame(gradedPlies());
 
     // The platform's own wording is appended, not translated.
     expect(
@@ -217,48 +261,25 @@ describe("game analysis", () => {
   });
 
   it("shows the moves even while the engine is still working", async () => {
-    // An empty run: the stream opens and closes with nothing graded, so
-    // this pins that the board and move list never wait on the engine.
-    await openGame({ kind: "stream", moves: [] });
+    // An empty run: it opens and closes with nothing graded, so this
+    // pins that the board and move list never wait on the engine.
+    await openGame([]);
 
     expect(await screen.findByRole("button", { name: /Qxf7#/ })).toBeInTheDocument();
   });
 
-  it("grades each move once, however the stream ends", async () => {
-    // The `done` frame repeats every position, so the reader has to know
-    // how many it already emitted. Reading that off the wire's `index`
-    // counted one short — it is 0-based — and the last move was graded
-    // twice. Six good moves and one blunder, and the report says so.
-    const { user } = await openGame({ kind: "stream", moves: gradedPlies() });
-    await screen.findByRole("button", { name: blunderButton });
-
-    await user.click(screen.getByRole("tab", { name: "Report" }));
-
-    expect((await screen.findByText("Good")).closest("div")).toHaveTextContent(
-      /4.*Good.*2/,
-    );
-    expect(screen.getByText("Blunder").closest("div")).toHaveTextContent(/0.*Blunder.*1/);
-  });
-
-  it("reads a stream that splits frames across chunks", async () => {
-    // A socket makes no promise that a chunk is a whole frame. Sixteen
-    // bytes at a time cuts mid-JSON on every frame, so a reader that
-    // parsed per chunk instead of per blank line loses the lot.
-    await openGame({ kind: "stream", moves: gradedPlies(), chunkBytes: 16 });
-
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
-  });
-
   it("keeps progress up while the rest of the game is still being graded", async () => {
-    // `streamedQuery` writes each chunk with `setQueryData`, so the query
-    // reports success from the first graded move onward — `isPending` is
-    // false for all but the opening instant of a run. A progress bar wired
-    // to it vanishes after move one and leaves eighty moves looking idle.
     const moves = gradedPlies();
     moves[0] = aGradedPly(1, { san: GAME_SANS[0]!, category: "blunder" });
-    await openGame({ kind: "stream", moves, dropsAfter: 1 });
+    vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
+      yield moves[0] as unknown as EngineGradedPly;
+      // The rest of the game doesn't arrive within this test — the run
+      // is demonstrably still in progress, not finished short.
+      await neverResolves();
+    });
+    const game = aGame();
+    addGames(game);
+    await renderApp({ path: `/games/${game.id}` });
 
     // One move graded, the run demonstrably unfinished — and the status
     // says exactly where it is rather than only that it is working.
@@ -266,52 +287,40 @@ describe("game analysis", () => {
       name: (c) => c.includes("e4") && c.includes("??"),
     });
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
-  }, 15_000);
-
-  it("delivers each move once when a dropped connection replays the run", async () => {
-    // A watch connection that ends mid-run without a terminal frame is a
-    // blip, not a failure: the EventSource reconnects and the route starts
-    // its replay from the first position. Two things have to hold — the
-    // screen must not report the analysis as failed, and the moves it
-    // already had must not arrive a second time.
-    const { user } = await openGame({
-      kind: "stream",
-      moves: gradedPlies(),
-      dropsAfter: 3,
-    });
-
-    // The drop, then the reconnection the EventSource makes on its own.
-    await waitFor(() => expect(watchCount()).toBeGreaterThan(1), { timeout: 10_000 });
-    await screen.findByRole("button", { name: blunderButton });
-
-    // And the replay did not double anything: six good, one blunder.
-    await user.click(screen.getByRole("tab", { name: "Report" }));
-    expect((await screen.findByText("Good")).closest("div")).toHaveTextContent(
-      /4.*Good.*2/,
-    );
-  }, 20_000);
-
-  it("lets go of the stream once the run is done, and does not reopen it", async () => {
-    // The failure this guards is invisible on screen. An EventSource
-    // reconnects on its own whenever the connection ends and nobody closed
-    // it — measured at three reconnections in nine seconds — so a run that
-    // finished and left the source open is an endless request loop against
-    // the engine's trigger. Connections, not pixels, are the only evidence.
-    await openGame({ kind: "stream", moves: gradedPlies() });
-    await screen.findByRole("button", { name: blunderButton });
-
-    expect(watchCount()).toBe(1);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-    });
-    expect(watchCount()).toBe(1);
-  }, 15_000);
+  });
 
   it("shows a contextual analysis status when analysis fails", async () => {
-    await openGame({ kind: "failed" });
+    const game = aGame();
+    addGames(game);
+    stageFailedAnalysis();
+    await renderApp({ path: `/games/${game.id}` });
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("does not leave a previous game's moves on screen after switching games", async () => {
+    // Cancellation is the browser-analysis service's own job (see
+    // `analyze-game-in-browser.test.ts`); here the concern is purely the
+    // screen's: a stale run's partial result must never render as if it
+    // belonged to whatever game is open now.
+    const first = aGame();
+    addGames(first);
+    // Intentionally never yields: mocks a run that never grades anything.
+    // oxlint-disable-next-line eslint/require-yield
+    vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
+      await neverResolves();
+    });
+    await renderApp({ path: `/games/${first.id}` });
+    await screen.findByRole("button", { name: "Previous move" });
+
+    const second = aGame();
+    addGames(second);
+    stageAnalysis(gradedPlies());
+    await renderApp({ path: `/games/${second.id}` });
+
+    expect(
+      await screen.findByRole("button", { name: blunderButton }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -328,13 +337,14 @@ describe("game breadcrumb", () => {
 
   beforeEach(() => {
     deviceHasImported();
+    vi.mocked(analyzeGameInBrowser).mockReset();
   });
 
   /** Renders the game and hands back its last crumb: the page's own name, not the trail leading to it. */
   const openCrumb = async (overrides: Partial<Game>) => {
     const game = aGame({ playedAt: PLAYED_AT, ...overrides });
     addGames(game);
-    stageAnalysis(game.id, { kind: "cached", moves: gradedPlies() });
+    stageAnalysis(gradedPlies());
     const rendered = await renderApp({ path: `/games/${game.id}` });
     const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
     // The trail's last link: both it and "Games" are `aria-current`, so the
@@ -465,16 +475,14 @@ describe("provider identity on the board", () => {
 
   beforeEach(() => {
     deviceHasImported();
+    vi.mocked(analyzeGameInBrowser).mockReset();
   });
 
   it("shows each player's own picture beside their name", async () => {
-    await openGame(
-      { kind: "cached", moves: gradedPlies() },
-      {
-        white: { avatarUrl: MY_AVATAR, flair: MY_FLAIR },
-        black: { avatarUrl: OPPONENT_AVATAR },
-      },
-    );
+    await openGame(gradedPlies(), {
+      white: { avatarUrl: MY_AVATAR, flair: MY_FLAIR },
+      black: { avatarUrl: OPPONENT_AVATAR },
+    });
 
     const board = await screen.findByRole("region", { name: "Board" });
 
@@ -494,7 +502,7 @@ describe("provider identity on the board", () => {
   });
 
   it("leaves a seat with no resolvable profile on initials alone", async () => {
-    await openGame({ kind: "cached", moves: gradedPlies() });
+    await openGame(gradedPlies());
 
     const board = await screen.findByRole("region", { name: "Board" });
     for (const name of [ME, "gothamchess"]) {
@@ -506,10 +514,7 @@ describe("provider identity on the board", () => {
   it("hides the flair when its asset fails to load", async () => {
     // An asset that 404s must not leave a broken-image glyph where the
     // decoration stood.
-    await openGame(
-      { kind: "cached", moves: gradedPlies() },
-      { white: { flair: MY_FLAIR } },
-    );
+    await openGame(gradedPlies(), { white: { flair: MY_FLAIR } });
 
     const board = await screen.findByRole("region", { name: "Board" });
     const strip = within(board).getByText(ME).closest("div")!;

@@ -27,7 +27,7 @@ import { BoardPane } from "./board-pane.tsx";
 import { GameCrumb } from "./game-crumb.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
-import { useAnalysis } from "../watch-analysis/use-analysis.ts";
+import { useBrowserAnalysis } from "../browser-analysis/index.ts";
 
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
@@ -91,16 +91,8 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
     });
   };
 
-  const {
-    game,
-    isLoading,
-    hasFailed,
-    replay,
-    graded,
-    isAnalyzing,
-    analysisFailed,
-    analysisRetryAfterSeconds,
-  } = useAnalysis(gameId, playReplaySound);
+  const { game, isLoading, hasFailed, replay, graded, isAnalyzing, analysisFailed } =
+    useBrowserAnalysis(gameId, playReplaySound);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would
@@ -188,7 +180,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
         graded={graded}
         isAnalyzing={isAnalyzing}
         hasFailed={analysisFailed}
-        retryAfterSeconds={analysisRetryAfterSeconds}
+        retryAfterSeconds={null}
       />
     </BoardScreen>
   );
