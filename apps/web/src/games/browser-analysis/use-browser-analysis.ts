@@ -27,6 +27,10 @@ import {
 
 import { analyzeGameInBrowser } from "./analyze-game-in-browser.ts";
 
+function browserAnalysisKey(gameId: string) {
+  return ["browser-analysis", gameId] as const;
+}
+
 export interface BrowserAnalysis {
   game: ReplayableGame | undefined;
   isLoading: boolean;
@@ -45,7 +49,7 @@ export function useBrowserAnalysis(
   const rawPgn = game.data?.rawPgn;
 
   const analysis = useQuery({
-    queryKey: ["browser-analysis", gameId],
+    queryKey: browserAnalysisKey(gameId),
     queryFn: streamedQuery({
       streamFn: ({ signal }) => analyzeGameInBrowser(rawPgn ?? "", 14, signal),
       refetchMode: "replace",

@@ -44,6 +44,17 @@ const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
 /**
+ * `findByRole`'s own polling defaults to 1000ms, separate from the test's
+ * overall timeout — fine for the old, effectively-synchronous mocked HTTP
+ * answer, too tight on a slower CI runner for this streamed generator's
+ * render-per-ply cadence (seven plies, each its own `setQueryData` + React
+ * commit) to land the full game within. An explicit, generous budget here,
+ * not a global `asyncUtilTimeout` bump that would loosen every other test.
+ */
+const findBlunderButton = () =>
+  screen.findByRole("button", { name: blunderButton }, { timeout: 5000 });
+
+/**
  * Yields each move in order, as `analyzeGameInBrowser` would. The cast
  * bridges this test's zod-inferred `GradedPly` (from `analysis-contract.ts`,
  * mirroring the API) against `@velachess/analysis`'s plain-interface one —
@@ -109,9 +120,7 @@ describe("game analysis", () => {
 
     // The blunder carries its glyph on the move itself, in the list the
     // Move tab owns…
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
+    expect(await findBlunderButton()).toBeInTheDocument();
 
     // …and the report tallies it per player: one blunder, and it was
     // Black's (ply 4 is Black's second move).
@@ -123,7 +132,7 @@ describe("game analysis", () => {
 
   it("keeps the scoresheet in Move, where stepping happens", async () => {
     const { user } = await openGame(gradedPlies());
-    await screen.findByRole("button", { name: blunderButton });
+    await findBlunderButton();
 
     await user.click(screen.getByRole("tab", { name: "Report" }));
     await screen.findByText("Blunder");
@@ -131,9 +140,7 @@ describe("game analysis", () => {
 
     // And it comes back with the tab, rather than being gone for good.
     await user.click(screen.getByRole("tab", { name: "Move" }));
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
+    expect(await findBlunderButton()).toBeInTheDocument();
   });
 
   // Not re-running the engine for an already-analyzed game is
@@ -176,7 +183,7 @@ describe("game analysis", () => {
     // when they stepped. Both gaps were the same gap, and the live region
     // that fixed one is what makes this readable.
     const { user } = await openGame(gradedPlies());
-    await screen.findByRole("button", { name: blunderButton });
+    await findBlunderButton();
 
     // Scoped to the board: the insight card names the same move, and the
     // question here is what the *board* is showing.
@@ -208,7 +215,7 @@ describe("game analysis", () => {
 
   it("gives its place in the trail, back to the games list", async () => {
     const { user } = await openGame(gradedPlies());
-    await screen.findByRole("button", { name: blunderButton });
+    await findBlunderButton();
 
     const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
     expect(within(nav).getByRole("link", { name: "Games" })).toHaveAttribute(
@@ -236,7 +243,7 @@ describe("game analysis", () => {
 
   it("explains the move the board is showing", async () => {
     const { user } = await openGame(gradedPlies());
-    await screen.findByRole("button", { name: blunderButton });
+    await findBlunderButton();
 
     // At the start there is no move to explain, and the card says so
     // rather than going blank.
@@ -318,9 +325,7 @@ describe("game analysis", () => {
     stageAnalysis(gradedPlies());
     await renderApp({ path: `/games/${second.id}` });
 
-    expect(
-      await screen.findByRole("button", { name: blunderButton }),
-    ).toBeInTheDocument();
+    expect(await findBlunderButton()).toBeInTheDocument();
   });
 });
 
