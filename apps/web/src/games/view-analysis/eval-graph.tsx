@@ -6,7 +6,7 @@ import type { EvaluationPoint } from "@velachess/ui/charts/evaluation-chart";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 
 import type { EvalPoint } from "../analysis-read.ts";
-import { badgeForCategory, CATEGORY_LABELS, formatScore } from "../analysis-read.ts";
+import { badgeForCategory } from "../analysis-read.ts";
 
 const GRAPH_COPY = {
   title: msg`Evaluation over the game`,
@@ -43,7 +43,7 @@ export function EvalGraph({
     );
   }
 
-  // Build evaluation points with tone colors and translated labels.
+  // Build evaluation points with tone colors.
   const evaluationPoints: EvaluationPoint[] = Array.from(
     { length: Math.max(totalPlies, points.length) },
     (_, index) => {
@@ -55,16 +55,10 @@ export function EvalGraph({
         };
       }
 
-      const tone = badgeForCategory(point.category);
-      const san = point.san ?? "";
-
       return {
         ply: point.ply,
         value: point.winChance,
-        tone: tone ?? undefined,
-        label: tone ? i18n._(CATEGORY_LABELS[point.category]) : undefined,
-        san,
-        score: formatScore(point.evalAfter),
+        tone: badgeForCategory(point.category) ?? undefined,
       };
     },
   );

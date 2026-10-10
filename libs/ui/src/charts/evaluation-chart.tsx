@@ -4,8 +4,8 @@ import {
   DefaultZIndexes,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
   ZIndexLayer,
@@ -22,9 +22,6 @@ export interface EvaluationPoint {
   ply: number;
   value: number;
   tone?: BadgeTone | undefined;
-  label?: string | undefined;
-  san?: string | undefined;
-  score?: string | undefined;
 }
 
 export interface EvaluationChartProps {
@@ -48,33 +45,23 @@ function CustomDot({
   cx,
   cy,
   payload,
-  selectedPly,
   defaultColor,
   onSelectPly,
 }: {
   cx?: number | undefined;
   cy?: number | undefined;
   payload: EvaluationPoint;
-  selectedPly?: number | undefined;
   defaultColor: string;
   onSelectPly?: ((ply: number) => void) | undefined;
 }) {
   if (cx === undefined || cy === undefined) return null;
 
-  const isSelected = selectedPly === payload.ply;
-  const color = getPointColor(payload.tone, defaultColor);
-  const radius = isSelected ? 4 : payload.tone ? 3 : 2;
-  const strokeWidth = isSelected ? 2 : 0;
-
   return (
     <circle
       cx={cx}
       cy={cy}
-      r={radius}
-      fill={color}
-      stroke="var(--background)"
-      strokeWidth={strokeWidth}
-      className="transition-all duration-150"
+      r={payload.tone ? 3 : 2}
+      fill={getPointColor(payload.tone, defaultColor)}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -83,33 +70,6 @@ function CustomDot({
         }
       }}
     />
-  );
-}
-
-function CustomTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: EvaluationPoint }>;
-}) {
-  if (!active || !payload?.length) return null;
-
-  const point = payload[0]?.payload;
-  if (!point?.san) return null;
-
-  const color = getPointColor(point.tone);
-
-  return (
-    <div className="rounded border bg-background p-2 text-sm shadow-md">
-      <div className="font-medium" style={{ color }}>
-        {point.san}
-      </div>
-      {point.label && <div className="text-muted-foreground">{point.label}</div>}
-      {point.score && (
-        <div className="font-mono text-xs text-muted-foreground">{point.score}</div>
-      )}
-    </div>
   );
 }
 
@@ -168,14 +128,17 @@ export function EvaluationChart({
           cx={cx}
           cy={cy}
           payload={payload}
-          selectedPly={selectedPly}
           defaultColor={color}
           onSelectPly={onSelectPly}
         />
       );
     },
-    [selectedPly, color, onSelectPly],
+    [color, onSelectPly],
   );
+
+  // A selection the data does not hold is no selection: the consumer's
+  // "nothing selected" value never has to be a particular number.
+  const markedPly = data.find((point) => point.ply === selectedPly)?.ply;
 
   return (
     <div role="img" aria-label={title} className={cn("h-full w-full", className)}>
@@ -191,14 +154,17 @@ export function EvaluationChart({
         >
           <XAxis dataKey="ply" hide />
           <YAxis domain={domain ?? ["auto", "auto"]} hide />
-          <Tooltip content={<CustomTooltip />} />
+          {/* The marker, not a hover card: where the chart sits is persistent
+              information, and the default zIndex keeps it under the click target. */}
+          {markedPly !== undefined && (
+            <ReferenceLine x={markedPly} stroke="var(--chart-3)" strokeWidth={2} />
+          )}
           <Line
             type="linear"
             dataKey="value"
             stroke={color}
             strokeWidth={2}
             dot={renderDot}
-            activeDot={{ r: 4, fill: color, stroke: "var(--background)", strokeWidth: 2 }}
             isAnimationActive={false}
           />
           <PlotClickTarget onSelectPly={onSelectPly} />

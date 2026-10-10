@@ -36,6 +36,41 @@ it("renders a line chart with dots", () => {
   expect(container.querySelectorAll("circle")).toHaveLength(3);
 });
 
+it("marks the selected ply with a vertical line", () => {
+  const { container } = render(
+    <EvaluationChart
+      data={[
+        { ply: 1, value: 0.4 },
+        { ply: 2, value: 0.6 },
+        { ply: 3, value: 0.5 },
+      ]}
+      domain={[0, 1]}
+      title="Evaluation"
+      selectedPly={2}
+    />,
+  );
+
+  expect(container.querySelector(".recharts-reference-line-line")).not.toBeNull();
+});
+
+it("draws no line when the selected ply is not one of the plotted moves", () => {
+  const { container } = render(
+    <EvaluationChart
+      data={[
+        { ply: 1, value: 0.4 },
+        { ply: 2, value: 0.6 },
+        { ply: 3, value: 0.5 },
+      ]}
+      domain={[0, 1]}
+      title="Evaluation"
+      // The replay's starting position: before the first move, nothing is selected.
+      selectedPly={0}
+    />,
+  );
+
+  expect(container.querySelector(".recharts-reference-line-line")).toBeNull();
+});
+
 it("selects the nearest move when the graph is clicked away from a dot", async () => {
   const selected: number[] = [];
   const { container } = render(
