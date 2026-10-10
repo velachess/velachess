@@ -208,7 +208,7 @@ function GradeBadge({ category }: { category: MoveCategory }) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-background",
+        "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
         BADGE_TONES[category],
       )}
     >

@@ -13,18 +13,11 @@ import {
   VelaChessMark,
 } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
-import type { Variants } from "motion/react";
-import {
-  div as MotionDiv,
-  h1 as MotionHeading,
-  li as MotionListItem,
-  p as MotionParagraph,
-  section as MotionSection,
-} from "motion/react-client";
 import Image from "next/image";
 
 import { i18n } from "../locales/index.ts";
 import { LandingHeader } from "./landing-header.tsx";
+import { Reveal } from "./reveal.tsx";
 
 const PRODUCT_URL = "https://app.velachess.com";
 const GAME_ANALYSIS_IMAGE_SRC = "/product/game-analysis.webp";
@@ -34,25 +27,6 @@ const CONTRIBUTE_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 const SELF_HOST_URL = `${GITHUB_URL}/blob/main/docs/how-to/self-host.md`;
 const DOCUMENTATION_URL = `${GITHUB_URL}/tree/main/docs`;
 const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
-
-const containerVariants: Variants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
-  },
-};
-
-const fadeUpVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
-const VIEWPORT = { once: true, amount: 0.3 } as const;
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 const COPY = {
   brand: msg`VelaChess`,
@@ -146,42 +120,21 @@ export function LandingPage() {
 
 function Hero() {
   return (
-    <MotionSection
-      id="top"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <MotionDiv
-        data-motion-reveal
-        className="flex items-center justify-center"
-        variants={fadeUpVariants}
-      >
+    <section id="top">
+      <div className="flex items-center justify-center">
         <Badge variant="outline" className="h-auto px-4 py-2 text-sm font-medium">
           {i18n._(COPY.publicBeta)}
         </Badge>
-      </MotionDiv>
-      <div className="mt-8 text-center">
-        <MotionHeading
-          data-motion-reveal
-          className="font-display text-4xl font-bold tracking-tight sm:text-6xl"
-          variants={fadeUpVariants}
-        >
-          {i18n._(COPY.heroTitle)}
-        </MotionHeading>
-        <MotionParagraph
-          data-motion-reveal
-          className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground"
-          variants={fadeUpVariants}
-        >
-          {i18n._(COPY.heroBody)}
-        </MotionParagraph>
       </div>
-      <MotionDiv
-        data-motion-reveal
-        className="my-6 mb-12 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-x-4"
-        variants={fadeUpVariants}
-      >
+      <div className="mt-8 text-center">
+        <h1 className="font-display text-4xl font-bold tracking-tight sm:text-6xl">
+          {i18n._(COPY.heroTitle)}
+        </h1>
+        <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">
+          {i18n._(COPY.heroBody)}
+        </p>
+      </div>
+      <div className="my-6 mb-12 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-x-4">
         <ShimmerButton
           render={<a href={PRODUCT_URL} aria-label={i18n._(COPY.tryForFree)} />}
           className="h-11 gap-2"
@@ -189,7 +142,7 @@ function Hero() {
           {i18n._(COPY.tryForFree)}
           <ArrowRight className="size-4" />
         </ShimmerButton>
-      </MotionDiv>
+      </div>
       <div className="relative">
         <Image
           src={GAME_ANALYSIS_IMAGE_SRC}
@@ -202,7 +155,7 @@ function Hero() {
           className="h-auto w-full rounded-md border shadow-lg"
         />
       </div>
-    </MotionSection>
+    </section>
   );
 }
 
@@ -237,16 +190,16 @@ function WorkflowStep({
   index: number;
 }) {
   return (
-    <MotionListItem
-      data-motion-reveal
+    <Reveal
+      as="li"
+      amount={0.3}
+      delayMs={index * 150}
+      durationMs={500}
+      distancePx={40}
       className={cn(
         "group/feature relative flex flex-col py-10 lg:border-r",
         index === 0 && "lg:border-l",
       )}
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={VIEWPORT}
-      transition={{ duration: 0.5, delay: index * 0.15, ease: EASE }}
     >
       <div className="pointer-events-none absolute inset-0 size-full bg-linear-to-t from-muted to-transparent opacity-0 transition duration-200 group-hover/feature:opacity-100" />
       <div className="relative z-10 mb-4 px-10 text-muted-foreground transition duration-200 group-hover/feature:scale-101 group-hover/feature:text-primary">
@@ -261,7 +214,7 @@ function WorkflowStep({
       <p className="relative z-10 max-w-xs px-10 text-sm text-muted-foreground">
         {i18n._(body)}
       </p>
-    </MotionListItem>
+    </Reveal>
   );
 }
 
@@ -270,13 +223,7 @@ function ProductShowcases() {
     <section id="product" className="pt-24 sm:pt-32">
       <SectionIntro title={COPY.productTitle} body={COPY.productBody} />
       <div className="space-y-6">
-        <MotionDiv
-          data-motion-reveal
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: 0.6, ease: EASE }}
-        >
+        <Reveal amount={0.3} durationMs={600}>
           <Card
             id="game-analysis"
             className="group h-full border transition-shadow duration-300 hover:shadow-lg"
@@ -313,15 +260,9 @@ function ProductShowcases() {
               />
             </CardContent>
           </Card>
-        </MotionDiv>
+        </Reveal>
 
-        <MotionDiv
-          data-motion-reveal
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: 0.6, delay: 0.15, ease: EASE }}
-        >
+        <Reveal amount={0.3} durationMs={600} delayMs={150}>
           <Card
             id="drill"
             className="group h-full border transition-shadow duration-300 hover:shadow-lg"
@@ -358,7 +299,7 @@ function ProductShowcases() {
               />
             </CardContent>
           </Card>
-        </MotionDiv>
+        </Reveal>
       </div>
     </section>
   );
@@ -440,20 +381,13 @@ function SectionIntro({
   body: MessageDescriptor;
 }) {
   return (
-    <MotionDiv
-      data-motion-reveal
-      className="mb-16 text-center"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.5 }}
-      transition={{ duration: 0.6, ease: EASE }}
-    >
+    <Reveal className="mb-16 text-center" amount={0.5} durationMs={600}>
       <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
         {i18n._(title)}
       </h2>
       <p className="mx-auto max-w-3xl text-lg text-muted-foreground md:text-xl">
         {i18n._(body)}
       </p>
-    </MotionDiv>
+    </Reveal>
   );
 }

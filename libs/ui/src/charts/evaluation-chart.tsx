@@ -5,13 +5,13 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
   ZIndexLayer,
   useChartHeight,
   useChartWidth,
   useXAxisInverseDataSnapScale,
+  useXAxisScale,
 } from "recharts";
 
 import type { BadgeTone } from "../chess/board-theme.ts";
@@ -22,9 +22,6 @@ export interface EvaluationPoint {
   ply: number;
   value: number;
   tone?: BadgeTone | undefined;
-  label?: string | undefined;
-  san?: string | undefined;
-  score?: string | undefined;
 }
 
 export interface EvaluationChartProps {
@@ -37,44 +34,34 @@ export interface EvaluationChartProps {
   onSelectPly?: ((ply: number) => void) | undefined;
 }
 
-function getPointColor(
-  tone?: BadgeTone,
-  defaultColor: string = "var(--primary)",
-): string {
-  return tone ? BADGE_TONE_COLOR[tone] : defaultColor;
-}
-
-function CustomDot({
+/**
+ * Only a notable move gets a dot.
+ *
+ * A dot per ply turns an 80px strip into noise — the curve already
+ * shows every move, and the scoresheet names them. Lichess and
+ * chess.com mark the mistakes and leave the rest to the line, so the
+ * eye lands on what went wrong. Any ply stays selectable: the click
+ * target below is the whole plot, not these dots.
+ */
+function MoveDot({
   cx,
   cy,
   payload,
-  selectedPly,
-  defaultColor,
   onSelectPly,
 }: {
   cx?: number | undefined;
   cy?: number | undefined;
   payload: EvaluationPoint;
-  selectedPly?: number | undefined;
-  defaultColor: string;
   onSelectPly?: ((ply: number) => void) | undefined;
 }) {
-  if (cx === undefined || cy === undefined) return null;
-
-  const isSelected = selectedPly === payload.ply;
-  const color = getPointColor(payload.tone, defaultColor);
-  const radius = isSelected ? 4 : payload.tone ? 3 : 2;
-  const strokeWidth = isSelected ? 2 : 0;
+  if (cx === undefined || cy === undefined || !payload.tone) return null;
 
   return (
     <circle
       cx={cx}
       cy={cy}
-      r={radius}
-      fill={color}
-      stroke="var(--background)"
-      strokeWidth={strokeWidth}
-      className="transition-all duration-150"
+      r={5}
+      fill={BADGE_TONE_COLOR[payload.tone]}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -86,30 +73,36 @@ function CustomDot({
   );
 }
 
-function CustomTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: EvaluationPoint }>;
-}) {
-  if (!active || !payload?.length) return null;
+/**
+ * The selected ply, marked edge to edge.
+ *
+ * `ReferenceLine` stops at the plot area, so the chart's margin stays
+ * blank above and below it — in an 80px strip that reads as a line that
+ * failed to reach. This draws in the chart's own coordinates instead,
+ * spanning the full height the way Lichess and chess.com mark the move.
+ */
+function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
+  const height = useChartHeight();
+  const scale = useXAxisScale();
+  if (ply === undefined || !height || !scale) return null;
 
-  const point = payload[0]?.payload;
-  if (!point?.san) return null;
-
-  const color = getPointColor(point.tone);
+  const x = scale(ply);
+  if (typeof x !== "number") return null;
 
   return (
-    <div className="rounded border bg-background p-2 text-sm shadow-md">
-      <div className="font-medium" style={{ color }}>
-        {point.san}
-      </div>
-      {point.label && <div className="text-muted-foreground">{point.label}</div>}
-      {point.score && (
-        <div className="font-mono text-xs text-muted-foreground">{point.score}</div>
-      )}
-    </div>
+    // Over the curve, under the click target: a marker on top of the
+    // data that never swallows a click meant for the plot.
+    <ZIndexLayer zIndex={DefaultZIndexes.activeDot}>
+      <line
+        x1={x}
+        x2={x}
+        y1={0}
+        y2={height}
+        stroke="var(--chart-marker)"
+        strokeWidth={2}
+        data-slot="evaluation-chart-selected-ply"
+      />
+    </ZIndexLayer>
   );
 }
 
@@ -163,19 +156,14 @@ export function EvaluationChart({
         cy?: number;
         payload: EvaluationPoint;
       };
-      return (
-        <CustomDot
-          cx={cx}
-          cy={cy}
-          payload={payload}
-          selectedPly={selectedPly}
-          defaultColor={color}
-          onSelectPly={onSelectPly}
-        />
-      );
+      return <MoveDot cx={cx} cy={cy} payload={payload} onSelectPly={onSelectPly} />;
     },
-    [selectedPly, color, onSelectPly],
+    [onSelectPly],
   );
+
+  // A selection the data does not hold is no selection: the consumer's
+  // "nothing selected" value never has to be a particular number.
+  const markedPly = data.find((point) => point.ply === selectedPly)?.ply;
 
   return (
     <div role="img" aria-label={title} className={cn("h-full w-full", className)}>
@@ -191,16 +179,20 @@ export function EvaluationChart({
         >
           <XAxis dataKey="ply" hide />
           <YAxis domain={domain ?? ["auto", "auto"]} hide />
-          <Tooltip content={<CustomTooltip />} />
           <Line
             type="linear"
             dataKey="value"
             stroke={color}
             strokeWidth={2}
             dot={renderDot}
-            activeDot={{ r: 4, fill: color, stroke: "var(--background)", strokeWidth: 2 }}
+            // No hover affordance: the marker shows the selection, and a
+            // dot that appears under the pointer only competes with it.
+            activeDot={false}
             isAnimationActive={false}
           />
+          {/* The marker, not a hover card: where the board sits is
+              persistent information the graph should keep showing. */}
+          <SelectedPlyMarker ply={markedPly} />
           <PlotClickTarget onSelectPly={onSelectPly} />
         </LineChart>
       </ResponsiveContainer>
