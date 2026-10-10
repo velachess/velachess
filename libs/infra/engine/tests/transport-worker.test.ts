@@ -11,14 +11,16 @@ class FakeWorker {
   readonly posted: string[] = [];
   terminated = false;
 
-  private readonly listeners: Array<(event: MessageEvent<string>) => void> = [];
+  private readonly messageListeners: Array<(event: MessageEvent<string>) => void> = [];
+  private readonly errorListeners: Array<() => void> = [];
 
   postMessage(data: string): void {
     this.posted.push(data);
   }
 
   addEventListener(type: string, listener: (event: MessageEvent<string>) => void): void {
-    if (type === "message") this.listeners.push(listener);
+    if (type === "message") this.messageListeners.push(listener);
+    else if (type === "error") this.errorListeners.push(listener as () => void);
   }
 
   removeEventListener(): void {}
@@ -28,7 +30,12 @@ class FakeWorker {
   }
 
   emit(data: string): void {
-    for (const listener of this.listeners) listener({ data } as MessageEvent<string>);
+    for (const listener of this.messageListeners)
+      listener({ data } as MessageEvent<string>);
+  }
+
+  crash(): void {
+    for (const listener of this.errorListeners) listener();
   }
 }
 
@@ -82,5 +89,23 @@ describe("WorkerTransport", () => {
     const { worker, transport } = makeTransport();
     transport.close();
     expect(worker.terminated).toBe(true);
+  });
+
+  it("a worker error ends lines() instead of hanging forever on a consumer already waiting", async () => {
+    const { worker, transport } = makeTransport();
+    const iterator = transport.lines()[Symbol.asyncIterator]();
+
+    const pending = iterator.next();
+    worker.crash();
+
+    expect(await pending).toEqual({ value: undefined, done: true });
+  });
+
+  it("a worker error also ends lines() for a consumer that starts waiting afterwards", async () => {
+    const { worker, transport } = makeTransport();
+    worker.crash();
+
+    const iterator = transport.lines()[Symbol.asyncIterator]();
+    expect(await iterator.next()).toEqual({ value: undefined, done: true });
   });
 });

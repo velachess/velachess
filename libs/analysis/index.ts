@@ -28,6 +28,12 @@
  * `import()` keeps that subtree out of anything that only touches this
  * module's pure exports; nothing about the backend's own call sites
  * changes; `completeAnalysis` is still one `await` away.
+ *
+ * `analyzeGame` is exported statically (not behind a dynamic import) for
+ * `apps/web/src/games/browser-analysis/`, which runs this same per-ply
+ * search/classify loop against a browser Worker engine instead of a
+ * server process. Checked to be free of `process-analysis.ts`'s Node-only
+ * imports.
  */
 
 export { getAnalysisReport } from "./get-analysis/get-analysis.ts";
@@ -53,7 +59,12 @@ export type {
 } from "./watch-analysis/watchers.ts";
 
 export type { AnalyzeDeps } from "./process-analysis/process-analysis.ts";
-export type { GradedPly } from "./process-analysis/analyze-game.ts";
+export { analyzeGame } from "./process-analysis/analyze-game.ts";
+export type {
+  AnalysisEvent,
+  AnalyzeOptions,
+  GradedPly,
+} from "./process-analysis/analyze-game.ts";
 
 export async function completeAnalysis(
   deps: import("./process-analysis/process-analysis.ts").AnalyzeDeps,

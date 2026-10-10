@@ -1,4 +1,3 @@
-import type { GradedPly } from "../games/analysis-contract.ts";
 import type { Game } from "../games/list/queries.ts";
 import { ME, resetGameIds } from "./games.ts";
 
@@ -28,31 +27,14 @@ export interface SeatProfile {
 
 const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null };
 
-/** How the server answers an analysis request. `elsewhere` counts reads: first says "running", next delivers — the 202 convergence. */
-export type AnalysisAnswer =
-  | {
-      kind: "stream";
-      moves: GradedPly[];
-      /** Chunk size in bytes — a real stream never guarantees a chunk is a whole frame. */
-      chunkBytes?: number;
-      /** Ends the first connection early, no terminal frame, like a dropped socket; reconnect replays from the start. */
-      dropsAfter?: number;
-    }
-  | { kind: "cached"; moves: GradedPly[] }
-  | { kind: "elsewhere"; moves: GradedPly[]; reads: number }
-  | { kind: "failed" };
-
 interface ArchiveState {
   account: ArchiveAccount;
   games: Game[];
   incoming: Game[];
   /** Set when the server should answer the next refresh with 429. */
   refusesRefreshFor: number | null;
-  /** Per game — absent means "never analyzed", which streams empty. */
-  analyses: Map<string, AnalysisAnswer>;
   /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
-  watches: number;
 }
 
 function fresh(): ArchiveState {
@@ -61,9 +43,7 @@ function fresh(): ArchiveState {
     games: [],
     incoming: [],
     refusesRefreshFor: null,
-    analyses: new Map(),
     identities: new Map(),
-    watches: 0,
   };
 }
 
@@ -98,10 +78,6 @@ export function gameById(id: string): Game | undefined {
   return state.games.find((game) => game.id === id);
 }
 
-export function stageAnalysis(gameId: string, answer: AnalysisAnswer): void {
-  state.analyses.set(gameId, answer);
-}
-
 /** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
 export function stageSeatIdentities(
   gameId: string,
@@ -123,20 +99,6 @@ export function seatIdentityFields(gameId: string): {
     whiteIdentity: staged?.white ?? { ...NO_PROFILE },
     blackIdentity: staged?.black ?? { ...NO_PROFILE },
   };
-}
-
-/** Counted because a reopening EventSource is invisible on screen — this is the only tell. */
-export function watchCount(): number {
-  return state.watches;
-}
-
-export function countWatch(): number {
-  state.watches += 1;
-  return state.watches;
-}
-
-export function analysisAnswerFor(gameId: string): AnalysisAnswer | undefined {
-  return state.analyses.get(gameId);
 }
 
 /**
