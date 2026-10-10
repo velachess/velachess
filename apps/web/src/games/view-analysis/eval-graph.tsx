@@ -1,12 +1,34 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
+import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 import { EvaluationChart } from "@velachess/ui/charts/evaluation-chart";
 import type { EvaluationPoint } from "@velachess/ui/charts/evaluation-chart";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 
+import type { MoveCategory } from "../analysis-contract.ts";
 import type { EvalPoint } from "../analysis-read.ts";
 import { badgeForCategory } from "../analysis-read.ts";
+
+/**
+ * What the graph marks.
+ *
+ * The chart draws a dot wherever a point carries a tone, and this is
+ * where the product decides which moves deserve one. A game is mostly
+ * good and best moves; a dot on each turns an 80px strip into a row of
+ * dots and buries the three that matter. The curve already shows every
+ * move, and the scoresheet names them all.
+ */
+const MARKED_CATEGORIES: ReadonlySet<MoveCategory> = new Set([
+  "inaccuracy",
+  "mistake",
+  "blunder",
+]);
+
+function graphToneOf(category: MoveCategory): BadgeTone | undefined {
+  if (!MARKED_CATEGORIES.has(category)) return undefined;
+  return badgeForCategory(category) ?? undefined;
+}
 
 const GRAPH_COPY = {
   title: msg`Evaluation over the game`,
@@ -43,7 +65,7 @@ export function EvalGraph({
     );
   }
 
-  // Build evaluation points with tone colors.
+  // Build evaluation points, toned only where the move went wrong.
   const evaluationPoints: EvaluationPoint[] = Array.from(
     { length: Math.max(totalPlies, points.length) },
     (_, index) => {
@@ -58,7 +80,7 @@ export function EvalGraph({
       return {
         ply: point.ply,
         value: point.winChance,
-        tone: badgeForCategory(point.category) ?? undefined,
+        tone: graphToneOf(point.category),
       };
     },
   );
