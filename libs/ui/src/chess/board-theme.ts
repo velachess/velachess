@@ -4,6 +4,7 @@
  * properties in `styles/theme.css` — no literal colours here.
  */
 
+import { chessColumnToColumnIndex, chessRowToRowIndex } from "react-chessboard";
 import type { CSSProperties } from "react";
 
 /** Custom properties this module reads. Declared in `styles/theme.css`. */
@@ -72,21 +73,30 @@ const CORNER_DIRECTION: Record<BadgeCorner, Vector> = {
   "bottom-left": { x: -1, y: 1 },
 };
 
-const FILES = "abcdefgh";
-const LAST = 7;
+/** A standard board. The library's helpers take these as arguments. */
+const BOARD_SIZE = 8;
+const LAST = BOARD_SIZE - 1;
 
 /**
- * A square in screen cells, which is what a corner is about: flipping the
- * board moves the "top-right" corner to the other end of the position.
+ * A square in screen cells, which is what a corner is about: flipping
+ * the board moves the "top-right" corner to the other end of the
+ * position.
+ *
+ * The conversion is react-chessboard's own, orientation included —
+ * the same one it lays the squares out with, so a corner computed here
+ * cannot drift from where the square is actually drawn.
  */
 function screenCellOf(square: string, orientation: "white" | "black"): Vector | null {
-  const file = FILES.indexOf(square[0] ?? "");
-  const rank = Number(square[1]) - 1;
-  if (file < 0 || !Number.isInteger(rank) || rank < 0 || rank > LAST) return null;
+  const file = square[0];
+  const rank = square[1];
+  if (file === undefined || rank === undefined || square.length !== 2) return null;
 
-  return orientation === "white"
-    ? { x: file, y: LAST - rank }
-    : { x: LAST - file, y: rank };
+  const x = chessColumnToColumnIndex(file, BOARD_SIZE, orientation);
+  const y = chessRowToRowIndex(rank, BOARD_SIZE, orientation);
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
+  if (x < 0 || x > LAST || y < 0 || y > LAST) return null;
+
+  return { x, y };
 }
 
 /** Whether a corner of this cell would hang off the board. */

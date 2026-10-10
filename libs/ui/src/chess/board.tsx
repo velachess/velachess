@@ -208,20 +208,16 @@ function withArrows(
 /**
  * The arrows as the badge needs them: which squares each one touches.
  *
- * Built from the same inputs as `withArrows`, so the badge dodges
- * exactly the arrows that get drawn — including the right-drag ones the
- * library owns, which it does not, since those are the viewer's own
- * marks and are cleared on the next move.
+ * Read back off what `withArrows` actually produced rather than rebuilt
+ * from the same inputs. Those two lists would have to agree on order
+ * and on the `MAX_ARROWS` cap, and a badge that dodged an arrow the
+ * board never drew would be the first sign they had stopped agreeing.
  */
-function arrowSquaresOf(
-  bestMove: BoardArrow | undefined,
-  alternatives: readonly BoardArrow[],
-  playedMove: BoardArrow | undefined,
-  suggestedMove: BoardArrow | undefined,
-): ArrowSquares[] {
-  return [suggestedMove, playedMove, bestMove, ...alternatives]
-    .filter((move) => move !== undefined)
-    .map((move) => ({ from: move.from, to: move.to }));
+function arrowSquaresOf(drawn: Arrow[] | undefined): ArrowSquares[] {
+  return (drawn ?? []).map((arrow) => ({
+    from: arrow.startSquare,
+    to: arrow.endSquare,
+  }));
 }
 
 export function Board({
@@ -246,7 +242,8 @@ export function Board({
   // re-implementing the board.
   const [selected, setSelected] = useState<string | null>(null);
   const hints = hintsOf(showLegalMoves === "off" ? null : selected, legalTargetsOf);
-  const arrowSquares = arrowSquaresOf(bestMove, alternatives, playedMove, suggestedMove);
+  const drawnArrows = withArrows(bestMove, alternatives, playedMove, suggestedMove);
+  const arrowSquares = arrowSquaresOf(drawnArrows.arrows);
 
   /**
    * Click to move: pick a piece, then click where it goes.
@@ -322,7 +319,7 @@ export function Board({
           // Spread rather than assigned: `exactOptionalPropertyTypes` makes
           // an explicit `undefined` a different thing from an absent key,
           // and `ChessboardOptions` asks for the key to be absent.
-          ...withArrows(bestMove, alternatives, playedMove, suggestedMove),
+          ...drawnArrows,
           arrowOptions: ARROW_GEOMETRY,
           // Right-drag arrows are the library's, and free. Clearing them
           // on a position change matters here: without it a mark drawn
