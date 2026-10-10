@@ -12,7 +12,7 @@ import { EngineSession } from "@velachess/infra-engine";
 // would — init() once, go() many times, quit() at the end.
 
 const require = createRequire(import.meta.url);
-const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");
+const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
 
 async function collectUpdates(session: EngineSession, depth: number) {
   const { updates, bestMove } = session.go({ kind: "depth", depth });

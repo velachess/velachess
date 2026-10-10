@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { analyzeGame, type AnalysisEvent } from "../analyze-game.ts";
 
 const require = createRequire(import.meta.url);
-const enginePath = require.resolve("stockfish/bin/stockfish-18-lite-single.js");
+const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
 
 async function makeStockfishSession(): Promise<EngineSession> {
   const session = new EngineSession(
