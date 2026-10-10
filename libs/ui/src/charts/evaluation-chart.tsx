@@ -4,7 +4,6 @@ import {
   DefaultZIndexes,
   Line,
   LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -12,6 +11,7 @@ import {
   useChartHeight,
   useChartWidth,
   useXAxisInverseDataSnapScale,
+  useXAxisScale,
 } from "recharts";
 
 import type { BadgeTone } from "../chess/board-theme.ts";
@@ -70,6 +70,39 @@ function CustomDot({
         }
       }}
     />
+  );
+}
+
+/**
+ * The selected ply, marked edge to edge.
+ *
+ * `ReferenceLine` stops at the plot area, so the chart's margin stays
+ * blank above and below it — in an 80px strip that reads as a line that
+ * failed to reach. This draws in the chart's own coordinates instead,
+ * spanning the full height the way Lichess and chess.com mark the move.
+ */
+function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
+  const height = useChartHeight();
+  const scale = useXAxisScale();
+  if (ply === undefined || !height || !scale) return null;
+
+  const x = scale(ply);
+  if (typeof x !== "number") return null;
+
+  return (
+    // Over the curve, under the click target: a marker on top of the
+    // data that never swallows a click meant for the plot.
+    <ZIndexLayer zIndex={DefaultZIndexes.activeDot}>
+      <line
+        x1={x}
+        x2={x}
+        y1={0}
+        y2={height}
+        stroke="var(--info)"
+        strokeWidth={2}
+        data-slot="evaluation-chart-selected-ply"
+      />
+    </ZIndexLayer>
   );
 }
 
@@ -154,11 +187,6 @@ export function EvaluationChart({
         >
           <XAxis dataKey="ply" hide />
           <YAxis domain={domain ?? ["auto", "auto"]} hide />
-          {/* The marker, not a hover card: where the chart sits is persistent
-              information, and the default zIndex keeps it under the click target. */}
-          {markedPly !== undefined && (
-            <ReferenceLine x={markedPly} stroke="var(--chart-3)" strokeWidth={2} />
-          )}
           <Line
             type="linear"
             dataKey="value"
@@ -167,6 +195,9 @@ export function EvaluationChart({
             dot={renderDot}
             isAnimationActive={false}
           />
+          {/* The marker, not a hover card: where the board sits is
+              persistent information the graph should keep showing. */}
+          <SelectedPlyMarker ply={markedPly} />
           <PlotClickTarget onSelectPly={onSelectPly} />
         </LineChart>
       </ResponsiveContainer>

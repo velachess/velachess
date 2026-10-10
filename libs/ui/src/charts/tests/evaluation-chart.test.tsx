@@ -50,7 +50,9 @@ it("marks the selected ply with a vertical line", () => {
     />,
   );
 
-  expect(container.querySelector(".recharts-reference-line-line")).not.toBeNull();
+  expect(
+    container.querySelector("[data-slot='evaluation-chart-selected-ply']"),
+  ).not.toBeNull();
 });
 
 it("draws no line when the selected ply is not one of the plotted moves", () => {
@@ -68,7 +70,9 @@ it("draws no line when the selected ply is not one of the plotted moves", () => 
     />,
   );
 
-  expect(container.querySelector(".recharts-reference-line-line")).toBeNull();
+  expect(
+    container.querySelector("[data-slot='evaluation-chart-selected-ply']"),
+  ).toBeNull();
 });
 
 it("selects the nearest move when the graph is clicked away from a dot", async () => {
