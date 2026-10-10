@@ -34,34 +34,38 @@ export interface EvaluationChartProps {
   onSelectPly?: ((ply: number) => void) | undefined;
 }
 
-function getPointColor(
-  tone?: BadgeTone,
-  defaultColor: string = "var(--primary)",
-): string {
-  return tone ? BADGE_TONE_COLOR[tone] : defaultColor;
-}
-
-function CustomDot({
+/**
+ * Only a notable move gets a dot.
+ *
+ * A dot per ply turns an 80px strip into noise — the curve already
+ * shows every move, and the scoresheet names them. Lichess and
+ * chess.com mark the mistakes and leave the rest to the line, so the
+ * eye lands on what went wrong. Any ply stays selectable: the click
+ * target below is the whole plot, not these dots.
+ */
+function MoveDot({
   cx,
   cy,
   payload,
-  defaultColor,
   onSelectPly,
 }: {
   cx?: number | undefined;
   cy?: number | undefined;
   payload: EvaluationPoint;
-  defaultColor: string;
   onSelectPly?: ((ply: number) => void) | undefined;
 }) {
-  if (cx === undefined || cy === undefined) return null;
+  if (cx === undefined || cy === undefined || !payload.tone) return null;
 
   return (
     <circle
       cx={cx}
       cy={cy}
-      r={payload.tone ? 3 : 2}
-      fill={getPointColor(payload.tone, defaultColor)}
+      r={5}
+      fill={BADGE_TONE_COLOR[payload.tone]}
+      // The curve runs under the dots; a ring in the page's own
+      // background is what keeps a dot legible where they cross.
+      stroke="var(--background)"
+      strokeWidth={1.5}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -156,17 +160,9 @@ export function EvaluationChart({
         cy?: number;
         payload: EvaluationPoint;
       };
-      return (
-        <CustomDot
-          cx={cx}
-          cy={cy}
-          payload={payload}
-          defaultColor={color}
-          onSelectPly={onSelectPly}
-        />
-      );
+      return <MoveDot cx={cx} cy={cy} payload={payload} onSelectPly={onSelectPly} />;
     },
-    [color, onSelectPly],
+    [onSelectPly],
   );
 
   // A selection the data does not hold is no selection: the consumer's
@@ -193,6 +189,9 @@ export function EvaluationChart({
             stroke={color}
             strokeWidth={2}
             dot={renderDot}
+            // No hover affordance: the marker shows the selection, and a
+            // dot that appears under the pointer only competes with it.
+            activeDot={false}
             isAnimationActive={false}
           />
           {/* The marker, not a hover card: where the board sits is
