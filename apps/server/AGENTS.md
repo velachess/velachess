@@ -8,7 +8,7 @@ the only place transport concerns belong.
   workflows do not live here.
 - HTTP-shape Zod stays in the route so the exported `AppType` client remains
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
-details? }` contract.
+  details? }` contract.
 - Every route is declared with `@hono/zod-openapi`'s `createRoute` and mounted
   via `app.openapi(route, handler)`, never a plain `.get`/`.post`/`.delete` —
   `GET /openapi.json` is generated from those declarations, not hand-written.
