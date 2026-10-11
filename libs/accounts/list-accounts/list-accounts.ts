@@ -4,7 +4,9 @@
  * from "gave up".
  */
 import type { AccountPlatform } from "@velachess/infra-platforms";
-type JobStatus = "queued" | "running" | "retrying" | "succeeded" | "failed";
+
+import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
+
 type JobError = "not-found" | "incomplete" | "internal";
 
 export interface TrackedAccountSummary {
@@ -13,7 +15,7 @@ export interface TrackedAccountSummary {
   username: string;
   lastSyncedAt: Date | null;
   latestJobId: string | null;
-  latestJobStatus: JobStatus | null;
+  latestJobStatus: SyncJobStatus | null;
   latestJobError: JobError | null;
 }
 
@@ -32,10 +34,9 @@ export interface ListAccountsDeps {
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
   const accounts = await deps.listTrackedAccountsByUser(userId);
   return accounts.map(({ latestJobId, latestJobStatus, latestJobError, ...account }) => {
-    const active =
-      latestJobStatus === "queued" ||
-      latestJobStatus === "running" ||
-      latestJobStatus === "retrying";
+    // A predicate, so `latestJobStatus` stays narrowed below: `syncStatus`
+    // is the active status itself, never `succeeded` or `failed`.
+    const active = isActiveSyncStatus(latestJobStatus);
     return Object.assign(account, {
       syncStatus: active ? latestJobStatus : ("idle" as const),
       activeSyncId: active ? latestJobId : null,

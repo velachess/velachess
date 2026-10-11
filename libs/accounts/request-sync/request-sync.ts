@@ -7,6 +7,7 @@
  * already running, before any cooldown is considered.
  */
 import type { Database, SyncJob } from "@velachess/infra-db";
+import { isActiveSyncStatus } from "../sync-status.ts";
 
 /** Database and a Drizzle transaction share this type in this codebase. */
 type Tx = Database;
@@ -48,8 +49,6 @@ export type RequestSyncOutcome =
   | { status: "too-soon"; retryAfterSeconds: number }
   | { status: "not-found" };
 
-const ACTIVE = new Set<SyncJob["status"]>(["queued", "running", "retrying"]);
-
 export async function requestSync(
   deps: RequestSyncDeps,
   userId: string,
@@ -63,7 +62,7 @@ export async function requestSync(
   return deps.withTransaction(async (tx) => {
     const latest = await deps.lockLatestSyncJob(tx, accountId);
 
-    if (latest && ACTIVE.has(latest.status)) {
+    if (latest && isActiveSyncStatus(latest.status)) {
       if (await deps.isSyncDeliveryLive(tx, latest.id)) {
         return { status: "accepted", job: latest };
       }

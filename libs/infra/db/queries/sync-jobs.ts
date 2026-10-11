@@ -5,6 +5,13 @@ import { syncJobs } from "../schema.ts";
 
 type SyncJobRow = typeof syncJobs.$inferSelect;
 
+/**
+ * The same rule as `@velachess/accounts`' `ACTIVE_SYNC_STATUSES`, written
+ * a second time because this one runs inside Postgres and infra may not
+ * import a business module. Held to that list by the route and worker
+ * tests, not by shared code — the arrangement
+ * `libs/chess/game-result.ts` documents for its own SQL counterpart.
+ */
 const ACTIVE_STATUSES: SyncJobRow["status"][] = ["queued", "running", "retrying"];
 
 /**

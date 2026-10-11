@@ -3,6 +3,7 @@
  * as absent, the same as one that never existed.
  */
 import type { SyncJob } from "@velachess/infra-db";
+import { isActiveSyncStatus } from "../sync-status.ts";
 
 type GetSyncJobForUser = (userId: string, id: string) => Promise<SyncJob | null>;
 type IsSyncDeliveryLive = (jobId: string) => Promise<boolean>;
@@ -14,8 +15,6 @@ export interface GetSyncDeps {
   abandonSyncJob: AbandonSyncJob;
 }
 
-const ACTIVE = new Set<SyncJob["status"]>(["queued", "running", "retrying"]);
-
 export async function getSync(deps: GetSyncDeps, userId: string, id: string) {
   let job = await deps.getSyncJobForUser(userId, id);
   if (!job) return null;
@@ -23,7 +22,7 @@ export async function getSync(deps: GetSyncDeps, userId: string, id: string) {
   // the last attempt) leaves the job active with nothing running it. That
   // Only an operator's retry or redrive revives that state, and a revived
   // delivery of a closed job does nothing, so closing it races no delivery.
-  if (ACTIVE.has(job.status) && !(await deps.isSyncDeliveryLive(job.id))) {
+  if (isActiveSyncStatus(job.status) && !(await deps.isSyncDeliveryLive(job.id))) {
     await deps.abandonSyncJob(job.id);
     // Gone if its account was disconnected meanwhile.
     job = await deps.getSyncJobForUser(userId, id);
