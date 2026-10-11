@@ -136,7 +136,11 @@ function Hero() {
           alt={i18n._(COPY.analysisAlt)}
           width={1440}
           height={900}
-          sizes="100vw"
+          // The hero is full-bleed inside `main`'s max-w-7xl px-6 box, not
+          // the viewport: 100vw overstated it by the 48px gutter and made
+          // mobile emulation (412px at DPR 1.75) resolve to the 768w
+          // variant when 640w already covers it.
+          sizes="(min-width: 80rem) 1232px, calc(100vw - 3rem)"
           priority
           fetchPriority="high"
           className="h-auto w-full rounded-md border shadow-lg"
@@ -242,7 +246,10 @@ function ProductShowcases() {
                 alt={i18n._(COPY.analysisAlt)}
                 width={1440}
                 height={900}
-                sizes="(max-width: 1024px) 100vw, 60vw"
+                // Sized to the card's content box so mobile resolves to
+                // the same 640w variant the hero picks — two different
+                // `sizes` values would make one page download both.
+                sizes="(min-width: 64rem) 60vw, calc(100vw - 6rem)"
                 className="w-full rounded-md border shadow-lg lg:col-span-3"
               />
             </CardContent>

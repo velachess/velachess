@@ -94,9 +94,14 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
               {[...ONBOARDING_STEPS, { id: "import" }].map((entry, index) => (
                 <span
                   key={entry.id}
+                  // Both states are the brand hue: `bg-muted` is a surface
+                  // token, so an inactive dot drawn with it sat a shade off
+                  // the dialog it sits on and read as switched off in both
+                  // themes. A tint of the same accent stays visible on
+                  // either background.
                   className={cn(
                     "size-2 rounded-full transition-colors",
-                    index === step ? "bg-foreground" : "bg-muted",
+                    index === step ? "bg-primary" : "bg-primary/30",
                   )}
                 />
               ))}

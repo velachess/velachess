@@ -5,7 +5,8 @@
       "url": ["http://localhost/"],
       "numberOfRuns": 5,
       "settings": {
-        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"]
+        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
+        "throttlingMethod": "devtools"
       }
     },
     "assert": {

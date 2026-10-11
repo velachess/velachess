@@ -33,9 +33,13 @@ msgstr ""
 msgid "{opponent} vs you"
 msgstr ""
 
+#: src/games/import/sources.ts:83
+msgid "{platform} is connected"
+msgstr ""
+
 #: src/games/import/sync-games-button.tsx:31
 #: src/games/request-analysis/analysis-status.tsx:19
-#: src/settings/connections/connections-screen.tsx:49
+#: src/settings/connections/connections-screen.tsx:82
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
@@ -52,7 +56,7 @@ msgid "Account"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:20
-#: src/settings/connections/connections-screen.tsx:41
+#: src/settings/connections/connections-screen.tsx:62
 msgid "Already up to date"
 msgstr ""
 
@@ -105,7 +109,7 @@ msgstr ""
 msgid "Black"
 msgstr ""
 
-#: src/games/games-list.tsx:28
+#: src/games/games-list.tsx:30
 #: src/games/list/columns.tsx:23
 #: src/games/list/filters.ts:49
 msgid "Blitz"
@@ -123,13 +127,14 @@ msgstr ""
 msgid "Board interaction preferences."
 msgstr ""
 
-#: src/games/games-list.tsx:27
+#: src/games/games-list.tsx:29
 #: src/games/list/columns.tsx:22
 #: src/games/list/filters.ts:48
 msgid "Bullet"
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:39
+#: src/settings/connections/connections-screen.tsx:72
 msgid "Cancel"
 msgstr ""
 
@@ -149,7 +154,7 @@ msgstr ""
 msgid "Choose a JPEG, PNG or WebP image."
 msgstr ""
 
-#: src/games/games-list.tsx:30
+#: src/games/games-list.tsx:32
 #: src/games/list/columns.tsx:25
 #: src/games/list/filters.ts:51
 msgid "Classical"
@@ -163,17 +168,26 @@ msgstr ""
 msgid "Color"
 msgstr ""
 
+#: src/games/games-list.tsx:23
 #: src/onboarding/onboarding-dialog.tsx:25
-#: src/settings/connections/connections-screen.tsx:38
+#: src/settings/connections/connections-screen.tsx:59
 msgid "Connect an account"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:79
+msgid "Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish."
 msgstr ""
 
 #: src/settings/account/sign-in-methods.tsx:24
 msgid "Connected — you can sign in with Google."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:75
+msgid "Connection removed"
+msgstr ""
+
 #: src/routes/_app/settings/connections.tsx:7
-#: src/settings/connections/connections-screen.tsx:33
+#: src/settings/connections/connections-screen.tsx:54
 #: src/settings/layout/navigation.ts:30
 #: src/test/routes.tsx:131
 msgid "Connections"
@@ -200,11 +214,11 @@ msgstr ""
 msgid "Couldn't load analysis."
 msgstr ""
 
-#: src/games/games-list.tsx:23
+#: src/games/games-list.tsx:25
 msgid "Couldn't load games."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:35
+#: src/settings/connections/connections-screen.tsx:56
 msgid "Couldn't load your connected accounts."
 msgstr ""
 
@@ -213,7 +227,7 @@ msgid "Couldn't load your sign-in methods."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:24
-#: src/settings/connections/connections-screen.tsx:45
+#: src/settings/connections/connections-screen.tsx:66
 msgid "Couldn't reach that account"
 msgstr ""
 
@@ -227,6 +241,10 @@ msgstr ""
 
 #: src/settings/account/avatar-field.tsx:45
 msgid "Couldn't remove it. Try again."
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:76
+msgid "Couldn't remove the connection"
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:44
@@ -248,6 +266,10 @@ msgstr ""
 
 #: src/games/list/columns.tsx:17
 msgid "Date"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:69
+msgid "Disconnect"
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:37
@@ -298,7 +320,7 @@ msgstr ""
 msgid "Evaluation over the game"
 msgstr ""
 
-#: src/games/games-list.tsx:20
+#: src/games/games-list.tsx:21
 msgid "Every game you've imported, and how it went."
 msgstr ""
 
@@ -313,7 +335,7 @@ msgstr ""
 msgid "Gameplay"
 msgstr ""
 
-#: src/games/games-list.tsx:19
+#: src/games/games-list.tsx:20
 #: src/routes/_app/games.tsx:6
 #: src/test/routes.tsx:72
 msgid "Games"
@@ -323,7 +345,7 @@ msgstr ""
 msgid "Games imported"
 msgstr ""
 
-#: src/games/games-list.tsx:24
+#: src/games/games-list.tsx:26
 msgid "Games pages"
 msgstr ""
 
@@ -473,7 +495,7 @@ msgstr ""
 msgid "Main, bottom bar"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:34
+#: src/settings/connections/connections-screen.tsx:55
 msgid "Manage the chess accounts VelaChess imports games from."
 msgstr ""
 
@@ -483,6 +505,10 @@ msgstr ""
 
 #: src/games/analysis-read.ts:154
 msgid "Mistake"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:68
+msgid "More actions"
 msgstr ""
 
 #: src/games/open-game/analysis-panel.tsx:19
@@ -510,11 +536,11 @@ msgid "Name"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:22
-#: src/settings/connections/connections-screen.tsx:43
+#: src/settings/connections/connections-screen.tsx:64
 msgid "New games imported"
 msgstr ""
 
-#: src/games/games-list.tsx:26
+#: src/games/games-list.tsx:28
 #: src/games/open-game/replay-controls.tsx:13
 #: src/onboarding/onboarding-dialog.tsx:23
 msgid "Next"
@@ -524,20 +550,24 @@ msgstr ""
 msgid "Next move"
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:78
+msgid "No chess accounts connected"
+msgstr ""
+
 #: src/games/import/sources.ts:82
 msgid "No games found for that username. Check the spelling and try again."
 msgstr ""
 
-#: src/games/games-list.tsx:22
+#: src/games/games-list.tsx:24
 msgid "No games match these filters."
 msgstr ""
 
-#: src/games/games-list.tsx:21
+#: src/games/games-list.tsx:22
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:21
-#: src/settings/connections/connections-screen.tsx:42
+#: src/settings/connections/connections-screen.tsx:63
 msgid "No new games since your last sync."
 msgstr ""
 
@@ -545,7 +575,7 @@ msgstr ""
 msgid "Not graded yet"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:36
+#: src/settings/connections/connections-screen.tsx:57
 msgid "Not synced yet"
 msgstr ""
 
@@ -605,7 +635,7 @@ msgstr ""
 msgid "Prev"
 msgstr ""
 
-#: src/games/games-list.tsx:25
+#: src/games/games-list.tsx:27
 msgid "Previous"
 msgstr ""
 
@@ -617,7 +647,7 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: src/games/games-list.tsx:29
+#: src/games/games-list.tsx:31
 #: src/games/list/columns.tsx:24
 #: src/games/list/filters.ts:50
 msgid "Rapid"
@@ -635,8 +665,24 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:73
+msgid "Remove connection"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:70
+msgid "Remove connection?"
+msgstr ""
+
 #: src/settings/account/avatar-field.tsx:35
 msgid "Remove picture"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:71
+msgid "Removing the connection to {username} on {platform} also deletes the games VelaChess imported from it, and their analyses. This can't be undone. Games you imported from a PGN file are not affected."
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:74
+msgid "Removing…"
 msgstr ""
 
 #: src/games/open-game/analysis-panel.tsx:20
@@ -733,18 +779,18 @@ msgid "Step forward to walk through the game."
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:18
-#: src/settings/connections/connections-screen.tsx:39
+#: src/settings/connections/connections-screen.tsx:60
 msgid "Sync games"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:23
-#: src/settings/connections/connections-screen.tsx:44
+#: src/settings/connections/connections-screen.tsx:65
 msgid "Synced a moment ago"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:19
-#: src/settings/connections/connections-screen.tsx:37
-#: src/settings/connections/connections-screen.tsx:40
+#: src/settings/connections/connections-screen.tsx:58
+#: src/settings/connections/connections-screen.tsx:61
 msgid "Syncing…"
 msgstr ""
 
@@ -814,7 +860,8 @@ msgid "Try again"
 msgstr ""
 
 #: src/games/import/sync-games-button.tsx:25
-#: src/settings/connections/connections-screen.tsx:46
+#: src/settings/connections/connections-screen.tsx:67
+#: src/settings/connections/connections-screen.tsx:77
 msgid "Try again in a moment."
 msgstr ""
 
@@ -833,6 +880,10 @@ msgstr ""
 
 #: src/games/import/sources.ts:78
 msgid "VelaChess reads your public game archive so you can review them with Stockfish. No password needed."
+msgstr ""
+
+#: src/games/import/sources.ts:84
+msgid "VelaChess tracks one account per platform. {username} is connected — remove that connection to use a different handle."
 msgstr ""
 
 #: src/games/open-game/game-result.tsx:10

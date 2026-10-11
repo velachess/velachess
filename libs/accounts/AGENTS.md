@@ -1,14 +1,20 @@
 # Agent Guide — `libs/accounts`
 
-Extends `../../AGENTS.md`. Owns tracked-account lifecycle: connect, list,
-refresh — change together whenever a provider integration changes.
+Extends `../../AGENTS.md`. Owns tracked-account lifecycle: connect,
+disconnect, list, refresh — change together whenever a provider
+integration changes.
 
-`index.ts` exports: `importAccount`, `listAccounts`, `listGamesWithStatus`,
-`processAccountSync`, `refreshAccount`, `secondsUntilRefreshAllowed`,
-`syncAccount`, `SYNC_COOLDOWN_SECONDS`; types `ConnectAccountDeps`,
-`Platform`, `ListAccountsDeps`, `SyncState`, `TrackedAccountSummary`,
-`GameWithStatus`, `ListAccountGamesDeps`, `RefreshOutcome`,
-`SyncAccountDeps`, `SyncDeps`, `SyncOutcome`.
+A user tracks at most one handle per provider (`(user_id, platform)` is
+unique at the schema level) — `connect-account` enforces it before
+`disconnect-account` or `sync-account` ever see a row.
+
+`index.ts` exports: `importAccount`, `disconnectAccount`, `listAccounts`,
+`listGamesWithStatus`, `processAccountSync`, `refreshAccount`,
+`secondsUntilRefreshAllowed`, `syncAccount`, `SYNC_COOLDOWN_SECONDS`; types
+`ConnectAccountDeps`, `ConnectOutcome`, `Platform`, `DisconnectAccountDeps`,
+`DisconnectOutcome`, `ListAccountsDeps`, `SyncState`,
+`TrackedAccountSummary`, `GameWithStatus`, `ListAccountGamesDeps`,
+`RefreshOutcome`, `SyncAccountDeps`, `SyncDeps`, `SyncOutcome`.
 
 Cross-module dependencies: none. Provider HTTP, the database and the queue
 are all reached through dependency types the composition root satisfies.

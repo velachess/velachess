@@ -84,6 +84,16 @@ export const users = pgTable("users", {
    * from "deleted theirs", and only the second must stay empty.
    */
   avatarSource: text("avatar_source"),
+  /**
+   * When this person finished onboarding — stamped on their first
+   * successful connection, and never again.
+   *
+   * A column rather than a derived fact: onboarding used to be inferred
+   * from "no games and no accounts", which made it reappear every time
+   * someone disconnected everything. Theirs to keep, so it outlives both
+   * the connection and the browser.
+   */
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
@@ -223,6 +233,12 @@ export const rateLimits = pgTable("rate_limits", {
  * Before this, uniqueness was `(platform, username)` globally — written
  * in migration 0000, before users existed in 0001 — and importing a name
  * someone else already tracked silently transferred their whole archive.
+ *
+ * The unique key is `(user_id, platform)`, not `(user_id, platform,
+ * username)` — a user tracks at most one handle per provider. Connecting a
+ * second Chess.com handle must fail, not create a sibling row; the connect
+ * slice checks for an existing row on the platform before upserting, so
+ * this constraint is the backstop against a race, not the only guard.
  */
 export const trackedAccounts = pgTable(
   "tracked_accounts",
@@ -246,11 +262,7 @@ export const trackedAccounts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("tracked_accounts_user_platform_username").on(
-      table.userId,
-      table.platform,
-      table.username,
-    ),
+    uniqueIndex("tracked_accounts_user_platform").on(table.userId, table.platform),
     index("tracked_accounts_user_id").on(table.userId),
   ],
 );
@@ -357,9 +369,11 @@ export const games = pgTable(
 
 /** Structural mirror of @velachess/analysis's GradedPly — declared
  * locally so drizzle-kit's schema loader never touches the chess toolchain.
- * Compatibility is asserted at typecheck in tests/schema.test.ts (a
- * production import of a business module's type would violate
- * no-infra-to-modules; the test path is exempt). */
+ * Compatibility is asserted at typecheck from the analysis side, in
+ * libs/analysis/process-analysis/tests/analyze-game.test.ts: analysis
+ * already depends on this package, so the guard runs with the package
+ * graph instead of against it. Asserting it here would need
+ * @velachess/analysis as a devDependency, and that edge is a cycle. */
 export interface StoredGradedPly {
   ply: number;
   fen: string;

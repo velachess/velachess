@@ -314,4 +314,105 @@ describe("api routes", () => {
     expect(game.rawPgn).toContain("1. e4");
     expect((await owner.request(`/games/${randomUUID()}`)).status).toBe(404);
   });
+
+  it("accounts: the first connection that sticks ends onboarding, once", async () => {
+    // Read back through the session, which is exactly how the app learns
+    // it: a stamp nobody can see is a stamp that does nothing.
+    const fresh = (await harness.signUp("onboarding@api.test")).app;
+    const session = async () =>
+      (await (await fresh.request("/auth/get-session")).json()) as {
+        user: { onboardedAt: string | null };
+      };
+
+    expect((await session()).user.onboardedAt).toBeNull();
+
+    await fresh.request("/accounts", json({ platform: "chess_com", username: "Looper" }));
+    const stamped = (await session()).user.onboardedAt;
+    expect(stamped).not.toBeNull();
+
+    // Reconnecting the same handle must not move it: it records when they
+    // arrived, not when they last connected.
+    await fresh.request("/accounts", json({ platform: "chess_com", username: "looper" }));
+    expect((await session()).user.onboardedAt).toBe(stamped);
+  });
+
+  it("accounts: one per provider — a different handle on a connected platform is refused with 409", async () => {
+    // Its own user: the suite's shared `owner` already has a chess_com
+    // connection from the very first test, and this must not disturb it.
+    const solo = (await harness.signUp("one-provider@api.test")).app;
+
+    const firstImport = await solo.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "Looper" }),
+    );
+    expect(firstImport.status).toBe(201);
+    const first = (await firstImport.json()) as { id: string; username: string };
+
+    const conflict = await solo.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "someone_else" }),
+    );
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({
+      platform: "chess_com",
+      username: first.username,
+      accountId: first.id,
+    });
+
+    // The existing connection answers the same, untouched.
+    const listed = (await (await solo.request("/accounts")).json()) as { id: string }[];
+    expect(listed.map((a) => a.id)).toEqual([first.id]);
+
+    // The exact same handle, differently cased, stays a plain idempotent
+    // re-import — not a conflict.
+    const again = await solo.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "LOOPER" }),
+    );
+    expect(again.status).toBe(201);
+    expect(((await again.json()) as { id: string }).id).toBe(first.id);
+  });
+
+  it("accounts: delete frees the provider slot and takes the account's games with it", async () => {
+    const solo = (await harness.signUp("disconnect@api.test")).app;
+    const other = (await harness.signUp("not-the-owner@api.test")).app;
+
+    const created = await solo.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "Looper" }),
+    );
+    const account = (await created.json()) as { id: string };
+    const gamesBefore = (await (await solo.request("/games")).json()) as {
+      total: number;
+    };
+    expect(gamesBefore.total).toBeGreaterThan(0);
+
+    // Not this caller's account: 404, same as a missing id.
+    expect(
+      (await other.request(`/accounts/${account.id}`, { method: "DELETE" })).status,
+    ).toBe(404);
+
+    expect(
+      (await solo.request(`/accounts/${account.id}`, { method: "DELETE" })).status,
+    ).toBe(204);
+    expect(await (await solo.request("/accounts")).json()).toEqual([]);
+
+    // The games it imported go with it — the library no longer shows a
+    // disconnected account's archive.
+    const gamesAfter = (await (await solo.request("/games")).json()) as { total: number };
+    expect(gamesAfter.total).toBe(0);
+
+    // Deleting again is the same not-found, not an error.
+    expect(
+      (await solo.request(`/accounts/${account.id}`, { method: "DELETE" })).status,
+    ).toBe(404);
+
+    // The slot is free: reconnecting, even under a different handle,
+    // succeeds again.
+    const reconnected = await solo.request(
+      "/accounts",
+      json({ platform: "chess_com", username: "a_new_handle" }),
+    );
+    expect(reconnected.status).toBe(201);
+  });
 });

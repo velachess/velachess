@@ -2,16 +2,28 @@ import type { ChessComCursor, LichessCursor } from "@velachess/infra-platforms";
 import { and, asc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { trackedAccounts } from "../schema.ts";
+import { games, trackedAccounts } from "../schema.ts";
 
 type Platform = "chess_com" | "lichess";
 type Cursor = ChessComCursor | LichessCursor;
 
 /**
- * Ownership is part of the conflict key — `(user_id, platform, username)`
- * — so two users tracking the same handle get two rows. Previously
- * platform+username was globally unique with a separate ownership
- * UPDATE, which let an import silently steal another user's archive.
+ * Ownership is part of the conflict key — `(user_id, platform)` — so two
+ * users tracking the same handle get two rows, and one user gets at most
+ * one row per provider. Previously platform+username was globally unique
+ * with a separate ownership UPDATE, which let an import silently steal
+ * another user's archive; before that, it was `(user_id, platform,
+ * username)`, which let one user track two different handles on the same
+ * provider.
+ *
+ * The conflict target is the DB's backstop against a race, not the only
+ * guard — `connect-account` checks for an existing different-username row
+ * first and refuses before calling this, so a legitimate call here only
+ * ever re-upserts the SAME handle this user already tracks. If two
+ * requests race past that check anyway, this upsert still can't create a
+ * second row: the loser's conflict lands on the one row that's already
+ * there and overwrites its username, same as any other concurrent write
+ * to one row would.
  *
  * Identity does not live here: provider metadata is public and shared,
  * so it is cached once per handle in `provider_profiles` (see
@@ -28,11 +40,7 @@ export async function upsertTrackedAccount(
     .insert(trackedAccounts)
     .values({ userId, platform, username: normalized })
     .onConflictDoUpdate({
-      target: [
-        trackedAccounts.userId,
-        trackedAccounts.platform,
-        trackedAccounts.username,
-      ],
+      target: [trackedAccounts.userId, trackedAccounts.platform],
       set: {
         username: normalized,
       },
@@ -40,6 +48,51 @@ export async function upsertTrackedAccount(
     .returning();
 
   return account!;
+}
+
+/**
+ * The one row (if any) this user has for a provider — read before
+ * `upsertTrackedAccount` so a different-handle conflict can be refused
+ * with the existing account's identity instead of silently overwriting it.
+ */
+export async function findTrackedAccountByPlatform(
+  db: Database,
+  userId: string,
+  platform: Platform,
+) {
+  const [account] = await db
+    .select()
+    .from(trackedAccounts)
+    .where(
+      and(eq(trackedAccounts.userId, userId), eq(trackedAccounts.platform, platform)),
+    );
+  return account ?? null;
+}
+
+/**
+ * Drops a connection and everything it brought in, in one transaction:
+ * the games whose provenance is this account first, then the account
+ * itself. Their analyses go with the games (`game_analyses.game_id` is
+ * `ON DELETE CASCADE`).
+ *
+ * The games are deleted explicitly rather than left to the FK, which is
+ * `ON DELETE SET NULL`: orphaned rows would survive the connection that
+ * explains them, and `perspective.ts` derives which seat the user played
+ * by joining that very account — a game without one draws as if the user
+ * were always White. The FK stays as the backstop for a user-level
+ * cascade; this path decides on purpose.
+ *
+ * Scoped by `account_id`, so a manually imported PGN (which has none) and
+ * the user's other provider are untouched.
+ */
+export async function deleteTrackedAccountAndGames(
+  db: Database,
+  accountId: string,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(games).where(eq(games.accountId, accountId));
+    await tx.delete(trackedAccounts).where(eq(trackedAccounts.id, accountId));
+  });
 }
 
 export async function getTrackedAccountCursor(

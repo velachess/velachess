@@ -70,4 +70,61 @@ describe("connections", () => {
       await screen.findByText("Couldn't load your connected accounts."),
     ).toBeInTheDocument();
   });
+
+  it("explains the value of connecting an account once none are", async () => {
+    await renderApp({ path: "/settings/connections" });
+
+    expect(await screen.findByText("No chess accounts connected")).toBeInTheDocument();
+  });
+
+  it("removes a connection after confirming, and tells the user it worked", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
+
+    expect(await screen.findByText("Remove connection?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove connection" }));
+
+    expect(await screen.findByText("Connection removed")).toBeInTheDocument();
+    expect(screen.queryByText("magnus")).not.toBeInTheDocument();
+    // The empty state takes its place — nothing left to manage.
+    expect(await screen.findByText("No chess accounts connected")).toBeInTheDocument();
+  });
+
+  it("cancelling the confirmation leaves the connection untouched", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
+    await screen.findByText("Remove connection?");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText("Remove connection?")).not.toBeInTheDocument();
+    expect(screen.getByText("magnus")).toBeInTheDocument();
+  });
+
+  it("keeps the connection and reports the error when deleting fails", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+    server.use(
+      http.delete("/api/accounts/:id", () =>
+        HttpResponse.json({ error: "boom" }, { status: 500 }),
+      ),
+    );
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
+    await screen.findByText("Remove connection?");
+    await user.click(screen.getByRole("button", { name: "Remove connection" }));
+
+    expect(await screen.findByText("Couldn't remove the connection")).toBeInTheDocument();
+    expect(screen.getByText("magnus")).toBeInTheDocument();
+  });
 });

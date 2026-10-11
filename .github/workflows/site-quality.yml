@@ -22,14 +22,42 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup
 
-      - name: Run affected site quality checks
+      # A pull request runs the gate only when the site or the design
+      # system it renders changed; a push to main always runs it, so drift
+      # arriving through a dependency still fails somewhere.
+      #
+      # `turbo --affected` cannot express that: the site depends on
+      # @velachess/ui, and a root-file edit (lockfile, root package.json,
+      # turbo.json) marks every package affected — which is how a
+      # five-run Lighthouse gate ended up blocking pull requests that
+      # never touched apps/site.
+      #
+      # The workflow itself stays unfiltered on purpose. A `paths:` filter
+      # under `on:` would leave the required `Site quality / Lighthouse`
+      # check permanently pending on every other pull request; skipped
+      # steps inside a job that did run report green.
+      - name: Decide whether the site changed
+        id: scope
         env:
-          TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          TURBO_SCM_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: pnpm exec turbo run lighthouse --affected --filter=@velachess/site
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --quiet "$BASE_SHA" HEAD -- apps/site libs/ui; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No apps/site or libs/ui change — skipping Lighthouse."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run site quality checks
+        if: steps.scope.outputs.run == 'true'
+        run: pnpm exec turbo run lighthouse --filter=@velachess/site
 
       - name: Upload Lighthouse reports
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: lighthouse-reports

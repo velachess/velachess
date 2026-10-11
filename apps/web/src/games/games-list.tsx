@@ -1,9 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import type * as React from "react";
 import { useMemo } from "react";
 
+import { buttonVariants } from "@velachess/ui/components/button";
 import { DataTable, DataTablePagination } from "@velachess/ui/components/data-table";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
@@ -19,6 +20,7 @@ const GAMES_COPY = {
   title: msg`Games`,
   description: msg`Every game you've imported, and how it went.`,
   emptyArchive: msg`No games yet. Connect Chess.com or Lichess, or import a PGN.`,
+  connect: msg`Connect an account`,
   emptyFilters: msg`No games match these filters.`,
   loadError: msg`Couldn't load games.`,
   pagination: msg`Games pages`,
@@ -80,10 +82,21 @@ export function GamesList() {
     </div>
   );
 
+  // An empty library is a dead end without a way out of it: the header's
+  // Sync button needs a connection to sync, so the empty row carries the
+  // one action that creates one. Filtered-to-nothing is a different
+  // emptiness — the games exist, the filters hide them.
   const emptyMessage =
-    activeFilterCount(search) === 0
-      ? i18n._(GAMES_COPY.emptyArchive)
-      : i18n._(GAMES_COPY.emptyFilters);
+    activeFilterCount(search) === 0 ? (
+      <div className="flex flex-col items-center gap-3">
+        <span>{i18n._(GAMES_COPY.emptyArchive)}</span>
+        <Link to="/import" className={buttonVariants({ size: "sm" })}>
+          {i18n._(GAMES_COPY.connect)}
+        </Link>
+      </div>
+    ) : (
+      i18n._(GAMES_COPY.emptyFilters)
+    );
 
   if (query.isPending) {
     return (

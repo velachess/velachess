@@ -14,13 +14,17 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { NormalizedGame } from "@velachess/infra-platforms";
+
 import type { Database } from "@velachess/infra-db";
 import type { GameFilters, GamePage } from "@velachess/infra-db";
 import {
   appendProgress,
   clearProgress,
   createUser,
+  deleteTrackedAccountAndGames,
   findProviderProfiles,
+  findTrackedAccountByPlatform,
   getAnalysis,
   getGame,
   getTrackedAccount,
@@ -28,6 +32,7 @@ import {
   isProfileFresh,
   listGamesPage,
   markTrackedAccountSynced,
+  markUserOnboarded,
   saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
@@ -36,9 +41,11 @@ import {
 } from "@velachess/infra-db";
 import { openLibrary, type ListGamesDeps } from "@velachess/games";
 import {
+  disconnectAccount,
   importAccount,
   syncAccount,
   type ConnectAccountDeps,
+  type DisconnectAccountDeps,
   type SyncAccountDeps,
   type SyncDeps,
 } from "@velachess/accounts";
@@ -89,8 +96,20 @@ function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAcco
     upsertTrackedAccount: (userId, platform, username) =>
       upsertTrackedAccount(db, userId, platform, username),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
+    getTrackedAccountByPlatform: (userId, platform) =>
+      findTrackedAccountByPlatform(db, userId, platform),
+    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    markOnboarded: (userId) => markUserOnboarded(db, userId),
     syncAccount: (accountId) => syncAccount(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
+  };
+}
+
+function disconnectAccountDeps(db: Database): DisconnectAccountDeps {
+  return {
+    getTrackedAccountForUser: (userId, accountId) =>
+      getTrackedAccountForUser(db, userId, accountId),
+    deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
   };
 }
 
@@ -120,6 +139,30 @@ const emptyArchive: typeof fetch = async () =>
     headers: { "content-type": "application/json" },
   });
 
+/** A pasted game, as `POST /games/import` stores one: owned by a user,
+ * no account behind it. Mirrors libs/infra/db's own test builder. */
+function pastedGame(): NormalizedGame {
+  return {
+    source: "pgn",
+    externalId: null,
+    externalUrl: null,
+    perspective: null,
+    white: { name: "alice" },
+    black: { name: "bob" },
+    result: "1/2-1/2",
+    timeControl: {},
+    opening: {},
+    hasClocks: false,
+    rawPgn: '[Event "?"]\n\n1. e4 e5 1/2-1/2\n',
+    movetextHash: "disconnect-survivor",
+  };
+}
+
+// Same shape `fetchChessCom` really throws on an unknown handle — a 404
+// off the archives index, not a network failure.
+const unknownHandle: typeof fetch = async () =>
+  new Response("not found", { status: 404 });
+
 beforeAll(async () => {
   h = await createLoopHarness();
 });
@@ -131,7 +174,8 @@ describe("application services (the flow, end to end)", () => {
 
   /**
    * Import (idempotent — first contact fills, later calls are no-ops)
-   * then read the unified library.
+   * then read the unified library. Asserts `connected`: callers exercising
+   * the `provider-connected` refusal call `importAccount` directly.
    */
   async function openImported(
     username: string,
@@ -139,13 +183,19 @@ describe("application services (the flow, end to end)", () => {
     syncDeps: SyncDeps = {},
     ownerId: string = userId,
   ) {
-    const account = await importAccount(
+    const outcome = await importAccount(
       importAccountDeps(h.db, syncDeps.fetch),
       ownerId,
       "chess_com",
       username,
     );
-    return { account, library: await openLibrary(listGamesDeps(h.db), ownerId, view) };
+    if (outcome.status !== "connected") {
+      throw new Error(`expected "connected", got "${outcome.status}"`);
+    }
+    return {
+      account: outcome.account,
+      library: await openLibrary(listGamesDeps(h.db), ownerId, view),
+    };
   }
 
   it("a user anchors the flow", async () => {
@@ -184,7 +234,15 @@ describe("application services (the flow, end to end)", () => {
     // No games means no cursor to save. The two used to be one write, so an
     // account like this looked like one that had never synced — and the
     // route guard read that as a failed import.
-    const account = await upsertTrackedAccount(h.db, userId, "chess_com", "emptyarchive");
+    // Its own user: one chess_com account per user now, and `userId` above
+    // already has one from the previous test.
+    const ownerId = (await createUser(h.db)).id;
+    const account = await upsertTrackedAccount(
+      h.db,
+      ownerId,
+      "chess_com",
+      "emptyarchive",
+    );
 
     const outcome = await syncAccount(syncAccountDeps(h.db, emptyArchive), account.id);
 
@@ -289,6 +347,116 @@ describe("application services (the flow, end to end)", () => {
     );
     expect(again.account.id).toBe(account.id);
     expect(again.library.games.length).toBe(2);
+  });
+
+  it("importAccount: a second handle on an already-tracked provider is refused, not overwritten", async () => {
+    const ownerId = (await createUser(h.db)).id;
+    const first = await upsertTrackedAccount(h.db, ownerId, "chess_com", "first_handle");
+
+    const outcome = await importAccount(
+      importAccountDeps(h.db, emptyArchive),
+      ownerId,
+      "chess_com",
+      "second_handle",
+    );
+
+    expect(outcome).toMatchObject({
+      status: "provider-connected",
+      existing: { id: first.id, platform: "chess_com", username: "first_handle" },
+    });
+    // The existing connection is untouched — no silent overwrite.
+    expect((await getTrackedAccount(h.db, first.id))?.username).toBe("first_handle");
+
+    // The same handle it already tracks stays a plain idempotent connect.
+    const again = await importAccount(
+      importAccountDeps(h.db, emptyArchive),
+      ownerId,
+      "chess_com",
+      "First_Handle",
+    );
+    expect(again).toMatchObject({ status: "connected", account: { id: first.id } });
+  });
+
+  it("importAccount: a failed first sync rolls back the row instead of leaving a dead slot", async () => {
+    const ownerId = (await createUser(h.db)).id;
+
+    await expect(
+      importAccount(
+        importAccountDeps(h.db, unknownHandle),
+        ownerId,
+        "chess_com",
+        "ghost",
+      ),
+    ).rejects.toThrow();
+
+    // No row left behind to occupy the slot or need manual cleanup.
+    expect(await findTrackedAccountByPlatform(h.db, ownerId, "chess_com")).toBeNull();
+
+    // The provider slot is free: a real handle connects normally right after.
+    const retry = await importAccount(
+      importAccountDeps(h.db, chessComFixtureFetch()),
+      ownerId,
+      "chess_com",
+      LOOPER_USERNAME,
+    );
+    expect(retry).toMatchObject({ status: "connected" });
+  });
+
+  it("disconnectAccount: owner-scoped delete takes the account's games with it, and nothing else", async () => {
+    const ownerId = (await createUser(h.db)).id;
+    const other = (await createUser(h.db)).id;
+    const { account, library } = await openImported(
+      "disconnect_me",
+      {},
+      { fetch: chessComFixtureFetch() },
+      ownerId,
+    );
+    const gameCountBefore = library.games.length;
+    expect(gameCountBefore).toBeGreaterThan(0);
+
+    // A pasted game: same owner, no account behind it. Disconnecting
+    // must not reach it.
+    await saveGames(h.db, [pastedGame()], { userId: ownerId });
+
+    // Not this user's account: answers not-found, same as a missing id.
+    const wrongOwner = await disconnectAccount(
+      disconnectAccountDeps(h.db),
+      other,
+      account.id,
+    );
+    expect(wrongOwner).toEqual({ status: "not-found" });
+    expect(await getTrackedAccount(h.db, account.id)).not.toBeNull();
+
+    const deleted = await disconnectAccount(
+      disconnectAccountDeps(h.db),
+      ownerId,
+      account.id,
+    );
+    expect(deleted).toEqual({ status: "deleted" });
+    expect(await getTrackedAccount(h.db, account.id)).toBeNull();
+
+    // The account's games go with it; the pasted one, which never had an
+    // account, stays. A disconnect is not "wipe the library".
+    const afterDelete = await openLibrary(listGamesDeps(h.db), ownerId, {});
+    expect(afterDelete.games).toHaveLength(1);
+    expect(afterDelete.games[0]!.source).toBe("pgn");
+
+    // Deleting a missing id is the same not-found, not an error.
+    expect(
+      await disconnectAccount(disconnectAccountDeps(h.db), ownerId, account.id),
+    ).toEqual({
+      status: "not-found",
+    });
+
+    // The provider slot is free: reconnecting, even under a different
+    // handle, is a plain connect again.
+    const reconnected = await importAccount(
+      importAccountDeps(h.db, emptyArchive),
+      ownerId,
+      "chess_com",
+      "a_new_handle",
+    );
+    expect(reconnected).toMatchObject({ status: "connected" });
   });
 
   it("the library list: every field the games list renders survives the trip", async () => {

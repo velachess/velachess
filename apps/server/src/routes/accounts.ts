@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 import {
+  disconnectAccount,
   importAccount,
   listAccounts,
   listGamesWithStatus,
@@ -8,6 +9,7 @@ import {
 } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
+  DisconnectAccountDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
   SyncAccountDeps,
@@ -16,12 +18,24 @@ import type {
 import type { ApiEnv } from "../server.ts";
 import { defaultHook, errorResponseSchema, idParamSchema } from "../validation.ts";
 
+/** `@velachess/accounts`' `ConnectOutcome.status` vocabulary. */
+const ACCOUNT_CONNECT_STATUS = {
+  CONNECTED: "connected",
+  PROVIDER_CONNECTED: "provider-connected",
+} as const;
+
 /** `@velachess/accounts`' `RefreshOutcome.status` vocabulary — local to
  * this file, the only one that branches on it. */
 const ACCOUNT_SYNC_STATUS = {
   NOT_FOUND: "not-found",
   TOO_SOON: "too-soon",
   REFRESHED: "refreshed",
+} as const;
+
+/** `@velachess/accounts`' `DisconnectOutcome.status` vocabulary. */
+const ACCOUNT_DISCONNECT_STATUS = {
+  NOT_FOUND: "not-found",
+  DELETED: "deleted",
 } as const;
 
 /** Repeated across both this file's 404s — one place to change the wording. */
@@ -44,10 +58,21 @@ const accountSchema = z.object({
   username: z.string(),
 });
 
+/** A different handle on a platform the caller already tracks — one
+ * account per provider, so this refuses instead of overwriting. Carries
+ * the existing connection's identity so the client can point at it. */
+const providerConflictSchema = errorResponseSchema.extend({
+  platform: z.enum(["chess_com", "lichess"]),
+  username: z.string(),
+  accountId: z.string().uuid(),
+});
+
 const createAccountRoute = createRoute({
   method: "post",
   path: "/",
   summary: "Track a chess.com or Lichess account",
+  description:
+    "At most one account per provider per user. Reconnecting the same handle is an idempotent no-op; a different handle on a platform already tracked answers 409 with the existing connection's identity.",
   request: {
     body: {
       content: { "application/json": { schema: createAccountSchema } },
@@ -57,6 +82,10 @@ const createAccountRoute = createRoute({
     201: {
       description: "Account tracked (idempotent upsert)",
       content: { "application/json": { schema: accountSchema } },
+    },
+    409: {
+      description: "This provider is already connected to a different handle",
+      content: { "application/json": { schema: providerConflictSchema } },
     },
   },
 });
@@ -146,13 +175,30 @@ const accountGamesRoute = createRoute({
   },
 });
 
-/** Narrow composed deps for this module's four slices — one field per
+const deleteAccountRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  summary: "Stop tracking an account",
+  description:
+    "Owner-scoped and permanent. The games this account imported are deleted with it, and their analyses with them; manually imported PGNs, which have no account, are untouched. Deleting frees that provider slot: the user can reconnect it, same or different handle, right after.",
+  request: { params: idParamSchema },
+  responses: {
+    204: { description: "Removed" },
+    404: {
+      description: "Unknown account",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+/** Narrow composed deps for this module's five slices — one field per
  * route, built by `apps/server/src/composition/accounts.ts`. */
 export interface AccountsRouteDeps {
   list: ListAccountsDeps;
   games: ListAccountGamesDeps;
   connect: ConnectAccountDeps;
   sync: SyncAccountDeps;
+  disconnect: DisconnectAccountDeps;
 }
 
 export function accountsRoutes(deps: AccountsRouteDeps) {
@@ -165,17 +211,30 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
       // a bad username fails here, in front of the person who typed it.
       .openapi(createAccountRoute, async (c) => {
         const { platform, username } = c.req.valid("json");
-        const account = await importAccount(
+        const outcome = await importAccount(
           deps.connect,
           c.get("userId"),
           platform,
           username,
         );
+
+        if (outcome.status === ACCOUNT_CONNECT_STATUS.PROVIDER_CONNECTED) {
+          return c.json(
+            {
+              error: "provider already connected",
+              platform: outcome.existing.platform,
+              username: outcome.existing.username,
+              accountId: outcome.existing.id,
+            },
+            409,
+          );
+        }
+
         return c.json(
           {
-            id: account.id,
-            platform: account.platform,
-            username: account.username,
+            id: outcome.account.id,
+            platform: outcome.account.platform,
+            username: outcome.account.username,
           },
           201,
         );
@@ -237,6 +296,21 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
           ),
           200,
         );
+      })
+      // Permanent, owner-scoped, and it takes the account's games with
+      // it — a library still showing a disconnected account's games is
+      // what this answers.
+      .openapi(deleteAccountRoute, async (c) => {
+        const outcome = await disconnectAccount(
+          deps.disconnect,
+          c.get("userId"),
+          c.req.valid("param").id,
+        );
+
+        if (outcome.status === ACCOUNT_DISCONNECT_STATUS.NOT_FOUND)
+          return c.json({ error: ACCOUNT_NOT_FOUND_ERROR }, 404);
+
+        return c.body(null, 204);
       })
   );
 }

@@ -13,13 +13,16 @@
  * composition helper).
  */
 import {
+  deleteTrackedAccountAndGames,
   findProviderProfiles,
+  findTrackedAccountByPlatform,
   getTrackedAccount,
   getTrackedAccountForUser,
   isProfileFresh,
   listGamesWithStatusForAccount,
   listTrackedAccountsByUser,
   markTrackedAccountSynced,
+  markUserOnboarded,
   saveGames,
   updateTrackedAccountCursor,
   upsertProviderProfile,
@@ -29,6 +32,7 @@ import type { Database } from "@velachess/infra-db";
 import { syncAccount as syncAccountSlice } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
+  DisconnectAccountDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
   SyncAccountDeps,
@@ -80,7 +84,19 @@ export function buildImportAccountDeps(
     upsertTrackedAccount: (userId, platform, username) =>
       upsertTrackedAccount(db, userId, platform, username),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
+    getTrackedAccountByPlatform: (userId, platform) =>
+      findTrackedAccountByPlatform(db, userId, platform),
+    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    markOnboarded: (userId) => markUserOnboarded(db, userId),
     syncAccount: (accountId) => syncAccountSlice(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
+  };
+}
+
+export function buildDisconnectAccountDeps(db: Database): DisconnectAccountDeps {
+  return {
+    getTrackedAccountForUser: (userId, accountId) =>
+      getTrackedAccountForUser(db, userId, accountId),
+    deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
   };
 }

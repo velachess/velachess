@@ -432,9 +432,6 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-      '@velachess/analysis':
-        specifier: workspace:*
-        version: link:../../analysis
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10

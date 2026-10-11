@@ -74,9 +74,7 @@ describe("site output", () => {
 
   it("makes the hero product image immediately discoverable", () => {
     const heroImage = page.querySelector("#top img");
-    const heroPreload = page.querySelector(
-      'link[rel="preload"][as="image"][imagesizes="100vw"]',
-    );
+    const heroPreload = page.querySelector('link[rel="preload"][as="image"]');
 
     expect(heroImage?.getAttribute("loading")).not.toBe("lazy");
     expect(heroImage?.getAttribute("fetchpriority")).toBe("high");
@@ -85,6 +83,11 @@ describe("site output", () => {
     expect(heroImage?.getAttribute("srcset")).toContain("game-analysis-640.webp");
     expect(heroImage?.getAttribute("srcset")).toContain("game-analysis-768.webp");
     expect(heroPreload?.getAttribute("fetchpriority")).toBe("high");
+    // Sized to the layout box, not the viewport: the gutter is what lets
+    // mobile emulation pick the 640w variant over the 768w one.
+    expect(heroPreload?.getAttribute("imagesizes")).toBe(
+      "(min-width: 80rem) 1232px, calc(100vw - 3rem)",
+    );
   });
 
   it("exports indexable robots and sitemap files", () => {

@@ -54,8 +54,14 @@ export async function signIn(credentials: Credentials): Promise<SessionUser> {
     throw new SignInError(rejected ? "invalid-credentials" : "unavailable");
   }
 
-  const { id, email, name, image } = result.data.user;
-  return { id, email, name, image: image ?? null };
+  const { id, email, name, image, onboardedAt } = result.data.user;
+  return {
+    id,
+    email,
+    name,
+    image: image ?? null,
+    onboardedAt: onboardedAt ? new Date(onboardedAt).toISOString() : null,
+  };
 }
 
 export function signInFailureOf(error: unknown): SignInFailure {

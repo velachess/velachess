@@ -131,3 +131,20 @@ export function useImportGames() {
     onSuccess: () => queryClient.invalidateQueries(),
   });
 }
+
+/** Stops tracking an account. The server deletes the games it imported
+ * along with it, so the blanket invalidation below is load-bearing: the
+ * library and every per-account read go stale at the same moment the
+ * connection does. */
+export function useDisconnectAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountId: string) =>
+      parseResponse(api.accounts[":id"].$delete({ param: { id: accountId } })),
+    onSuccess: (_, accountId) => {
+      useMyAccounts.getState().forget(accountId);
+      return queryClient.invalidateQueries();
+    },
+  });
+}

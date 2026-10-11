@@ -89,4 +89,15 @@ export const accountsHandlers = [
 
     return HttpResponse.json({ saved: outcome.saved });
   }),
+
+  /** Owner-scoped delete, mirroring the real route: unknown id answers the
+   * same 404 a never-tracked one would. */
+  http.delete("/api/accounts/:id", ({ params }) => {
+    const id = String(params["id"]);
+    if (!trackedAccounts.some((account) => account.id === id)) {
+      return HttpResponse.json({ error: "account not found" }, { status: 404 });
+    }
+    trackedAccounts = trackedAccounts.filter((account) => account.id !== id);
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];

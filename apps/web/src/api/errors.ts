@@ -55,6 +55,37 @@ export function isRateLimitedError(error: unknown): error is RateLimitedError {
   return error instanceof RateLimitedError;
 }
 
+/**
+ * A 409 on `POST /accounts` — the caller already tracks a different handle
+ * on this provider. One account per provider per user, so this is a
+ * refusal to overwrite, not an infrastructure failure: the fields carry
+ * the existing connection's identity so the UI can point at it instead of
+ * just saying "no".
+ */
+export class ProviderAlreadyConnectedError extends ApiError {
+  readonly platform: string;
+  readonly username: string;
+  readonly accountId: string;
+
+  constructor(
+    platform: string,
+    username: string,
+    accountId: string,
+    options: ApiErrorOptions = {},
+  ) {
+    super("Provider already connected", options);
+    this.platform = platform;
+    this.username = username;
+    this.accountId = accountId;
+  }
+}
+
+export function isProviderAlreadyConnectedError(
+  error: unknown,
+): error is ProviderAlreadyConnectedError {
+  return error instanceof ProviderAlreadyConnectedError;
+}
+
 export function isInvalidResponseError(error: unknown) {
   return error instanceof InvalidResponseError;
 }

@@ -20,7 +20,9 @@ import {
 import { Input } from "@velachess/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
-import { useImportGames, type ImportRequest } from "./queries.ts";
+import { isProviderAlreadyConnectedError } from "../../api/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
+import { trackedAccountsQuery, useImportGames, type ImportRequest } from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";
 import {
   IMPORT_COPY,
@@ -52,11 +54,25 @@ export function ImportGames({
   const sourceId = useSourceStore((state) => state.sourceId);
   const selectSource = useSourceStore((state) => state.selectSource);
   const importGames = useImportGames();
+  const accounts = useQuery(trackedAccountsQuery);
   const navigate = useNavigate();
   const { i18n } = useLingui();
   const translate: Translate = (message) => i18n._(message);
 
   const source: ImportSource = IMPORT_SOURCES[sourceId];
+
+  // One account per provider: the selected tab's platform already being
+  // tracked makes every username doomed, so the form gives way to a note
+  // naming the handle that holds the slot. Not an error state — the usual
+  // way to reach it is connecting successfully a moment earlier. A race
+  // (another tab/device connects first) answers a 409 carrying the same
+  // handle, which lands here too rather than in the failure alert.
+  const connectedHandle: string | undefined =
+    accounts.data?.find((account) => account.platform === sourceId)?.username ??
+    (isProviderAlreadyConnectedError(importGames.error) &&
+    importGames.error.platform === sourceId
+      ? importGames.error.username
+      : undefined);
 
   const form = useForm({
     defaultValues: { [FIELD_NAME]: "" },
@@ -111,53 +127,61 @@ export function ImportGames({
           </TabsList>
         </Tabs>
 
-        <FieldGroup>
-          <form.Field
-            name={FIELD_NAME}
-            validators={{ onSubmit: source.buildSchema(translate) }}
-          >
-            {(field) => {
-              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        {connectedHandle !== undefined && (
+          <AlreadyConnectedNotice username={connectedHandle} source={source} />
+        )}
 
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel className="sr-only" htmlFor={field.name}>
-                    {i18n._(source.inputLabel)}
-                  </FieldLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      aria-invalid={isInvalid}
-                      placeholder={i18n._(source.inputLabel)}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      disabled={importGames.isPending}
-                    />
-                    <form.Subscribe selector={(state) => state.isSubmitting}>
-                      {(isSubmitting) => (
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting || importGames.isPending}
-                        >
-                          <SubmitLabel
-                            isSubmitting={isSubmitting}
-                            isImporting={importGames.isPending}
-                          />
-                        </Button>
-                      )}
-                    </form.Subscribe>
-                  </div>
+        {connectedHandle === undefined && (
+          <FieldGroup>
+            <form.Field
+              name={FIELD_NAME}
+              validators={{ onSubmit: source.buildSchema(translate) }}
+            >
+              {(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              );
-            }}
-          </form.Field>
-        </FieldGroup>
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel className="sr-only" htmlFor={field.name}>
+                      {i18n._(source.inputLabel)}
+                    </FieldLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        aria-invalid={isInvalid}
+                        placeholder={i18n._(source.inputLabel)}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={importGames.isPending}
+                      />
+                      <form.Subscribe selector={(state) => state.isSubmitting}>
+                        {(isSubmitting) => (
+                          <Button
+                            type="submit"
+                            disabled={isSubmitting || importGames.isPending}
+                          >
+                            <SubmitLabel
+                              isSubmitting={isSubmitting}
+                              isImporting={importGames.isPending}
+                            />
+                          </Button>
+                        )}
+                      </form.Subscribe>
+                    </div>
 
-        <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                );
+              }}
+            </form.Field>
+          </FieldGroup>
+        )}
+
+        {connectedHandle === undefined && (
+          <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
+        )}
       </form>
     </>
   );
@@ -209,6 +233,38 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
   }
 
   return null;
+}
+
+/** Plain, not destructive: this is what a connected platform looks like
+ * at rest, and the most common way to see it is having just connected
+ * successfully. Red belongs to an import that actually failed. */
+function AlreadyConnectedNotice({
+  username,
+  source,
+}: {
+  username: string;
+  source: ImportSource;
+}) {
+  const { i18n } = useLingui();
+
+  return (
+    <Alert>
+      <AlertDescription className="flex flex-col items-start gap-1.5">
+        <span className="font-medium text-foreground">
+          {i18n._({
+            ...IMPORT_COPY.alreadyConnectedTitle,
+            values: { platform: source.label },
+          })}
+        </span>
+        <span>
+          {i18n._({
+            ...IMPORT_COPY.alreadyConnectedDescription,
+            values: { username },
+          })}
+        </span>
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function buildRequest(source: ImportSource, value: string): ImportRequest | null {
