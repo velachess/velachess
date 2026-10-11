@@ -42,13 +42,15 @@ afterAll(async () => {
   await harness.close();
 });
 
+const byName = (playerName: string) => ({ mode: "byName" as const, playerName });
+
 describe("POST /games/import", () => {
   it("a mixed-color file resolves the player's seat per game", async () => {
     const owner = (await harness.signUp("pgn-owner@api.test")).app;
 
     const response = await owner.request(
       "/games/import",
-      json({ pgn: MIXED_COLOR_PGN, playerName: IMPORTED_PLAYER_NAME }),
+      json({ pgn: MIXED_COLOR_PGN, participation: byName(IMPORTED_PLAYER_NAME) }),
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
@@ -72,7 +74,7 @@ describe("POST /games/import", () => {
 
   it("re-importing the same file is a counted no-op, and duplicates alone still succeed", async () => {
     const owner = (await harness.signUp("pgn-again@api.test")).app;
-    const body = { pgn: MIXED_COLOR_PGN, playerName: IMPORTED_PLAYER_NAME };
+    const body = { pgn: MIXED_COLOR_PGN, participation: byName(IMPORTED_PLAYER_NAME) };
 
     await owner.request("/games/import", json(body));
     const again = await owner.request("/games/import", json(body));
@@ -85,7 +87,7 @@ describe("POST /games/import", () => {
       "/games/import",
       json({
         pgn: NAMED_FIRST_GAME_PGN + NAMED_SECOND_GAME_PGN,
-        playerName: IMPORTED_PLAYER_NAME,
+        participation: byName(IMPORTED_PLAYER_NAME),
       }),
     );
     expect(duplicatesOnly.status).toBe(200);
@@ -98,7 +100,10 @@ describe("POST /games/import", () => {
   it("two users importing the same PGN each get their own copy", async () => {
     const alice = (await harness.signUp("pgn-alice@api.test")).app;
     const bob = (await harness.signUp("pgn-bob@api.test")).app;
-    const body = json({ pgn: MIXED_COLOR_PGN, playerName: IMPORTED_PLAYER_NAME });
+    const body = json({
+      pgn: MIXED_COLOR_PGN,
+      participation: byName(IMPORTED_PLAYER_NAME),
+    });
 
     expect((await alice.request("/games/import", body)).status).toBe(200);
     expect((await bob.request("/games/import", body)).status).toBe(200);
@@ -113,7 +118,7 @@ describe("POST /games/import", () => {
       "/games/import",
       json({
         pgn: "complete garbage\n\n" + NAMED_FIRST_GAME_PGN,
-        playerName: IMPORTED_PLAYER_NAME,
+        participation: byName(IMPORTED_PLAYER_NAME),
       }),
     );
     expect(response.status).toBe(200);
@@ -122,6 +127,17 @@ describe("POST /games/import", () => {
       duplicates: 0,
       rejected: 1,
     });
+  });
+
+  it("pure garbage with no parseable game at all is never saved", async () => {
+    const owner = (await harness.signUp("pgn-garbage@api.test")).app;
+    const response = await owner.request(
+      "/games/import",
+      json({ pgn: "adkadsa", participation: byName(IMPORTED_PLAYER_NAME) }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ imported: 0, rejected: 1 });
+    expect((await library(owner)).total).toBe(0);
   });
 
   it("an empty or blank upload answers invalid body", async () => {
@@ -135,6 +151,26 @@ describe("POST /games/import", () => {
     const huge = "x".repeat(300 * 1024);
     expect((await owner.request("/games/import", json({ pgn: huge }))).status).toBe(413);
   });
+
+  it("forces White for every game regardless of the headers", async () => {
+    const owner = (await harness.signUp("pgn-white@api.test")).app;
+    const response = await owner.request(
+      "/games/import",
+      json({ pgn: MIXED_COLOR_PGN, participation: { mode: "white" } }),
+    );
+    expect(response.status).toBe(200);
+    const seats = (await library(owner)).games.map((game) => game.perspective);
+    expect(seats).toEqual(["white", "white"]);
+  });
+
+  it("rejects a malformed participation value", async () => {
+    const owner = (await harness.signUp("pgn-bad-participation@api.test")).app;
+    const response = await owner.request(
+      "/games/import",
+      json({ pgn: MIXED_COLOR_PGN, participation: { mode: "byName", playerName: "" } }),
+    );
+    expect(response.status).toBe(400);
+  });
 });
 
 describe("imported games join the library", () => {
@@ -145,7 +181,7 @@ describe("imported games join the library", () => {
       "/games/import",
       json({
         pgn: NAMED_SECOND_GAME_PGN + NAMED_FIRST_GAME_PGN,
-        playerName: IMPORTED_PLAYER_NAME,
+        participation: byName(IMPORTED_PLAYER_NAME),
       }),
     );
     const outcome = (await imported.json()) as { imported: number };

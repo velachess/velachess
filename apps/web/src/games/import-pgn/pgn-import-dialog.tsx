@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
+import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 
 import { Button } from "@velachess/ui/components/button";
@@ -12,18 +13,38 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@velachess/ui/components/dialog";
-import { Field, FieldError, FieldLabel } from "@velachess/ui/components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
+import { Textarea } from "@velachess/ui/components/textarea";
 import { toast } from "@velachess/ui/components/toast";
+import { ToggleGroup, ToggleGroupItem } from "@velachess/ui/components/toggle-group";
 import { FileText } from "@velachess/ui/icons";
-import { cn } from "@velachess/ui/lib/utils";
 
 import { useImportPgn } from "./queries.ts";
+import {
+  buildPgnImportFormSchema,
+  PARTICIPATION_MODES,
+  type ParticipationMode,
+  type Translate,
+} from "./validation.ts";
 
 const COPY = {
   action: msg`Import PGN`,
   title: msg`Import games from a PGN`,
   description: msg`Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs.`,
+  participation: msg`How you played`,
+  participationHint: msg`White or Black applies to every game in this upload.`,
+  participationRequired: msg`Choose how you played before importing.`,
+  white: msg`White`,
+  black: msg`Black`,
+  byName: msg`By name`,
   playerName: msg`Your name in these games`,
   playerNameHint: msg`As it appears in the White and Black headers`,
   playerRequired: msg`Enter your name so your games can be told apart from your opponents'.`,
@@ -31,6 +52,8 @@ const COPY = {
   paste: msg`Or paste the moves`,
   pastePlaceholder: msg`[Event "..."] …`,
   pgnRequired: msg`There is nothing to import yet.`,
+  pgnInvalid: msg`Invalid PGN: no valid chess moves found.`,
+  fileReadFailed: msg`Couldn't read that file. Try again.`,
   submit: msg`Import`,
   importing: msg`Importing…`,
 } as const;
@@ -75,119 +98,250 @@ export function PgnImportButton() {
 
 const DIALOG_TITLE_ID = "pgn-import-title";
 
-type Translate = (message: MessageDescriptor) => string;
+interface FormValues {
+  pgn: string;
+  participationMode: ParticipationMode | undefined;
+  playerName: string;
+}
+
+const DEFAULT_VALUES: FormValues = {
+  pgn: "",
+  participationMode: undefined,
+  playerName: "",
+};
+
+/**
+ * A .pgn is plain text by definition; read it into the paste field so
+ * there is exactly one place the import reads from. Clears the input
+ * first so picking the same file again still fires a change event.
+ */
+async function handlePgnFileChange(
+  input: HTMLInputElement,
+  setPgnValue: (value: string) => void,
+  onReadFailed: () => void,
+) {
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+
+  try {
+    setPgnValue(await file.text());
+  } catch {
+    onReadFailed();
+  }
+}
+
+/**
+ * tanstack-form keeps field meta (touched, errors) in the form instance,
+ * not the component — switching away from "By name" unmounts the name
+ * field but leaves its old error cached, ready to reappear the instant
+ * "By name" is picked again. Resetting it here is what makes that a
+ * clean field, not a stale one.
+ */
+function handleParticipationModeChange(
+  mode: ParticipationMode | undefined,
+  field: { handleChange: (value: ParticipationMode | undefined) => void },
+  form: { resetField: (name: "playerName") => void },
+) {
+  field.handleChange(mode);
+  // Only leaving "By name" has anything stale to clear — resetting on
+  // every change would run the reset before the name field has even
+  // mounted for the mode that's just been picked.
+  if (mode !== PARTICIPATION_MODES.byName) form.resetField("playerName");
+}
 
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const { i18n } = useLingui();
-  const [playerName, setPlayerName] = useState("");
-  const [pgn, setPgn] = useState("");
-  const [touched, setTouched] = useState(false);
+  const translate: Translate = (message) => i18n._(message);
 
   const importPgn = useImportPgn({
     onImported: (outcome) => {
-      announce(outcome, (message) => i18n._(message));
+      announce(outcome, translate);
       onDone();
     },
     onError: () => {
       toast.add({
         type: "error",
-        title: i18n._(RESULT_COPY.failedTitle),
-        description: i18n._(RESULT_COPY.failedDescription),
+        title: translate(RESULT_COPY.failedTitle),
+        description: translate(RESULT_COPY.failedDescription),
       });
     },
   });
 
-  const playerNameInvalid = touched && playerName.trim().length === 0;
-  const pgnInvalid = touched && pgn.trim().length === 0;
+  const formSchema = buildPgnImportFormSchema(translate, COPY);
 
-  const submit = () => {
-    setTouched(true);
-    if (playerName.trim().length === 0 || pgn.trim().length === 0) return;
-    importPgn.mutate({ pgn, playerName: playerName.trim() });
-  };
+  const form = useForm({
+    defaultValues: DEFAULT_VALUES,
+    validators: {
+      // onMount is deliberate, not an oversight: Import must start disabled
+      // before any interaction (participationMode starts unset), not just
+      // after a failed submit attempt.
+      onMount: formSchema,
+      onChange: formSchema,
+    },
+    onSubmit: async ({ value }) => {
+      // onSubmit's `value` is the raw field shape, not the schema's
+      // `.transform()` output (@tanstack/form-core@1.33.5) — this parse is
+      // what actually produces `{ pgn, participation }`.
+      const { pgn, participation } = formSchema.parse(value);
 
-  const readFile = async (file: File | undefined) => {
-    if (!file) return;
-    // A .pgn is plain text by definition; read it into the paste field so
-    // there is exactly one place the import reads from.
-    setPgn(await file.text());
-  };
+      try {
+        await importPgn.mutateAsync({ pgn, participation });
+      } catch {
+        // The mutation already holds the failure and onError reports it;
+        // rethrowing here would leave the rejection unhandled.
+        return;
+      }
+    },
+  });
 
   return (
     <form
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        submit();
+        void form.handleSubmit();
       }}
     >
-      <Field data-invalid={playerNameInvalid}>
-        <FieldLabel htmlFor="pgn-player-name">{i18n._(COPY.playerName)}</FieldLabel>
-        <Input
-          id="pgn-player-name"
-          aria-label={i18n._(COPY.playerName)}
-          value={playerName}
-          aria-invalid={playerNameInvalid}
-          onChange={(event) => setPlayerName(event.target.value)}
-          disabled={importPgn.isPending}
-        />
-        <FieldLabel
-          htmlFor="pgn-player-name"
-          className="text-muted-foreground font-normal"
-        >
-          {i18n._(COPY.playerNameHint)}
-        </FieldLabel>
-        {playerNameInvalid && <FieldError>{i18n._(COPY.playerRequired)}</FieldError>}
-      </Field>
+      {/* How you played — White/Black apply to the whole batch, By name matches per game. */}
+      <FieldSet>
+        <FieldLegend>{translate(COPY.participation)}</FieldLegend>
+        <form.Field name="participationMode">
+          {(field) => {
+            // Not gated on isTouched like the other fields: the toggle
+            // group never fires blur, so a required-but-unset selection
+            // would otherwise never explain why Import stays disabled.
+            const isInvalid = !field.state.meta.isValid;
 
-      <Field data-invalid={pgnInvalid}>
-        <FieldLabel htmlFor="pgn-file">{i18n._(COPY.file)}</FieldLabel>
-        <Input
-          id="pgn-file"
-          type="file"
-          accept=".pgn,text/plain"
-          aria-label={i18n._(COPY.file)}
-          onChange={(event) => void readFile(event.target.files?.[0])}
-          disabled={importPgn.isPending}
-        />
+            return (
+              <>
+                <ToggleGroup<ParticipationMode>
+                  value={field.state.value ? [field.state.value] : []}
+                  variant="outline"
+                  onValueChange={(next) =>
+                    handleParticipationModeChange(next[0], field, form)
+                  }
+                >
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.white}
+                    disabled={importPgn.isPending}
+                  >
+                    {translate(COPY.white)}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.black}
+                    disabled={importPgn.isPending}
+                  >
+                    {translate(COPY.black)}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.byName}
+                    disabled={importPgn.isPending}
+                  >
+                    {translate(COPY.byName)}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </>
+            );
+          }}
+        </form.Field>
+        <FieldDescription>{translate(COPY.participationHint)}</FieldDescription>
+      </FieldSet>
 
-        <FieldLabel htmlFor="pgn-paste">{i18n._(COPY.paste)}</FieldLabel>
-        <textarea
-          id="pgn-paste"
-          rows={6}
-          value={pgn}
-          placeholder={i18n._(COPY.pastePlaceholder)}
-          aria-invalid={pgnInvalid}
-          onChange={(event) => setPgn(event.target.value)}
-          disabled={importPgn.isPending}
-          className={cn(inputClassName(pgnInvalid), "font-mono text-xs")}
-        />
-        {pgnInvalid && <FieldError>{i18n._(COPY.pgnRequired)}</FieldError>}
-      </Field>
+      <form.Subscribe selector={(state) => state.values.participationMode}>
+        {(mode) =>
+          mode === PARTICIPATION_MODES.byName && (
+            <form.Field name="playerName">
+              {(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>
+                      {translate(COPY.playerName)}
+                    </FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      aria-label={translate(COPY.playerName)}
+                      aria-invalid={isInvalid}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      disabled={importPgn.isPending}
+                    />
+                    <FieldDescription>{translate(COPY.playerNameHint)}</FieldDescription>
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                  </Field>
+                );
+              }}
+            </form.Field>
+          )
+        }
+      </form.Subscribe>
+
+      {/* The PGN source — a file or a paste, sharing the same field. */}
+      <form.Field name="pgn">
+        {(field) => {
+          const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+          return (
+            <Field data-invalid={isInvalid}>
+              <FieldLabel htmlFor="pgn-file">{translate(COPY.file)}</FieldLabel>
+              <Input
+                id="pgn-file"
+                type="file"
+                accept=".pgn,text/plain"
+                aria-label={translate(COPY.file)}
+                onChange={(event) =>
+                  void handlePgnFileChange(event.currentTarget, field.handleChange, () =>
+                    toast.add({
+                      type: "error",
+                      title: translate(COPY.fileReadFailed),
+                    }),
+                  )
+                }
+                disabled={importPgn.isPending}
+              />
+
+              <FieldLabel htmlFor={field.name}>{translate(COPY.paste)}</FieldLabel>
+              <Textarea
+                id={field.name}
+                name={field.name}
+                rows={6}
+                value={field.state.value}
+                placeholder={translate(COPY.pastePlaceholder)}
+                aria-invalid={isInvalid}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                disabled={importPgn.isPending}
+                className="font-mono text-xs"
+              />
+              {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            </Field>
+          );
+        }}
+      </form.Field>
+
+      {/* Import — one submit button, gated on the whole schema's validity. */}
       <div className="flex justify-end">
-        <Button type="submit" disabled={importPgn.isPending}>
-          {importPgn.isPending ? i18n._(COPY.importing) : i18n._(COPY.submit)}
-        </Button>
+        <form.Subscribe selector={(state) => state.canSubmit}>
+          {(canSubmit) => (
+            <Button type="submit" disabled={importPgn.isPending || !canSubmit}>
+              {importPgn.isPending ? translate(COPY.importing) : translate(COPY.submit)}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </form>
-  );
-}
-
-/** Same token classes the shared Input wears, adapted to multi-line content — local until a second consumer earns a primitive. */
-function inputClassName(invalid: boolean): string {
-  return cn(
-    "w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none",
-    "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-    invalid && "border-destructive ring-3 ring-destructive/20",
   );
 }
 
 /** The receipt names every pile: what landed, what was already there, what couldn't be read. */
 function announce(
   outcome: { duplicates: number; rejected: number },
-  translate: Translate,
+  translate: (message: MessageDescriptor) => string,
 ) {
   const notes = [
     outcome.duplicates > 0 &&

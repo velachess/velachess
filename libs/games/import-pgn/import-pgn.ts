@@ -8,7 +8,7 @@
  * ownership direct on the user.
  */
 import { importPgn } from "@velachess/infra-platforms";
-import type { NormalizedGame } from "@velachess/infra-platforms";
+import type { NormalizedGame, Participation } from "@velachess/infra-platforms";
 
 type SaveGames = (
   games: NormalizedGame[],
@@ -22,11 +22,11 @@ export interface ImportPgnDeps {
 export interface ImportPgnInput {
   pgn: string;
   /**
-   * Who these games belong to, as named in the headers. Resolved per
-   * game, so one file may mix White and Black; games without the name on
-   * either side still import, unattributed.
+   * How the uploader identified themselves across the batch — forced
+   * White/Black, or by-name header matching per game. Absent means every
+   * game imports unattributed.
    */
-  playerName?: string | undefined;
+  participation?: Participation | undefined;
 }
 
 export interface ImportPgnOutcome {
@@ -51,7 +51,7 @@ export async function importPgnForUser(
   userId: string,
   input: ImportPgnInput,
 ): Promise<ImportPgnOutcome> {
-  const result = importPgn(input.pgn, { playerName: input.playerName });
+  const result = importPgn(input.pgn, { participation: input.participation });
   const { inserted } = await deps.saveGames(result.games, userId);
 
   return {

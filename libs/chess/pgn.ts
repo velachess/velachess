@@ -120,6 +120,33 @@ export function replayMainline(
 }
 
 /**
+ * The one semantic "is this actually a game" check, shared by every layer
+ * that must reject arbitrary or malformed text before it reaches
+ * persistence: true iff the text parses into at least one game that played
+ * at least one legal move. chessops' own parser accepts non-PGN text as a
+ * single game with empty headers and an empty mainline (see
+ * `normalizeGame`'s comment in libs/infra/platforms/normalize.ts) — that
+ * case, and a thrown PgnError, both count as "no playable game".
+ */
+export function hasPlayableGame(pgn: string): boolean {
+  let games: Game<PgnNodeData>[];
+  try {
+    // Starting from emptyHeaders (not the 7-key default) is what makes an
+    // absent [Event] tag show up as headers.size === 0 below — same
+    // convention as normalizeGame in libs/infra/platforms/normalize.ts.
+    games = parsePgn(pgn, emptyHeaders);
+  } catch {
+    return false;
+  }
+
+  return games.some((game) => {
+    if (game.headers.size === 0) return false;
+    const replayed = replayMainline(game);
+    return replayed.isOk && replayed.value.moves.length > 0;
+  });
+}
+
+/**
  * Minimal movetext emitter: SAN list → "1. e4 e6 2. d4 *". The inverse of
  * replayMainline — no headers, no variations.
  */

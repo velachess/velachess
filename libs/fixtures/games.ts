@@ -23,6 +23,22 @@ export const ILLEGAL_MOVE_PGN = `[Event "Illegal move"]
 1. e4 e5 2. Ra3 *
 `;
 
+/** Illegal from the very first move (Nf6 — no knight reaches f6 from b1 or g1
+ * in one move). Zero legal moves, unlike ILLEGAL_MOVE_PGN's two-then-stop. */
+export const NO_LEGAL_MOVES_PGN = `[Event "No legal moves"]
+[Site "?"]
+[Result "*"]
+
+1. Nf6 *
+`;
+
+/** Unterminated header quote — malformed structure, not just an illegal move. */
+export const MALFORMED_HEADER_PGN = `[Event "Malformed
+[Site "?"]
+
+1. e4 e5 *
+`;
+
 /** Two games in one PGN — the second is unfinished on purpose. */
 export const MULTI_GAME_PGN = `${FOOLS_MATE_PGN}
 [Event "Unfinished"]
