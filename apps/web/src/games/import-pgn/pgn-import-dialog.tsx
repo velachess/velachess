@@ -196,12 +196,10 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
 
             return (
               <>
-                <ToggleGroup
+                <ToggleGroup<ParticipationMode>
                   value={field.state.value ? [field.state.value] : []}
                   variant="outline"
-                  onValueChange={(next) =>
-                    field.handleChange(next[0] as ParticipationMode | undefined)
-                  }
+                  onValueChange={(next) => field.handleChange(next[0])}
                 >
                   <ToggleGroupItem value="white" disabled={importPgn.isPending}>
                     {translate(COPY.white)}
