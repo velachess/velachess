@@ -6,13 +6,22 @@
  * split + normalize path as chess-com.ts and pgn.ts instead of parsing JSON.
  */
 
+import { z } from "zod";
+
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
 import { splitPgnGames } from "../split.ts";
 import type { FetchFn, SyncFailure, SyncResult } from "../schema.ts";
 
-export interface LichessCursor {
-  sinceMs: number;
-}
+/**
+ * Where to resume this account's export. A schema, not a bare interface,
+ * for the same reason as `chessComCursorSchema`: one `jsonb` column holds
+ * both shapes and only the reader can tell them apart.
+ */
+export const lichessCursorSchema = z.object({
+  /** Epoch millis of the newest game already seen, plus one. */
+  sinceMs: z.number(),
+});
+export type LichessCursor = z.infer<typeof lichessCursorSchema>;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{2,30}$/;
 const PAGE_SIZE = 300;

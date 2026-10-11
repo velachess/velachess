@@ -16,7 +16,12 @@ import type {
   NormalizedGame,
   SyncResult,
 } from "@velachess/infra-platforms";
-import { fetchChessCom, fetchLichess } from "@velachess/infra-platforms";
+import {
+  chessComCursorSchema,
+  fetchChessCom,
+  fetchLichess,
+  lichessCursorSchema,
+} from "@velachess/infra-platforms";
 import type { Database, TrackedAccount } from "@velachess/infra-db";
 
 /** Database and a Drizzle transaction share this type in this codebase. */
@@ -66,6 +71,13 @@ export interface ProcessSyncDeps {
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
   fetch?: FetchFn;
+  /**
+   * A stored cursor that did not parse as its account's platform shape.
+   * Reported rather than swallowed: the pass starts over, which is a full
+   * archive walk, and nothing else would say why. Wired to the logger at
+   * the composition root; absent in tests that do not assert on it.
+   */
+  onUnreadableCursor?: (info: { accountId: string; platform: string }) => void;
 }
 
 /** The generic fetch-override bag every route/worker composition reads to
@@ -74,6 +86,9 @@ export interface ProcessSyncDeps {
  * account fetch, since both narrow to the exact same shape. */
 export interface SyncDeps {
   fetch?: FetchFn;
+  /** See `ProcessSyncDeps.onUnreadableCursor` — the same sink, reached
+   * through the bag a composition root already passes into sync. */
+  onUnreadableCursor?: ProcessSyncDeps["onUnreadableCursor"];
 }
 
 /** What a delivery knows about itself, straight from pg-boss. */
@@ -127,7 +142,7 @@ export async function processSync(
 
   let result: SyncResult & { cursor: Cursor | null };
   try {
-    result = await fetchArchive(account, {
+    result = await fetchArchive(deps, account, {
       ...(deps.fetch ? { fetch: deps.fetch } : {}),
       signal,
     });
@@ -175,19 +190,46 @@ export async function processSync(
   if (incomplete) throw incomplete;
 }
 
+/**
+ * Pull the account's archive, reading its cursor through its own
+ * provider's schema.
+ *
+ * `sync_cursor` is one jsonb column holding either provider's shape, so
+ * the column cannot say which one it has — only this switch can. Absent
+ * (a first sync) and invalid (a cursor written for the other provider, or
+ * by an older shape) both start from the beginning, but only the second is
+ * reported: without that, a full archive walk looks like a normal one.
+ *
+ * A `switch` over the platform with no fall-through return: the column's
+ * type comes from `accountPlatformSchema`, so adding a provider there
+ * leaves this returning `undefined` and the caller stops compiling. An
+ * `else` would instead route the new provider to Lichess in silence.
+ *
+ * The parse cannot be hoisted out of the branches or chosen from a
+ * `Record<AccountPlatform, …>`: the two cursor shapes are disjoint and
+ * each `fetch*` demands its own, so calling a union of those functions
+ * asks for the *intersection* of their parameters —
+ * `ChessComCursor & LichessCursor`, which no cursor satisfies.
+ */
 function fetchArchive(
+  deps: ProcessSyncDeps,
   account: TrackedAccount,
   opts: { fetch?: FetchFn; signal: AbortSignal },
 ) {
-  return account.platform === "chess_com"
-    ? fetchChessCom(
-        account.username,
-        (account.syncCursor as ChessComCursor | null) ?? null,
-        opts,
-      )
-    : fetchLichess(
-        account.username,
-        (account.syncCursor as LichessCursor | null) ?? null,
-        opts,
-      );
+  const stored = account.syncCursor ?? null;
+  const reportUnreadable = () =>
+    deps.onUnreadableCursor?.({ accountId: account.id, platform: account.platform });
+
+  switch (account.platform) {
+    case "chess_com": {
+      const parsed = chessComCursorSchema.safeParse(stored);
+      if (stored !== null && !parsed.success) reportUnreadable();
+      return fetchChessCom(account.username, parsed.success ? parsed.data : null, opts);
+    }
+    case "lichess": {
+      const parsed = lichessCursorSchema.safeParse(stored);
+      if (stored !== null && !parsed.success) reportUnreadable();
+      return fetchLichess(account.username, parsed.success ? parsed.data : null, opts);
+    }
+  }
 }

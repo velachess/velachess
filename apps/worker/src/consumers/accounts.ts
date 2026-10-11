@@ -15,7 +15,7 @@ export async function consumeSyncJob(
     "id" | "data" | "retryCount" | "retryLimit" | "signal"
   >,
 ): Promise<void> {
-  await processSync(buildProcessSyncDeps(deps.db, deps.syncQueue, deps.sync?.fetch), {
+  await processSync(buildProcessSyncDeps(deps.db, deps.syncQueue, deps.sync), {
     syncJobId: job.data.syncJobId,
     retryCount: job.retryCount,
     retryLimit: job.retryLimit,

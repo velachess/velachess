@@ -10,12 +10,21 @@ import { z } from "zod";
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
 import type { FetchFn, SyncFailure, SyncResult } from "../schema.ts";
 
-export interface ChessComCursor {
+/**
+ * Where to resume this account's archive walk.
+ *
+ * A schema rather than a bare interface because the value round-trips
+ * through a `jsonb` column that also holds Lichess's cursor: the column
+ * cannot tell the two apart, so the reader has to. See
+ * docs/explanation/data-boundaries.md.
+ */
+export const chessComCursorSchema = z.object({
   /** "YYYY/MM" of the last archive month fully synced. */
-  month: string;
+  month: z.string(),
   /** end_time (unix seconds) of the last game seen in that month. */
-  lastEndTime: number;
-}
+  lastEndTime: z.number(),
+});
+export type ChessComCursor = z.infer<typeof chessComCursorSchema>;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{2,32}$/;
 const USER_AGENT = "velachess-ingest (+https://github.com/yurimutti/velachess)";

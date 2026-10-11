@@ -15,6 +15,7 @@ import {
   getTrackedAccountForUser,
   listGamesPage,
   listGamesWithStatusForAccount,
+  updateTrackedAccountCursor,
   insertTrackedAccount,
 } from "@velachess/infra-db";
 import { listGamesWithStatus } from "@velachess/accounts";
@@ -216,6 +217,31 @@ describe("worker consumers", () => {
     // No cursor for a pass that never completed.
     expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toBeNull();
   });
+
+  it("a cursor stored in the other provider's shape starts the walk over", async () => {
+    // `sync_cursor` is one jsonb column holding either provider's shape.
+    // Cast by platform, a Lichess-shaped row reached chess.com with
+    // `month === undefined`, which matched no archive month: the pass
+    // completed having fetched nothing, and the cursor never advanced.
+    const job = await newSyncJob();
+    await updateTrackedAccountCursor(h.db, job.accountId, {
+      sinceMs: 1_704_067_200_000,
+    } as never);
+    const unreadable: { accountId: string; platform: string }[] = [];
+
+    await consumeSyncJob(
+      { ...deps, sync: { ...deps.sync, onUnreadableCursor: (i) => unreadable.push(i) } },
+      await deliver(job),
+    );
+
+    expect(await jobOf(job)).toMatchObject({
+      status: "succeeded",
+      gamesFetched: 2,
+      errorCode: null,
+    });
+    // Reported, not swallowed — a full archive walk otherwise looks routine.
+    expect(unreadable).toEqual([{ accountId: job.accountId, platform: "chess_com" }]);
+  }, 60_000);
 
   it("a handle gone from the provider fails for good, keeping the account", async () => {
     const job = await newSyncJob("vanished");
