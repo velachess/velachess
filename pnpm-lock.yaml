@@ -337,9 +337,6 @@ importers:
       '@velachess/infra-logger':
         specifier: workspace:*
         version: link:../../libs/infra/logger
-      '@velachess/infra-platforms':
-        specifier: workspace:*
-        version: link:../../libs/infra/platforms
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
