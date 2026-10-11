@@ -9,10 +9,11 @@
  * process (execute under the advisory lock, persist), watch (poll progress
  * for a live stream), and get (the composed read a game page renders).
  *
- * `score.ts`/`winchance.ts` are module-level pure policies (no DB/queue
- * dependency of their own). `classifyMove`'s machinery
- * (`process-analysis/classify-move.ts`) stays private there: only
- * `process-analysis` uses it.
+ * `score.ts`/`winchance.ts`/`classify-move.ts` are module-level pure
+ * policies (no DB/queue dependency of their own). The classifier sits
+ * beside them rather than inside `process-analysis/`: `scoreToWinChance`
+ * is exported from here for apps/web, so it was never private to that
+ * slice however the file was filed.
  *
  * `requestAnalysis` (unscoped) is exported alongside `requestAnalysisForUser`
  * so `apps/server/src/composition/analysis.ts` can wire `get-analysis` and
@@ -75,4 +76,4 @@ export async function completeAnalysis(
   return run(deps, gameId);
 }
 
-export { scoreToWinChance } from "./process-analysis/classify-move.ts";
+export { scoreToWinChance } from "./classify-move.ts";

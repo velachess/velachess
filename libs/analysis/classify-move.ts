@@ -1,6 +1,6 @@
-import type { MoveCategory } from "../move-category.ts";
-import type { WhitePovScore } from "../score.ts";
-import { CP_CEILING, winChance } from "../winchance.ts";
+import type { MoveCategory } from "./move-category.ts";
+import type { WhitePovScore } from "./score.ts";
+import { CP_CEILING, winChance } from "./winchance.ts";
 
 const BLUNDER = 0.3;
 const MISTAKE = 0.2;
@@ -19,7 +19,8 @@ export interface ClassifyInput {
 /** Mate-aware wrapper `analyzeGame`'s own eval-to-win-chance conversion
  * needs — a mate score maps to the ±1000cp ceiling, not a saturated ±1.
  * Exported from index.ts for apps/web/src/games/analysis-read.ts, the
- * one consumer outside this module's graph. */
+ * one consumer outside this module's graph — which is what makes this a
+ * module-root policy rather than a file private to one slice. */
 export function scoreToWinChance(score: {
   cp?: number | undefined;
   mate?: number | undefined;

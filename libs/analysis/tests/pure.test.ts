@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { classifyMove } from "../process-analysis/classify-move.ts";
+import { classifyMove } from "../classify-move.ts";
 import { toWhitePov } from "../score.ts";
 import { winChance } from "../winchance.ts";
-import { scoreToWinChance } from "../process-analysis/classify-move.ts";
+import { scoreToWinChance } from "../classify-move.ts";
 
 describe("winChance", () => {
   it("is 0 at equality and symmetric around it", () => {
