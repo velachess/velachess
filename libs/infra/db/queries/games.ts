@@ -32,27 +32,42 @@ function toRow(game: NormalizedGame, userId: string, accountId: string | undefin
   };
 }
 
+/** ~22 bind parameters per game: 500 rows stay far under Postgres's 65,535
+ * per statement, and Drizzle builds each statement without overflowing. */
+const SAVE_GAMES_BATCH_SIZE = 500;
+
 /**
  * Conflict-ignore persistence: a blocked insert is deduplication, not an
  * error — the caller reads it from the lower inserted count. Ownership is
  * always the user's; `accountId` is provenance only (a manual PGN import
  * has none), and the unique constraints decide what "duplicate" means per
  * source.
+ *
+ * Writes in sequential batches with no transaction across them: a failure
+ * keeps the batches before it, and a retry re-inserts them as no-ops.
  */
 export async function saveGames(
   db: Database,
   normalizedGames: NormalizedGame[],
   opts: { userId: string; accountId?: string },
 ): Promise<{ inserted: number }> {
-  if (normalizedGames.length === 0) return { inserted: 0 };
+  let inserted = 0;
 
-  const inserted = await db
-    .insert(games)
-    .values(normalizedGames.map((game) => toRow(game, opts.userId, opts.accountId)))
-    .onConflictDoNothing()
-    .returning({ id: games.id });
+  for (let start = 0; start < normalizedGames.length; start += SAVE_GAMES_BATCH_SIZE) {
+    // oxlint-disable-next-line eslint/no-await-in-loop
+    const rows = await db
+      .insert(games)
+      .values(
+        normalizedGames
+          .slice(start, start + SAVE_GAMES_BATCH_SIZE)
+          .map((game) => toRow(game, opts.userId, opts.accountId)),
+      )
+      .onConflictDoNothing()
+      .returning({ id: games.id });
+    inserted += rows.length;
+  }
 
-  return { inserted: inserted.length };
+  return { inserted };
 }
 
 // Excludes rawPgn/movetextHash — a list view doesn't need the full PGN text

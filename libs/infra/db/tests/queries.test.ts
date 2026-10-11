@@ -140,6 +140,42 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(result.inserted).toBe(1);
   });
 
+  /** Distinct games, as many as asked: a unique external id and movetext per row. */
+  const manyGames = (count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
+    );
+
+  it("saveGames writes 10,000 games, and a re-run inserts none", async () => {
+    const opts = { userId: ownerId };
+
+    expect(await saveGames(db, manyGames(10_000), opts)).toEqual({ inserted: 10_000 });
+    expect(await saveGames(db, manyGames(10_000), opts)).toEqual({ inserted: 0 });
+    expect(await db.$count(games)).toBe(10_000);
+  });
+
+  it.each([499, 500, 501])(
+    "saveGames counts every row across a batch edge (%i games)",
+    async (count) => {
+      expect(await saveGames(db, manyGames(count), { userId: ownerId })).toEqual({
+        inserted: count,
+      });
+    },
+  );
+
+  it("a failing batch rejects and keeps the batches already written", async () => {
+    const bad = chessComGame({
+      externalId: "bad",
+      movetextHash: "hash-bad",
+      source: "bogus" as NormalizedGame["source"],
+    });
+
+    await expect(
+      saveGames(db, [...manyGames(500), bad], { userId: ownerId }),
+    ).rejects.toThrow();
+    expect(await db.$count(games)).toBe(500);
+  });
+
   it("deleting a tracked account leaves its games with account_id set to null", async () => {
     const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
     await saveGames(db, [chessComGame()], {

@@ -57,6 +57,37 @@ async function readSome(response: Response, ms = 1500) {
   return text;
 }
 
+/** A one-month chess.com archive of `count` distinct legal games: each bit of a
+ * game's index picks which knight pair makes a there-and-back trip. */
+function largeArchiveFetch(count: number): typeof fetch {
+  const bits = Math.ceil(Math.log2(count));
+  const games = Array.from({ length: count }, (_, game) => {
+    const moves = Array.from({ length: bits }, (_, bit) => {
+      const n = 2 * bit + 1;
+      return game & (1 << bit)
+        ? `${n}. Nf3 Nf6 ${n + 1}. Ng1 Ng8`
+        : `${n}. Nc3 Nc6 ${n + 1}. Nb1 Nb8`;
+    }).join(" ");
+    return {
+      url: `https://www.chess.com/game/live/${game}`,
+      pgn: `[Event "Live Chess"]\n[White "archivist"]\n[Black "rival"]\n[Result "1-0"]\n\n${moves} 1-0\n`,
+      rules: "chess",
+      end_time: 1755100000 + game,
+    };
+  });
+
+  return (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/archives")) {
+      return Response.json({
+        archives: ["https://api.chess.com/pub/player/archivist/games/2026/08"],
+      });
+    }
+    if (url.endsWith("/2026/08")) return Response.json({ games });
+    return new Response("not found", { status: 404 });
+  }) as typeof fetch;
+}
+
 const aStubPosition = (ply: number) => ({
   ply,
   fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -414,5 +445,26 @@ describe("api routes", () => {
       json({ platform: "chess_com", username: "a_new_handle" }),
     );
     expect(reconnected.status).toBe(201);
+  });
+});
+
+describe("large archives", () => {
+  // ~22 bind parameters per game: 3,000 games in one INSERT pass Postgres's 65,535 cap.
+  it("connecting a chess.com account with 3,000 games in one month saves them all", async () => {
+    const large = await createApiHarness({ fetch: largeArchiveFetch(3_000) });
+    try {
+      const { app } = await large.signUp("large-archive@api.test");
+
+      const connected = await app.request(
+        "/accounts",
+        json({ platform: "chess_com", username: "archivist" }),
+      );
+      expect(connected.status).toBe(201);
+
+      const library = (await (await app.request("/games")).json()) as { total: number };
+      expect(library.total).toBe(3_000);
+    } finally {
+      await large.close();
+    }
   });
 });

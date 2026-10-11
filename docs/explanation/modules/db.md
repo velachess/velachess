@@ -147,7 +147,12 @@ distinct from itself by default, which would silently defeat this exact
 case without that clause. `saveGames` inserts with a bare
 `onConflictDoNothing()` (no target), which lets one statement satisfy
 both constraints at once, and reads the actual inserted count off what
-Postgres returns rather than pre-selecting to check.
+Postgres returns rather than pre-selecting to check. It writes in
+sequential batches of 500 rows: one statement per archive would pass
+Postgres's 65,535 bind-parameter limit near 3,000 games (about 22 per
+row) and overflow Drizzle's query builder near 10,000. Batches share no
+transaction, so a failure keeps the batches already written and a retry
+replays them as no-ops.
 
 ## Client
 
