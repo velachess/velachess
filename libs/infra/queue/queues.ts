@@ -13,6 +13,8 @@
  * the build if they drift back into a library.
  */
 
+import { z } from "zod";
+
 import type { PgBoss } from "./client.ts";
 
 export const QUEUES = {
@@ -22,15 +24,32 @@ export const QUEUES = {
   syncDlq: "sync-dlq",
 } as const;
 
-export interface AnalysisJobData {
-  gameId: string;
-}
+/**
+ * What rides on each queue, and what a consumer validates before handing
+ * it to a slice.
+ *
+ * `boss.work<T>`'s generic is a type assertion and nothing more:
+ * `pgboss.job.data` is `jsonb` holding whatever an older deploy, the
+ * warm-up send below, or a hand-inserted row left there. The schema is the
+ * declaration and the type is read off it — a payload contract between two
+ * deployables has exactly one spelling.
+ */
+export const analysisJobDataSchema = z.object({
+  gameId: z.string(),
+});
+
+export type AnalysisJobData = z.infer<typeof analysisJobDataSchema>;
 
 /** `syncJobId` is also the pg-boss job id; `accountId` rides along for logs. */
-export interface SyncJobData {
-  syncJobId: string;
-  accountId: string;
-}
+export const syncJobDataSchema = z.object({
+  syncJobId: z.string(),
+  accountId: z.string(),
+});
+
+export type SyncJobData = z.infer<typeof syncJobDataSchema>;
+
+/** Not a real id: the warm-up payload needs a shape, not a target. */
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Policy "stately": at most one queued-or-active job per singleton key,
@@ -97,8 +116,16 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   // deleted immediately and uses a reserved key no domain id collides with.
   for (const name of Object.values(QUEUES)) {
     // Concurrent sends here race the single-connection deadlock above.
+    //
+    // The payload satisfies the queue's own contract: this used to send
+    // `{}`, the single message in the system its own consumer would now
+    // reject, and it is deliverable in the window before the delete below.
     // oxlint-disable-next-line eslint/no-await-in-loop
-    const warmId = await boss.send(name, {}, { singletonKey: "__warmup__" });
+    const warmId = await boss.send(
+      name,
+      { gameId: NIL_UUID, syncJobId: NIL_UUID, accountId: NIL_UUID },
+      { singletonKey: "__warmup__" },
+    );
     // oxlint-disable-next-line eslint/no-await-in-loop
     if (warmId) await boss.deleteJob(name, warmId);
   }

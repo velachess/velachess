@@ -14,7 +14,8 @@ import type {
   SyncJobData,
   SyncQueue,
 } from "@velachess/infra-queue";
-import { QUEUES } from "@velachess/infra-queue";
+import { analysisJobDataSchema, QUEUES, syncJobDataSchema } from "@velachess/infra-queue";
+import type { z } from "zod";
 
 import type { EngineDeps } from "./composition/analysis.ts";
 import { consumeAnalysisJob } from "./consumers/analysis.ts";
@@ -46,13 +47,27 @@ export async function registerConsumers(
 ): Promise<string[]> {
   const log = deps.log ?? workerLogger;
 
+  /**
+   * The payload is parsed before anything else touches it, including the
+   * log line: `boss.work<T>`'s generic is an assertion, and the queue
+   * holds whatever an older deploy or a hand-inserted row left there. A
+   * rejected payload throws, so pg-boss owns the retry and the dead
+   * letter instead of a slice being handed `undefined`.
+   */
   const instrument = <J extends { id: string; data: object }>(
     queue: string,
+    schema: z.ZodType<J["data"]>,
     handler: (deps: WorkerDeps, job: J) => Promise<void>,
   ) => {
     return async ([job]: J[]) => {
       const startedAt = Date.now();
-      const fields: Record<string, unknown> = { queue, jobId: job!.id, ...job!.data };
+      const parsed = schema.safeParse(job!.data);
+      if (!parsed.success) {
+        // The payload itself is not logged — it is the untrusted thing.
+        log.error({ queue, jobId: job!.id }, "job payload rejected");
+        throw new Error(`${queue} job ${job!.id} carries an unusable payload`);
+      }
+      const fields: Record<string, unknown> = { queue, jobId: job!.id, ...parsed.data };
       log.info(fields, "job start");
       try {
         await handler(deps, job!);
@@ -80,13 +95,18 @@ export async function registerConsumers(
     boss.work(
       QUEUES.sync,
       { includeMetadata: true },
-      instrument<JobWithMetadata<SyncJobData>>(QUEUES.sync, consumeSyncJob),
+      instrument<JobWithMetadata<SyncJobData>>(
+        QUEUES.sync,
+        syncJobDataSchema,
+        consumeSyncJob,
+      ),
     ),
     boss.work<AnalysisJobData>(
       QUEUES.analysis,
       { localConcurrency: deps.analysisConcurrency ?? 1 },
       instrument(
         QUEUES.analysis,
+        analysisJobDataSchema,
         (workerDeps, job: { id: string; data: AnalysisJobData }) =>
           consumeAnalysisJob(workerDeps, job.data),
       ),

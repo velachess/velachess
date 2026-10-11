@@ -346,6 +346,9 @@ importers:
       stockfish:
         specifier: ^19.0.0
         version: 19.0.1
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
 
   libs/accounts:
     dependencies:
@@ -472,6 +475,9 @@ importers:
       pg-boss:
         specifier: 12.37.1
         version: 12.37.1(@opentelemetry/api@1.9.1)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8
@@ -10926,7 +10932,7 @@ snapshots:
       tinyglobby: 0.2.17
       unbash: 4.0.12
       yaml: 2.9.1
-      zod: 4.6.5
+      zod: 4.4.3
 
   kysely@0.29.5: {}
 

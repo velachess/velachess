@@ -218,6 +218,25 @@ describe("worker consumers", () => {
     expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toBeNull();
   });
 
+  it("a malformed payload fails the delivery instead of reaching the slice", async () => {
+    // What `{}` used to do: `processSync` read `syncJobId: undefined` and
+    // asked the database for it. The guard runs before the handler and
+    // before the log line, so pg-boss owns the retry and then the DLQ.
+    await registerConsumers(h.boss, deps);
+    const jobId = await h.boss.send(QUEUES.sync, {} as never);
+
+    const settled = await poll(async () => {
+      const job = await h.boss.getJobById(QUEUES.sync, jobId!);
+      return job && job.state !== "created" && job.state !== "active" ? job : null;
+    }, 30_000);
+
+    expect(settled.state).not.toBe("completed");
+    expect(settled.output).toMatchObject({
+      message: expect.stringContaining("payload"),
+    });
+    await h.boss.offWork(QUEUES.sync);
+  }, 60_000);
+
   it("a cursor stored in the other provider's shape starts the walk over", async () => {
     // `sync_cursor` is one jsonb column holding either provider's shape.
     // Cast by platform, a Lichess-shaped row reached chess.com with
