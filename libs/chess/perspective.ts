@@ -17,7 +17,7 @@
  */
 
 export interface SeatSource {
-  /** Enum column arrives as string from drizzle — narrowing happens here. */
+  /** Stored as an enum column, so it arrives as a string — narrowing happens here. */
   perspective: string | null;
   whiteName: string;
   blackName: string;
@@ -47,6 +47,13 @@ export function resolveGamePerspective(
   return null;
 }
 
+/**
+ * Case folded and nothing else. The SQL predicate that expresses this
+ * same rule compares `lower(name) = lower(username)`, so trimming here
+ * would make the screen match a padded handle the library's filter
+ * would not — a new disagreement, in the exact place this change exists
+ * to remove one.
+ */
 function lower(name: string): string {
-  return name.trim().toLowerCase();
+  return name.toLowerCase();
 }

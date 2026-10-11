@@ -32,9 +32,13 @@ describe("resolveGamePerspective", () => {
     expect(resolveGamePerspective(game, ["someoneelse", "yurimutti"])).toBe("black");
   });
 
-  it("folds case and surrounding space: platforms echo what the player typed", () => {
+  it("folds case: platforms echo back whatever the player typed", () => {
     expect(resolveGamePerspective(game, ["YuriMutti"])).toBe("black");
-    expect(resolveGamePerspective(game, [" yurimutti "])).toBe("black");
+  });
+
+  it("does not trim, because the SQL twin does not either", () => {
+    // Matching a padded handle here would disagree with the library filter.
+    expect(resolveGamePerspective(game, [" yurimutti "])).toBeNull();
   });
 
   it("answers black for a game you played against yourself", () => {

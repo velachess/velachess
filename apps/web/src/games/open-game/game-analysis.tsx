@@ -4,6 +4,7 @@ import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
+import { resolveGamePerspective } from "@velachess/chess";
 import { BOARD_STAGE_WIDTH, BoardStage } from "@velachess/ui/chess/board-stage";
 import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/empty";
 import { Skeleton } from "@velachess/ui/components/skeleton";
@@ -12,8 +13,6 @@ import { cn } from "@velachess/ui/lib/utils";
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
 import { CHESS_SOUND_EVENT, useChessSounds } from "../../chess-sounds/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
-import { resolveGamePerspective } from "@velachess/chess";
-
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { flairImageOf } from "../import/queries.ts";
 import { gameQuery } from "../analysis-contract.ts";
