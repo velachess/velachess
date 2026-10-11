@@ -15,12 +15,6 @@ export function recordInfrastructureFailure() {
   emit();
 }
 
-export function confirmBackendRecovery() {
-  if (status === "available") return;
-  status = "available";
-  emit();
-}
-
 export function resetBackendStatus() {
   status = "available";
   emit();

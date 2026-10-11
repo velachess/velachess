@@ -1,63 +1,55 @@
-import { http, HttpResponse } from "msw";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { NetworkError } from "../../api/index.ts";
-import {
-  confirmBackendRecovery,
-  getBackendStatus,
-  recordInfrastructureFailure,
-  resetBackendStatus,
-} from "../backend-status.ts";
+import { getBackendStatus, resetBackendStatus } from "../backend-status.ts";
 import { createQueryClient } from "../../query/index.ts";
-import { server } from "../../test/server.ts";
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+async function failOnce(queryClient: ReturnType<typeof createQueryClient>, key: string) {
+  await expect(
+    queryClient.fetchQuery({
+      queryKey: [key],
+      queryFn: async () => {
+        throw new NetworkError("down");
+      },
+    }),
+  ).rejects.toBeInstanceOf(NetworkError);
+}
 
 describe("backend availability policy", () => {
-  it("requires an explicit recovery signal after infrastructure failure", () => {
+  it("reports an outage when a request fails on infrastructure", async () => {
     resetBackendStatus();
+    const queryClient = createQueryClient();
 
-    recordInfrastructureFailure();
-    expect(getBackendStatus()).toBe("unavailable");
-
-    confirmBackendRecovery();
-    expect(getBackendStatus()).toBe("available");
-  });
-
-  it("does not let a successful query clear an outage", async () => {
-    resetBackendStatus();
-    const queryClient = createQueryClient({ retry: false });
-
-    recordInfrastructureFailure();
-    await queryClient.fetchQuery({
-      queryKey: ["healthy-but-not-a-health-check"],
-      queryFn: async () => "ok",
-    });
+    await failOnce(queryClient, "down");
 
     expect(getBackendStatus()).toBe("unavailable");
   });
 
-  it("recovers only after the explicit health probe succeeds", async () => {
-    vi.useFakeTimers();
+  it("keeps the outage after a later request succeeds", async () => {
     resetBackendStatus();
-    server.use(http.get("/api/health", () => HttpResponse.json({ ok: true })));
+    const queryClient = createQueryClient();
 
-    const queryClient = createQueryClient({ retry: false });
+    await failOnce(queryClient, "down");
+    await queryClient.fetchQuery({ queryKey: ["healthy"], queryFn: async () => "ok" });
+
+    expect(getBackendStatus()).toBe("unavailable");
+  });
+
+  it("does not retry a failed request", async () => {
+    resetBackendStatus();
+    const queryClient = createQueryClient();
+    let attempts = 0;
+
     await expect(
       queryClient.fetchQuery({
-        queryKey: ["down"],
+        queryKey: ["counted"],
         queryFn: async () => {
+          attempts += 1;
           throw new NetworkError("down");
         },
       }),
     ).rejects.toBeInstanceOf(NetworkError);
 
-    expect(getBackendStatus()).toBe("unavailable");
-
-    await vi.advanceTimersByTimeAsync(5_000);
-
-    expect(getBackendStatus()).toBe("available");
+    expect(attempts).toBe(1);
   });
 });

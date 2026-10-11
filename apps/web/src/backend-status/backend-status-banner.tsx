@@ -6,7 +6,7 @@ import { Alert, AlertTitle } from "@velachess/ui/components/alert";
 import { useBackendStatus } from "./backend-status.ts";
 
 const BACKEND_STATUS_COPY = {
-  unavailable: msg`Backend unavailable · Retrying automatically`,
+  unavailable: msg`Backend unavailable · Reload the page to try again`,
 } as const;
 
 export function BackendStatusBanner() {

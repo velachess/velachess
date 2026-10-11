@@ -89,8 +89,8 @@ msgid "Back"
 msgstr "Back"
 
 #: src/backend-status/backend-status-banner.tsx:9
-msgid "Backend unavailable · Retrying automatically"
-msgstr "Backend unavailable · Retrying automatically"
+msgid "Backend unavailable · Reload the page to try again"
+msgstr "Backend unavailable · Reload the page to try again"
 
 #: src/games/analysis-read.ts:151
 msgid "Best"
