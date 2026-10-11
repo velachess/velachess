@@ -126,8 +126,13 @@ authorization remains server-side and user-scoped in database queries.
 Syncs run in the background, so the client follows them rather than waiting:
 `syncJobQuery` polls `GET /syncs/:id` every 3 s through `refetchInterval` and
 stops once the job settles or its read fails. The ids come from the server — a
-`202` or an account's `activeSyncId` — so a reload resumes. When a job settles,
-only the `games` and `accounts` queries are invalidated.
+`202` or an account's `activeSyncId` — so a reload resumes. The query that
+learns a job settled invalidates only `games` and `accounts`, and a settled job
+is never fetched again, so that happens once per job. The sync button's
+mutation waits on the same queries through a `QueryObserver` and reports its
+batch from `onSuccess`/`onError` — once per batch, with no effect, and a
+failed job fails the batch. Connecting invalidates `accounts` and the session;
+disconnecting, `accounts`, `games` and `game`.
 
 ## Tables
 

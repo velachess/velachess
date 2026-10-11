@@ -7,6 +7,7 @@ import {
   addGames,
   failNextSync,
   refuseRefreshFor,
+  scheduleSync,
   stageIncomingGames,
   syncTakesPolls,
 } from "../../../test/archive.ts";
@@ -139,6 +140,18 @@ function countRequests(prefix: string) {
   };
 }
 
+/** A second tracked account whose syncs the archive runs like the first's. */
+function secondAccountSyncs(options: { fails?: boolean } = {}) {
+  const second = accountIsTracked({ platform: "lichess", username: "second-seat" });
+  server.use(
+    http.post(`/api/accounts/${second.id}/sync`, () => {
+      if (options.fails) failNextSync();
+      const job = scheduleSync(second.id, "manual");
+      return HttpResponse.json({ syncId: job.id, status: job.status }, { status: 202 });
+    }),
+  );
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** A little over one 3 s polling interval. */
 const ONE_POLL = 3_500;
@@ -169,20 +182,32 @@ describe("following a sync to its outcome", () => {
     polls.stop();
   }, 15_000);
 
-  it("refetches the library and the accounts, and nothing else", async () => {
+  it("refreshes the library and the accounts once the job settles, and nothing else", async () => {
+    syncTakesPolls(1);
     const { user } = await renderApp();
     await screen.findByText("already-here");
     const sessions = countRequests("/api/auth/get-session");
+    const accounts = countRequests("/api/accounts");
+    const library = countRequests("/api/games");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    expect(await screen.findByText("Already up to date")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Already up to date", undefined, { timeout: ONE_POLL * 2 }),
+    ).toBeInTheDocument();
+    const settled = { accounts: accounts.count, library: library.count };
+    // The POST plus one refresh of the list on settle.
+    expect(settled.accounts).toBe(2);
+    expect(settled.library).toBeGreaterThan(0);
 
+    // A settled job is never asked again, so nothing refreshes twice.
+    await sleep(ONE_POLL);
+    expect({ accounts: accounts.count, library: library.count }).toEqual(settled);
     expect(sessions.count).toBe(0);
-    sessions.stop();
-  });
+    [sessions, accounts, library].forEach((counter) => counter.stop());
+  }, 15_000);
 
-  it("stops asking when the screen goes away", async () => {
-    syncTakesPolls(Number.POSITIVE_INFINITY);
+  it("keeps following after the screen goes away, and stops once it settles", async () => {
+    syncTakesPolls(1);
     const polls = countRequests("/api/syncs/");
 
     const { user, unmount } = await renderApp();
@@ -192,9 +217,42 @@ describe("following a sync to its outcome", () => {
 
     unmount();
     await sleep(ONE_POLL);
-    expect(polls.count).toBe(1);
+    expect(polls.count).toBe(2);
+    await sleep(ONE_POLL);
+    expect(polls.count).toBe(2);
     polls.stop();
   }, 15_000);
+
+  it("follows several accounts at once and reports their sum once", async () => {
+    secondAccountSyncs();
+    syncTakesPolls(1);
+    stageIncomingGames(aGame({ blackName: "just-arrived" }));
+
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
+
+    expect(
+      await screen.findByText("New games imported", undefined, { timeout: ONE_POLL * 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    await sleep(ONE_POLL);
+    expect(screen.getAllByText("New games imported")).toHaveLength(1);
+  }, 15_000);
+
+  it("fails the batch when any job fails, whatever the others brought", async () => {
+    secondAccountSyncs({ fails: true });
+    stageIncomingGames(aGame({ blackName: "just-arrived" }));
+
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
+
+    expect(await screen.findByText("Couldn't reach that account")).toBeInTheDocument();
+    expect(screen.queryByText("New games imported")).not.toBeInTheDocument();
+    // What the other job brought still lands.
+    expect(await screen.findByText("just-arrived")).toBeInTheDocument();
+  });
 
   it("admits a sync that ended in failure", async () => {
     failNextSync();

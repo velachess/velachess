@@ -12,7 +12,7 @@ import {
 import { RefreshCw } from "@velachess/ui/icons";
 
 import { useQuery } from "../../libs/react-query.ts";
-import { trackedAccountsQuery, useSyncGames } from "./queries.ts";
+import { SYNC_OUTCOME, trackedAccountsQuery, useSyncGames } from "./queries.ts";
 
 const SYNC_COPY = {
   action: msg`Sync games`,
@@ -36,7 +36,7 @@ export function SyncGamesButton() {
 
   const sync = useSyncGames({
     onOutcome: (outcome) => {
-      if (outcome.status === "too-soon") {
+      if (outcome.status === SYNC_OUTCOME.tooSoon) {
         toast.add({
           type: "info",
           title: i18n._(SYNC_COPY.tooSoon),

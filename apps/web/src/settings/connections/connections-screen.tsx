@@ -41,6 +41,7 @@ import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
 import { ImportGames } from "../../games/import/import-games.tsx";
 import {
+  SYNC_OUTCOME,
   trackedAccountsQuery,
   useDisconnectAccount,
   useSyncGames,
@@ -196,7 +197,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
 
   const sync = useSyncGames({
     onOutcome: (outcome: SyncOutcome) => {
-      if (outcome.status === "too-soon") {
+      if (outcome.status === SYNC_OUTCOME.tooSoon) {
         toast.add({
           type: "info",
           title: i18n._(CONNECTIONS_COPY.tooSoon),

@@ -4,6 +4,7 @@ export {
   QueryCache,
   QueryClient,
   QueryClientProvider,
+  QueryObserver,
   queryOptions,
   useIsMutating,
   useMutation,

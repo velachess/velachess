@@ -1,4 +1,4 @@
-import type { TrackedAccount } from "../games/import/queries.ts";
+import { isSyncActive, type TrackedAccount } from "../games/import/queries.ts";
 
 /** An empty library reads differently depending on whether anything is on its way. */
 export type OnboardingState =
@@ -18,8 +18,6 @@ export interface OnboardingInput {
   failed: boolean;
 }
 
-const IN_FLIGHT = new Set(["queued", "running", "retrying"]);
-
 export function onboardingState(input: OnboardingInput): OnboardingState {
   // A failure is not an empty account. Onboarding somebody whose backend
   // is down would tell them to import what they already imported.
@@ -34,7 +32,7 @@ export function onboardingState(input: OnboardingInput): OnboardingState {
   // an empty screen they can act on, rather than a modal with no way out.
   if (input.onboarded) return { kind: "no-games" };
   if (input.accounts.length === 0) return { kind: "onboarding" };
-  if (input.accounts.some((account) => IN_FLIGHT.has(account.syncStatus))) {
+  if (input.accounts.some((account) => isSyncActive(account.syncStatus))) {
     return { kind: "syncing" };
   }
 

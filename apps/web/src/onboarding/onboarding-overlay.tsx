@@ -1,9 +1,9 @@
 import { onboardingState } from "./onboarding-state.ts";
 import { OnboardingDialog } from "./onboarding-dialog.tsx";
 import { sessionQuery } from "../auth/session.ts";
-import { trackedAccountsQuery, useSyncJobs } from "../games/import/queries.ts";
+import { syncJobQuery, trackedAccountsQuery } from "../games/import/queries.ts";
 import { libraryQuery } from "../games/list/queries.ts";
-import { useQuery } from "../libs/react-query.ts";
+import { useQueries, useQuery } from "../libs/react-query.ts";
 
 /** Stays silent (renders null) while loading or on backend failure, so it never flashes or implies lost data. */
 export function OnboardingOverlay() {
@@ -12,9 +12,13 @@ export function OnboardingOverlay() {
   // The same session query the app guard already runs, so this costs no
   // extra request — it only reads one more field off it.
   const session = useQuery(sessionQuery);
-  // A first import lands in the background: follow it so the library
-  // refreshes the moment it settles.
-  useSyncJobs(accounts.data?.flatMap((account) => account.activeSyncId ?? []) ?? []);
+  // A sync the server still runs — a first import, or one from before a
+  // reload — is followed until it settles, which refreshes the library.
+  useQueries({
+    queries: (accounts.data ?? []).flatMap((account) =>
+      account.activeSyncId ? [syncJobQuery(account.activeSyncId)] : [],
+    ),
+  });
 
   const state = onboardingState({
     games: library.data?.total,
