@@ -140,10 +140,21 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
 
   const form = useForm({
     defaultValues: DEFAULT_VALUES,
-    validators: { onMount: formSchema, onChange: formSchema },
+    validators: {
+      // onMount is deliberate, not an oversight: Import must start disabled
+      // before any interaction (participationMode starts unset), not just
+      // after a failed submit attempt.
+      onMount: formSchema,
+      onChange: formSchema,
+    },
     onSubmit: async ({ value }) => {
-      // The schema itself produces the `{ pgn, participation }` payload —
-      // already validated, since onSubmit only runs once it has.
+      // @tanstack/form-core@1.33.5's `_handleSubmit` calls
+      // `this.options.onSubmit?.({ value: this.state.values, ... })` —
+      // `value` here is always the RAW field shape, never a validator's
+      // `.transform()` output (verified in form-core's own source, not
+      // assumed). Getting `{ pgn, participation }` out of this schema's
+      // `.transform()` needs one explicit parse; `value` is already
+      // guaranteed valid by the validators above, so this never throws.
       const { pgn, participation } = formSchema.parse(value);
 
       try {
