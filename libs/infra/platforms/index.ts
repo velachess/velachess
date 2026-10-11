@@ -18,7 +18,15 @@ export { ESTIMATED_MOVES, TIME_CLASS_CEILINGS, type TimeClass } from "@velachess
 export * from "./schema.ts";
 export * from "./normalize.ts";
 export * from "./split.ts";
-export * from "./hash.ts";
+/**
+ * `hash.ts` is deliberately NOT re-exported here. It imports
+ * `node:crypto`, and a barrel that pulls a Node built-in puts it in the
+ * import graph of every consumer of this file — which is why `apps/web`
+ * cannot depend on this package at all, and why it ended up re-typing
+ * rules that lived here. `movetextHash` stays reachable at
+ * `@velachess/infra-platforms/hash` for anything that genuinely needs
+ * it; normalization uses it directly.
+ */
 export * from "./opening.ts";
 export * from "./opening-family.ts";
 export * from "./providers/chess-com.ts";
