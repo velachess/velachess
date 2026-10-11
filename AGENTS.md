@@ -154,7 +154,14 @@ from business modules at the import site, including from the business
   letters. The database session advisory lock owns analysis execution across
   HTTP and worker callers.
 - Derived game perspective, result, and time class use one semantic rule across
-  filters, lists, and analysis.
+  filters, lists, and analysis. That rule is written once in `libs/chess`,
+  which every app and module may import; evaluation policies belong to
+  `libs/analysis`'s module root; workflows stay in the vertical slices.
+  A screen maps a rule's answer onto copy and badges, it does not derive it
+  again, and a SQL predicate that cannot call the rule says which rule it
+  expresses and is held to it by a route test. A derivation that is
+  provider-specific rather than shared — PGN normalization, the movetext
+  dedup hash — stays in `libs/infra/platforms` by intent, not by omission.
 - Public and authenticated behavior must remain valid behind local, self-hosted,
   and hosted origins. Never weaken cookies, redirects, authorization, or tenant
   scoping for one deployment mode.
