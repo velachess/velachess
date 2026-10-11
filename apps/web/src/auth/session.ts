@@ -19,8 +19,16 @@ async function fetchSession(): Promise<SessionUser | null> {
   }
 
   if (!data?.user) return null;
-  const { id, email, name, image } = data.user;
-  return { id, email, name, image: image ?? null };
+  const { id, email, name, image, onboardedAt } = data.user;
+  return {
+    id,
+    email,
+    name,
+    image: image ?? null,
+    // Better Auth hands additional fields back as it stored them; the
+    // app only ever asks whether there is one.
+    onboardedAt: onboardedAt ? new Date(onboardedAt).toISOString() : null,
+  };
 }
 
 export const sessionQuery = queryOptions({

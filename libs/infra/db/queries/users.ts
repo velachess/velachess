@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { users } from "../schema.ts";
@@ -14,6 +14,18 @@ export async function countUsers(db: Database) {
  * module corrects it for the operator-provisioned first user. */
 export async function markEmailVerified(db: Database, userId: string) {
   await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
+}
+
+/**
+ * Stamps the end of onboarding, once. The `IS NULL` guard is what makes
+ * it once: every later connection runs this and changes nothing, so the
+ * date keeps saying when the person actually arrived.
+ */
+export async function markUserOnboarded(db: Database, userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ onboardedAt: new Date() })
+    .where(and(eq(users.id, userId), isNull(users.onboardedAt)));
 }
 
 /**

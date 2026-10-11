@@ -2,7 +2,7 @@ import type { ChessComCursor, LichessCursor } from "@velachess/infra-platforms";
 import { and, asc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { trackedAccounts } from "../schema.ts";
+import { games, trackedAccounts } from "../schema.ts";
 
 type Platform = "chess_com" | "lichess";
 type Cursor = ChessComCursor | LichessCursor;
@@ -69,13 +69,30 @@ export async function findTrackedAccountByPlatform(
   return account ?? null;
 }
 
-/** Owner-scoped delete. `games.account_id` is `ON DELETE SET NULL` — the
- * games this account brought in stay, just lose their provenance link. */
-export async function deleteTrackedAccount(
+/**
+ * Drops a connection and everything it brought in, in one transaction:
+ * the games whose provenance is this account first, then the account
+ * itself. Their analyses go with the games (`game_analyses.game_id` is
+ * `ON DELETE CASCADE`).
+ *
+ * The games are deleted explicitly rather than left to the FK, which is
+ * `ON DELETE SET NULL`: orphaned rows would survive the connection that
+ * explains them, and `perspective.ts` derives which seat the user played
+ * by joining that very account — a game without one draws as if the user
+ * were always White. The FK stays as the backstop for a user-level
+ * cascade; this path decides on purpose.
+ *
+ * Scoped by `account_id`, so a manually imported PGN (which has none) and
+ * the user's other provider are untouched.
+ */
+export async function deleteTrackedAccountAndGames(
   db: Database,
   accountId: string,
 ): Promise<void> {
-  await db.delete(trackedAccounts).where(eq(trackedAccounts.id, accountId));
+  await db.transaction(async (tx) => {
+    await tx.delete(games).where(eq(games.accountId, accountId));
+    await tx.delete(trackedAccounts).where(eq(trackedAccounts.id, accountId));
+  });
 }
 
 export async function getTrackedAccountCursor(

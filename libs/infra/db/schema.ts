@@ -84,6 +84,16 @@ export const users = pgTable("users", {
    * from "deleted theirs", and only the second must stay empty.
    */
   avatarSource: text("avatar_source"),
+  /**
+   * When this person finished onboarding — stamped on their first
+   * successful connection, and never again.
+   *
+   * A column rather than a derived fact: onboarding used to be inferred
+   * from "no games and no accounts", which made it reappear every time
+   * someone disconnected everything. Theirs to keep, so it outlives both
+   * the connection and the browser.
+   */
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

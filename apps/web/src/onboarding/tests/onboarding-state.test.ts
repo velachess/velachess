@@ -11,7 +11,8 @@ const account = (syncState: "none" | "queued" | "active" | "failed") => ({
 });
 
 const state = (input: Partial<OnboardingInput>) =>
-  onboardingState({ games: 0, accounts: [], failed: false, ...input }).kind;
+  onboardingState({ games: 0, accounts: [], onboarded: false, failed: false, ...input })
+    .kind;
 
 describe("which first-run state this is", () => {
   it("onboards an account that has connected nothing", () => {
@@ -36,6 +37,18 @@ describe("which first-run state this is", () => {
     expect(state({ accounts: [account("none")] })).toBe("no-games");
     // A failed job is not a job in flight — nothing more is coming.
     expect(state({ accounts: [account("failed")] })).toBe("no-games");
+  });
+
+  it("onboards once: somebody who has been through it never sees it again", () => {
+    // Disconnecting every account used to read exactly like a brand-new
+    // account and put the tour back on screen, with no way to dismiss it.
+    expect(state({ onboarded: true })).toBe("no-games");
+    expect(state({ onboarded: true, accounts: [account("none")] })).toBe("no-games");
+    // Still nothing dishonest while a pass is on its way or an answer is
+    // missing: those states don't depend on having onboarded.
+    expect(state({ onboarded: true, accounts: [account("queued")] })).toBe("no-games");
+    expect(state({ onboarded: true, games: undefined })).toBe("loading");
+    expect(state({ onboarded: true, failed: true })).toBe("error");
   });
 
   it("is ready the moment games exist", () => {

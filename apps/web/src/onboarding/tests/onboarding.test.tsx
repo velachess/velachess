@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { addGames } from "../../test/archive.ts";
 import { aGame, ME } from "../../test/games.ts";
 import { accountIsTracked } from "../../test/handlers/accounts.ts";
+import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
 import { renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
@@ -82,6 +83,34 @@ describe("an account with no games", () => {
     // Nothing closes it — its reason to exist stops being true.
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
+  });
+});
+
+describe("an account that has onboarded before", () => {
+  it("gets the empty library, not the tour, after disconnecting everything", async () => {
+    // The tour used to come back the moment somebody removed their last
+    // connection — the one state that looks identical to a brand-new
+    // account unless the server remembers.
+    sessionActive({ ...TEST_USER, onboardedAt: "2026-01-01T00:00:00.000Z" });
+
+    await renderApp({ path: "/games", emptyLibrary: true });
+
+    expect(
+      await screen.findByText(
+        "No games yet. Connect Chess.com or Lichess, or import a PGN.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("offers the way back to a connection from the empty library", async () => {
+    sessionActive({ ...TEST_USER, onboardedAt: "2026-01-01T00:00:00.000Z" });
+
+    await renderApp({ path: "/games", emptyLibrary: true });
+
+    expect(
+      await screen.findByRole("link", { name: "Connect an account" }),
+    ).toHaveAttribute("href", "/import");
   });
 });
 

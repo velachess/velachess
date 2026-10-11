@@ -14,13 +14,15 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { NormalizedGame } from "@velachess/infra-platforms";
+
 import type { Database } from "@velachess/infra-db";
 import type { GameFilters, GamePage } from "@velachess/infra-db";
 import {
   appendProgress,
   clearProgress,
   createUser,
-  deleteTrackedAccount,
+  deleteTrackedAccountAndGames,
   findProviderProfiles,
   findTrackedAccountByPlatform,
   getAnalysis,
@@ -30,6 +32,7 @@ import {
   isProfileFresh,
   listGamesPage,
   markTrackedAccountSynced,
+  markUserOnboarded,
   saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
@@ -95,7 +98,8 @@ function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAcco
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
-    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
+    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    markOnboarded: (userId) => markUserOnboarded(db, userId),
     syncAccount: (accountId) => syncAccount(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
   };
@@ -105,7 +109,7 @@ function disconnectAccountDeps(db: Database): DisconnectAccountDeps {
   return {
     getTrackedAccountForUser: (userId, accountId) =>
       getTrackedAccountForUser(db, userId, accountId),
-    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
+    deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
   };
 }
 
@@ -134,6 +138,25 @@ const emptyArchive: typeof fetch = async () =>
     status: 200,
     headers: { "content-type": "application/json" },
   });
+
+/** A pasted game, as `POST /games/import` stores one: owned by a user,
+ * no account behind it. Mirrors libs/infra/db's own test builder. */
+function pastedGame(): NormalizedGame {
+  return {
+    source: "pgn",
+    externalId: null,
+    externalUrl: null,
+    perspective: null,
+    white: { name: "alice" },
+    black: { name: "bob" },
+    result: "1/2-1/2",
+    timeControl: {},
+    opening: {},
+    hasClocks: false,
+    rawPgn: '[Event "?"]\n\n1. e4 e5 1/2-1/2\n',
+    movetextHash: "disconnect-survivor",
+  };
+}
 
 // Same shape `fetchChessCom` really throws on an unknown handle — a 404
 // off the archives index, not a network failure.
@@ -379,7 +402,7 @@ describe("application services (the flow, end to end)", () => {
     expect(retry).toMatchObject({ status: "connected" });
   });
 
-  it("disconnectAccount: owner-scoped delete frees the provider slot; games keep provenance cleared, not removed", async () => {
+  it("disconnectAccount: owner-scoped delete takes the account's games with it, and nothing else", async () => {
     const ownerId = (await createUser(h.db)).id;
     const other = (await createUser(h.db)).id;
     const { account, library } = await openImported(
@@ -390,6 +413,10 @@ describe("application services (the flow, end to end)", () => {
     );
     const gameCountBefore = library.games.length;
     expect(gameCountBefore).toBeGreaterThan(0);
+
+    // A pasted game: same owner, no account behind it. Disconnecting
+    // must not reach it.
+    await saveGames(h.db, [pastedGame()], { userId: ownerId });
 
     // Not this user's account: answers not-found, same as a missing id.
     const wrongOwner = await disconnectAccount(
@@ -408,9 +435,11 @@ describe("application services (the flow, end to end)", () => {
     expect(deleted).toEqual({ status: "deleted" });
     expect(await getTrackedAccount(h.db, account.id)).toBeNull();
 
-    // Games stay in the library — only the account link clears.
+    // The account's games go with it; the pasted one, which never had an
+    // account, stays. A disconnect is not "wipe the library".
     const afterDelete = await openLibrary(listGamesDeps(h.db), ownerId, {});
-    expect(afterDelete.games.length).toBe(gameCountBefore);
+    expect(afterDelete.games).toHaveLength(1);
+    expect(afterDelete.games[0]!.source).toBe("pgn");
 
     // Deleting a missing id is the same not-found, not an error.
     expect(

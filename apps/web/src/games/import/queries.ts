@@ -132,9 +132,10 @@ export function useImportGames() {
   });
 }
 
-/** Stops tracking an account. Games it brought in stay — the server only
- * clears their provenance link (`ON DELETE SET NULL`) — so the only cache
- * fact this needs to settle is the accounts list itself. */
+/** Stops tracking an account. The server deletes the games it imported
+ * along with it, so the blanket invalidation below is load-bearing: the
+ * library and every per-account read go stale at the same moment the
+ * connection does. */
 export function useDisconnectAccount() {
   const queryClient = useQueryClient();
 

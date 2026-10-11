@@ -80,7 +80,6 @@ export const IMPORT_COPY = {
   submitting: msg`Reading your games…`,
   running: msg`Got them — opening your games.`,
   failed: msg`No games found for that username. Check the spelling and try again.`,
-  alreadyConnectedTitle: msg`Account already connected`,
-  alreadyConnectedDescription: msg`This {platform} account is already connected. Manage your existing connection above instead.`,
-  manageConnection: msg`Manage connection`,
+  alreadyConnectedTitle: msg`{platform} is connected`,
+  alreadyConnectedDescription: msg`VelaChess tracks one account per platform. {username} is connected — remove that connection to use a different handle.`,
 } as const;

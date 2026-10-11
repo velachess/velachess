@@ -69,24 +69,43 @@ describe("import games", () => {
 
     await renderApp({ path: "/import" });
 
-    expect(await screen.findByText("Account already connected")).toBeInTheDocument();
+    expect(await screen.findByText("Chess.com is connected")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "This Chess.com account is already connected. Manage your existing connection above instead.",
+        "VelaChess tracks one account per platform. magnus is connected — remove that connection to use a different handle.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Chess.com username")).not.toBeInTheDocument();
+  });
+
+  it("says a connected platform plainly, not as a failure", async () => {
+    // Connecting successfully is the usual way to land here, so the
+    // resting state must not wear the colour of an error.
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    await renderApp({ path: "/import" });
+
+    const notice = (await screen.findByText("Chess.com is connected")).closest(
+      "[data-slot='alert']",
+    );
+    expect(notice).not.toBeNull();
+    expect(notice).toHaveClass("bg-card", "text-card-foreground");
+    expect(
+      screen.queryByText(
+        "No games found for that username. Check the spelling and try again.",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("leaves the other provider's tab free to import", async () => {
     accountIsTracked({ platform: "chess_com", username: "magnus" });
 
     const { user } = await renderApp({ path: "/import" });
-    await screen.findByText("Account already connected");
+    await screen.findByText("Chess.com is connected");
 
     await user.click(screen.getByRole("tab", { name: "Lichess" }));
 
     expect(screen.getByLabelText("Lichess username")).toBeInTheDocument();
-    expect(screen.queryByText("Account already connected")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chess.com is connected")).not.toBeInTheDocument();
   });
 });

@@ -39,7 +39,7 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
-import { accountRowId, ImportGames } from "../../games/import/import-games.tsx";
+import { ImportGames } from "../../games/import/import-games.tsx";
 import {
   trackedAccountsQuery,
   useDisconnectAccount,
@@ -68,7 +68,7 @@ const CONNECTIONS_COPY = {
   moreActions: msg`More actions`,
   disconnect: msg`Disconnect`,
   disconnectTitle: msg`Remove connection?`,
-  disconnectDescription: msg`You are about to remove the connection to {username} on {platform}. This stops future syncing for this account; games already imported from it stay in your library.`,
+  disconnectDescription: msg`Removing the connection to {username} on {platform} also deletes the games VelaChess imported from it, and their analyses. This can't be undone. Games you imported from a PGN file are not affected.`,
   cancel: msg`Cancel`,
   disconnectConfirm: msg`Remove connection`,
   disconnecting: msg`Removing…`,
@@ -235,7 +235,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
   const label = sync.isPending ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
 
   return (
-    <Item id={accountRowId(account.id)}>
+    <Item>
       <ItemMedia>
         <Icon className="size-5" />
       </ItemMedia>

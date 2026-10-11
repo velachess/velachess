@@ -13,7 +13,7 @@
  * composition helper).
  */
 import {
-  deleteTrackedAccount,
+  deleteTrackedAccountAndGames,
   findProviderProfiles,
   findTrackedAccountByPlatform,
   getTrackedAccount,
@@ -22,6 +22,7 @@ import {
   listGamesWithStatusForAccount,
   listTrackedAccountsByUser,
   markTrackedAccountSynced,
+  markUserOnboarded,
   saveGames,
   updateTrackedAccountCursor,
   upsertProviderProfile,
@@ -85,7 +86,8 @@ export function buildImportAccountDeps(
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
-    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
+    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    markOnboarded: (userId) => markUserOnboarded(db, userId),
     syncAccount: (accountId) => syncAccountSlice(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
   };
@@ -95,6 +97,6 @@ export function buildDisconnectAccountDeps(db: Database): DisconnectAccountDeps 
   return {
     getTrackedAccountForUser: (userId, accountId) =>
       getTrackedAccountForUser(db, userId, accountId),
-    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
+    deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
   };
 }

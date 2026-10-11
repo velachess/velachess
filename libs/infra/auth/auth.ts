@@ -143,6 +143,17 @@ export function createAuth(config: AuthConfig) {
     user: {
       modelName: "users",
       fields: { name: "displayName" },
+      // Rides along on the session Better Auth already answers with, so
+      // the app reads "has this person onboarded" from the query it
+      // always makes instead of a route of its own. `input: false`: the
+      // server stamps it when a connection sticks — a client must not be
+      // able to claim it.
+      // No `fieldName`: like `fields` above, the adapter maps onto the
+      // Drizzle property (`onboardedAt`), not the column, and the name
+      // already matches.
+      additionalFields: {
+        onboardedAt: { type: "date", required: false, input: false },
+      },
     },
     session: {
       modelName: "sessions",

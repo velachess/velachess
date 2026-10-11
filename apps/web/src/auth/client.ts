@@ -4,11 +4,17 @@
  */
 
 import { createAuthClient } from "better-auth/react";
+import { inferAdditionalFields } from "better-auth/client/plugins";
 
 import { apiBaseUrl } from "../api/index.ts";
 
 export const authClient = createAuthClient({
   basePath: `${apiBaseUrl}/auth`,
+  // Declared server-side in libs/infra/auth's `user.additionalFields`;
+  // stated again here so the client types the field it already
+  // receives. Spelled out rather than inferred from the server's Auth
+  // type, which apps/web has no reason to import.
+  plugins: [inferAdditionalFields({ user: { onboardedAt: { type: "date" } } })],
   fetchOptions: {
     // Looked up per call instead of captured at import. The client is
     // built when this module loads, which in tests is before MSW has
@@ -26,4 +32,9 @@ export interface SessionUser {
    * that came from one. `null` for an email/password account, which is
    * why every consumer needs a fallback rather than an `<img>`. */
   image: string | null;
+  /** When this person finished onboarding, `null` if they never have.
+   * Server-stamped on their first connection and carried on the session,
+   * so the tour does not come back on a new browser — or after
+   * disconnecting every account. */
+  onboardedAt: string | null;
 }

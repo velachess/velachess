@@ -315,6 +315,27 @@ describe("api routes", () => {
     expect((await owner.request(`/games/${randomUUID()}`)).status).toBe(404);
   });
 
+  it("accounts: the first connection that sticks ends onboarding, once", async () => {
+    // Read back through the session, which is exactly how the app learns
+    // it: a stamp nobody can see is a stamp that does nothing.
+    const fresh = (await harness.signUp("onboarding@api.test")).app;
+    const session = async () =>
+      (await (await fresh.request("/auth/get-session")).json()) as {
+        user: { onboardedAt: string | null };
+      };
+
+    expect((await session()).user.onboardedAt).toBeNull();
+
+    await fresh.request("/accounts", json({ platform: "chess_com", username: "Looper" }));
+    const stamped = (await session()).user.onboardedAt;
+    expect(stamped).not.toBeNull();
+
+    // Reconnecting the same handle must not move it: it records when they
+    // arrived, not when they last connected.
+    await fresh.request("/accounts", json({ platform: "chess_com", username: "looper" }));
+    expect((await session()).user.onboardedAt).toBe(stamped);
+  });
+
   it("accounts: one per provider — a different handle on a connected platform is refused with 409", async () => {
     // Its own user: the suite's shared `owner` already has a chess_com
     // connection from the very first test, and this must not disturb it.
@@ -352,7 +373,7 @@ describe("api routes", () => {
     expect(((await again.json()) as { id: string }).id).toBe(first.id);
   });
 
-  it("accounts: delete frees the provider slot; games keep provenance cleared, not removed", async () => {
+  it("accounts: delete frees the provider slot and takes the account's games with it", async () => {
     const solo = (await harness.signUp("disconnect@api.test")).app;
     const other = (await harness.signUp("not-the-owner@api.test")).app;
 
@@ -376,9 +397,10 @@ describe("api routes", () => {
     ).toBe(204);
     expect(await (await solo.request("/accounts")).json()).toEqual([]);
 
-    // Games stay — only their account link clears.
+    // The games it imported go with it — the library no longer shows a
+    // disconnected account's archive.
     const gamesAfter = (await (await solo.request("/games")).json()) as { total: number };
-    expect(gamesAfter.total).toBe(gamesBefore.total);
+    expect(gamesAfter.total).toBe(0);
 
     // Deleting again is the same not-found, not an error.
     expect(

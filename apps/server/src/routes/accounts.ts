@@ -180,7 +180,7 @@ const deleteAccountRoute = createRoute({
   path: "/{id}",
   summary: "Stop tracking an account",
   description:
-    "Owner-scoped and permanent. Games this account brought in stay in the user's library — only their provenance link clears (ON DELETE SET NULL). Deleting frees that provider slot: the user can reconnect it, same or different handle, right after.",
+    "Owner-scoped and permanent. The games this account imported are deleted with it, and their analyses with them; manually imported PGNs, which have no account, are untouched. Deleting frees that provider slot: the user can reconnect it, same or different handle, right after.",
   request: { params: idParamSchema },
   responses: {
     204: { description: "Removed" },
@@ -297,8 +297,9 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
           200,
         );
       })
-      // Permanent, owner-scoped. The games it brought in are untouched —
-      // only their account_id clears (ON DELETE SET NULL at the schema).
+      // Permanent, owner-scoped, and it takes the account's games with
+      // it — a library still showing a disconnected account's games is
+      // what this answers.
       .openapi(deleteAccountRoute, async (c) => {
         const outcome = await disconnectAccount(
           deps.disconnect,

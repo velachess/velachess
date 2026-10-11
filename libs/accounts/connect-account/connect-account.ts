@@ -57,9 +57,13 @@ type GetTrackedAccountByPlatform = (
   userId: string,
   platform: Platform,
 ) => Promise<TrackedAccount | null>;
-/** Rolls back a connection first contact never finished — see the
+/** Rolls back a connection first contact never finished — the row and
+ * anything a partial sync had already saved under it. See the
  * `syncAccount` catch below. */
-type DeleteTrackedAccount = (accountId: string) => Promise<void>;
+type DiscardAccount = (accountId: string) => Promise<void>;
+/** Connecting is how onboarding ends, so the first one that works says
+ * so. Idempotent by contract: this runs on every connect. */
+type MarkOnboarded = (userId: string) => Promise<void>;
 /**
  * `sync-account`'s own outcome, narrowed to the one field this slice
  * reads — this slice declares its dependency in its own vocabulary
@@ -74,7 +78,8 @@ export interface ConnectAccountDeps {
   upsertTrackedAccount: UpsertTrackedAccount;
   getTrackedAccount: GetTrackedAccount;
   getTrackedAccountByPlatform: GetTrackedAccountByPlatform;
-  deleteTrackedAccount: DeleteTrackedAccount;
+  discardAccount: DiscardAccount;
+  markOnboarded: MarkOnboarded;
   syncAccount: SyncAccount;
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
@@ -165,10 +170,16 @@ export async function importAccount(
     } catch (error) {
       // Never synced, so this attempt is the only thing that ever
       // touched the row — safe to undo in full, not just mark failed.
-      await deps.deleteTrackedAccount(tracked.id);
+      // Whatever a partial pass had already saved goes with it.
+      await deps.discardAccount(tracked.id);
       throw error;
     }
   }
+  // Onboarding is over the moment a connection sticks — recorded on the
+  // person, not inferred from what they currently have, so disconnecting
+  // later does not send them back to the tour.
+  await deps.markOnboarded(userId);
+
   const account = (await deps.getTrackedAccount(tracked.id))!;
   return { status: "connected", account };
 }

@@ -11,6 +11,9 @@ export interface TestSessionUser {
   /** Absent by default on purpose: a password account has no picture, so
    * the avatar's initials fallback is the path most of the suite runs. */
   image?: string | null;
+  /** Absent by default too: most of the suite is somebody mid-first-run,
+   * which is what makes the onboarding tests the ones that set it. */
+  onboardedAt?: string | null;
 }
 
 export const TEST_USER: TestSessionUser = {
@@ -90,6 +93,7 @@ function sessionBody(user: TestSessionUser) {
       ...user,
       emailVerified: false,
       image: user.image ?? null,
+      onboardedAt: user.onboardedAt ?? null,
       createdAt: new Date(0).toISOString(),
       updatedAt: new Date(0).toISOString(),
     },

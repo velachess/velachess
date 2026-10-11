@@ -22,12 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import { isProviderAlreadyConnectedError } from "../../api/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
-import {
-  trackedAccountsQuery,
-  useImportGames,
-  type ImportRequest,
-  type TrackedAccount,
-} from "./queries.ts";
+import { trackedAccountsQuery, useImportGames, type ImportRequest } from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";
 import {
   IMPORT_COPY,
@@ -38,10 +33,6 @@ import {
   type SourceId,
   type Translate,
 } from "./sources.ts";
-
-/** The DOM id `connections-screen.tsx` puts on each account row — shared
- * so this form's "manage it above" link can scroll straight to it. */
-export const accountRowId = (accountId: string) => `account-${accountId}`;
 
 const FIELD_NAME = "value" as const;
 
@@ -71,21 +62,16 @@ export function ImportGames({
   const source: ImportSource = IMPORT_SOURCES[sourceId];
 
   // One account per provider: the selected tab's platform already being
-  // tracked makes every username doomed, so the block is on the platform,
-  // not on what was typed. A race (another tab/device connects first)
-  // answers the same 409 the pre-check would have, carrying the same
-  // identity — so this also catches it after the fact, not just before.
-  const connectedOnPlatform:
-    | Pick<TrackedAccount, "id" | "platform" | "username">
-    | undefined =
-    accounts.data?.find((account) => account.platform === sourceId) ??
+  // tracked makes every username doomed, so the form gives way to a note
+  // naming the handle that holds the slot. Not an error state — the usual
+  // way to reach it is connecting successfully a moment earlier. A race
+  // (another tab/device connects first) answers a 409 carrying the same
+  // handle, which lands here too rather than in the failure alert.
+  const connectedHandle: string | undefined =
+    accounts.data?.find((account) => account.platform === sourceId)?.username ??
     (isProviderAlreadyConnectedError(importGames.error) &&
     importGames.error.platform === sourceId
-      ? {
-          id: importGames.error.accountId,
-          platform: sourceId,
-          username: importGames.error.username,
-        }
+      ? importGames.error.username
       : undefined);
 
   const form = useForm({
@@ -141,11 +127,11 @@ export function ImportGames({
           </TabsList>
         </Tabs>
 
-        {connectedOnPlatform && (
-          <AlreadyConnectedNotice account={connectedOnPlatform} source={source} />
+        {connectedHandle !== undefined && (
+          <AlreadyConnectedNotice username={connectedHandle} source={source} />
         )}
 
-        {!connectedOnPlatform && (
+        {connectedHandle === undefined && (
           <FieldGroup>
             <form.Field
               name={FIELD_NAME}
@@ -193,7 +179,7 @@ export function ImportGames({
           </FieldGroup>
         )}
 
-        {!connectedOnPlatform && (
+        {connectedHandle === undefined && (
           <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
         )}
       </form>
@@ -249,38 +235,33 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
   return null;
 }
 
+/** Plain, not destructive: this is what a connected platform looks like
+ * at rest, and the most common way to see it is having just connected
+ * successfully. Red belongs to an import that actually failed. */
 function AlreadyConnectedNotice({
-  account,
+  username,
   source,
 }: {
-  account: Pick<TrackedAccount, "id" | "username">;
+  username: string;
   source: ImportSource;
 }) {
   const { i18n } = useLingui();
 
   return (
-    <Alert variant="destructive">
+    <Alert>
       <AlertDescription className="flex flex-col items-start gap-1.5">
-        <span className="font-medium">{i18n._(IMPORT_COPY.alreadyConnectedTitle)}</span>
-        <span>
+        <span className="font-medium text-foreground">
           {i18n._({
-            ...IMPORT_COPY.alreadyConnectedDescription,
+            ...IMPORT_COPY.alreadyConnectedTitle,
             values: { platform: source.label },
           })}
         </span>
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="h-auto p-0"
-          onClick={() =>
-            document
-              .getElementById(accountRowId(account.id))
-              ?.scrollIntoView({ behavior: "smooth", block: "center" })
-          }
-        >
-          {i18n._(IMPORT_COPY.manageConnection)}
-        </Button>
+        <span>
+          {i18n._({
+            ...IMPORT_COPY.alreadyConnectedDescription,
+            values: { username },
+          })}
+        </span>
       </AlertDescription>
     </Alert>
   );
