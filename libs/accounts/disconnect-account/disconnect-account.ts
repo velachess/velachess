@@ -1,7 +1,7 @@
 /**
  * DisconnectAccount — stop tracking a chess.com/Lichess handle.
  *
- * Owner-scoped like `refreshAccount`: someone else's account id answers
+ * Owner-scoped like `requestSync`: someone else's account id answers
  * `not-found`, same as an id that never existed.
  *
  * Removing a connection removes what it imported. The games it brought in

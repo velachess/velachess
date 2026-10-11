@@ -5,13 +5,14 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   createUser,
+  findTrackedAccountByPlatform,
   games,
   getTrackedAccountCursor,
   listGames,
   saveGames,
   trackedAccounts,
   updateTrackedAccountCursor,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -75,7 +76,12 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   afterAll(() => close());
 
   it("saveGames twice with the same Chess.com game inserts it once", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
     const first = await saveGames(db, [chessComGame()], {
       userId: ownerId,
       accountId: account.id,
@@ -95,8 +101,13 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     // real chess.com game. Each must get its own complete history —
     // dedup happens within an account, never across accounts.
     const other = (await createUser(db)).id;
-    const accountA = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    const accountB = await upsertTrackedAccount(db, other, "chess_com", "Test-Player");
+    const accountA = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
+    const accountB = (await insertTrackedAccount(db, other, "chess_com", "Test-Player"))!;
 
     const first = await saveGames(db, [chessComGame()], {
       userId: ownerId,
@@ -177,7 +188,12 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   });
 
   it("deleting a tracked account leaves its games with account_id set to null", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
     await saveGames(db, [chessComGame()], {
       userId: ownerId,
       accountId: account.id,
@@ -189,27 +205,31 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(row?.accountId).toBeNull();
   });
 
-  it("upsertTrackedAccount is case-insensitive and returns one row", async () => {
-    const first = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    const second = await upsertTrackedAccount(db, ownerId, "chess_com", "test-player");
+  it("insertTrackedAccount lowercases the handle and refuses a second row per provider", async () => {
+    const userId = (await createUser(db)).id;
+    const first = await insertTrackedAccount(db, userId, "chess_com", "Test-Player");
+    const second = await insertTrackedAccount(db, userId, "chess_com", "other-player");
 
-    expect(second.id).toBe(first.id);
-    expect(second.username).toBe("test-player");
+    expect(first?.username).toBe("test-player");
+    expect(second).toBeNull();
+    expect((await findTrackedAccountByPlatform(db, userId, "chess_com"))?.id).toBe(
+      first?.id,
+    );
   });
 
   it("round-trips a ChessComCursor and a LichessCursor through jsonb", async () => {
-    const chessComAccount = await upsertTrackedAccount(
+    const chessComAccount = (await insertTrackedAccount(
       db,
       ownerId,
       "chess_com",
       "test-player",
-    );
-    const lichessAccount = await upsertTrackedAccount(
+    ))!;
+    const lichessAccount = (await insertTrackedAccount(
       db,
       ownerId,
       "lichess",
       "drnykterstein",
-    );
+    ))!;
 
     await updateTrackedAccountCursor(db, chessComAccount.id, {
       month: "2024/01",
@@ -227,7 +247,12 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   });
 
   it("listGames filters by account and orders by played_at desc", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "test-player");
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "test-player",
+    ))!;
     await saveGames(
       db,
       [

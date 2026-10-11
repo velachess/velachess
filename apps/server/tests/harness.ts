@@ -8,16 +8,25 @@ import path from "node:path";
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
+import { processSync } from "@velachess/accounts";
 import {
   appendProgress,
   clearProgress,
+  finishSyncJob,
   getAnalysis,
   getGame,
+  getTrackedAccount,
+  lockSyncJob,
+  markSyncRunning,
+  markTrackedAccountSynced,
   saveAnalysis,
+  saveGames,
+  updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import {
   chessComFixtureFetch,
   createLoopHarness,
+  deliverSyncJob,
   makeStockfishSession,
   type LoopHarness,
 } from "@velachess/test-utils";
@@ -41,6 +50,9 @@ export interface ApiHarness extends LoopHarness {
   bootstrapAuth: Auth;
   /** The worker's dependencies. Not the API's — it runs no engine. */
   analyze: AnalyzeDeps;
+  /** The worker's part of a sync the API scheduled, run inline as its
+   * first delivery — the API never fetches an archive itself. */
+  runSync: (syncId: string) => Promise<void>;
   /** Sign this email in and return the Cookie header for later requests. */
   signIn: (email: string, password: string) => Promise<string>;
   /** Sign a fresh user up and hand back their id + a ready Cookie header. */
@@ -100,7 +112,7 @@ export async function createApiHarness(
   // builds the equivalent for production — apps never share a composition
   // helper, so this restates the same DB wiring independently, the way
   // apps/worker/src/composition/accounts.ts duplicates apps/server's own
-  // buildSyncAccountDeps.
+  // account wiring.
   const analyze: AnalyzeDeps = {
     makeSession: makeStockfishSession,
     tryAcquireLock: (key) => harness.lock.tryAcquire(key),
@@ -111,6 +123,33 @@ export async function createApiHarness(
     appendProgress: (entry) => appendProgress(harness.db, entry),
     clearProgress: (gameId) => clearProgress(harness.db, gameId),
     depth: 8,
+  };
+
+  // The worker's sync composition, restated like `analyze` above, run on
+  // the job's real pg-boss delivery.
+  const runSync = async (syncId: string) => {
+    const job = await deliverSyncJob(harness.boss, syncId);
+    await processSync(
+      {
+        markSyncRunning: (id) => markSyncRunning(harness.db, id),
+        getTrackedAccount: (accountId) => getTrackedAccount(harness.db, accountId),
+        withTransaction: (fn) => harness.db.transaction(fn),
+        lockSyncJob,
+        finishSyncJob,
+        saveGames,
+        updateTrackedAccountCursor,
+        markTrackedAccountSynced,
+        completeDelivery: (tx, delivery) => harness.syncQueue.complete(tx, delivery),
+        failDelivery: (tx, delivery) => harness.syncQueue.fail(tx, delivery),
+        ...(sync?.fetch ? { fetch: sync.fetch } : {}),
+      },
+      {
+        syncJobId: syncId,
+        retryCount: job.retryCount,
+        retryLimit: job.retryLimit,
+        signal: job.signal,
+      },
+    );
   };
 
   const app = createApp(deps);
@@ -167,6 +206,7 @@ export async function createApiHarness(
     deps,
     auth,
     bootstrapAuth,
+    runSync,
     signIn,
     signUp,
     analyze,

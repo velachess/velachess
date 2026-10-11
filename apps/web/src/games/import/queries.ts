@@ -1,6 +1,13 @@
+import { useEffect, useEffectEvent, useState } from "react";
+
 import { api, parseResponse, type InferResponseType } from "../../api/index.ts";
 import { isRateLimitedError } from "../../api/index.ts";
-import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
+import {
+  queryOptions,
+  useMutation,
+  useQueries,
+  useQueryClient,
+} from "../../libs/react-query.ts";
 import { useMyAccounts, type RememberedAccount } from "./my-accounts.ts";
 import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
@@ -57,62 +64,127 @@ export function importStatus(remembered: RememberedAccount[]): ImportStatus {
   return remembered.length > 0 ? "ready" : "empty";
 }
 
+/** How often an active sync job is asked for its status. */
+const SYNC_POLL_MS = 3_000;
+
+type SyncJob = InferResponseType<(typeof api.syncs)[":id"]["$get"], 200>;
+
+const ACTIVE_SYNC = new Set<SyncJob["status"]>(["queued", "running", "retrying"]);
+
+/** One sync job, polled while it can still change. Its id comes from the
+ * server — a `202` or an account's `activeSyncId` — so a reload resumes. */
+function syncJobQuery(syncId: string) {
+  return queryOptions({
+    queryKey: ["syncs", syncId],
+    queryFn: () => parseResponse(api.syncs[":id"].$get({ param: { id: syncId } })),
+    // A settled job never changes again; a failed read stops too, and the
+    // query client's own retry rule decides whether it was worth a retry.
+    refetchInterval: (query) =>
+      query.state.status !== "error" && isSyncActive(query.state.data)
+        ? SYNC_POLL_MS
+        : false,
+  });
+}
+
+function isSyncActive(job: SyncJob | undefined): boolean {
+  return job === undefined || ACTIVE_SYNC.has(job.status);
+}
+
 /**
- * Summed over the device's accounts. `too-soon` wins: nothing was
- * pulled, and "0 new games" would be a different, wrong story.
+ * Follows sync jobs until each settles, then refreshes what a sync can
+ * change — the library and the accounts — and nothing else.
+ */
+export function useSyncJobs(syncIds: readonly string[]) {
+  const queryClient = useQueryClient();
+  const jobs = useQueries({ queries: syncIds.map(syncJobQuery) });
+  const settled = jobs.filter((job) => job.isError || !isSyncActive(job.data)).length;
+
+  useEffect(() => {
+    if (settled === 0) return;
+    void queryClient.invalidateQueries({ queryKey: ["games"] });
+    void queryClient.invalidateQueries({ queryKey: ["accounts"] });
+  }, [settled, queryClient]);
+
+  return { jobs, done: syncIds.length > 0 && settled === syncIds.length };
+}
+
+/**
+ * `refreshed` sums the accounts that synced; `too-soon` covers the ones
+ * still cooling down. A batch can report both: "0 new games" for an
+ * account that never started would be a different, wrong story.
  */
 export type SyncOutcome =
   | { status: "refreshed"; saved: number }
   | { status: "too-soon"; retryAfterSeconds: number };
 
-/** Pulls fresh games for every account the server tracks. Server ids,
- * never the device's remembered ones: a browser can hold an id from a
- * database that no longer exists, and syncing it 404s forever. */
+/** Asks the server to sync, then follows the jobs to an outcome. Server
+ * ids, never the device's remembered ones: a browser can hold an id from
+ * a database that no longer exists, and syncing it 404s forever. */
 export function useSyncGames(handlers: {
   onOutcome: (outcome: SyncOutcome) => void;
   onError: () => void;
 }) {
-  const queryClient = useQueryClient();
+  const [syncIds, setSyncIds] = useState<string[]>([]);
+  const { jobs, done } = useSyncJobs(syncIds);
 
-  return useMutation({
-    mutationFn: async (accounts: readonly { id: string }[]): Promise<SyncOutcome> => {
-      let saved = 0;
-
-      for (const account of accounts) {
-        // Sequential: a 429 must stop the loop before the next account
-        // is requested, so these can't run in Promise.all.
-        // oxlint-disable-next-line eslint/no-await-in-loop
-        try {
-          // oxlint-disable-next-line eslint/no-await-in-loop
-          const result = await parseResponse(
-            api.accounts[":id"].sync.$post({
-              param: { id: account.id },
-            }),
-          );
-          saved += result.saved;
-        } catch (error) {
-          // Either throttle — the domain cooldown or the API rate limit —
-          // arrives as the same class with the same wait, so "come back in
-          // a moment" is one outcome, not two. A 429 that somehow carried
-          // no wait falls back to the cooldown's own window.
-          if (isRateLimitedError(error)) {
-            return {
-              status: "too-soon",
-              retryAfterSeconds: error.retryAfterSeconds ?? 60,
-            };
-          }
-          throw error;
-        }
+  const request = useMutation({
+    // Parallel: the server only schedules, so one account's cooldown
+    // never holds back the others.
+    mutationFn: (accounts: readonly { id: string }[]) =>
+      Promise.all(accounts.map((account) => requestSync(account.id))),
+    // Cooldowns are reported now, while their wait is exact; the started
+    // jobs report when they settle.
+    onSuccess: (results) => {
+      const started = results.flatMap((result) =>
+        "syncId" in result ? [result.syncId] : [],
+      );
+      const waits = results.flatMap((result) =>
+        "retryAfterSeconds" in result ? [result.retryAfterSeconds] : [],
+      );
+      if (waits.length > 0) {
+        handlers.onOutcome({ status: "too-soon", retryAfterSeconds: Math.min(...waits) });
       }
-
-      return { status: "refreshed", saved };
-    },
-    onSuccess: (outcome) => {
-      handlers.onOutcome(outcome);
-      return queryClient.invalidateQueries();
+      if (started.length > 0) setSyncIds(started);
     },
     onError: handlers.onError,
   });
+
+  const report = useEffectEvent(() => {
+    if (jobs.some((job) => job.isError || job.data?.status === "failed")) {
+      handlers.onError();
+      return;
+    }
+    const saved = jobs.reduce(
+      (sum, job) => sum + (job.data?.progress.gamesInserted ?? 0),
+      0,
+    );
+    handlers.onOutcome({ status: "refreshed", saved });
+  });
+  // Once per batch: `done` turns true when its last job settles.
+  useEffect(() => {
+    if (done) report();
+  }, [done]);
+
+  return {
+    mutate: request.mutate,
+    isPending: request.isPending || (syncIds.length > 0 && !done),
+  };
+}
+
+/** A sync request: the job it started, or how long the cooldown has left. */
+async function requestSync(accountId: string) {
+  try {
+    return await parseResponse(
+      api.accounts[":id"].sync.$post({ param: { id: accountId } }),
+    );
+  } catch (error) {
+    // Either throttle — the domain cooldown or the API rate limit —
+    // arrives as the same class with the same wait. A 429 that somehow
+    // carried no wait falls back to the cooldown's own window.
+    if (isRateLimitedError(error))
+      return { retryAfterSeconds: error.retryAfterSeconds ?? 60 };
+    throw error;
+  }
 }
 
 /** Named so a caller that owns the surrounding frame — the onboarding

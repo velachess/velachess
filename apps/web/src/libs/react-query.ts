@@ -7,6 +7,7 @@ export {
   queryOptions,
   useIsMutating,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";

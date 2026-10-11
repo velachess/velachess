@@ -23,11 +23,12 @@ beforeAll(async () => {
   harness = await createApiHarness();
   // Reads no longer import; the connection is created explicitly first.
   const owner = (await harness.signUp("owner@watchers.test")).app;
-  await owner.request("/accounts", {
+  const connected = await owner.request("/accounts", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ platform: "chess_com", username: "looper" }),
   });
+  await harness.runSync(((await connected.json()) as { syncId: string }).syncId);
   const games = (await (await owner.request("/games")).json()) as {
     games: { id: string }[];
   };

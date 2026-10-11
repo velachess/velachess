@@ -76,3 +76,34 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # Races that need two real connections: locks and unique-index arbitration.
+  # PGlite runs one connection, so these run against the Postgres the
+  # compose file deploys.
+  postgres:
+    name: Postgres integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: velachess
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/velachess
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Concurrency tests
+        run: pnpm --filter @velachess/infra-db exec vitest run tests/concurrency.test.ts
+
+      - name: Sync settle on the postgres-js driver
+        run: pnpm --filter @velachess/infra-queue exec vitest run tests/postgres.test.ts

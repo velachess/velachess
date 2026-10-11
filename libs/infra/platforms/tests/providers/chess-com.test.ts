@@ -123,9 +123,20 @@ describe("fetchChessCom", () => {
     ]);
   });
 
-  it("throws if the archives index itself fails", async () => {
+  it("reports a handle with no archives index as not found, for good", async () => {
     const fetch = (async () =>
       new Response("not found", { status: 404 })) as typeof globalThis.fetch;
+    const result = await fetchChessCom("test-player", null, { fetch });
+
+    expect(result.complete).toBe(false);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ reason: "not-found", retryable: false }),
+    ]);
+  });
+
+  it("throws if the archives index fails any other way", async () => {
+    const fetch = (async () =>
+      new Response("unavailable", { status: 503 })) as typeof globalThis.fetch;
     await expect(fetchChessCom("test-player", null, { fetch })).rejects.toThrow(
       "Chess.com returned no archives",
     );

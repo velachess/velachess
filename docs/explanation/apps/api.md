@@ -72,11 +72,18 @@ application owns the column after that.
 
 ## Import and refresh
 
-`POST /accounts` creates/connects a tracked account and performs the initial
-import synchronously so provider errors reach the person who submitted the
-handle. `POST /accounts/:id/sync` performs an interactive refresh, enforces the
-per-account cooldown, and returns `Retry-After` when called too soon. The worker
-entry point remains available for refresh work no person is waiting on.
+No archive is fetched inside an HTTP request. `POST /accounts` confirms the
+handle with one profile request — `404` when the provider has no such handle,
+`503` when it cannot tell — then creates the account and its first sync job and
+enqueues that job in one transaction, so a new account always has a sync
+scheduled and a failed enqueue leaves no account; reconnecting the handle
+already tracked answers `201` with `syncId: null` and schedules nothing. `POST /accounts/:id/sync` answers `202
+{ syncId, status }`: the account's active job when it has one, otherwise a new
+job after the per-account cooldown (`429` with `Retry-After` inside it).
+`GET /syncs/:id` reports an owner's job — status, progress, error — and is what
+clients poll; `GET /accounts` carries each account's `syncStatus`,
+`activeSyncId` and `lastSyncError`. The worker does the fetching (see
+`docs/reference/ingestion.md`).
 
 `POST /games/import` is the manual source: PGN text uploaded without any
 connected account. It normalizes in-request, resolves the named player's seat

@@ -11,8 +11,11 @@ import {
   ensureQueues,
   makeAnalysisQueue,
   makeSyncQueue,
+  QUEUES,
   type AnalysisQueue,
+  type JobWithMetadata,
   type PgBoss,
+  type SyncJobData,
   type SyncQueue,
 } from "@velachess/infra-queue";
 
@@ -51,11 +54,34 @@ export async function createLoopHarness(): Promise<LoopHarness> {
     pglite,
     boss,
     analysisQueue: makeAnalysisQueue(boss, db),
-    syncQueue: makeSyncQueue(boss, db),
+    syncQueue: makeSyncQueue(boss),
     lock: pgliteLock(pglite),
     close: async () => {
       await boss.stop({ graceful: false });
       await close();
     },
   };
+}
+
+/** Raised per call, so the job just picked always outranks earlier picks. */
+let pickPriority = 1_000_000;
+
+/**
+ * One sync job's delivery, fetched from pg-boss the way a worker gets it
+ * (active, with its retry count), but picked by id: the job is moved ahead
+ * of the queue first, so the fetch claims it and nothing else.
+ */
+export async function deliverSyncJob(
+  boss: PgBoss,
+  id: string,
+): Promise<JobWithMetadata<SyncJobData>> {
+  pickPriority += 1;
+  await boss.update(QUEUES.sync, undefined, { id, priority: pickPriority });
+  const [job] = await boss.fetch<SyncJobData>(QUEUES.sync, {
+    includeMetadata: true,
+    ignoreStartAfter: true,
+    minPriority: pickPriority,
+  });
+  if (job?.id !== id) throw new Error(`sync job ${id} has no delivery waiting`);
+  return { ...job, signal: new AbortController().signal };
 }

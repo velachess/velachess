@@ -12,7 +12,7 @@ import { createDb } from "@velachess/infra-db";
 import { EngineSession } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { logger } from "@velachess/infra-logger";
-import { createBoss, ensureQueues } from "@velachess/infra-queue";
+import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
 
 import { registerConsumers } from "./worker.ts";
 
@@ -53,6 +53,7 @@ const lock = sessionAdvisoryLock({
 // instead of logging "consuming" over dead workers.
 await registerConsumers(boss, {
   db,
+  syncQueue: makeSyncQueue(boss),
   analyze: { makeSession, tryAcquireLock: (key) => lock.tryAcquire(key) },
   log: workerLogger,
 });

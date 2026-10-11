@@ -42,18 +42,35 @@ function monthOf(archiveUrl: string): string {
 export async function fetchChessCom(
   username: string,
   cursor: ChessComCursor | null,
-  opts: { fetch?: FetchFn } = {},
+  opts: { fetch?: FetchFn; signal?: AbortSignal } = {},
 ): Promise<SyncResult & { cursor: ChessComCursor | null }> {
   if (!USERNAME_PATTERN.test(username)) {
     throw new Error(`Invalid Chess.com username: "${username}"`);
   }
   const doFetch = opts.fetch ?? globalThis.fetch;
   const headers = { Accept: "application/json", "User-Agent": USER_AGENT };
+  const init = opts.signal ? { headers, signal: opts.signal } : { headers };
 
   const indexRes = await doFetch(
     `https://api.chess.com/pub/player/${username}/games/archives`,
-    { headers },
+    init,
   );
+  if (indexRes.status === 404) {
+    return {
+      games: [],
+      failures: [
+        {
+          scope: "page",
+          ref: username,
+          reason: "not-found",
+          retryable: false,
+          detail: "HTTP 404",
+        },
+      ],
+      cursor,
+      complete: false,
+    };
+  }
   if (!indexRes.ok) {
     throw new Error(
       `Chess.com returned no archives for "${username}" (${indexRes.status})`,
@@ -77,7 +94,7 @@ export async function fetchChessCom(
 
   for (const archiveUrl of months) {
     const month = monthOf(archiveUrl);
-    const monthRes = await doFetch(archiveUrl, { headers });
+    const monthRes = await doFetch(archiveUrl, init);
 
     if (!monthRes.ok) {
       failures.push({

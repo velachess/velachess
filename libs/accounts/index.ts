@@ -4,11 +4,6 @@
  * Root index.ts is the public interface of a vertical/module/capability.
  * It is not a convenience barrel. See AGENTS.md "Modules and slices" for
  * what belongs here versus what stays a private slice file.
- *
- * `syncAccount`/`SyncAccountDeps` are exposed here for one reason beyond
- * `refreshAccount`/`processAccountSync`'s own use: `connect-account` (its
- * own module-mate) declares a `SyncAccount` dependency type and needs the
- * composition root to wire the real handler in.
  */
 
 export { importAccount } from "./connect-account/connect-account.ts";
@@ -27,7 +22,6 @@ export type {
 export { listAccounts } from "./list-accounts/list-accounts.ts";
 export type {
   ListAccountsDeps,
-  SyncState,
   TrackedAccountSummary,
 } from "./list-accounts/list-accounts.ts";
 
@@ -37,16 +31,11 @@ export type {
   ListAccountGamesDeps,
 } from "./list-account-games/list-account-games.ts";
 
-export {
-  processAccountSync,
-  refreshAccount,
-  secondsUntilRefreshAllowed,
-  syncAccount,
-  SYNC_COOLDOWN_SECONDS,
-} from "./sync-account/sync-account.ts";
-export type {
-  RefreshOutcome,
-  SyncAccountDeps,
-  SyncDeps,
-  SyncOutcome,
-} from "./sync-account/sync-account.ts";
+export { requestSync } from "./request-sync/request-sync.ts";
+export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request-sync.ts";
+
+export { getSync } from "./get-sync/get-sync.ts";
+export type { GetSyncDeps } from "./get-sync/get-sync.ts";
+
+export { processSync } from "./process-sync/process-sync.ts";
+export type { ProcessSyncDeps, SyncDeps } from "./process-sync/process-sync.ts";

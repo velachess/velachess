@@ -60,6 +60,7 @@ export const syncFailureSchema = z.object({
     "invalid-response",
     "unsupported-variant",
     "network",
+    "not-found",
   ]),
   retryable: z.boolean(),
   detail: z.string(),

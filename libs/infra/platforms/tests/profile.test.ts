@@ -116,25 +116,28 @@ describe("fetchChessComProfile", () => {
     expect(profile).toEqual({ avatarUrl: null, flair: null, countryCode: null });
   });
 
-  it("reports failed on a 404 rather than throwing", async () => {
+  it("reports a 404 as a handle that does not exist, rather than throwing", async () => {
     // A profile decorates a name; failing here would take the game down
-    // with it. Failed — not an empty answer — so cached identity stands.
+    // with it. Failed — not an empty answer — so cached identity stands;
+    // not-found, so connecting can refuse the handle.
     const result = await fetchChessComProfile("nobody", {
       fetch: respondWith(null, false),
     });
 
-    expect(result).toEqual({ status: "failed" });
+    expect(result).toEqual({ status: "failed", reason: "not-found" });
   });
 
   it("does not call out at all for a username that cannot exist", async () => {
     let called = false;
-    const profile = await fetchedChessCom("!!bad!!", (async () => {
-      called = true;
-      return {} as Response;
-    }) as typeof globalThis.fetch);
+    const result = await fetchChessComProfile("!!bad!!", {
+      fetch: (async () => {
+        called = true;
+        return {} as Response;
+      }) as typeof globalThis.fetch,
+    });
 
     expect(called).toBe(false);
-    expect(profile.avatarUrl).toBeNull();
+    expect(result).toEqual({ status: "failed", reason: "not-found" });
   });
 });
 
@@ -188,7 +191,7 @@ describe("fetchLichessProfile", () => {
         throw new Error("network error");
       },
     });
-    expect(result).toEqual({ status: "failed" });
+    expect(result).toEqual({ status: "failed", reason: "unavailable" });
   });
 
   it("treats an unreadable body as failed, not as an empty answer", async () => {
@@ -204,7 +207,7 @@ describe("fetchLichessProfile", () => {
           {} as Response,
         ),
     });
-    expect(result).toEqual({ status: "failed" });
+    expect(result).toEqual({ status: "failed", reason: "unavailable" });
   });
 
   it("reports failed when request is aborted", async () => {
@@ -213,6 +216,6 @@ describe("fetchLichessProfile", () => {
         throw new DOMException("Aborted", "AbortError");
       },
     });
-    expect(result).toEqual({ status: "failed" });
+    expect(result).toEqual({ status: "failed", reason: "unavailable" });
   });
 });

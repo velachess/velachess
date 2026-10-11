@@ -169,6 +169,13 @@
       "when": 1791729364535,
       "tag": "0023_onboarded_at",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791747617489,
+      "tag": "0024_sync_jobs",
+      "breakpoints": true
     }
   ]
 }

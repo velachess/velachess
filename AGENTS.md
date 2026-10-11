@@ -23,7 +23,7 @@ apps/worker       pg-boss consumer composition root
 apps/web          TanStack Start product SPA
 apps/site         Next.js static public site
 
-libs/accounts     tracked-account lifecycle: connect, list, refresh
+libs/accounts     tracked-account lifecycle: connect, list, sync, disconnect
 libs/games        the game record: read, list and import PGN
 libs/analysis     the Stockfish job lifecycle: request, watch, process, get
 libs/user         the person: first-user bootstrap and profile avatar
@@ -60,7 +60,7 @@ modules (see `docs/explanation/architecture.md` for the full rationale).
 This section is the precise model; when code and this section disagree,
 fix whichever is wrong.
 
-- **Slice** — owns one behavior (e.g. `sync-account`, `import-pgn`).
+- **Slice** — owns one behavior (e.g. `process-sync`, `import-pgn`).
   Declares its own narrow dependency function types, in its own
   vocabulary, for everything external: DB reads/writes, queue enqueue,
   provider HTTP, and any other slice's behavior. A slice never imports or

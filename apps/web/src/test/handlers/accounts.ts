@@ -1,15 +1,20 @@
 import { http, HttpResponse } from "msw";
 
-import { archiveAccount, knowsPlayer, refreshArchive } from "../archive.ts";
-
-type QueueState = "queued" | "active" | "failed" | "none";
+import {
+  activeSyncOf,
+  archiveAccount,
+  knowsPlayer,
+  pollSync,
+  refreshArchive,
+  scheduleSync,
+  type SyncJob,
+} from "../archive.ts";
 
 interface TrackedAccountRow {
   id: string;
   platform: "chess_com" | "lichess";
   username: string;
   lastSyncedAt: string | null;
-  syncState: QueueState;
 }
 
 /** What the server says this user tracks. The onboarding reads it to tell
@@ -19,26 +24,56 @@ let trackedAccounts: TrackedAccountRow[] = [];
 
 export function accountIsTracked(
   account: Partial<TrackedAccountRow> & { username: string },
-): void {
-  trackedAccounts = [
-    ...trackedAccounts,
-    {
-      id: account.id ?? `account-${trackedAccounts.length + 1}`,
-      platform: account.platform ?? "chess_com",
-      username: account.username,
-      lastSyncedAt: account.lastSyncedAt ?? null,
-      syncState: account.syncState ?? "none",
-    },
-  ];
+): TrackedAccountRow {
+  const row: TrackedAccountRow = {
+    id: account.id ?? `account-${trackedAccounts.length + 1}`,
+    platform: account.platform ?? "chess_com",
+    username: account.username,
+    lastSyncedAt: account.lastSyncedAt ?? null,
+  };
+  trackedAccounts = [...trackedAccounts, row];
+  return row;
 }
 
 export function resetTrackedAccounts(): void {
   trackedAccounts = [];
 }
 
+/** Shaped exactly as GET /syncs/:id reports it. */
+function syncJobBody(job: SyncJob) {
+  return {
+    id: job.id,
+    accountId: job.accountId,
+    trigger: job.trigger,
+    status: job.status,
+    progress: {
+      unitsDone: null,
+      unitsTotal: null,
+      gamesFetched: job.gamesInserted,
+      gamesInserted: job.gamesInserted,
+    },
+    error: job.error,
+    retryAfterSeconds: null,
+    startedAt: null,
+    finishedAt: null,
+  };
+}
+
 /** Sync contract incl. non-failure answers; 429 sends both a `Retry-After` header and the body field, per the status code contract. */
 export const accountsHandlers = [
-  http.get("/api/accounts", () => HttpResponse.json(trackedAccounts)),
+  http.get("/api/accounts", () =>
+    HttpResponse.json(
+      trackedAccounts.map((account) => {
+        const active = activeSyncOf(account.id);
+        return {
+          ...account,
+          syncStatus: active?.status ?? "idle",
+          activeSyncId: active?.id ?? null,
+          lastSyncError: null,
+        };
+      }),
+    ),
+  ),
 
   /** Connecting a handle is the only way to create one; 404 when the platform doesn't have it, matching the real route. */
   http.post("/api/accounts", async ({ request }) => {
@@ -48,11 +83,15 @@ export const accountsHandlers = [
     }
 
     if (!knowsPlayer(body.platform, body.username)) {
-      return HttpResponse.json({ error: "archive not found" }, { status: 404 });
+      return HttpResponse.json(
+        { error: "handle not found at the provider" },
+        { status: 404 },
+      );
     }
 
     const account = archiveAccount();
-    if (!trackedAccounts.some((tracked) => tracked.id === account.id)) {
+    const known = trackedAccounts.some((tracked) => tracked.id === account.id);
+    if (!known) {
       accountIsTracked({
         id: account.id,
         platform: account.platform,
@@ -65,6 +104,7 @@ export const accountsHandlers = [
         id: account.id,
         platform: account.platform,
         username: account.username,
+        syncId: known ? null : scheduleSync(account.id, "connect").id,
       },
       { status: 201 },
     );
@@ -87,7 +127,16 @@ export const accountsHandlers = [
       );
     }
 
-    return HttpResponse.json({ saved: outcome.saved });
+    return HttpResponse.json(
+      { syncId: outcome.job.id, status: outcome.job.status },
+      { status: 202 },
+    );
+  }),
+
+  http.get("/api/syncs/:id", ({ params }) => {
+    const job = pollSync(String(params["id"]));
+    if (!job) return HttpResponse.json({ error: "sync not found" }, { status: 404 });
+    return HttpResponse.json(syncJobBody(job));
   }),
 
   /** Owner-scoped delete, mirroring the real route: unknown id answers the

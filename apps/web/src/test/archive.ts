@@ -35,6 +35,23 @@ interface ArchiveState {
   refusesRefreshFor: number | null;
   /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
+  /** Scheduled syncs, by id. */
+  syncs: Map<string, SyncJob>;
+  /** How many status polls a sync answers `running` before it settles. */
+  syncPolls: number;
+  /** Set when the next sync should end `failed`. */
+  syncFails: boolean;
+}
+
+export interface SyncJob {
+  id: string;
+  accountId: string;
+  trigger: "connect" | "manual";
+  status: "queued" | "running" | "retrying" | "succeeded" | "failed";
+  gamesInserted: number | null;
+  error: { code: "incomplete"; retryable: true } | null;
+  pollsLeft: number;
+  fails: boolean;
 }
 
 function fresh(): ArchiveState {
@@ -44,6 +61,9 @@ function fresh(): ArchiveState {
     incoming: [],
     refusesRefreshFor: null,
     identities: new Map(),
+    syncs: new Map(),
+    syncPolls: 0,
+    syncFails: false,
   };
 }
 
@@ -183,7 +203,34 @@ export function readArchive(view: ArchiveView): ArchivePage {
 export type RefreshResult =
   | { status: "not-found" }
   | { status: "too-soon"; retryAfterSeconds: number }
-  | { status: "refreshed"; saved: number };
+  | { status: "accepted"; job: SyncJob };
+
+/** Sync status polls answer `running` this many times before settling. */
+export function syncTakesPolls(polls: number): void {
+  state.syncPolls = polls;
+}
+
+/** Makes the next sync end `failed`, as a pass that never completed does. */
+export function failNextSync(): void {
+  state.syncFails = true;
+}
+
+/** Schedules a sync — the games arrive only once it settles, as with the worker. */
+export function scheduleSync(accountId: string, trigger: SyncJob["trigger"]): SyncJob {
+  const job: SyncJob = {
+    id: `sync-${state.syncs.size + 1}`,
+    accountId,
+    trigger,
+    status: "queued",
+    gamesInserted: null,
+    error: null,
+    pollsLeft: state.syncPolls,
+    fails: state.syncFails,
+  };
+  state.syncFails = false;
+  state.syncs.set(job.id, job);
+  return job;
+}
 
 export function refreshArchive(accountId: string): RefreshResult {
   if (accountId !== state.account.id) return { status: "not-found" };
@@ -196,11 +243,40 @@ export function refreshArchive(accountId: string): RefreshResult {
     return { status: "too-soon", retryAfterSeconds };
   }
 
-  const saved = state.incoming.length;
+  return { status: "accepted", job: scheduleSync(accountId, "manual") };
+}
+
+/** One status poll: `running` while polls are left, then the outcome, landing the games. */
+export function pollSync(id: string): SyncJob | undefined {
+  const job = state.syncs.get(id);
+  if (!job || job.status === "succeeded" || job.status === "failed") return job;
+
+  if (job.pollsLeft > 0) {
+    job.pollsLeft -= 1;
+    job.status = "running";
+    return job;
+  }
+
+  if (job.fails) {
+    job.status = "failed";
+    job.error = { code: "incomplete", retryable: true };
+    return job;
+  }
+  job.gamesInserted = state.incoming.length;
   state.games.push(...state.incoming);
   state.incoming = [];
+  job.status = "succeeded";
+  return job;
+}
 
-  return { status: "refreshed", saved };
+/** The job active for an account, as `GET /accounts` reports it. */
+export function activeSyncOf(accountId: string): SyncJob | undefined {
+  return [...state.syncs.values()].find(
+    (job) =>
+      job.accountId === accountId &&
+      job.status !== "succeeded" &&
+      job.status !== "failed",
+  );
 }
 
 /** Which side you were on decides whether "1-0" is good news. */

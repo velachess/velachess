@@ -18,7 +18,7 @@ export interface OnboardingInput {
   failed: boolean;
 }
 
-const IN_FLIGHT = new Set(["queued", "active"]);
+const IN_FLIGHT = new Set(["queued", "running", "retrying"]);
 
 export function onboardingState(input: OnboardingInput): OnboardingState {
   // A failure is not an empty account. Onboarding somebody whose backend
@@ -34,7 +34,7 @@ export function onboardingState(input: OnboardingInput): OnboardingState {
   // an empty screen they can act on, rather than a modal with no way out.
   if (input.onboarded) return { kind: "no-games" };
   if (input.accounts.length === 0) return { kind: "onboarding" };
-  if (input.accounts.some((account) => IN_FLIGHT.has(account.syncState))) {
+  if (input.accounts.some((account) => IN_FLIGHT.has(account.syncStatus))) {
     return { kind: "syncing" };
   }
 

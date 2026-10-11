@@ -11,6 +11,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { completeAnalysis } from "@velachess/analysis";
 import { appendProgress } from "@velachess/infra-db";
 import { LOOPER_USERNAME } from "@velachess/fixtures";
+import { QUEUES } from "@velachess/infra-queue";
+import { chessComFixtureFetch } from "@velachess/test-utils";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
@@ -78,6 +80,7 @@ function largeArchiveFetch(count: number): typeof fetch {
 
   return (async (input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.endsWith("/pub/player/archivist")) return Response.json({});
     if (url.endsWith("/archives")) {
       return Response.json({
         archives: ["https://api.chess.com/pub/player/archivist/games/2026/08"],
@@ -108,15 +111,31 @@ describe("api routes", () => {
     expect((await owner.request(`/accounts/${randomUUID()}/games`)).status).toBe(404);
   });
 
-  it("accounts: create is an upsert", async () => {
+  it("accounts: connecting normalizes the handle and schedules its first sync", async () => {
     const created = await owner.request(
       "/accounts",
       json({ platform: "chess_com", username: "Looper" }),
     );
     expect(created.status).toBe(201);
-    const account = (await created.json()) as { id: string; username: string };
+    const account = (await created.json()) as {
+      id: string;
+      username: string;
+      syncId: string;
+    };
     expect(account.username).toBe(LOOPER_USERNAME); // normalized
     accountId = account.id;
+
+    // Connecting schedules the first sync; the archive arrives in the background.
+    const scheduled = (await (await owner.request("/accounts")).json()) as {
+      id: string;
+      syncStatus: string;
+      activeSyncId: string | null;
+    }[];
+    expect(scheduled.find((entry) => entry.id === accountId)).toMatchObject({
+      syncStatus: "queued",
+      activeSyncId: account.syncId,
+    });
+    await harness.runSync(account.syncId);
 
     const again = await owner.request(
       "/accounts",
@@ -128,15 +147,17 @@ describe("api routes", () => {
       id: string;
       lastSyncedAt: string | null;
     }[];
-    // Importing IS the first sync now — first contact fills the archive,
-    // so a listed account never shows the old "connected, never synced"
-    // limbo for a username the platform knows.
+    expect(listed.find((entry) => entry.id === accountId)).toMatchObject({
+      syncStatus: "idle",
+      activeSyncId: null,
+      lastSyncError: null,
+    });
     expect(listed.find((entry) => entry.id === accountId)!.lastSyncedAt).not.toBeNull();
   });
 
   it("empty state: a new user has no games", async () => {
     // A brand-new user, because the owner's world is no longer empty —
-    // importing fills the archive at POST /accounts.
+    // its first sync filled the archive.
     const nobody = (await harness.signUp("empty@api.test")).app;
     const library = (await (await nobody.request("/games")).json()) as {
       games: unknown[];
@@ -175,8 +196,8 @@ describe("api routes", () => {
   });
 
   it("refreshing right after an import is rate limited, with Retry-After", async () => {
-    // The import synced a moment ago. Both platforms answer 429 to bursts,
-    // and a refresh button is exactly the control someone taps twice.
+    // The import's sync ran a moment ago. Both platforms answer 429 to
+    // bursts, and a refresh button is exactly the control someone taps twice.
     const tooSoon = await owner.request(`/accounts/${accountId}/sync`, {
       method: "POST",
     });
@@ -412,7 +433,8 @@ describe("api routes", () => {
       "/accounts",
       json({ platform: "chess_com", username: "Looper" }),
     );
-    const account = (await created.json()) as { id: string };
+    const account = (await created.json()) as { id: string; syncId: string };
+    await harness.runSync(account.syncId);
     const gamesBefore = (await (await solo.request("/games")).json()) as {
       total: number;
     };
@@ -455,16 +477,173 @@ describe("large archives", () => {
     try {
       const { app } = await large.signUp("large-archive@api.test");
 
-      const connected = await app.request(
-        "/accounts",
-        json({ platform: "chess_com", username: "archivist" }),
-      );
-      expect(connected.status).toBe(201);
+      const account = await connected(app, "archivist");
+      await large.runSync(account.syncId);
 
       const library = (await (await app.request("/games")).json()) as { total: number };
       expect(library.total).toBe(3_000);
     } finally {
       await large.close();
+    }
+  });
+});
+
+interface SyncJobBody {
+  id: string;
+  status: string;
+  progress: Record<string, number | null>;
+  error: { code: string; retryable: boolean } | null;
+}
+
+async function connected(app: AuthedApp, username: string) {
+  const response = await app.request(
+    "/accounts",
+    json({ platform: "chess_com", username }),
+  );
+  expect(response.status).toBe(201);
+  return (await response.json()) as { id: string; syncId: string };
+}
+
+describe("sync jobs", () => {
+  it("a sync request answers 202 with a job; a repeat shares the active one", async () => {
+    const { app } = await harness.signUp("sync-202@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+
+    // The connect job is still queued: requesting again returns it, before
+    // any cooldown is considered — and nothing was fetched on the way.
+    const [first, second] = await Promise.all([
+      app.request(`/accounts/${account.id}/sync`, { method: "POST" }),
+      app.request(`/accounts/${account.id}/sync`, { method: "POST" }),
+    ]);
+    expect(first.status).toBe(202);
+    expect(second.status).toBe(202);
+    expect(await first.json()).toEqual({ syncId: account.syncId, status: "queued" });
+    expect(await second.json()).toEqual({ syncId: account.syncId, status: "queued" });
+  });
+
+  it("GET /syncs/:id follows the job to its outcome, for its owner only", async () => {
+    const { app } = await harness.signUp("sync-status@api.test");
+    const stranger = (await harness.signUp("sync-stranger@api.test")).app;
+    const account = await connected(app, LOOPER_USERNAME);
+
+    const queued = (await (
+      await app.request(`/syncs/${account.syncId}`)
+    ).json()) as SyncJobBody;
+    expect(queued).toMatchObject({
+      id: account.syncId,
+      status: "queued",
+      error: null,
+      progress: {
+        unitsDone: null,
+        unitsTotal: null,
+        gamesFetched: null,
+        gamesInserted: null,
+      },
+    });
+
+    await harness.runSync(account.syncId);
+    const done = (await (
+      await app.request(`/syncs/${account.syncId}`)
+    ).json()) as SyncJobBody;
+    expect(done).toMatchObject({
+      status: "succeeded",
+      progress: { gamesFetched: 2, gamesInserted: 2 },
+    });
+
+    expect((await stranger.request(`/syncs/${account.syncId}`)).status).toBe(404);
+    expect((await app.request(`/syncs/${randomUUID()}`)).status).toBe(404);
+  });
+
+  it("a job whose delivery pg-boss already ended is closed and replaced", async () => {
+    const { app } = await harness.signUp("sync-stale@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+    // The delivery ends without the worker recording it — as when the last
+    // attempt times out.
+    await harness.boss.cancel(QUEUES.sync, account.syncId);
+
+    const replaced = await app.request(`/accounts/${account.id}/sync`, {
+      method: "POST",
+    });
+    expect(replaced.status).toBe(202);
+    const { syncId } = (await replaced.json()) as { syncId: string };
+    expect(syncId).not.toBe(account.syncId);
+
+    const stale = (await (
+      await app.request(`/syncs/${account.syncId}`)
+    ).json()) as SyncJobBody;
+    expect(stale).toMatchObject({
+      status: "failed",
+      error: { code: "internal", retryable: true },
+    });
+  });
+
+  it("a job whose delivery pg-boss already ended reads as failed, not active forever", async () => {
+    const { app } = await harness.signUp("sync-dead-read@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+    await harness.boss.cancel(QUEUES.sync, account.syncId);
+
+    const job = (await (
+      await app.request(`/syncs/${account.syncId}`)
+    ).json()) as SyncJobBody;
+
+    expect(job).toMatchObject({
+      status: "failed",
+      error: { code: "internal", retryable: true },
+    });
+    const [listed] = (await (await app.request("/accounts")).json()) as {
+      syncStatus: string;
+    }[];
+    expect(listed?.syncStatus).toBe("idle");
+  });
+});
+
+describe("connecting a handle", () => {
+  // Profiles answer per handle: one exists, one does not, one provider hiccups.
+  const providerFetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/pub/player/ghost")) return new Response("", { status: 404 });
+    if (url.endsWith("/pub/player/flaky")) return new Response("", { status: 502 });
+    return chessComFixtureFetch()(input);
+  }) as typeof fetch;
+
+  it("answers 404 for a handle the provider lacks and 503 when it cannot tell, creating nothing", async () => {
+    const provider = await createApiHarness({ fetch: providerFetch });
+    try {
+      const { app } = await provider.signUp("connect-refusals@api.test");
+
+      const ghost = await app.request(
+        "/accounts",
+        json({ platform: "chess_com", username: "ghost" }),
+      );
+      expect(ghost.status).toBe(404);
+
+      const flaky = await app.request(
+        "/accounts",
+        json({ platform: "chess_com", username: "flaky" }),
+      );
+      expect(flaky.status).toBe(503);
+
+      expect(await (await app.request("/accounts")).json()).toEqual([]);
+    } finally {
+      await provider.close();
+    }
+  });
+
+  it("leaves no account when its first sync cannot be queued", async () => {
+    const broken = await createApiHarness();
+    try {
+      const { app } = await broken.signUp("connect-no-queue@api.test");
+      // The queue refuses every send: the account must not commit without it.
+      await broken.pglite.exec("drop schema pgboss cascade");
+
+      const response = await app.request(
+        "/accounts",
+        json({ platform: "chess_com", username: LOOPER_USERNAME }),
+      );
+      expect(response.status).toBe(500);
+      expect(await (await app.request("/accounts")).json()).toEqual([]);
+    } finally {
+      await broken.close();
     }
   });
 });

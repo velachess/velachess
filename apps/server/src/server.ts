@@ -18,10 +18,11 @@ import { logger } from "@velachess/infra-logger";
 import type { ApiDeps } from "./deps.ts";
 import {
   buildDisconnectAccountDeps,
+  buildGetSyncDeps,
   buildImportAccountDeps,
   buildListAccountGamesDeps,
   buildListAccountsDeps,
-  buildSyncAccountDeps,
+  buildRequestSyncDeps,
 } from "./composition/accounts.ts";
 import {
   buildReadAvatarDeps,
@@ -41,6 +42,7 @@ import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { defaultHook } from "./validation.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
+import { syncsRoutes } from "./routes/syncs.ts";
 import { userRoutes } from "./routes/user.ts";
 import { gamesRoutes } from "./routes/games.ts";
 
@@ -200,13 +202,14 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/accounts",
       accountsRoutes({
-        list: buildListAccountsDeps(deps.db, deps.syncQueue),
+        list: buildListAccountsDeps(deps.db),
         games: buildListAccountGamesDeps(deps.db),
-        connect: buildImportAccountDeps(deps.db, deps.sync?.fetch),
-        sync: buildSyncAccountDeps(deps.db, deps.sync?.fetch),
+        connect: buildImportAccountDeps(deps.db, deps.syncQueue, deps.sync?.fetch),
+        sync: buildRequestSyncDeps(deps.db, deps.syncQueue),
         disconnect: buildDisconnectAccountDeps(deps.db),
       }),
     )
+    .route("/syncs", syncsRoutes({ get: buildGetSyncDeps(deps.db, deps.syncQueue) }))
     .route(
       "/games",
       gamesRoutes({

@@ -7,7 +7,7 @@ import {
   ensureUser,
   listGamesWithStatusForAccount,
   saveGames,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -38,7 +38,7 @@ let accountId: string;
 
 beforeAll(async () => {
   const user = await ensureUser(db, "status-flow@test.local");
-  const account = await upsertTrackedAccount(db, user.id, "chess_com", "looper");
+  const account = (await insertTrackedAccount(db, user.id, "chess_com", "looper"))!;
   accountId = account.id;
 
   await saveGames(db, [syncedGame("1001"), syncedGame("1002")], {

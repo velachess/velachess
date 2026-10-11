@@ -1,8 +1,8 @@
 import type { ChessComCursor, LichessCursor } from "@velachess/infra-platforms";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { games, trackedAccounts } from "../schema.ts";
+import { games, syncJobs, trackedAccounts } from "../schema.ts";
 
 type Platform = "chess_com" | "lichess";
 type Cursor = ChessComCursor | LichessCursor;
@@ -16,43 +16,31 @@ type Cursor = ChessComCursor | LichessCursor;
  * username)`, which let one user track two different handles on the same
  * provider.
  *
- * The conflict target is the DB's backstop against a race, not the only
- * guard — `connect-account` checks for an existing different-username row
- * first and refuses before calling this, so a legitimate call here only
- * ever re-upserts the SAME handle this user already tracks. If two
- * requests race past that check anyway, this upsert still can't create a
- * second row: the loser's conflict lands on the one row that's already
- * there and overwrites its username, same as any other concurrent write
- * to one row would.
+ * The key is also what settles two connects racing past
+ * `connect-account`'s check for an existing row: the loser inserts nothing
+ * and gets null, never overwriting the winner's handle.
  *
  * Identity does not live here: provider metadata is public and shared,
  * so it is cached once per handle in `provider_profiles` (see
  * provider-profiles.ts), not per connection.
  */
-export async function upsertTrackedAccount(
+export async function insertTrackedAccount(
   db: Database,
   userId: string,
   platform: Platform,
   username: string,
 ) {
-  const normalized = username.toLowerCase();
   const [account] = await db
     .insert(trackedAccounts)
-    .values({ userId, platform, username: normalized })
-    .onConflictDoUpdate({
-      target: [trackedAccounts.userId, trackedAccounts.platform],
-      set: {
-        username: normalized,
-      },
-    })
+    .values({ userId, platform, username: username.toLowerCase() })
+    .onConflictDoNothing({ target: [trackedAccounts.userId, trackedAccounts.platform] })
     .returning();
-
-  return account!;
+  return account ?? null;
 }
 
 /**
  * The one row (if any) this user has for a provider — read before
- * `upsertTrackedAccount` so a different-handle conflict can be refused
+ * `insertTrackedAccount` so a different-handle conflict can be refused
  * with the existing account's identity instead of silently overwriting it.
  */
 export async function findTrackedAccountByPlatform(
@@ -90,6 +78,23 @@ export async function deleteTrackedAccountAndGames(
   accountId: string,
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    // Lock order is job, then account — the order every sync writer takes
+    // them (the job row, then the account through the games' FK). Taking
+    // the account first deadlocked against a sync mid-commit.
+    await tx
+      .select({ id: syncJobs.id })
+      .from(syncJobs)
+      .where(eq(syncJobs.accountId, accountId))
+      .for("update");
+    // An in-flight sync insert holds a key-share lock on the account
+    // through its FK check, so this waits for that insert to commit and
+    // the delete below sees its games. Without it, a game committed
+    // between the two deletes survived with account_id nulled.
+    await tx
+      .select({ id: trackedAccounts.id })
+      .from(trackedAccounts)
+      .where(eq(trackedAccounts.id, accountId))
+      .for("update");
     await tx.delete(games).where(eq(games.accountId, accountId));
     await tx.delete(trackedAccounts).where(eq(trackedAccounts.id, accountId));
   });
@@ -165,19 +170,36 @@ export async function getTrackedAccountForUser(
 }
 
 /**
- * The accounts a user tracks, oldest first. `lastSyncedAt` is what tells a
- * caller whether this account ever completed a pass — the difference
- * between "not connected" and "connected, nothing synced yet".
+ * The accounts a user tracks, oldest first, each with its newest sync job.
+ * `lastSyncedAt` is what tells a caller whether this account ever completed
+ * a pass — the difference between "not connected" and "connected, nothing
+ * synced yet".
  */
 export async function listTrackedAccountsByUser(db: Database, userId: string) {
+  const latestJob = db
+    .selectDistinctOn([syncJobs.accountId], {
+      accountId: syncJobs.accountId,
+      id: syncJobs.id,
+      status: syncJobs.status,
+      errorCode: syncJobs.errorCode,
+    })
+    .from(syncJobs)
+    .where(eq(syncJobs.userId, userId))
+    .orderBy(syncJobs.accountId, desc(syncJobs.createdAt))
+    .as("latest_job");
+
   return db
     .select({
       id: trackedAccounts.id,
       platform: trackedAccounts.platform,
       username: trackedAccounts.username,
       lastSyncedAt: trackedAccounts.lastSyncedAt,
+      latestJobId: latestJob.id,
+      latestJobStatus: latestJob.status,
+      latestJobError: latestJob.errorCode,
     })
     .from(trackedAccounts)
+    .leftJoin(latestJob, eq(latestJob.accountId, trackedAccounts.id))
     .where(eq(trackedAccounts.userId, userId))
     .orderBy(asc(trackedAccounts.createdAt));
 }

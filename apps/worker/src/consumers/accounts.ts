@@ -1,15 +1,24 @@
 /**
- * [CONSUMER] accounts — pg-boss delivery → the sync-account slice.
+ * [CONSUMER] accounts — pg-boss delivery → the process-sync slice.
  * Unpack, invoke, let the throw drive retry → DLQ. Nothing else.
  */
-import { processAccountSync } from "@velachess/accounts";
-import type { SyncJobData } from "@velachess/infra-queue";
+import { processSync } from "@velachess/accounts";
+import type { JobWithMetadata, SyncJobData } from "@velachess/infra-queue";
 
-import { buildSyncAccountDeps } from "../composition/accounts.ts";
+import { buildProcessSyncDeps } from "../composition/accounts.ts";
 import type { WorkerDeps } from "../worker.ts";
 
-/** Sync → completeness is ONE application use case (processAccountSync). */
-export async function consumeSyncJob(deps: WorkerDeps, data: SyncJobData): Promise<void> {
-  const syncDeps = buildSyncAccountDeps(deps.db, deps.sync?.fetch);
-  await processAccountSync(syncDeps, data.accountId);
+export async function consumeSyncJob(
+  deps: WorkerDeps,
+  job: Pick<
+    JobWithMetadata<SyncJobData>,
+    "id" | "data" | "retryCount" | "retryLimit" | "signal"
+  >,
+): Promise<void> {
+  await processSync(buildProcessSyncDeps(deps.db, deps.syncQueue, deps.sync?.fetch), {
+    syncJobId: job.data.syncJobId,
+    retryCount: job.retryCount,
+    retryLimit: job.retryLimit,
+    signal: job.signal,
+  });
 }

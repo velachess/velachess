@@ -75,6 +75,16 @@ describe("fetchLichess", () => {
     expect(result).toEqual({ games: [], failures: [], cursor: null, complete: true });
   });
 
+  it("maps a 404 to a permanent not-found failure", async () => {
+    const fetch = (async () => textResponse("", 404)) as typeof globalThis.fetch;
+    const result = await fetchLichess("gone-player", null, { fetch });
+
+    expect(result.complete).toBe(false);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ reason: "not-found", retryable: false }),
+    ]);
+  });
+
   it("maps a 429 to a retryable rate-limited failure", async () => {
     const fetch = (async () => textResponse("", 429)) as typeof globalThis.fetch;
     const result = await fetchLichess("arex", null, { fetch });

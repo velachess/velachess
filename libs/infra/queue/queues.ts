@@ -26,7 +26,9 @@ export interface AnalysisJobData {
   gameId: string;
 }
 
+/** `syncJobId` is also the pg-boss job id; `accountId` rides along for logs. */
 export interface SyncJobData {
+  syncJobId: string;
   accountId: string;
 }
 

@@ -397,14 +397,16 @@ describe("ownership isolation", () => {
       json({ platform: "chess_com", username: "looper" }),
     );
     expect(aliceImport.status).toBe(201);
-    const aliceAccount = (await aliceImport.json()) as { id: string };
+    const aliceAccount = (await aliceImport.json()) as { id: string; syncId: string };
+    await harness.runSync(aliceAccount.syncId);
 
     const bobImport = await bob.request(
       "/accounts",
       json({ platform: "chess_com", username: "looper" }),
     );
     expect(bobImport.status).toBe(201);
-    const bobAccount = (await bobImport.json()) as { id: string };
+    const bobAccount = (await bobImport.json()) as { id: string; syncId: string };
+    await harness.runSync(bobAccount.syncId);
 
     expect(bobAccount.id).not.toBe(aliceAccount.id);
 

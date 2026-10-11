@@ -4,8 +4,8 @@
  * is an HTTP request against the api; every background step is a pg-boss
  * delivery consumed by the worker. No direct domain-package calls.
  *
- * import → refresh (refused) → open a game → engine analysis → review,
- * over PGlite + real migrations + real Stockfish.
+ * import → background sync → refresh (refused) → open a game → engine
+ * analysis → review, over PGlite + real migrations + real Stockfish.
  *
  * Every user action here is one HTTP request that answers for itself —
  * the worker's own suite owns background delivery.
@@ -49,6 +49,7 @@ beforeAll(async () => {
   // (api + worker containers, one Postgres — docker/docker-compose.yml).
   await registerConsumers(harness.boss, {
     db: harness.db,
+    syncQueue: harness.syncQueue,
     analyze: harness.analyze,
     sync: { fetch: chessComFixtureFetch() },
     log: testLogger,
@@ -62,14 +63,23 @@ afterAll(async () => {
 it("full loop: HTTP in, worker in the background, a reviewed game out", async () => {
   const app = owner;
 
-  // 1. Import: one POST — reads no longer create connections. The
-  //    archive lands synchronously, engine untouched.
+  // 1. Import: one POST schedules the first sync; the worker fetches the
+  //    archive in the background, engine untouched.
   const imported = await app.request(
     "/accounts",
     json({ platform: "chess_com", username: "looper" }),
   );
   expect(imported.status).toBe(201);
-  const account = (await imported.json()) as { id: string };
+  const account = (await imported.json()) as { id: string; syncId: string };
+  const synced = await poll(async () => {
+    const job = (await (await app.request(`/syncs/${account.syncId}`)).json()) as {
+      status: string;
+      progress: { gamesInserted: number | null };
+    };
+    return job.status === "succeeded" ? job : null;
+  }, 60_000);
+  expect(synced.progress.gamesInserted).toBe(2);
+
   const library = (await (await app.request("/games")).json()) as {
     total: number;
     games: { id: string; analyzed: boolean }[];
@@ -78,8 +88,8 @@ it("full loop: HTTP in, worker in the background, a reviewed game out", async ()
   expect(library.total).toBe(2);
   expect(library.games.every((g) => !g.analyzed)).toBe(true);
 
-  // 2. Refreshing now is refused: the import synced a moment ago, and the
-  //    platforms answer 429 to bursts.
+  // 2. Refreshing now is refused: the import's sync started a moment ago,
+  //    and the platforms answer 429 to bursts.
   const tooSoon = await app.request(`/accounts/${account.id}/sync`, {
     method: "POST",
   });

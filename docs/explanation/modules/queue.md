@@ -47,8 +47,18 @@ in-process: PGlite runs both the domain schema and the `pgboss` schema.
 ## Two dedup layers, two concerns
 
 - **Delivery** — queues use policy `stately` with the domain id as
-  `singletonKey`: at most one queued-or-active job per game/account.
-  Double-POSTing a sync is a no-op by construction. Accepted caveat,
+  `singletonKey`: at most one queued-or-active job per game/account. A sync
+  job is sent under its `sync_jobs` id, inside the transaction that writes
+  that row, and the send throws when pg-boss accepts nothing — the row and
+  its delivery commit together or not at all. `isLive` reads whether pg-boss
+  may still deliver a job; its terminal states never change, so a sync request or a status read
+  can safely close a job whose delivery ended without the worker. The worker
+  settles a sync delivery with `complete`/`fail` on `{ id, retryCount }`
+  inside its own transaction: pg-boss (12.35+) fences settles and heartbeats
+  to that attempt, so a delivery that lost its claim can neither commit nor
+  settle the retry that replaced it. Not `work({ transactional: true })`: that
+  holds a pg-boss transaction open across the provider fetch, and a throw
+  would roll back the partial pass and its `retrying` status. Accepted caveat,
   straight from pg-boss's docs: with stately, a failing job whose key
   already has a job in retry state can skip remaining retries and land in
   failed. Acceptable here because delivery state is not domain truth —

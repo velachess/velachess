@@ -267,6 +267,54 @@ export const trackedAccounts = pgTable(
   ],
 );
 
+export const syncJobTriggerEnum = pgEnum("sync_job_trigger", ["connect", "manual"]);
+export const syncJobStatusEnum = pgEnum("sync_job_status", [
+  "queued",
+  "running",
+  "retrying",
+  "succeeded",
+  "failed",
+]);
+export const syncJobErrorEnum = pgEnum("sync_job_error", [
+  "not-found",
+  "incomplete",
+  "internal",
+]);
+
+/**
+ * One request to bring an account's archive up to date — the durable record
+ * of its status and progress. pg-boss delivers it (the queue job shares this
+ * row's id); it does not own its outcome. A delivery's writes commit with
+ * its pg-boss settle, which pg-boss fences to the attempt it holds.
+ */
+export const syncJobs = pgTable(
+  "sync_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => trackedAccounts.id, { onDelete: "cascade" }),
+    trigger: syncJobTriggerEnum("trigger").notNull(),
+    status: syncJobStatusEnum("status").notNull().default("queued"),
+    gamesFetched: integer("games_fetched"),
+    gamesInserted: integer("games_inserted"),
+    errorCode: syncJobErrorEnum("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (table) => [
+    // One active job per account: the arbiter concurrent triggers converge on.
+    uniqueIndex("sync_jobs_one_active_per_account")
+      .on(table.accountId)
+      .where(sql`${table.status} in ('queued', 'running', 'retrying')`),
+    index("sync_jobs_account_created").on(table.accountId, table.createdAt.desc()),
+  ],
+);
+
 /**
  * Public provider metadata for ANY player — the picture and flag beside a
  * name — cached under the handle itself, not under whoever happens to be
@@ -445,6 +493,7 @@ export const analysisProgress = pgTable(
 export type GameAnalysisRow = typeof gameAnalyses.$inferSelect;
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
+export type SyncJob = typeof syncJobs.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
 export type User = typeof users.$inferSelect;

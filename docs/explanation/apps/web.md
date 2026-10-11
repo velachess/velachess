@@ -123,6 +123,12 @@ React Query owns session and account data. A 401 clears the cached session and
 returns the browser to login; local storage does not claim identity. Account
 authorization remains server-side and user-scoped in database queries.
 
+Syncs run in the background, so the client follows them rather than waiting:
+`syncJobQuery` polls `GET /syncs/:id` every 3 s through `refetchInterval` and
+stops once the job settles or its read fails. The ids come from the server — a
+`202` or an account's `activeSyncId` — so a reload resumes. When a job settles,
+only the `games` and `accounts` queries are invalidated.
+
 ## Tables
 
 `DataTable` in `@velachess/ui` is the reusable half only — TanStack Table

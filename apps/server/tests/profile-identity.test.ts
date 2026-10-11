@@ -145,6 +145,7 @@ describe("provider profile identity on game review", () => {
       json({ platform: "chess_com", username: "Looper" }),
     );
     expect(created.status).toBe(201);
+    await harness.runSync(((await created.json()) as { syncId: string }).syncId);
 
     // Connect-time warmed my handle; the opponent's is a cold miss here.
     const before = sync.profileRequests.length;
@@ -185,6 +186,7 @@ describe("provider profile identity on game review", () => {
       json({ platform: "chess_com", username: "Lister" }),
     );
     expect(connected.status).toBe(201);
+    await harness.runSync(((await connected.json()) as { syncId: string }).syncId);
 
     const before = sync.profileRequests.length;
     const game = await firstGameId(second);
@@ -220,6 +222,7 @@ describe("provider profile identity on game review", () => {
       json({ platform: "lichess", username: "Sea-Lion" }),
     );
     expect(created.status).toBe(201);
+    await harness.runSync(((await created.json()) as { syncId: string }).syncId);
 
     const game = await firstGameId(owner, "lichess");
     const response = await openGame(owner, game);

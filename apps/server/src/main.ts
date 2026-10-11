@@ -106,7 +106,7 @@ const app = createApp({
   signInMethods: { password: true, google: Boolean(authEnv.google) },
   analysisQueue,
   watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
-  syncQueue: makeSyncQueue(boss, db),
+  syncQueue: makeSyncQueue(boss),
   lock,
   files: createFileStore(storageEnv.root),
 });

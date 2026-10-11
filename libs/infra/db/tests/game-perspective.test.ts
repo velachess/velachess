@@ -18,7 +18,7 @@ import {
   listGames,
   saveGames,
   trackedAccounts,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -64,7 +64,7 @@ async function onlyGameId() {
 }
 
 async function openOnlyGame(username: string, game: NormalizedGame) {
-  const account = await upsertTrackedAccount(db, ownerId, "chess_com", username);
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", username))!;
   await saveGames(db, [game], { userId: ownerId, accountId: account.id });
   return getGameForUser(db, ownerId, await onlyGameId());
 }
@@ -141,7 +141,7 @@ it("answers null when nothing attributes the game", async () => {
 it("still refuses a game that belongs to someone else", async () => {
   // The account join is provenance only. Ownership is the row's own
   // user_id, and adding the join must not widen it.
-  const account = await upsertTrackedAccount(db, ownerId, "chess_com", "yurimutti");
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", "yurimutti"))!;
   await saveGames(db, [syncedGame()], { userId: ownerId, accountId: account.id });
   const gameId = await onlyGameId();
   const stranger = (await createUser(db)).id;

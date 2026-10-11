@@ -19,6 +19,10 @@ const bossJob = pgboss.table("job", {
   createdOn: timestamp("created_on", { withTimezone: true }),
 });
 
+/** pg-boss may still deliver a job in these states. It leaves the others
+ * only through an operator's retry, resume or redrive. */
+const LIVE_STATES = new Set(["created", "retry", "active"]);
+
 function toPortState(state: string | null | undefined): QueueJobState {
   if (state === undefined || state === null) return "none";
   if (state === "created" || state === "retry") return "queued";
@@ -73,17 +77,45 @@ export function makeAnalysisQueue(boss: PgBoss, db: Database): AnalysisQueue {
   };
 }
 
-export function makeSyncQueue(boss: PgBoss, db: Database): SyncQueue {
+/**
+ * pg-boss resolves settles with `{ jobs, requested, affected }` and documents
+ * `affected: 0` as the answer to a fenced-out attempt, but its published
+ * `CommandResponse` type declares no fields.
+ */
+const affectedOne = (response: object) =>
+  (response as { affected: number }).affected === 1;
+
+export function makeSyncQueue(boss: PgBoss): SyncQueue {
   return {
-    async enqueue(dbOrTx: Database, accountId: string): Promise<void> {
-      await boss.send(
+    async enqueue(dbOrTx, job) {
+      const sent = await boss.send(
         QUEUES.sync,
-        { accountId },
-        { singletonKey: accountId, db: asBossDb(dbOrTx) },
+        { syncJobId: job.id, accountId: job.accountId },
+        { id: job.id, singletonKey: job.accountId, db: asBossDb(dbOrTx) },
       );
+      if (!sent) throw new Error(`sync job ${job.id} was not enqueued`);
     },
-    getState(accountId: string): Promise<QueueJobState> {
-      return singletonState(db, QUEUES.sync, accountId);
+    async isLive(dbOrTx, jobId) {
+      const [row] = await dbOrTx
+        .select({ state: bossJob.state })
+        .from(bossJob)
+        .where(and(eq(bossJob.name, QUEUES.sync), eq(bossJob.id, jobId)));
+      return row !== undefined && LIVE_STATES.has(row.state ?? "");
+    },
+    async complete(dbOrTx, delivery) {
+      const settled = await boss.complete(QUEUES.sync, delivery, null, {
+        db: asBossDb(dbOrTx),
+      });
+      return affectedOne(settled);
+    },
+    // No output: pg-boss hands a settle's output to the adapter as an
+    // object, which postgres-js cannot bind. The worker logs the error and
+    // the sync job records its code.
+    async fail(dbOrTx, delivery) {
+      const settled = await boss.fail(QUEUES.sync, delivery, null, {
+        db: asBossDb(dbOrTx),
+      });
+      return affectedOne(settled);
     },
   };
 }

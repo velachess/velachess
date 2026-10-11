@@ -7,9 +7,16 @@ calling it — `apps/server` and `apps/worker` import it directly, no HTTP hop i
 
 ## Schema
 
-Eleven tables across four domains — identity (who signs in), sync (what
-platforms produce), games (what the user reviews), analysis (what the
-engine said). Job delivery is NOT here: it lives in pg-boss's own `pgboss`
+Twelve tables across four domains — identity (who signs in), sync (what
+platforms produce, and `sync_jobs`: each request to bring an account up to
+date, with its status and progress), games (what the user reviews), analysis
+(what the engine said). A partial unique index keeps one active sync job per
+account. A delivery's writes commit in the transaction that settles it with
+pg-boss, so a delivery that lost the job writes nothing.
+Sync writers lock the job row, then the account (through the games' FK);
+disconnecting takes the same order — the account's jobs, then the account —
+so it waits for a sync in flight, deletes its games with the rest, and never
+deadlocks against it. Job delivery is NOT here: it lives in pg-boss's own `pgboss`
 schema, owned by `libs/infra/queue`.
 
 ```
@@ -224,7 +231,7 @@ schema.ts                    users, sessions, auth_accounts, verifications,
 client.ts                    module-scope singleton + exported schema
 advisory-lock.ts             sessionAdvisoryLock (pg_try_advisory_lock)
 queries/
-  tracked-accounts.ts        upsertTrackedAccount, getTrackedAccountCursor, updateTrackedAccountCursor,
+  tracked-accounts.ts        insertTrackedAccount, getTrackedAccountCursor, updateTrackedAccountCursor,
                              markTrackedAccountSynced, getTrackedAccount, getTrackedAccountForUser,
                              listTrackedAccountsByUser, findTrackedAccount
   games.ts                   saveGames, listGames, getGame, getGameForUser, listGamesWithStatusForAccount

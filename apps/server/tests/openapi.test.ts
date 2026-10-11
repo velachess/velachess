@@ -97,6 +97,7 @@ it("a representative route's request and response schemas come from its own Zod 
   expect(Object.keys(response.properties ?? {}).toSorted()).toEqual([
     "id",
     "platform",
+    "syncId",
     "username",
   ]);
 });

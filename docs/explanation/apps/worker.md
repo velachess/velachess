@@ -10,10 +10,15 @@ logic lives here.
 Each consumer answers exactly one question — "which use case does this
 job trigger?" — and nothing else:
 
-- **sync** → `processAccountSync` (`@velachess/accounts`): pull what's new,
-  insist on completeness (partial saves kept, cursor not advanced, delivery
-  fails and retries). Sync persists games and never runs Stockfish. The
-  worker never learns what follows sync.
+- **sync** → `processSync` (`@velachess/accounts`), registered with
+  `includeMetadata` so the slice knows whether a delivery is its last: mark
+  the `sync_jobs` row running, pull what's new, then persist it with the
+  outcome and settle the delivery (`complete`/`fail` with `{ db: tx }`) in one
+  transaction. pg-boss fences that settle to the delivery's `retryCount`
+  (12.35+), so a delivery that lost the job commits nothing. An incomplete
+  pass fails the delivery so pg-boss retries; a handle gone from the provider
+  fails the job for good and completes the delivery. Sync persists games
+  and never runs Stockfish. The worker never learns what follows sync.
 - **analysis** → `completeAnalysis` (`@velachess/analysis`): returns only on
   terminal truth (run by us, cached, or game gone) and THROWS when a live
   executor owns the run — pg-boss's retry schedule decides when the

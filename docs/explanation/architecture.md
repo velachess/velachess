@@ -11,7 +11,7 @@ rather than his.
 > Couple along the axis of change.
 
 The unit of the application is a **request/use case** — RequestAnalysis,
-SyncAccount, ImportPgn — not a technical layer. Code that changes with
+RequestSync, ImportPgn — not a technical layer. Code that changes with
 one behavior lives with that behavior. Changing a behavior should touch
 its slice, not a stack of global layers.
 
@@ -71,7 +71,7 @@ separate domain library — see the module doc comments for the current set.
 ## A slice
 
 ```
-libs/accounts/     connect-account/  sync-account/  list-accounts/  list-account-games/
+libs/accounts/     connect-account/  request-sync/  get-sync/  process-sync/  list-accounts/  list-account-games/
 libs/games/        list-games/  import-pgn/  get-game/
 libs/analysis/     request-analysis/  process-analysis/  get-analysis/  watch-analysis/
 libs/user/         bootstrap-user/  set-avatar/  read-avatar/  remove-avatar/
@@ -116,9 +116,6 @@ Order of preference when code seems shared:
 Documented exceptions that exist today, each with its reason at the
 definition site:
 
-- `sync-account` exposes both the HTTP trigger (`refreshAccount`) and the
-  delivery-agnostic core (`processAccountSync`) the worker invokes — one
-  behavior, two entry points.
 - Multi-consumer queries stay in `libs/infra/db/queries/` (tracked
   accounts, games, analysis, users). A query used by exactly one slice
   belongs in the slice.

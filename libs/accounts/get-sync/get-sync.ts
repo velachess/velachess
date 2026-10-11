@@ -1,0 +1,38 @@
+/**
+ * GetSync — one sync job, as its owner sees it. Someone else's job id reads
+ * as absent, the same as one that never existed.
+ */
+import type { SyncJob } from "@velachess/infra-db";
+
+type GetSyncJobForUser = (userId: string, id: string) => Promise<SyncJob | null>;
+type IsSyncDeliveryLive = (jobId: string) => Promise<boolean>;
+type AbandonSyncJob = (jobId: string) => Promise<void>;
+
+export interface GetSyncDeps {
+  getSyncJobForUser: GetSyncJobForUser;
+  isSyncDeliveryLive: IsSyncDeliveryLive;
+  abandonSyncJob: AbandonSyncJob;
+}
+
+const ACTIVE = new Set<SyncJob["status"]>(["queued", "running", "retrying"]);
+
+export async function getSync(deps: GetSyncDeps, userId: string, id: string) {
+  let job = await deps.getSyncJobForUser(userId, id);
+  if (!job) return null;
+  // A delivery pg-boss ended without the worker recording it (a crash on
+  // the last attempt) leaves the job active with nothing running it. That
+  // Only an operator's retry or redrive revives that state, and a revived
+  // delivery of a closed job does nothing, so closing it races no delivery.
+  if (ACTIVE.has(job.status) && !(await deps.isSyncDeliveryLive(job.id))) {
+    await deps.abandonSyncJob(job.id);
+    // Gone if its account was disconnected meanwhile.
+    job = await deps.getSyncJobForUser(userId, id);
+    if (!job) return null;
+  }
+  // Only a vanished handle is permanent; the rest follow the retry policy.
+  const error = job.errorCode && {
+    code: job.errorCode,
+    retryable: job.errorCode !== "not-found",
+  };
+  return { ...job, error };
+}

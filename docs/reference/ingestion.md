@@ -24,8 +24,9 @@ track the same public handle with independent cursors and game histories.
 
 Games are owned directly: `games.user_id` is not null and every read scopes on
 it. `games.account_id` is provenance only — which connected handle produced
-the row — and is null for manually imported PGNs. Deleting an account keeps
-its games; deleting a user takes them.
+the row — and is null for manually imported PGNs. Disconnecting an account
+deletes the games it imported (manual PGNs stay); deleting a user takes them
+all.
 
 Provider profile metadata is public cache data keyed by platform and username.
 It does not own games, a cursor, or a user identity.
@@ -38,6 +39,37 @@ user importing the very same PGN keeps their own copy. `saveGames` uses
 conflict-ignore semantics, so a lower inserted count is expected deduplication
 rather than an application error. Current constraints live in
 `libs/infra/db/schema.ts`.
+
+## Sync jobs
+
+A sync runs as a `sync_jobs` row delivered by the pg-boss `sync` queue; the
+queue job shares the row's id. Connecting a handle and pressing sync each
+create one (`trigger` `connect` or `manual`); an account holds at most one
+active job, and a repeat request gets that one. Manual requests rest 60 s
+after the account's newest job.
+
+- Status: `queued` → `running` → `succeeded` | `failed`; `running` →
+  `retrying` → `running` while pg-boss retries an incomplete pass.
+- Errors: `incomplete` (a page, month or game failed — retried by the queue
+  policy, `failed` once retries are spent), `internal` (an unexpected throw,
+  retried the same way; or a job whose delivery pg-boss ended without the
+  worker, closed as `failed` for the next request to replace), `not-found` (the handle is gone at the provider — permanent, no retry;
+  the account and its games stay).
+- Progress: `gamesFetched` counts normalized games from the pass,
+  `gamesInserted` the rows actually inserted; the difference is
+  deduplication. `unitsDone` / `unitsTotal` are `null` until sync works in
+  units.
+- Games, cursor and outcome commit in one transaction with the delivery's
+  pg-boss settle, which pg-boss fences to the delivery's `retryCount`,
+  so a delivery pg-boss timed out or handed to a retry, or one whose account
+  was deleted, writes nothing. An aborted delivery that still holds the job
+  records `internal` before giving up.
+- A job left active after pg-boss ended its delivery (a worker crash on the
+  last attempt) is closed as `internal` by the next `GET /syncs/:id` or sync
+  request, so polling never follows a job nothing runs.
+- Two connects racing for one provider slot create one account: the loser
+  answers like a repeat connect (`201` with `syncId: null` for the same
+  handle, `409` for a different one).
 
 ## Synchronization contract
 
@@ -70,5 +102,6 @@ response is a complete pass with no new games. The next timestamp derives from
 successfully normalized games and is stored only after a complete pass.
 
 Current cursor shapes, bootstrap limits, request headers, cooldowns, and rate
-behavior can change. Inspect the provider clients, sync application slice, and
-their tests before changing or documenting one of those values.
+behavior can change. Inspect the provider clients, the sync slices
+(`request-sync`, `process-sync`), and their tests before changing or
+documenting one of those values.

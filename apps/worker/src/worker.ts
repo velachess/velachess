@@ -7,7 +7,13 @@
 import type { SyncDeps } from "@velachess/accounts";
 import type { Database } from "@velachess/infra-db";
 import { logger, type Logger } from "@velachess/infra-logger";
-import type { AnalysisJobData, PgBoss, SyncJobData } from "@velachess/infra-queue";
+import type {
+  AnalysisJobData,
+  JobWithMetadata,
+  PgBoss,
+  SyncJobData,
+  SyncQueue,
+} from "@velachess/infra-queue";
 import { QUEUES } from "@velachess/infra-queue";
 
 import type { EngineDeps } from "./composition/analysis.ts";
@@ -18,10 +24,11 @@ const workerLogger = logger.child({ component: "worker" });
 
 export interface WorkerDeps {
   db: Database;
+  syncQueue: SyncQueue;
   /** The engine/lock bits `completeAnalysis` needs beyond what `db`
    * already derives — the consumer completes the rest per invocation via
    * `composition/analysis.ts`'s `buildAnalyzeDeps`, the same way
-   * `consumers/accounts.ts` completes `SyncAccountDeps` from `db`. */
+   * `consumers/accounts.ts` completes `ProcessSyncDeps` from `db`. */
   analyze: EngineDeps;
   sync?: SyncDeps;
   log?: Logger;
@@ -39,16 +46,16 @@ export async function registerConsumers(
 ): Promise<string[]> {
   const log = deps.log ?? workerLogger;
 
-  const instrument = <T extends { gameId?: string; accountId?: string }>(
+  const instrument = <J extends { id: string; data: object }>(
     queue: string,
-    handler: (deps: WorkerDeps, data: T) => Promise<void>,
+    handler: (deps: WorkerDeps, job: J) => Promise<void>,
   ) => {
-    return async ([job]: { id: string; data: T }[]) => {
+    return async ([job]: J[]) => {
       const startedAt = Date.now();
       const fields: Record<string, unknown> = { queue, jobId: job!.id, ...job!.data };
       log.info(fields, "job start");
       try {
-        await handler(deps, job!.data);
+        await handler(deps, job!);
         log.info({ ...fields, ms: Date.now() - startedAt }, "job done");
       } catch (error) {
         log.error(
@@ -68,11 +75,21 @@ export async function registerConsumers(
   // destroys the redrive option. Dead jobs stay queryable (pgboss.job) and
   // observable operationally; alerting reads state, it doesn't eat jobs.
   return Promise.all([
-    boss.work<SyncJobData>(QUEUES.sync, instrument(QUEUES.sync, consumeSyncJob)),
+    // Metadata carries the retry count the sync job needs to know whether
+    // this delivery is its last.
+    boss.work(
+      QUEUES.sync,
+      { includeMetadata: true },
+      instrument<JobWithMetadata<SyncJobData>>(QUEUES.sync, consumeSyncJob),
+    ),
     boss.work<AnalysisJobData>(
       QUEUES.analysis,
       { localConcurrency: deps.analysisConcurrency ?? 1 },
-      instrument(QUEUES.analysis, consumeAnalysisJob),
+      instrument(
+        QUEUES.analysis,
+        (workerDeps, job: { id: string; data: AnalysisJobData }) =>
+          consumeAnalysisJob(workerDeps, job.data),
+      ),
     ),
   ]);
 }

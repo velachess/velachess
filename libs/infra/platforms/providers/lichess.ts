@@ -24,7 +24,7 @@ const VARIANT_TAG = /\[Variant "([^"]*)"\]/;
 export async function fetchLichess(
   username: string,
   cursor: LichessCursor | null,
-  opts: { fetch?: FetchFn } = {},
+  opts: { fetch?: FetchFn; signal?: AbortSignal } = {},
 ): Promise<SyncResult & { cursor: LichessCursor | null }> {
   if (!USERNAME_PATTERN.test(username)) {
     throw new Error(`Invalid Lichess username: "${username}"`);
@@ -40,10 +40,28 @@ export async function fetchLichess(
   });
   if (cursor) params.set("since", String(cursor.sinceMs));
 
-  const res = await doFetch(`https://lichess.org/api/games/user/${username}?${params}`, {
-    headers: { Accept: "application/x-chess-pgn" },
-  });
+  const headers = { Accept: "application/x-chess-pgn" };
+  const res = await doFetch(
+    `https://lichess.org/api/games/user/${username}?${params}`,
+    opts.signal ? { headers, signal: opts.signal } : { headers },
+  );
 
+  if (res.status === 404) {
+    return {
+      games: [],
+      failures: [
+        {
+          scope: "page",
+          ref: username,
+          reason: "not-found",
+          retryable: false,
+          detail: "HTTP 404",
+        },
+      ],
+      cursor,
+      complete: false,
+    };
+  }
   if (!res.ok) {
     const reason = res.status === 429 ? "rate-limited" : "http-error";
     return {

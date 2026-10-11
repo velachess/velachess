@@ -4,49 +4,39 @@
  * readers/writers each accounts route's slice declared. Routes never see
  * a Database or SyncQueue value directly.
  *
- * `buildSyncAccountDeps` is shared by three call sites: `refreshAccount`'s
- * own route, `importAccount`'s `syncAccount` dependency (its own
- * module-mate, wired through composition like any other capability — see
- * `@velachess/accounts`'s connect-account.ts doc comment), and
- * `apps/worker/src/composition/accounts.ts`'s equivalent for
- * `processAccountSync` (built independently there — apps never share a
- * composition helper).
+ * The worker builds `processSync`'s deps on its own
+ * (`apps/worker/src/composition/accounts.ts`) — apps never share a
+ * composition helper.
  */
 import {
+  abandonSyncJob,
+  createSyncJob,
   deleteTrackedAccountAndGames,
-  findProviderProfiles,
   findTrackedAccountByPlatform,
-  getTrackedAccount,
+  getSyncJobForUser,
   getTrackedAccountForUser,
-  isProfileFresh,
   listGamesWithStatusForAccount,
   listTrackedAccountsByUser,
-  markTrackedAccountSynced,
+  lockLatestSyncJob,
   markUserOnboarded,
-  saveGames,
-  updateTrackedAccountCursor,
   upsertProviderProfile,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import { syncAccount as syncAccountSlice } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
+  GetSyncDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
-  SyncAccountDeps,
+  RequestSyncDeps,
 } from "@velachess/accounts";
 import type { FetchFn } from "@velachess/infra-platforms";
 import type { SyncQueue } from "@velachess/infra-queue";
 
-export function buildListAccountsDeps(
-  db: Database,
-  syncQueue: SyncQueue,
-): ListAccountsDeps {
+export function buildListAccountsDeps(db: Database): ListAccountsDeps {
   return {
     listTrackedAccountsByUser: (userId) => listTrackedAccountsByUser(db, userId),
-    getSyncState: (accountId) => syncQueue.getState(accountId),
   };
 }
 
@@ -59,36 +49,44 @@ export function buildListAccountGamesDeps(db: Database): ListAccountGamesDeps {
   };
 }
 
-export function buildSyncAccountDeps(db: Database, fetch?: FetchFn): SyncAccountDeps {
+export function buildRequestSyncDeps(
+  db: Database,
+  syncQueue: SyncQueue,
+): RequestSyncDeps {
   return {
-    getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountForUser: (userId, accountId) =>
       getTrackedAccountForUser(db, userId, accountId),
-    saveGames: (games, opts) => saveGames(db, games, opts),
-    updateTrackedAccountCursor: (accountId, cursor) =>
-      updateTrackedAccountCursor(db, accountId, cursor),
-    markTrackedAccountSynced: (accountId) => markTrackedAccountSynced(db, accountId),
-    ...(fetch ? { fetch } : {}),
+    withTransaction: (fn) => db.transaction(fn),
+    lockLatestSyncJob,
+    isSyncDeliveryLive: (tx, jobId) => syncQueue.isLive(tx, jobId),
+    abandonSyncJob,
+    createSyncJob,
+    enqueueSync: (tx, job) => syncQueue.enqueue(tx, job),
+  };
+}
+
+export function buildGetSyncDeps(db: Database, syncQueue: SyncQueue): GetSyncDeps {
+  return {
+    getSyncJobForUser: (userId, id) => getSyncJobForUser(db, userId, id),
+    isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
+    abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
   };
 }
 
 export function buildImportAccountDeps(
   db: Database,
+  syncQueue: SyncQueue,
   fetch?: FetchFn,
 ): ConnectAccountDeps {
-  const syncDeps = buildSyncAccountDeps(db, fetch);
   return {
-    findProviderProfiles: (seats) => findProviderProfiles(db, seats),
     upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
-    isProfileFresh,
-    upsertTrackedAccount: (userId, platform, username) =>
-      upsertTrackedAccount(db, userId, platform, username),
-    getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
-    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    withTransaction: (fn) => db.transaction(fn),
+    insertTrackedAccount,
+    createSyncJob,
+    enqueueSync: (tx, job) => syncQueue.enqueue(tx, job),
     markOnboarded: (userId) => markUserOnboarded(db, userId),
-    syncAccount: (accountId) => syncAccountSlice(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
   };
 }

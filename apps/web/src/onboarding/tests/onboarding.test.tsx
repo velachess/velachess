@@ -2,7 +2,12 @@ import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { addGames } from "../../test/archive.ts";
+import {
+  addGames,
+  scheduleSync,
+  stageIncomingGames,
+  syncTakesPolls,
+} from "../../test/archive.ts";
 import { aGame, ME } from "../../test/games.ts";
 import { accountIsTracked } from "../../test/handlers/accounts.ts";
 import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
@@ -63,12 +68,26 @@ describe("an account with no games", () => {
   });
 
   it("waits rather than asking again while a sync is in flight", async () => {
-    accountIsTracked({ username: "looper", syncState: "active" });
+    const account = accountIsTracked({ username: "looper" });
+    syncTakesPolls(Number.POSITIVE_INFINITY);
+    scheduleSync(account.id, "connect");
 
     await renderApp({ path: "/games", emptyLibrary: true });
 
     expect(await screen.findByText("Reading your games")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+  });
+
+  it("follows an import already running when the page loads, and lets go once it lands", async () => {
+    // A reload mid-import: the job id comes back from the server, not memory.
+    const account = accountIsTracked({ username: "looper" });
+    stageIncomingGames(aGame({ whiteName: "looper", blackName: "magnuscarlsen" }));
+    scheduleSync(account.id, "connect");
+
+    await renderApp({ path: "/games", emptyLibrary: true });
+
+    expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("releases the app once the games are in", async () => {

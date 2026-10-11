@@ -4,7 +4,7 @@
  */
 
 import type { PGlite } from "@electric-sql/pglite";
-import { PgBoss, fromPglite } from "pg-boss";
+import { PgBoss, fromPglite, type JobWithMetadata } from "pg-boss";
 
 export function createBoss(databaseUrl: string): PgBoss {
   return new PgBoss(databaseUrl);
@@ -15,4 +15,4 @@ export function createTestBoss(pglite: PGlite): PgBoss {
   return new PgBoss({ db: fromPglite(pglite) });
 }
 
-export type { PgBoss };
+export type { JobWithMetadata, PgBoss };
