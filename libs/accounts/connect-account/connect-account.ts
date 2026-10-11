@@ -110,12 +110,20 @@ export async function importAccount(
   const connected = await deps.withTransaction(async (tx) => {
     const account = await deps.insertTrackedAccount(tx, userId, platform, username);
     if (!account) return null;
-    // A brand-new account holds no job, so this insert cannot conflict.
-    const job = (await deps.createSyncJob(tx, {
+    const job = await deps.createSyncJob(tx, {
       userId,
       accountId: account.id,
       trigger: "connect",
-    }))!;
+    });
+    // `createSyncJob` answers null when an active job already holds the
+    // account's slot, which a row inserted in this very transaction cannot
+    // have. Thrown rather than asserted: should that invariant ever stop
+    // holding — `insertTrackedAccount` returning an existing row, say —
+    // this rolls the account insert back with a message that names the
+    // cause, instead of a `TypeError` on the next line.
+    if (!job) {
+      throw new Error(`sync job for new account ${account.id} conflicted`);
+    }
     await deps.enqueueSync(tx, { id: job.id, accountId: account.id });
     return { account, syncId: job.id };
   });
