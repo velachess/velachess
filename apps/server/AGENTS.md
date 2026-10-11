@@ -9,6 +9,16 @@ the only place transport concerns belong.
 - HTTP-shape Zod stays in the route so the exported `AppType` client remains
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
   details? }` contract.
+- `@hono/zod-openapi` validates **requests** only — `defaultHook` fires on
+  `param`, `json` and `query`. A response schema is documentation, so a handler
+  that hand-writes the conversion its schema describes can disagree with it and
+  still typecheck (`Object.assign` widens). When a response schema states a
+  conversion, such as `Date` to ISO text, make the schema perform it and let the
+  handler call it: one declaration, read and write in agreement.
+- A route's duplicated `z.enum` is mandated, not sloppy: `routes-no-direct-infra`
+  forbids importing `libs/infra/*` here, with no type-only exemption. Give the
+  mirror a drift guard in `apps/server/tests/` (which may import infra) instead
+  of forcing the import. See `docs/explanation/data-boundaries.md`.
 - Every route is declared with `@hono/zod-openapi`'s `createRoute` and mounted
   via `app.openapi(route, handler)`, never a plain `.get`/`.post`/`.delete` —
   `GET /openapi.json` is generated from those declarations, not hand-written.

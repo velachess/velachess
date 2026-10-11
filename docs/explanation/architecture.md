@@ -120,6 +120,12 @@ definition site:
   accounts, games, analysis, users). A query used by exactly one slice
   belongs in the slice.
 
+The same order applies to a value's _shape_ rather than its behavior — where
+a conversion between persistence, application and API lives, what has to
+validate rather than assert, and what to do when a dependency rule forbids
+sharing the declaration. That specialisation is
+`docs/explanation/data-boundaries.md`.
+
 ## Dependency direction, enforced
 
 ```

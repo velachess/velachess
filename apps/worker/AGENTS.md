@@ -5,6 +5,12 @@ Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
 - Consumers unpack a typed job and invoke a business-module slice through its
   `index.ts`. They do not own retry, backoff, heartbeat, deadlines,
   deduplication, polling, or dead letters.
+- A job payload is validated before any domain call, not asserted. `boss.work<T>`
+  and a `!` on `job.data` are compile-time claims: the queue carries whatever an
+  older deploy, a warm-up send, or a hand-inserted row left there. A payload that
+  fails validation throws so pg-boss routes it to retry then the dead-letter
+  queue; it never reaches a slice, and it is not spread into a log line first.
+  See `docs/explanation/data-boundaries.md`.
 - pg-boss topology and delivery policy live in `libs/infra/queue`; behavior
   lives in the business modules under `libs/`.
 - The worker owns process lifecycle, dependency construction, consumer

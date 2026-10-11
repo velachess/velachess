@@ -16,6 +16,9 @@ approve, or post comments unless the user separately authorizes that action.
    unstaged, and untracked files.
 3. Classify each changed behavior and load only the relevant skills:
    - ownership, boundaries, or slice placement -> `architecture-review`
+   - a conversion between persistence, application and API shapes, a cast past
+     a `$type<>()`/`sql<T>` claim, a duplicated schema or enum ->
+     `docs/explanation/data-boundaries.md`
    - PGN/FEN/moves/perspective -> `chess-domain`
    - import/provider/cursor/dedup -> `game-ingestion`
    - Stockfish/evaluation/classification -> `engine-analysis`
@@ -29,6 +32,11 @@ approve, or post comments unless the user separately authorizes that action.
    - malformed or absent data and consistent transport contracts;
    - query-level user isolation, uniqueness, cascades, and transactional pairs;
    - stored and derived values using the same semantic rule;
+   - a value converted in exactly one place, owned by the module that owns the
+     concept: validated rather than asserted where it crosses from a provider,
+     a queue, or a column with no constraint behind it; absent distinguishable
+     from invalid; a mandated mirror carrying a drift guard that fails the
+     build, and an unmandated one removed;
    - thin composition roots, dependency direction, and native mechanism
      ownership;
    - tests whose oracle can disagree with the implementation.

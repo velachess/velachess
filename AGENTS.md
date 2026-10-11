@@ -134,6 +134,17 @@ from business modules at the import site, including from the business
 - Domain decisions are pure; effects belong at application/infra boundaries.
   Do not duplicate server state or derive the same fact through competing
   expressions.
+- A value changes shape at one named place, owned by the module that owns the
+  concept. Drizzle's `$type<>()` and a `sql<T>` literal are compile-time
+  claims, not runtime guards. Validate what crosses an untrusted boundary,
+  derive the type from the schema when the owning module already has zod, and
+  where the dependency rules forbid sharing a declaration, mirror it and make
+  the drift fail the build. See `docs/explanation/data-boundaries.md`; do not
+  add validation to a response the RPC contract already types.
+- A repeated domain literal gets one source only when nothing already types
+  its uses together; a union plus a constant object for the same values is two
+  definitions, and a literal used once stays inline. A coordination key two
+  processes must spell identically is always shared.
 - Preserve user isolation in every read and write. A public chess handle is a
   data source, not identity or proof of ownership.
 - Tests assert observable behavior through the repository's supported seams.
@@ -180,7 +191,9 @@ pnpm build       # deployable apps
 Read `docs/how-to/verify-a-change.md` before claiming a change is complete and
 `docs/how-to/write-a-test.md` before adding tests. Read
 `docs/how-to/turborepo.md` before changing task orchestration, caching, filters,
-or affected-package behavior.
+or affected-package behavior, and `docs/explanation/data-boundaries.md` before
+adding, moving or duplicating a conversion between persistence, application and
+API shapes.
 
 ## Guidance routing
 
