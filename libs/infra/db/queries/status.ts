@@ -51,6 +51,15 @@ function timeClassPredicate(timeClass: TimeClass): SQL {
  * to be read together. The whole disjunction is parenthesized: AND binds
  * tighter than OR, and an unscoped branch here would match other users'
  * rows once combined with the ownership condition.
+ *
+ * Same rule as `gameOutcomeFor` in `@velachess/chess`, which is what
+ * every caller outside SQL uses. A predicate cannot call it — this runs
+ * inside Postgres — so the two are held together by the route tests in
+ * `apps/server/tests/library-filters.test.ts` instead: draw answers from
+ * the result alone, including for a game with no resolved seat, and a
+ * decided game with no seat is claimed by neither win nor loss. The
+ * filter offers no `unfinished` value, so that branch has no predicate
+ * to express here.
  */
 function outcomePredicate(
   outcome: NonNullable<GameFilters["outcome"]>,
