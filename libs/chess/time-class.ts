@@ -4,11 +4,19 @@
  * chess.com's too), not clock alone — 3+2 plays longer than 3+0.
  * Boundaries are exported so SQL filtering builds its predicate from
  * these same numbers instead of repeating them.
+ *
+ * The thresholds are a product convention borrowed from Lichess, not a
+ * rule of chess. They live here, beside the rules that are, because the
+ * input is a PGN time-control header and every reader — the library's
+ * SQL filter and the games-list badge — needs the same answer. Same
+ * reason `perspective.ts` lives here: a shared derivation belongs in the
+ * one pure package every module may import.
  */
 
 export type TimeClass = "bullet" | "blitz" | "rapid" | "classical";
 
-export const TIME_CLASSES: TimeClass[] = ["bullet", "blitz", "rapid", "classical"];
+/** The vocabulary itself, as a tuple a request schema can be built from. */
+export const TIME_CLASSES = ["bullet", "blitz", "rapid", "classical"] as const;
 
 /** Assumed moves per game — the multiplier on the increment. */
 export const ESTIMATED_MOVES = 40;

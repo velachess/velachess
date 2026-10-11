@@ -1,15 +1,14 @@
 import { msg } from "@lingui/core/macro";
 
+import { TIME_CLASSES } from "@velachess/chess";
+
 import { z } from "../../libs/zod.ts";
 
 /** The URL owns filters (survives refresh/back/share); this schema is the route's `validateSearch`, so bad params default, not crash. */
 export const gamesSearchSchema = z.object({
   color: z.enum(["white", "black"]).optional().catch(undefined),
   outcome: z.enum(["win", "loss", "draw"]).optional().catch(undefined),
-  timeClass: z
-    .enum(["bullet", "blitz", "rapid", "classical"])
-    .optional()
-    .catch(undefined),
+  timeClass: z.enum(TIME_CLASSES).optional().catch(undefined),
   page: z.number().int().min(1).default(1).catch(1),
 });
 

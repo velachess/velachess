@@ -5,8 +5,17 @@
  * a pasted game — see docs/explanation for why.
  */
 
+/**
+ * The time-class rule is owned by `@velachess/chess` — it derives from a
+ * PGN time-control header and the web reads it too. It is re-exported
+ * here, not copied, because `libs/infra/db` builds its filter predicate
+ * from these constants and is forbidden from depending on the chess
+ * package directly (see `.oxlintrc.json`). One definition, reached
+ * through the layer that is allowed to hold it.
+ */
+export { ESTIMATED_MOVES, TIME_CLASS_CEILINGS, type TimeClass } from "@velachess/chess";
+
 export * from "./schema.ts";
-export * from "./time-class.ts";
 export * from "./normalize.ts";
 export * from "./split.ts";
 export * from "./hash.ts";

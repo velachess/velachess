@@ -11,3 +11,4 @@ export * from "./moves.ts";
 export * from "./notation.ts";
 export * from "./pgn.ts";
 export * from "./perspective.ts";
+export * from "./time-class.ts";
