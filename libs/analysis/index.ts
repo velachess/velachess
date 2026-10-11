@@ -76,4 +76,10 @@ export async function completeAnalysis(
   return run(deps, gameId);
 }
 
+/** The move vocabulary itself, for consumers that render it — `apps/web`
+ * reads the ordered list for the report's rows instead of restating it. */
+export { MOVE_CATEGORIES } from "./move-category.ts";
+export type { MoveCategory } from "./move-category.ts";
+export type { WhitePovScore } from "./score.ts";
+
 export { scoreToWinChance } from "./classify-move.ts";

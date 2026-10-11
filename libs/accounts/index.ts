@@ -10,7 +10,6 @@ export { importAccount } from "./connect-account/connect-account.ts";
 export type {
   ConnectAccountDeps,
   ConnectOutcome,
-  Platform,
 } from "./connect-account/connect-account.ts";
 
 export { disconnectAccount } from "./disconnect-account/disconnect-account.ts";

@@ -10,8 +10,6 @@ import {
   vi,
 } from "vitest";
 
-import type { GradedPly as EngineGradedPly } from "@velachess/analysis";
-
 import { addGames, stageSeatIdentities } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
@@ -54,17 +52,11 @@ const blunderButton = (content: string) =>
 const findBlunderButton = () =>
   screen.findByRole("button", { name: blunderButton }, { timeout: 15_000 });
 
-/**
- * Yields each move in order, as `analyzeGameInBrowser` would. The cast
- * bridges this test's zod-inferred `GradedPly` (from `analysis-contract.ts`,
- * mirroring the API) against `@velachess/analysis`'s plain-interface one —
- * identical fields, but `exactOptionalPropertyTypes` tells them apart at
- * the type level even though the actual fixture values are interchangeable.
- */
+/** Yields each move in order, as `analyzeGameInBrowser` would. */
 function stageAnalysis(moves: GradedPly[]): void {
   vi.mocked(analyzeGameInBrowser).mockImplementation(
     async function* (_pgn, _depth, signal) {
-      for (const move of moves as unknown as EngineGradedPly[]) {
+      for (const move of moves) {
         if (signal.aborted) return;
         yield move;
       }
@@ -281,7 +273,7 @@ describe("game analysis", () => {
     const moves = gradedPlies();
     moves[0] = aGradedPly(1, { san: GAME_SANS[0]!, category: "blunder" });
     vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
-      yield moves[0] as unknown as EngineGradedPly;
+      yield moves[0]!;
       // The rest of the game doesn't arrive within this test — the run
       // is demonstrably still in progress, not finished short.
       await neverResolves();

@@ -13,10 +13,12 @@
  * one pure package every module may import.
  */
 
-export type TimeClass = "bullet" | "blitz" | "rapid" | "classical";
-
-/** The vocabulary itself, as a tuple a request schema can be built from. */
+/** The vocabulary itself, as a tuple a request schema can be built from.
+ * The list is the source and the union is read off it, so the two cannot
+ * disagree. */
 export const TIME_CLASSES = ["bullet", "blitz", "rapid", "classical"] as const;
+
+export type TimeClass = (typeof TIME_CLASSES)[number];
 
 /** Assumed moves per game — the multiplier on the increment. */
 export const ESTIMATED_MOVES = 40;

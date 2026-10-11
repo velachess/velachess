@@ -1,10 +1,13 @@
-import type { ChessComCursor, LichessCursor } from "@velachess/infra-platforms";
+import type {
+  AccountPlatform,
+  ChessComCursor,
+  LichessCursor,
+} from "@velachess/infra-platforms";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { games, syncJobs, trackedAccounts } from "../schema.ts";
 
-type Platform = "chess_com" | "lichess";
 type Cursor = ChessComCursor | LichessCursor;
 
 /**
@@ -27,7 +30,7 @@ type Cursor = ChessComCursor | LichessCursor;
 export async function insertTrackedAccount(
   db: Database,
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
   username: string,
 ) {
   const [account] = await db
@@ -46,7 +49,7 @@ export async function insertTrackedAccount(
 export async function findTrackedAccountByPlatform(
   db: Database,
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
 ) {
   const [account] = await db
     .select()
@@ -208,7 +211,7 @@ export async function listTrackedAccountsByUser(db: Database, userId: string) {
 export async function findTrackedAccount(
   db: Database,
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
   username: string,
 ) {
   const [account] = await db

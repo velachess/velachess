@@ -1,12 +1,11 @@
+import type { AccountPlatform } from "@velachess/infra-platforms";
 import { and, eq, or } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { providerProfiles } from "../schema.ts";
 
-type Platform = "chess_com" | "lichess";
-
 export interface ProviderSeat {
-  platform: Platform;
+  platform: AccountPlatform;
   username: string;
 }
 

@@ -1,7 +1,7 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { users } from "../schema.ts";
+import { users, type User } from "../schema.ts";
 
 /** Whether any user exists — the bootstrap module's own guard, not "this
  * email exists". */
@@ -34,10 +34,23 @@ export async function markUserOnboarded(db: Database, userId: string): Promise<v
  * because the pair is the state: an `image` without its source, or a
  * source without its `image`, is a row nothing can interpret.
  */
+/**
+ * The two values `users.avatar_source` may hold, read off the column
+ * itself — the `$type<>()` there is the one declaration. Exported because
+ * `libs/user` checks its own `AvatarSource` against it (infra may not
+ * depend on a business module, so the guard runs from that side). The
+ * column has no DB constraint, so this type is the only thing standing
+ * between a typo and a row nothing can interpret.
+ */
+export type AvatarSource = NonNullable<User["avatarSource"]>;
+
 export async function writeAvatarState(
   db: Database,
   userId: string,
-  next: { image: string | null; avatarSource: string | null },
+  // Both fields are exactly their columns, so they are read off the model
+  // rather than restated. Still a two-field `next` and not the whole
+  // `User`: this is an update contract, not a row write.
+  next: Pick<User, "image" | "avatarSource">,
 ) {
   await db
     .update(users)

@@ -3,13 +3,13 @@
  * `syncStatus` (not just `lastSyncedAt`) lets a client tell "still syncing"
  * from "gave up".
  */
-type Platform = "chess_com" | "lichess";
+import type { AccountPlatform } from "@velachess/infra-platforms";
 type JobStatus = "queued" | "running" | "retrying" | "succeeded" | "failed";
 type JobError = "not-found" | "incomplete" | "internal";
 
 export interface TrackedAccountSummary {
   id: string;
-  platform: Platform;
+  platform: AccountPlatform;
   username: string;
   lastSyncedAt: Date | null;
   latestJobId: string | null;

@@ -11,7 +11,7 @@
  * `importAccount` answers `provider-connected` with the existing handle's
  * identity instead, before ever asking the provider about the new one.
  */
-import type { FetchFn, ProfileFetch } from "@velachess/infra-platforms";
+import type { AccountPlatform, FetchFn, ProfileFetch } from "@velachess/infra-platforms";
 import { fetchChessComProfile, fetchLichessProfile } from "@velachess/infra-platforms";
 import type {
   Database,
@@ -20,8 +20,6 @@ import type {
   TrackedAccount,
 } from "@velachess/infra-db";
 
-export type Platform = "chess_com" | "lichess";
-
 /** Database and a Drizzle transaction share this type in this codebase. */
 type Tx = Database;
 
@@ -29,7 +27,7 @@ export type ConnectOutcome =
   | { status: "connected"; account: TrackedAccount; syncId: string | null }
   | {
       status: "provider-connected";
-      existing: { id: string; platform: Platform; username: string };
+      existing: { id: string; platform: AccountPlatform; username: string };
     }
   | { status: "not-found" }
   | { status: "unavailable" };
@@ -42,14 +40,14 @@ type UpsertProviderProfile = (
  * before touching the provider, so a doomed connect never costs a request. */
 type GetTrackedAccountByPlatform = (
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
 ) => Promise<TrackedAccount | null>;
 type WithTransaction = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
 /** Null when the user already has an account on that provider. */
 type InsertTrackedAccount = (
   tx: Tx,
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
   username: string,
 ) => Promise<TrackedAccount | null>;
 type CreateSyncJob = (
@@ -93,7 +91,7 @@ export interface ConnectAccountDeps {
 export async function importAccount(
   deps: ConnectAccountDeps,
   userId: string,
-  platform: Platform,
+  platform: AccountPlatform,
   username: string,
 ): Promise<ConnectOutcome> {
   const existing = await deps.getTrackedAccountByPlatform(userId, platform);

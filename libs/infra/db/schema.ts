@@ -10,6 +10,7 @@
 import type { ChessComCursor } from "@velachess/infra-platforms/providers/chess-com";
 import type { LichessCursor } from "@velachess/infra-platforms/providers/lichess";
 import {
+  accountPlatformSchema,
   gameSourceSchema,
   perspectiveSchema,
   resultSchema,
@@ -46,8 +47,10 @@ export const perspectiveEnum = pgEnum(
   enumValues(perspectiveSchema.options),
 );
 export const resultEnum = pgEnum("game_result", enumValues(resultSchema.options));
-/** "pgn" excluded — a paste has no account to sync from. */
-export const platformEnum = pgEnum("platform", ["chess_com", "lichess"]);
+/** "pgn" excluded — a paste has no account to sync from. The exclusion
+ * lives in `accountPlatformSchema`, so this derives like the three above
+ * instead of restating the list. */
+export const platformEnum = pgEnum("platform", enumValues(accountPlatformSchema.options));
 
 /**
  * A person, and the anchor every owned row hangs from.
@@ -83,7 +86,7 @@ export const users = pgTable("users", {
    * Exists because `image IS NULL` alone cannot tell "never had a picture"
    * from "deleted theirs", and only the second must stay empty.
    */
-  avatarSource: text("avatar_source"),
+  avatarSource: text("avatar_source").$type<"custom" | "none">(),
   /**
    * When this person finished onboarding — stamped on their first
    * successful connection, and never again.
