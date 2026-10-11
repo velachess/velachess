@@ -1,5 +1,5 @@
 import { fireEvent, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { addGames, stagePgnImport } from "../../../test/archive.ts";
 import { aGame } from "../../../test/games.ts";
@@ -42,6 +42,30 @@ describe("pgn import", () => {
     await openDialog();
 
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+  });
+
+  it("explains the disabled button up front, before any interaction", async () => {
+    await openDialog();
+
+    expect(
+      screen.getByText("Choose how you played before importing."),
+    ).toBeInTheDocument();
+  });
+
+  it("lets you press the same option again to clear it", async () => {
+    const user = await openDialog();
+
+    const whiteButton = screen.getByRole("button", { name: "White" });
+    await user.click(whiteButton);
+    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+    paste(VALID_PGN);
+    expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
+
+    await user.click(whiteButton);
+    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+    expect(
+      screen.getByText("Choose how you played before importing."),
+    ).toBeInTheDocument();
   });
 
   it("imports with By name selected and shows the new game in the library", async () => {
@@ -230,6 +254,20 @@ describe("pgn import", () => {
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
+  });
+
+  it("reports a file it cannot read instead of failing silently", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    const file = new File([VALID_PGN], "game.pgn", { type: "text/plain" });
+    vi.spyOn(file, "text").mockRejectedValueOnce(new Error("read failed"));
+    await user.upload(screen.getByLabelText("PGN file"), file);
+
+    expect(
+      await screen.findByText("Couldn't read that file. Try again."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
   });
 
   it("counts what was already there and what could not be read", async () => {

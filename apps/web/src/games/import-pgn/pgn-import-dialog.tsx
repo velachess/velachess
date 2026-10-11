@@ -52,6 +52,7 @@ const COPY = {
   pastePlaceholder: msg`[Event "..."] …`,
   pgnRequired: msg`There is nothing to import yet.`,
   pgnInvalid: msg`Invalid PGN: no valid chess moves found.`,
+  fileReadFailed: msg`Couldn't read that file. Try again.`,
   submit: msg`Import`,
   importing: msg`Importing…`,
 } as const;
@@ -108,14 +109,25 @@ const DEFAULT_VALUES: FormValues = {
   playerName: "",
 };
 
-/** A .pgn is plain text by definition; read it into the paste field so
- * there is exactly one place the import reads from. */
+/**
+ * A .pgn is plain text by definition; read it into the paste field so
+ * there is exactly one place the import reads from. Clears the input
+ * first so picking the same file again still fires a change event.
+ */
 async function handlePgnFileChange(
-  file: File | undefined,
+  input: HTMLInputElement,
   setPgnValue: (value: string) => void,
+  onReadFailed: () => void,
 ) {
+  const file = input.files?.[0];
+  input.value = "";
   if (!file) return;
-  setPgnValue(await file.text());
+
+  try {
+    setPgnValue(await file.text());
+  } catch {
+    onReadFailed();
+  }
 }
 
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
@@ -148,13 +160,9 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
-      // @tanstack/form-core@1.33.5's `_handleSubmit` calls
-      // `this.options.onSubmit?.({ value: this.state.values, ... })` —
-      // `value` here is always the RAW field shape, never a validator's
-      // `.transform()` output (verified in form-core's own source, not
-      // assumed). Getting `{ pgn, participation }` out of this schema's
-      // `.transform()` needs one explicit parse; `value` is already
-      // guaranteed valid by the validators above, so this never throws.
+      // onSubmit's `value` is the raw field shape, not the schema's
+      // `.transform()` output (@tanstack/form-core@1.33.5) — this parse is
+      // what actually produces `{ pgn, participation }`.
       const { pgn, participation } = formSchema.parse(value);
 
       try {
@@ -180,7 +188,10 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
         <FieldLegend>{translate(COPY.participation)}</FieldLegend>
         <form.Field name="participationMode">
           {(field) => {
-            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+            // Not gated on isTouched like the other fields: the toggle
+            // group never fires blur, so a required-but-unset selection
+            // would otherwise never explain why Import stays disabled.
+            const isInvalid = !field.state.meta.isValid;
 
             return (
               <>
@@ -253,7 +264,12 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
                 accept=".pgn,text/plain"
                 aria-label={translate(COPY.file)}
                 onChange={(event) =>
-                  void handlePgnFileChange(event.target.files?.[0], field.handleChange)
+                  void handlePgnFileChange(event.currentTarget, field.handleChange, () =>
+                    toast.add({
+                      type: "error",
+                      title: translate(COPY.fileReadFailed),
+                    }),
+                  )
                 }
                 disabled={importPgn.isPending}
               />
