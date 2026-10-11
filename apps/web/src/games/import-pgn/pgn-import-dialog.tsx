@@ -29,10 +29,7 @@ import { FileText } from "@velachess/ui/icons";
 
 import { useImportPgn } from "./queries.ts";
 import {
-  buildParticipationModeSchema,
-  buildPgnSchema,
-  buildPlayerNameSchema,
-  type Participation,
+  buildPgnImportFormSchema,
   type ParticipationMode,
   type Translate,
 } from "./validation.ts";
@@ -99,16 +96,6 @@ export function PgnImportButton() {
 
 const DIALOG_TITLE_ID = "pgn-import-title";
 
-/** Builds the candidate `Participation`, or undefined while nothing's chosen yet. */
-function toParticipation(
-  mode: ParticipationMode | undefined,
-  playerName: string,
-): Participation | undefined {
-  if (mode === "white" || mode === "black") return { mode };
-  if (mode === "byName") return { mode, playerName: playerName.trim() };
-  return undefined;
-}
-
 interface FormValues {
   pgn: string;
   participationMode: ParticipationMode | undefined;
@@ -149,16 +136,18 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     },
   });
 
+  const formSchema = buildPgnImportFormSchema(translate, COPY);
+
   const form = useForm({
     defaultValues: DEFAULT_VALUES,
+    validators: { onMount: formSchema, onChange: formSchema },
     onSubmit: async ({ value }) => {
-      const participation = toParticipation(value.participationMode, value.playerName);
-      // Guarded by the field validators already — only reachable if a
-      // required-field re-render raced the submit, never a real path.
-      if (!participation) return;
+      // The schema itself produces the `{ pgn, participation }` payload —
+      // already validated, since onSubmit only runs once it has.
+      const { pgn, participation } = formSchema.parse(value);
 
       try {
-        await importPgn.mutateAsync({ pgn: value.pgn, participation });
+        await importPgn.mutateAsync({ pgn, participation });
       } catch {
         // The mutation already holds the failure and onError reports it;
         // rethrowing here would leave the rejection unhandled.
@@ -166,13 +155,6 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
       }
     },
   });
-
-  const pgnSchema = buildPgnSchema(translate, COPY.pgnRequired, COPY.pgnInvalid);
-  const participationModeSchema = buildParticipationModeSchema(
-    translate,
-    COPY.participationRequired,
-  );
-  const playerNameSchema = buildPlayerNameSchema(translate, COPY.playerRequired);
 
   return (
     <form
@@ -182,15 +164,10 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
         void form.handleSubmit();
       }}
     >
+      {/* How you played — White/Black apply to the whole batch, By name matches per game. */}
       <FieldSet>
         <FieldLegend>{translate(COPY.participation)}</FieldLegend>
-        <form.Field
-          name="participationMode"
-          validators={{
-            onMount: participationModeSchema,
-            onChange: participationModeSchema,
-          }}
-        >
+        <form.Field name="participationMode">
           {(field) => {
             const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -222,13 +199,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
       <form.Subscribe selector={(state) => state.values.participationMode}>
         {(mode) =>
           mode === "byName" && (
-            // Mounts fresh each render "By name" is picked (this block only
-            // renders for that mode), so onMount catches the empty default
-            // without waiting for a keystroke.
-            <form.Field
-              name="playerName"
-              validators={{ onMount: playerNameSchema, onChange: playerNameSchema }}
-            >
+            <form.Field name="playerName">
               {(field) => {
                 const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -257,7 +228,8 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
         }
       </form.Subscribe>
 
-      <form.Field name="pgn" validators={{ onMount: pgnSchema, onChange: pgnSchema }}>
+      {/* The PGN source — a file or a paste, sharing the same field. */}
+      <form.Field name="pgn">
         {(field) => {
           const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -294,6 +266,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
         }}
       </form.Field>
 
+      {/* Import — one submit button, gated on the whole schema's validity. */}
       <div className="flex justify-end">
         <form.Subscribe selector={(state) => state.canSubmit}>
           {(canSubmit) => (

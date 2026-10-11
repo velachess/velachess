@@ -23,11 +23,9 @@ export type Participation =
  * The PGN field's own check — reuses the backend's own parser/legality
  * logic (`hasPlayableGame`, libs/chess) instead of a regex, so "looks like
  * PGN" never passes as "is a game". `superRefine` so an empty value reports
- * only `requiredMessage`, never both messages at once. Per render: zod
- * bakes error text in, so it needs an active locale — same pattern as
- * games/import/sources.ts's `buildSchema(translate)`.
+ * only `requiredMessage`, never both messages at once.
  */
-export function buildPgnSchema(
+function buildPgnSchema(
   translate: Translate,
   requiredMessage: MessageDescriptor,
   invalidMessage: MessageDescriptor,
@@ -46,18 +44,53 @@ export function buildPgnSchema(
     });
 }
 
-/** One of White, Black or By name — nothing selected yet fails with `requiredMessage`. */
-export function buildParticipationModeSchema(
-  translate: Translate,
-  requiredMessage: MessageDescriptor,
-) {
-  return z.enum(["white", "black", "byName"], { message: translate(requiredMessage) });
+export interface PgnImportCopy {
+  pgnRequired: MessageDescriptor;
+  pgnInvalid: MessageDescriptor;
+  participationRequired: MessageDescriptor;
+  playerRequired: MessageDescriptor;
 }
 
-/** Only rendered (and therefore only validated) while By name is selected. */
-export function buildPlayerNameSchema(
-  translate: Translate,
-  requiredMessage: MessageDescriptor,
-) {
-  return z.string().trim().min(1, translate(requiredMessage));
+/**
+ * The one schema the form validates against, raw fields in, `{ pgn,
+ * participation }` out — the UI→domain shape change lives in `.transform`,
+ * not in a parallel `toParticipation` helper the form has to stay in sync
+ * with by hand. Used as a whole-form validator (`useForm`'s `onMount`/
+ * `onChange`), so each issue's `path` routes it to its own `form.Field`
+ * automatically (`@tanstack/form-core`'s `standardSchemaValidator`) — no
+ * manual touched/invalid state. Per render: zod bakes error text in, so it
+ * needs an active locale — same pattern as games/import/sources.ts's
+ * `buildSchema(translate)`.
+ */
+export function buildPgnImportFormSchema(translate: Translate, copy: PgnImportCopy) {
+  return z
+    .object({
+      pgn: buildPgnSchema(translate, copy.pgnRequired, copy.pgnInvalid),
+      participationMode: z.enum(["white", "black", "byName"], {
+        message: translate(copy.participationRequired),
+      }),
+      playerName: z.string(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.participationMode === "byName" && value.playerName.trim().length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["playerName"],
+          message: translate(copy.playerRequired),
+        });
+      }
+    })
+    .transform(
+      ({
+        pgn,
+        participationMode,
+        playerName,
+      }): { pgn: string; participation: Participation } => ({
+        pgn,
+        participation:
+          participationMode === "byName"
+            ? { mode: "byName", playerName: playerName.trim() }
+            : { mode: participationMode },
+      }),
+    );
 }
