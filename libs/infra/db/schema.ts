@@ -369,9 +369,11 @@ export const games = pgTable(
 
 /** Structural mirror of @velachess/analysis's GradedPly — declared
  * locally so drizzle-kit's schema loader never touches the chess toolchain.
- * Compatibility is asserted at typecheck in tests/schema.test.ts (a
- * production import of a business module's type would violate
- * no-infra-to-modules; the test path is exempt). */
+ * Compatibility is asserted at typecheck from the analysis side, in
+ * libs/analysis/process-analysis/tests/analyze-game.test.ts: analysis
+ * already depends on this package, so the guard runs with the package
+ * graph instead of against it. Asserting it here would need
+ * @velachess/analysis as a devDependency, and that edge is a cycle. */
 export interface StoredGradedPly {
   ply: number;
   fen: string;

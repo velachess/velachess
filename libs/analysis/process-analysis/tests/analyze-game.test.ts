@@ -6,7 +6,24 @@ import { EngineSession, type Transport } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { describe, expect, it } from "vitest";
 
-import { analyzeGame, type AnalysisEvent } from "../analyze-game.ts";
+import type { StoredGradedPly } from "@velachess/infra-db";
+
+import { analyzeGame, type AnalysisEvent, type GradedPly } from "../analyze-game.ts";
+
+// Drift guard: infra-db stores a report as jsonb and declares its own
+// structural mirror of GradedPly, because drizzle-kit's schema loader must
+// never pull in the chess toolchain. The two must stay mutually
+// assignable, checked at typecheck time in both directions.
+//
+// It lives here, not in infra-db's own tests, because this is the
+// direction the package graph already runs: analysis depends on infra-db.
+// The reverse made @velachess/analysis a devDependency of infra-db, which
+// turned the graph into a cycle and made every analysis-only change mark
+// infra-db — and everything downstream of it — affected.
+const toStoredDriftCheck: StoredGradedPly = {} as GradedPly;
+const fromStoredDriftCheck: GradedPly = {} as StoredGradedPly;
+void toStoredDriftCheck;
+void fromStoredDriftCheck;
 
 const require = createRequire(import.meta.url);
 const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
