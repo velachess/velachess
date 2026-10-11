@@ -8,7 +8,9 @@ import {
   findTrackedAccountByPlatform,
   games,
   getTrackedAccountCursor,
-  listGames,
+  getGame,
+  listGamesPage,
+  listGamesWithStatusForAccount,
   saveGames,
   trackedAccounts,
   updateTrackedAccountCursor,
@@ -122,8 +124,8 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(second.inserted).toBe(1);
 
     const [rowsA, rowsB] = await Promise.all([
-      listGames(db, { accountId: accountA.id }),
-      listGames(db, { accountId: accountB.id }),
+      listGamesWithStatusForAccount(db, accountA.id),
+      listGamesWithStatusForAccount(db, accountB.id),
     ]);
     expect(rowsA).toHaveLength(1);
     expect(rowsB).toHaveLength(1);
@@ -146,8 +148,8 @@ describe("libs/infra/db (games + tracked accounts)", () => {
 
     expect(mine.inserted).toBe(1);
     expect(theirs.inserted).toBe(1);
-    expect(await listGames(db, { userId: ownerId })).toHaveLength(1);
-    expect(await listGames(db, { userId: other })).toHaveLength(1);
+    expect((await listGamesPage(db, ownerId)).rows).toHaveLength(1);
+    expect((await listGamesPage(db, other)).rows).toHaveLength(1);
   });
 
   it("a batch containing an intra-statement duplicate only inserts one row", async () => {
@@ -201,7 +203,10 @@ describe("libs/infra/db (games + tracked accounts)", () => {
 
     await db.delete(trackedAccounts).where(eq(trackedAccounts.id, account.id));
 
-    const [row] = await listGames(db);
+    // `account_id` is `on delete set null`, so the game outlives its
+    // provenance. Read the full row — the list projections drop the column.
+    const [listed] = (await listGamesPage(db, ownerId)).rows;
+    const row = await getGame(db, listed!.id);
     expect(row?.accountId).toBeNull();
   });
 
@@ -246,7 +251,7 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     });
   });
 
-  it("listGames filters by account and orders by played_at desc", async () => {
+  it("the account list filters by account and orders by played_at desc", async () => {
     const account = (await insertTrackedAccount(
       db,
       ownerId,
@@ -271,8 +276,9 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     );
     await saveGames(db, [pastedGame()], { userId: ownerId }); // unrelated, no account
 
-    const rows = await listGames(db, { accountId: account.id });
+    const rows = await listGamesWithStatusForAccount(db, account.id);
     expect(rows).toHaveLength(2);
-    expect(rows[0]?.externalId).toBe("2");
+    // Newest first: the 2024-01-02 game, not the 2024-01-01 one.
+    expect(rows[0]?.playedAt).toEqual(new Date("2024-01-02T00:00:00Z"));
   });
 });

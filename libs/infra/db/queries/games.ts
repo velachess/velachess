@@ -1,5 +1,5 @@
 import type { NormalizedGame } from "@velachess/infra-platforms";
-import { and, desc, eq, getTableColumns, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { perspectiveSql } from "./perspective.ts";
@@ -70,52 +70,6 @@ export async function saveGames(
   return { inserted };
 }
 
-// Excludes rawPgn/movetextHash — a list view doesn't need the full PGN text
-// or the internal dedup key. Fetch a single game (with rawPgn) separately
-// once a reader actually needs it.
-const gameListColumns = {
-  id: games.id,
-  source: games.source,
-  externalId: games.externalId,
-  externalUrl: games.externalUrl,
-  accountId: games.accountId,
-  perspective: games.perspective,
-  whiteName: games.whiteName,
-  whiteRating: games.whiteRating,
-  blackName: games.blackName,
-  blackRating: games.blackRating,
-  result: games.result,
-  playedAt: games.playedAt,
-  timeControlInitialSeconds: games.timeControlInitialSeconds,
-  timeControlIncrementSeconds: games.timeControlIncrementSeconds,
-  timeControlRaw: games.timeControlRaw,
-  openingEco: games.openingEco,
-  openingName: games.openingName,
-  openingUrl: games.openingUrl,
-  termination: games.termination,
-  hasClocks: games.hasClocks,
-  createdAt: games.createdAt,
-};
-
-export async function listGames(
-  db: Database,
-  opts: { userId?: string; accountId?: string; limit?: number; offset?: number } = {},
-) {
-  const scopes: SQL[] = [];
-  if (opts.userId) scopes.push(eq(games.userId, opts.userId));
-  if (opts.accountId) scopes.push(eq(games.accountId, opts.accountId));
-
-  const query = db
-    .select(gameListColumns)
-    .from(games)
-    .where(scopes.length > 0 ? and(...scopes) : undefined)
-    .orderBy(desc(games.playedAt))
-    .limit(opts.limit ?? 50)
-    .offset(opts.offset ?? 0);
-
-  return query;
-}
-
 /**
  * The full row, rawPgn included — board rendering needs it.
  * Unscoped: for the WORKER and for internal reads that already trust the
@@ -156,21 +110,31 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
  * renders without N+1. rawPgn deliberately excluded. Unscoped by owner —
  * callers that need ownership enforced check the tracked account first
  * (see `@velachess/accounts`'s list-account-games).
+ *
+ * `perspective` is derived, not read off the column, for the reason
+ * `perspective.ts` states: a synced game stores null there, and this list
+ * hands the seat to a caller. It served the raw column until this join
+ * was added — every synced row answered "unknown".
  */
 export async function listGamesWithStatusForAccount(db: Database, accountId: string) {
-  return db
-    .select({
-      id: games.id,
-      whiteName: games.whiteName,
-      blackName: games.blackName,
-      result: games.result,
-      playedAt: games.playedAt,
-      perspective: games.perspective,
-      openingName: games.openingName,
-      analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
-    })
-    .from(games)
-    .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
-    .where(eq(games.accountId, accountId))
-    .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id));
+  return (
+    db
+      .select({
+        id: games.id,
+        whiteName: games.whiteName,
+        blackName: games.blackName,
+        result: games.result,
+        playedAt: games.playedAt,
+        perspective: perspectiveSql,
+        openingName: games.openingName,
+        analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
+      })
+      .from(games)
+      // Provenance, not ownership: a LEFT join, so a pasted PGN with no
+      // account survives the read and answers from its stored column.
+      .leftJoin(trackedAccounts, eq(trackedAccounts.id, games.accountId))
+      .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
+      .where(eq(games.accountId, accountId))
+      .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id))
+  );
 }
