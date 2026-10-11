@@ -1,8 +1,15 @@
-import { FOOLS_MATE_PGN, ILLEGAL_MOVE_PGN, MULTI_GAME_PGN } from "@velachess/fixtures";
+import {
+  FOOLS_MATE_PGN,
+  ILLEGAL_MOVE_PGN,
+  MALFORMED_HEADER_PGN,
+  MULTI_GAME_PGN,
+  NO_LEGAL_MOVES_PGN,
+} from "@velachess/fixtures";
 import { describe, expect, it } from "vitest";
 
 import {
   type Game,
+  hasPlayableGame,
   type PgnNodeData,
   parseComment,
   parsePgn,
@@ -69,6 +76,36 @@ describe("replayMainline", () => {
 
     expect(replay.moves[0]?.fenBefore).toContain(" w ");
     expect(replay.moves[0]?.fenAfter).toContain(" b ");
+  });
+});
+
+describe("hasPlayableGame", () => {
+  it("accepts a fully legal game", () => {
+    expect(hasPlayableGame(FOOLS_MATE_PGN)).toBe(true);
+  });
+
+  it("accepts a game that goes illegal partway through — the legal prefix counts", () => {
+    expect(hasPlayableGame(ILLEGAL_MOVE_PGN)).toBe(true);
+  });
+
+  it("accepts a multi-game PGN when at least one game is playable", () => {
+    expect(hasPlayableGame(MULTI_GAME_PGN)).toBe(true);
+  });
+
+  it("rejects arbitrary text with no headers and no moves", () => {
+    expect(hasPlayableGame("adkadsa")).toBe(false);
+  });
+
+  it("rejects empty input", () => {
+    expect(hasPlayableGame("")).toBe(false);
+  });
+
+  it("rejects malformed headers", () => {
+    expect(hasPlayableGame(MALFORMED_HEADER_PGN)).toBe(false);
+  });
+
+  it("rejects a game whose very first move is illegal", () => {
+    expect(hasPlayableGame(NO_LEGAL_MOVES_PGN)).toBe(false);
   });
 });
 

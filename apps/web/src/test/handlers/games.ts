@@ -43,8 +43,20 @@ export const gamesHandlers = [
    * the library so a refetch shows them, exactly as the real slice does.
    */
   http.post("/api/games/import", async ({ request }) => {
-    const body = (await request.json()) as { pgn?: string; playerName?: string };
-    if (!body.pgn?.trim() || !body.playerName?.trim()) {
+    const body = (await request.json()) as {
+      pgn?: string;
+      participation?:
+        | { mode: "white" }
+        | { mode: "black" }
+        | { mode: "byName"; playerName?: string };
+    };
+    const validParticipation =
+      body.participation?.mode === "white" ||
+      body.participation?.mode === "black" ||
+      (body.participation?.mode === "byName" &&
+        Boolean(body.participation.playerName?.trim()));
+
+    if (!body.pgn?.trim() || !validParticipation) {
       return HttpResponse.json({ error: "invalid body" }, { status: 400 });
     }
 

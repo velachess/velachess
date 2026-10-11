@@ -46,18 +46,24 @@ const libraryQuery = z.object({
 });
 
 /**
- * The name is what the PGN headers call them — the one identity a
- * hand-written file can carry. Optional at the API: without it games
- * still land, just unattributed.
+ * How the uploader is identified across the batch: forced White or Black
+ * for every game, or by name against each game's own headers. Optional at
+ * the API: without it, games still land, just unattributed.
  */
+const participationSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("white") }),
+  z.object({ mode: z.literal("black") }),
+  z.object({
+    mode: z.literal("byName"),
+    playerName: z.string().trim().min(1).max(128),
+  }),
+]);
+
 const importPgnSchema = z.object({
   pgn: z.string().min(1).describe("One or more games in PGN format"),
-  playerName: z
-    .string()
-    .min(1)
-    .max(128)
+  participation: participationSchema
     .optional()
-    .describe("The player these games belong to, as named in the headers"),
+    .describe("How the uploader is identified across the batch"),
 });
 
 /**
@@ -163,7 +169,7 @@ const importPgnRoute = createRoute({
   path: "/import",
   summary: "Import games from a PGN upload",
   description:
-    "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `playerName` resolves which side is theirs per game, so one file may mix White and Black, and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors.",
+    "The manual source: no connected account, no cursor, no sync lifecycle — and no engine (analysis is triggered by opening a game). Every parseable game lands in the caller's library; `participation` resolves which side is theirs — forced White/Black for the whole batch, or by-name header matching per game, so a by-name file may mix White and Black and games naming them on neither side import unattributed. Re-importing is idempotent per user: duplicates are successful no-ops counted in the response, never errors.",
   request: {
     body: { content: { "application/json": { schema: importPgnSchema } } },
   },

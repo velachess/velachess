@@ -12,18 +12,33 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@velachess/ui/components/dialog";
-import { Field, FieldError, FieldLabel } from "@velachess/ui/components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
 import { toast } from "@velachess/ui/components/toast";
+import { ToggleGroup, ToggleGroupItem } from "@velachess/ui/components/toggle-group";
 import { FileText } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
 import { useImportPgn } from "./queries.ts";
+import { pgnImportFormSchema, pgnSchema, type Participation } from "./validation.ts";
 
 const COPY = {
   action: msg`Import PGN`,
   title: msg`Import games from a PGN`,
   description: msg`Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs.`,
+  participation: msg`How you played`,
+  participationHint: msg`White or Black applies to every game in this upload.`,
+  participationRequired: msg`Choose how you played before importing.`,
+  white: msg`White`,
+  black: msg`Black`,
+  byName: msg`By name`,
   playerName: msg`Your name in these games`,
   playerNameHint: msg`As it appears in the White and Black headers`,
   playerRequired: msg`Enter your name so your games can be told apart from your opponents'.`,
@@ -31,9 +46,12 @@ const COPY = {
   paste: msg`Or paste the moves`,
   pastePlaceholder: msg`[Event "..."] …`,
   pgnRequired: msg`There is nothing to import yet.`,
+  pgnInvalid: msg`Invalid PGN: no valid chess moves found.`,
   submit: msg`Import`,
   importing: msg`Importing…`,
 } as const;
+
+type ParticipationMode = Participation["mode"];
 
 const RESULT_COPY = {
   done: msg`Games imported`,
@@ -77,11 +95,27 @@ const DIALOG_TITLE_ID = "pgn-import-title";
 
 type Translate = (message: MessageDescriptor) => string;
 
+/** Builds the candidate `Participation`, or undefined while nothing's chosen yet. */
+function toParticipation(
+  mode: ParticipationMode | undefined,
+  playerName: string,
+): Participation | undefined {
+  if (mode === "white" || mode === "black") return { mode };
+  if (mode === "byName") return { mode, playerName: playerName.trim() };
+  return undefined;
+}
+
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const { i18n } = useLingui();
+  const [participationMode, setParticipationMode] = useState<
+    ParticipationMode | undefined
+  >(undefined);
   const [playerName, setPlayerName] = useState("");
   const [pgn, setPgn] = useState("");
-  const [touched, setTouched] = useState(false);
+  // Per-field, not one global flag: picking White shouldn't surface the PGN
+  // field's "nothing to import yet" error before the user has touched it.
+  const [pgnTouched, setPgnTouched] = useState(false);
+  const [participationTouched, setParticipationTouched] = useState(false);
 
   const importPgn = useImportPgn({
     onImported: (outcome) => {
@@ -97,13 +131,25 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     },
   });
 
-  const playerNameInvalid = touched && playerName.trim().length === 0;
-  const pgnInvalid = touched && pgn.trim().length === 0;
+  const participation = toParticipation(participationMode, playerName);
+  const form = pgnImportFormSchema.safeParse({ pgn, participation });
+
+  const pgnEmpty = pgn.trim().length === 0;
+  const pgnParsed = pgnSchema.safeParse(pgn);
+  const pgnInvalid = pgnTouched && !pgnParsed.success;
+
+  const participationModeMissing =
+    participationTouched && participationMode === undefined;
+  const playerNameInvalid =
+    participationTouched &&
+    participationMode === "byName" &&
+    playerName.trim().length === 0;
 
   const submit = () => {
-    setTouched(true);
-    if (playerName.trim().length === 0 || pgn.trim().length === 0) return;
-    importPgn.mutate({ pgn, playerName: playerName.trim() });
+    setPgnTouched(true);
+    setParticipationTouched(true);
+    if (!form.success) return;
+    importPgn.mutate(form.data);
   };
 
   const readFile = async (file: File | undefined) => {
@@ -111,6 +157,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     // A .pgn is plain text by definition; read it into the paste field so
     // there is exactly one place the import reads from.
     setPgn(await file.text());
+    setPgnTouched(true);
   };
 
   return (
@@ -121,24 +168,55 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
         submit();
       }}
     >
-      <Field data-invalid={playerNameInvalid}>
-        <FieldLabel htmlFor="pgn-player-name">{i18n._(COPY.playerName)}</FieldLabel>
-        <Input
-          id="pgn-player-name"
-          aria-label={i18n._(COPY.playerName)}
-          value={playerName}
-          aria-invalid={playerNameInvalid}
-          onChange={(event) => setPlayerName(event.target.value)}
-          disabled={importPgn.isPending}
-        />
-        <FieldLabel
-          htmlFor="pgn-player-name"
-          className="text-muted-foreground font-normal"
+      <FieldSet>
+        <FieldLegend>{i18n._(COPY.participation)}</FieldLegend>
+        <ToggleGroup
+          value={participationMode ? [participationMode] : []}
+          variant="outline"
+          onValueChange={(next) => {
+            setParticipationMode(next[0] as ParticipationMode | undefined);
+            setParticipationTouched(true);
+          }}
         >
-          {i18n._(COPY.playerNameHint)}
-        </FieldLabel>
-        {playerNameInvalid && <FieldError>{i18n._(COPY.playerRequired)}</FieldError>}
-      </Field>
+          <ToggleGroupItem value="white" disabled={importPgn.isPending}>
+            {i18n._(COPY.white)}
+          </ToggleGroupItem>
+          <ToggleGroupItem value="black" disabled={importPgn.isPending}>
+            {i18n._(COPY.black)}
+          </ToggleGroupItem>
+          <ToggleGroupItem value="byName" disabled={importPgn.isPending}>
+            {i18n._(COPY.byName)}
+          </ToggleGroupItem>
+        </ToggleGroup>
+        <FieldDescription>{i18n._(COPY.participationHint)}</FieldDescription>
+        {participationModeMissing && (
+          <FieldError>{i18n._(COPY.participationRequired)}</FieldError>
+        )}
+      </FieldSet>
+
+      {participationMode === "byName" && (
+        <Field data-invalid={playerNameInvalid}>
+          <FieldLabel htmlFor="pgn-player-name">{i18n._(COPY.playerName)}</FieldLabel>
+          <Input
+            id="pgn-player-name"
+            aria-label={i18n._(COPY.playerName)}
+            value={playerName}
+            aria-invalid={playerNameInvalid}
+            onChange={(event) => {
+              setPlayerName(event.target.value);
+              setParticipationTouched(true);
+            }}
+            disabled={importPgn.isPending}
+          />
+          <FieldLabel
+            htmlFor="pgn-player-name"
+            className="text-muted-foreground font-normal"
+          >
+            {i18n._(COPY.playerNameHint)}
+          </FieldLabel>
+          {playerNameInvalid && <FieldError>{i18n._(COPY.playerRequired)}</FieldError>}
+        </Field>
+      )}
 
       <Field data-invalid={pgnInvalid}>
         <FieldLabel htmlFor="pgn-file">{i18n._(COPY.file)}</FieldLabel>
@@ -158,15 +236,20 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
           value={pgn}
           placeholder={i18n._(COPY.pastePlaceholder)}
           aria-invalid={pgnInvalid}
-          onChange={(event) => setPgn(event.target.value)}
+          onChange={(event) => {
+            setPgn(event.target.value);
+            setPgnTouched(true);
+          }}
           disabled={importPgn.isPending}
           className={cn(inputClassName(pgnInvalid), "font-mono text-xs")}
         />
-        {pgnInvalid && <FieldError>{i18n._(COPY.pgnRequired)}</FieldError>}
+        {pgnInvalid && (
+          <FieldError>{i18n._(pgnEmpty ? COPY.pgnRequired : COPY.pgnInvalid)}</FieldError>
+        )}
       </Field>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={importPgn.isPending}>
+        <Button type="submit" disabled={importPgn.isPending || !form.success}>
           {importPgn.isPending ? i18n._(COPY.importing) : i18n._(COPY.submit)}
         </Button>
       </div>

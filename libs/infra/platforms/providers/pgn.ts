@@ -9,15 +9,18 @@ import { isSyncFailure, normalizeGame } from "../normalize.ts";
 import type { NormalizedGame, Perspective, SyncFailure, SyncResult } from "../schema.ts";
 import { splitPgnGames } from "../split.ts";
 
+/**
+ * How the uploader identified themselves across the whole batch. "white"
+ * and "black" apply to every game, no header check — the user is asserting
+ * it, not describing it. "byName" keeps the original per-game header match.
+ */
+export type Participation =
+  | { mode: "white" }
+  | { mode: "black" }
+  | { mode: "byName"; playerName: string };
+
 export interface ImportPgnOptions {
-  /**
-   * The player these games belong to, as their name appears in the PGN
-   * headers. Resolved per game against White/Black, so one file can mix
-   * colors; a game naming them on neither side stays `perspective: null`
-   * — present in the library, not attributable. Absent means every game
-   * carries `perspective: null`. Never guessed here.
-   */
-  playerName?: string | undefined;
+  participation?: Participation | undefined;
 }
 
 /** Case-insensitive header match: PGN names are free text, not handles. */
@@ -27,6 +30,21 @@ function sideOf(game: NormalizedGame, playerName: string): Perspective | null {
   if (game.white.name.trim().toLowerCase() === name) return "white";
   if (game.black.name.trim().toLowerCase() === name) return "black";
   return null;
+}
+
+/** Resolves perspective per game — forced modes skip the headers entirely. */
+function resolveParticipation(
+  game: NormalizedGame,
+  participation: Participation,
+): Perspective | null {
+  switch (participation.mode) {
+    case "white":
+      return "white";
+    case "black":
+      return "black";
+    case "byName":
+      return sideOf(game, participation.playerName);
+  }
 }
 
 export function importPgn(text: string, options: ImportPgnOptions = {}): SyncResult {
@@ -45,8 +63,8 @@ export function importPgn(text: string, options: ImportPgnOptions = {}): SyncRes
       continue;
     }
     games.push(
-      options.playerName
-        ? { ...result, perspective: sideOf(result, options.playerName) }
+      options.participation
+        ? { ...result, perspective: resolveParticipation(result, options.participation) }
         : result,
     );
   }

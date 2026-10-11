@@ -26,20 +26,37 @@ describe("importPgn", () => {
   });
 
   it("resolves the named player's seat in each game of a mixed-color file", () => {
-    const result = importPgn(MIXED_COLOR_PGN, { playerName: IMPORTED_PLAYER_NAME });
+    const result = importPgn(MIXED_COLOR_PGN, {
+      participation: { mode: "byName", playerName: IMPORTED_PLAYER_NAME },
+    });
     expect(result.games.map((game) => game.perspective)).toEqual(["white", "black"]);
   });
 
   it("matches the player's name case-insensitively", () => {
     const result = importPgn(MIXED_COLOR_PGN, {
-      playerName: IMPORTED_PLAYER_NAME.toLowerCase(),
+      participation: {
+        mode: "byName",
+        playerName: IMPORTED_PLAYER_NAME.toLowerCase(),
+      },
     });
     expect(result.games.map((game) => game.perspective)).toEqual(["white", "black"]);
   });
 
   it("leaves games without the named player unattributed instead of guessing", () => {
-    const result = importPgn(MIXED_COLOR_PGN, { playerName: "Someone Else" });
+    const result = importPgn(MIXED_COLOR_PGN, {
+      participation: { mode: "byName", playerName: "Someone Else" },
+    });
     expect(result.games.every((game) => game.perspective === null)).toBe(true);
+  });
+
+  it("forces every game to White regardless of the headers", () => {
+    const result = importPgn(MIXED_COLOR_PGN, { participation: { mode: "white" } });
+    expect(result.games.map((game) => game.perspective)).toEqual(["white", "white"]);
+  });
+
+  it("forces every game to Black regardless of the headers", () => {
+    const result = importPgn(MIXED_COLOR_PGN, { participation: { mode: "black" } });
+    expect(result.games.map((game) => game.perspective)).toEqual(["black", "black"]);
   });
 
   it("normalizeGame still accepts a PGN with an illegal move — legality is not this package's job", () => {
