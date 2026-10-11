@@ -16,7 +16,12 @@ import type {
 } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
-import { defaultHook, errorResponseSchema, idParamSchema } from "../validation.ts";
+import {
+  defaultHook,
+  errorResponseSchema,
+  idParamSchema,
+  wireDateOrNull,
+} from "../validation.ts";
 
 /** `@velachess/accounts`' `ConnectOutcome.status` vocabulary. */
 const ACCOUNT_CONNECT_STATUS = {
@@ -122,6 +127,13 @@ const trackedAccountSchema = z.object({
     .describe("Why the newest job failed; cleared by the next success"),
 });
 
+/** Serializers, built from the documented schemas with `.extend()`: only
+ * the timestamp is restated, so the rest cannot drift. See `wireDate` for
+ * why the schema performs the conversion instead of the handler. */
+const trackedAccountWire = trackedAccountSchema.extend({
+  lastSyncedAt: wireDateOrNull,
+});
+
 const listAccountsRoute = createRoute({
   method: "get",
   path: "/",
@@ -178,6 +190,8 @@ const accountGameSchema = z.object({
   openingName: z.string().nullable(),
   analyzed: z.boolean(),
 });
+
+const accountGameWire = accountGameSchema.extend({ playedAt: wireDateOrNull });
 
 const accountGamesRoute = createRoute({
   method: "get",
@@ -271,11 +285,7 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
       .openapi(listAccountsRoute, async (c) => {
         const accounts = await listAccounts(deps.list, c.get("userId"));
         return c.json(
-          accounts.map((account) =>
-            Object.assign({}, account, {
-              lastSyncedAt: account.lastSyncedAt?.toISOString() ?? null,
-            }),
-          ),
+          accounts.map((account) => trackedAccountWire.parse(account)),
           200,
         );
       })
@@ -314,9 +324,7 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
         );
         if (!games) return c.json({ error: ACCOUNT_NOT_FOUND_ERROR }, 404);
         return c.json(
-          games.map((game) =>
-            Object.assign({}, game, { playedAt: game.playedAt?.toISOString() ?? null }),
-          ),
+          games.map((game) => accountGameWire.parse(game)),
           200,
         );
       })

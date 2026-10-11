@@ -4,7 +4,12 @@ import { getSync } from "@velachess/accounts";
 import type { GetSyncDeps } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
-import { defaultHook, errorResponseSchema, idParamSchema } from "../validation.ts";
+import {
+  defaultHook,
+  errorResponseSchema,
+  idParamSchema,
+  wireDateOrNull,
+} from "../validation.ts";
 
 const syncJobSchema = z.object({
   id: z.string().uuid(),
@@ -32,6 +37,14 @@ const syncJobSchema = z.object({
   finishedAt: z.string().nullable(),
 });
 
+/** The serializer, built from the schema above with `.extend()` so only
+ * the timestamps are restated. See `wireDate` for why the schema performs
+ * the conversion instead of the handler. */
+const syncJobWire = syncJobSchema.extend({
+  startedAt: wireDateOrNull,
+  finishedAt: wireDateOrNull,
+});
+
 const getSyncRoute = createRoute({
   method: "get",
   path: "/{id}",
@@ -57,7 +70,7 @@ export function syncsRoutes(deps: { get: GetSyncDeps }) {
     if (!job) return c.json({ error: "sync not found" }, 404);
 
     return c.json(
-      {
+      syncJobWire.parse({
         id: job.id,
         accountId: job.accountId,
         trigger: job.trigger,
@@ -70,9 +83,9 @@ export function syncsRoutes(deps: { get: GetSyncDeps }) {
         },
         error: job.error,
         retryAfterSeconds: null,
-        startedAt: job.startedAt?.toISOString() ?? null,
-        finishedAt: job.finishedAt?.toISOString() ?? null,
-      },
+        startedAt: job.startedAt,
+        finishedAt: job.finishedAt,
+      }),
       200,
     );
   });

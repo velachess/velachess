@@ -22,6 +22,33 @@ export const errorResponseSchema = z.object({
 });
 
 /**
+ * A timestamp on its way out.
+ *
+ * `@hono/zod-openapi` validates requests only — `defaultHook` below fires
+ * on `param`, `json` and `query`, never on a response — so a response
+ * schema that merely *says* `z.string()` while the handler writes
+ * `.toISOString()` by hand is two declarations that can disagree and both
+ * typecheck (`Object.assign` widens). These make the schema do the
+ * conversion it documents, so there is one declaration per field.
+ *
+ * Used through `.extend()` on the documented response schema, which stays
+ * the one OpenAPI renders: the non-date fields cannot drift because the
+ * serializer is built from the real thing, and keys the contract does not
+ * name are stripped rather than shipped.
+ *
+ * Parsing on the way out costs work, which is affordable here only
+ * because every response that uses it is bounded — one row, or one page
+ * of at most `MAX_PAGE_SIZE`.
+ */
+export const wireDate = z.date().transform((value) => value.toISOString());
+
+/** `wireDate` for a nullable column — absent stays absent. */
+export const wireDateOrNull = z
+  .date()
+  .nullable()
+  .transform((value) => value?.toISOString() ?? null);
+
+/**
  * One hook for every `OpenAPIHono` instance, answering the exact same
  * `{ error, details? }` shape regardless of what failed: a malformed path
  * param answers `{ error: "invalid id" }` with no `details` (there is

@@ -20,7 +20,13 @@ import {
 
 import type { ApiEnv } from "../server.ts";
 import { ANALYSIS_STATUS } from "../status.ts";
-import { defaultHook, errorResponseSchema, idParamSchema } from "../validation.ts";
+import {
+  defaultHook,
+  errorResponseSchema,
+  idParamSchema,
+  wireDate,
+  wireDateOrNull,
+} from "../validation.ts";
 
 /** Repeated across the four analysis endpoints below — one place to change the wording. */
 const GAME_NOT_FOUND_ERROR = "game not found";
@@ -131,6 +137,24 @@ const gameDetailSchema = z.object({
   blackIdentity: seatIdentitySchema,
 });
 
+/**
+ * The serializers. Built from the schemas above with `.extend()`, so only
+ * the timestamp columns are restated and the rest cannot drift; the
+ * handlers parse through these instead of hand-writing `.toISOString()`
+ * next to a schema that only claims the result is a string.
+ */
+const gameListRowWire = gameListRowSchema.extend({
+  playedAt: wireDateOrNull,
+  // Drizzle's `isNotNull(...)` projection types as an opaque SQL
+  // expression rather than `boolean`; the schema coerces at the boundary.
+  analyzed: z.coerce.boolean(),
+});
+
+const gameDetailWire = gameDetailSchema.extend({
+  playedAt: wireDateOrNull,
+  createdAt: wireDate,
+});
+
 const libraryRoute = createRoute({
   method: "get",
   path: "/",
@@ -229,9 +253,9 @@ const gameAnalysisRecordSchema = z
   })
   .describe("Persisted engine report for a game");
 
-function toWireAnalysis<T extends { createdAt: Date }>(analysis: T) {
-  return Object.assign({}, analysis, { createdAt: analysis.createdAt.toISOString() });
-}
+const gameAnalysisRecordWire = gameAnalysisRecordSchema.extend({
+  createdAt: wireDate,
+});
 
 const analysisProgressBase = z.object({
   graded: z
@@ -408,14 +432,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
         });
         return c.json(
           Object.assign({}, library, {
-            games: library.games.map((game) =>
-              Object.assign({}, game, {
-                playedAt: game.playedAt?.toISOString() ?? null,
-                // Drizzle's `isNotNull(...)` projection types as an opaque
-                // SQL expression, not `boolean` — coerce at the boundary.
-                analyzed: Boolean(game.analyzed),
-              }),
-            ),
+            games: library.games.map((game) => gameListRowWire.parse(game)),
           }),
           200,
         );
@@ -443,13 +460,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
           c.req.valid("param").id,
         );
         if (!game) return c.json({ error: "game not found" }, 404);
-        return c.json(
-          Object.assign({}, game, {
-            playedAt: game.playedAt?.toISOString() ?? null,
-            createdAt: game.createdAt.toISOString(),
-          }),
-          200,
-        );
+        return c.json(gameDetailWire.parse(game), 200);
       })
       .openapi(getAnalysisRoute, async (c) => {
         const gameId = c.req.valid("param").id;
@@ -466,7 +477,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
           return c.json(
             {
               status: ANALYSIS_STATUS.COMPLETED,
-              analysis: toWireAnalysis(report.analysis),
+              analysis: gameAnalysisRecordWire.parse(report.analysis),
             },
             200,
           );
@@ -498,7 +509,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
           return c.json(
             {
               status: ANALYSIS_STATUS.COMPLETED,
-              analysis: toWireAnalysis(request.analysis),
+              analysis: gameAnalysisRecordWire.parse(request.analysis),
             },
             200,
           );

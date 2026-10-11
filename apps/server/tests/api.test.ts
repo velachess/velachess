@@ -357,6 +357,48 @@ describe("api routes", () => {
     expect(games.find((g) => g.id === reviewedGameId)?.analyzed).toBe(true);
   });
 
+  it("GET /games/:id answers exactly the documented fields, nothing the row carries", async () => {
+    // The handler used to spread the whole slice result and patch two
+    // timestamps onto it, so any field the read later gained would ship
+    // undocumented. It parses through the response schema now, which
+    // strips what the contract does not name.
+    const body = (await (await owner.request(`/games/${queuedGameId}`)).json()) as Record<
+      string,
+      unknown
+    >;
+
+    expect(Object.keys(body).toSorted()).toEqual(
+      [
+        "accountId",
+        "blackIdentity",
+        "blackName",
+        "blackRating",
+        "createdAt",
+        "externalId",
+        "externalUrl",
+        "hasClocks",
+        "id",
+        "movetextHash",
+        "openingEco",
+        "openingName",
+        "openingUrl",
+        "perspective",
+        "playedAt",
+        "rawPgn",
+        "result",
+        "source",
+        "termination",
+        "timeControlIncrementSeconds",
+        "timeControlInitialSeconds",
+        "timeControlRaw",
+        "userId",
+        "whiteIdentity",
+        "whiteName",
+        "whiteRating",
+      ].toSorted(),
+    );
+  });
+
   it("GET /games/:id returns the full game with rawPgn for board replay", async () => {
     const game = (await (await owner.request(`/games/${queuedGameId}`)).json()) as {
       id: string;
