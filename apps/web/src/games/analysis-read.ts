@@ -2,7 +2,13 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { scoreToWinChance } from "@velachess/analysis";
 import type { MoveSquares } from "@velachess/chess";
-import { makeSan, parseUci, positionFromFen, squaresOfSan } from "@velachess/chess";
+import {
+  makeSan,
+  parseUci,
+  positionFromFen,
+  resolveGamePerspective,
+  squaresOfSan,
+} from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
 import { MOVE_CATEGORIES } from "./analysis-contract.ts";
@@ -182,25 +188,12 @@ export function whiteShareOf(score: GradedPly["evalAfter"]): number {
 /** A side of the board. */
 export type Seat = "white" | "black";
 
-/** The seat the person played: stored `perspective` if resolved, else tracked usernames (mirrors server's `resolveGamePerspective`). `null` is a fact — an unattributed PGN — not a gap to paper over. */
-export function resolvedSeatOf(
-  game: { perspective: Seat | null; whiteName: string; blackName: string },
-  mine: readonly string[],
-): Seat | null {
-  if (game.perspective) return game.perspective;
-
-  const names = new Set(mine.map((name) => name.toLowerCase()));
-  if (names.has(game.blackName.toLowerCase())) return "black";
-  if (names.has(game.whiteName.toLowerCase())) return "white";
-  return null;
-}
-
-/** Board perspective: the resolved seat, else white — somewhere for the board to start, not evidence about who the person is. */
+/** Board perspective: the seat `@velachess/chess` resolves, else white — somewhere for the board to start, not evidence about who the person is. */
 export function seatOf(
   game: { perspective: Seat | null; whiteName: string; blackName: string },
   mine: readonly string[],
 ): Seat {
-  return resolvedSeatOf(game, mine) ?? "white";
+  return resolveGamePerspective(game, mine) ?? "white";
 }
 
 export interface SeatIdentity {

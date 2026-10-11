@@ -12,13 +12,14 @@ import { cn } from "@velachess/ui/lib/utils";
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
 import { CHESS_SOUND_EVENT, useChessSounds } from "../../chess-sounds/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
+import { resolveGamePerspective } from "@velachess/chess";
+
 import { useMyAccounts } from "../import/my-accounts.ts";
 import { flairImageOf } from "../import/queries.ts";
 import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
-  resolvedSeatOf,
   seatIdentityOf,
   seatOf,
   suggestedArrow,
@@ -142,7 +143,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
   // "You" is a claim, so it needs evidence. The board falls back to white
   // when nobody knows which seat is yours; the trail does not.
-  const mySeat = resolvedSeatOf(game, myUsernames);
+  const mySeat = resolveGamePerspective(game, myUsernames);
   const top = orientation === "white" ? black : white;
   const bottom = orientation === "white" ? white : black;
 
