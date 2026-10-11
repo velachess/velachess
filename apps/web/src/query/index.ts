@@ -1,5 +1,1 @@
-export {
-  createQueryClient,
-  queryClient,
-  resetBackendRecoveryProbe,
-} from "./query-client.ts";
+export { createQueryClient, queryClient } from "./query-client.ts";

@@ -1,23 +1,14 @@
 import {
-  checkBackendHealth,
   isBaseApiError,
   isCancelledError,
   isInfrastructureError,
   isInvalidResponseError,
-  isRetryableApiError,
   isUnauthorizedError,
   normalizeApiError,
   reportUnauthorized,
 } from "../api/index.ts";
-import {
-  confirmBackendRecovery,
-  getBackendStatus,
-  recordInfrastructureFailure,
-} from "../backend-status/index.ts";
+import { recordInfrastructureFailure } from "../backend-status/index.ts";
 import { MutationCache, QueryCache, QueryClient } from "../libs/react-query.ts";
-
-const RECOVERY_PROBE_DELAY_MS = 5_000;
-let recoveryProbe: ReturnType<typeof setTimeout> | null = null;
 
 function handleApiError(error: unknown) {
   const apiError = normalizeApiError(error);
@@ -35,7 +26,6 @@ function handleApiError(error: unknown) {
 
   if (isInfrastructureError(apiError)) {
     recordInfrastructureFailure();
-    scheduleRecoveryProbe();
     return;
   }
 
@@ -48,71 +38,27 @@ function reportUnexpectedApiError(error: unknown) {
   console.error("Unexpected API failure", error);
 }
 
-function scheduleRecoveryProbe() {
-  if (recoveryProbe || getBackendStatus() === "available") return;
-
-  recoveryProbe = setTimeout(() => {
-    recoveryProbe = null;
-    void runRecoveryProbe();
-  }, RECOVERY_PROBE_DELAY_MS);
-}
-
-export function resetBackendRecoveryProbe() {
-  if (!recoveryProbe) return;
-  clearTimeout(recoveryProbe);
-  recoveryProbe = null;
-}
-
-async function runRecoveryProbe() {
-  if (getBackendStatus() === "available") return;
-
-  try {
-    await checkBackendHealth();
-    confirmBackendRecovery();
-  } catch (error) {
-    const apiError = normalizeApiError(error, "health failed");
-    if (isCancelledError(apiError)) return;
-    if (isInvalidResponseError(apiError) || !isInfrastructureError(apiError)) {
-      reportUnexpectedApiError(apiError);
-    }
-    scheduleRecoveryProbe();
-  }
-}
-
-export function createQueryClient(options: { retry?: boolean | number } = {}) {
+export function createQueryClient() {
   return new QueryClient({
-    queryCache: new QueryCache({
-      onError: handleApiError,
-    }),
-    mutationCache: new MutationCache({
-      onError: handleApiError,
-    }),
+    // A request that fails on infrastructure raises the banner, and nothing
+    // lowers it: no probe, no timer, no retry ladder. A later success can't
+    // be trusted to mean the outage ended — the session query alone refetches
+    // on every navigation, so any healthy endpoint would hide a backend that
+    // is still broken for everything else. The reload the banner asks for is
+    // the reset.
+    queryCache: new QueryCache({ onError: handleApiError }),
+    mutationCache: new MutationCache({ onError: handleApiError }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,
-        retry: (failureCount, error) => shouldRetryQuery(failureCount, error, options),
+        retry: false,
         refetchOnWindowFocus: false,
       },
       mutations: {
-        retry: options.retry ?? false,
+        retry: false,
       },
     },
   });
 }
 
 export const queryClient = createQueryClient();
-
-function shouldRetryQuery(
-  failureCount: number,
-  error: unknown,
-  options: { retry?: boolean | number },
-) {
-  const apiError = normalizeApiError(error);
-  if (isCancelledError(apiError)) return false;
-  if (!isRetryableApiError(apiError)) return false;
-
-  const retry = options.retry ?? 1;
-  if (retry === true) return failureCount < 3;
-  if (retry === false) return false;
-  return failureCount < retry;
-}

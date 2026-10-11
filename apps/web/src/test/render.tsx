@@ -27,7 +27,7 @@ const ANY_PAGE = { color: null, outcome: null, timeClass: null, page: 1, pageSiz
 /** The providers `__root.tsx` gives every screen, in the same order — kept identical so this list can't drift from the app. */
 function AppProviders({
   children,
-  queryClient = createQueryClient({ retry: false }),
+  queryClient = createQueryClient(),
 }: {
   children: React.ReactNode;
   queryClient?: QueryClientType;
@@ -60,7 +60,7 @@ export async function renderApp(options: RenderAppOptions = {}) {
 
   // One client for the guards and the components — same wiring as
   // router.tsx, so a guard's session and a screen's session can't disagree.
-  const queryClient = createQueryClient({ retry: false });
+  const queryClient = createQueryClient();
   const router = createRouter({
     routeTree: testRouteTree,
     context: { queryClient },

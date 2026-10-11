@@ -17,7 +17,6 @@ declare module "vitest" {
 import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { resetBackendStatus } from "./src/backend-status/index.ts";
-import { resetBackendRecoveryProbe } from "./src/query/index.ts";
 import { resetArchive } from "./src/test/archive.ts";
 import { resetTrackedAccounts } from "./src/test/handlers/accounts.ts";
 import { resetAuthScenario } from "./src/test/handlers/auth.ts";
@@ -101,7 +100,6 @@ afterEach(() => {
   server.resetHandlers();
   resetAuthScenario();
   resetTrackedAccounts();
-  resetBackendRecoveryProbe();
   resetBackendStatus();
   resetArchive();
   resetDevice();

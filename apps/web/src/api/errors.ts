@@ -76,15 +76,6 @@ export function isInfrastructureError(error: unknown) {
   );
 }
 
-export function isRetryableApiError(error: unknown) {
-  if (isCancelledError(error)) return false;
-  if (error instanceof NetworkError) return true;
-  if (error instanceof DetailedError) {
-    return typeof error.statusCode === "number" && error.statusCode >= 500;
-  }
-  return false;
-}
-
 export function normalizeApiError(error: unknown, message = "API request failed") {
   if (error instanceof ApiError || error instanceof DetailedError) return error;
 
