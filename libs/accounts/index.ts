@@ -12,7 +12,17 @@
  */
 
 export { importAccount } from "./connect-account/connect-account.ts";
-export type { ConnectAccountDeps, Platform } from "./connect-account/connect-account.ts";
+export type {
+  ConnectAccountDeps,
+  ConnectOutcome,
+  Platform,
+} from "./connect-account/connect-account.ts";
+
+export { disconnectAccount } from "./disconnect-account/disconnect-account.ts";
+export type {
+  DisconnectAccountDeps,
+  DisconnectOutcome,
+} from "./disconnect-account/disconnect-account.ts";
 
 export { listAccounts } from "./list-accounts/list-accounts.ts";
 export type {

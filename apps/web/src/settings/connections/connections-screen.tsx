@@ -1,8 +1,28 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 import { Button } from "@velachess/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@velachess/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@velachess/ui/components/dropdown-menu";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@velachess/ui/components/empty";
 import {
   Item,
   ItemActions,
@@ -17,11 +37,12 @@ import { Separator } from "@velachess/ui/components/separator";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
-import { RefreshCw } from "@velachess/ui/icons";
+import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
-import { ImportGames } from "../../games/import/import-games.tsx";
+import { accountRowId, ImportGames } from "../../games/import/import-games.tsx";
 import {
   trackedAccountsQuery,
+  useDisconnectAccount,
   useSyncGames,
   type SyncOutcome,
   type TrackedAccount,
@@ -44,9 +65,51 @@ const CONNECTIONS_COPY = {
   tooSoon: msg`Synced a moment ago`,
   failed: msg`Couldn't reach that account`,
   retry: msg`Try again in a moment.`,
+  moreActions: msg`More actions`,
+  disconnect: msg`Disconnect`,
+  disconnectTitle: msg`Remove connection?`,
+  disconnectDescription: msg`You are about to remove the connection to {username} on {platform}. This stops future syncing for this account; games already imported from it stay in your library.`,
+  cancel: msg`Cancel`,
+  disconnectConfirm: msg`Remove connection`,
+  disconnecting: msg`Removing…`,
+  disconnectedTitle: msg`Connection removed`,
+  disconnectFailedTitle: msg`Couldn't remove the connection`,
+  disconnectFailedDescription: msg`Try again in a moment.`,
+  emptyTitle: msg`No chess accounts connected`,
+  emptyDescription: msg`Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish.`,
 } as const;
 
 const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
+
+const CONNECTIONS_VIEW_KIND = {
+  LOADING: "loading",
+  LOAD_ERROR: "load-error",
+  EMPTY: "empty",
+  CONNECTED: "connected",
+} as const;
+
+/** The screen's one branch point, named instead of re-checked inline —
+ * mirrors `onboarding-state.ts`'s `onboardingState()`: sequential guards
+ * producing a discriminated union, read once at the top of render. */
+type ConnectionsView =
+  | { kind: typeof CONNECTIONS_VIEW_KIND.LOADING }
+  | { kind: typeof CONNECTIONS_VIEW_KIND.LOAD_ERROR }
+  | { kind: typeof CONNECTIONS_VIEW_KIND.EMPTY }
+  | { kind: typeof CONNECTIONS_VIEW_KIND.CONNECTED; accounts: TrackedAccount[] };
+
+function connectionsView(
+  isPending: boolean,
+  isError: boolean,
+  data: TrackedAccount[] | undefined,
+): ConnectionsView {
+  if (isPending) return { kind: CONNECTIONS_VIEW_KIND.LOADING };
+  if (isError) return { kind: CONNECTIONS_VIEW_KIND.LOAD_ERROR };
+  // Neither pending nor errored: the query succeeded, so `data` is defined
+  // — react-query's own guarantee, same one the original ternary here
+  // relied on implicitly.
+  if (data!.length === 0) return { kind: CONNECTIONS_VIEW_KIND.EMPTY };
+  return { kind: CONNECTIONS_VIEW_KIND.CONNECTED, accounts: data! };
+}
 
 /** Settings → Connections: the chess accounts games come from — not sign-in
  * methods (see Account). Composes the existing tracked-accounts query and
@@ -54,6 +117,7 @@ const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try ag
 export function ConnectionsScreen() {
   const { i18n } = useLingui();
   const accounts = useQuery(trackedAccountsQuery);
+  const view = connectionsView(accounts.isPending, accounts.isError, accounts.data);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,22 +128,37 @@ export function ConnectionsScreen() {
         </p>
       </div>
 
-      {accounts.isPending ? (
+      {view.kind === CONNECTIONS_VIEW_KIND.LOADING && (
         <Skeleton className="h-24 w-full" />
-      ) : accounts.isError ? (
+      )}
+
+      {view.kind === CONNECTIONS_VIEW_KIND.LOAD_ERROR && (
         <p className="text-sm text-muted-foreground">
           {i18n._(CONNECTIONS_COPY.loadError)}
         </p>
-      ) : accounts.data.length > 0 ? (
+      )}
+
+      {view.kind === CONNECTIONS_VIEW_KIND.CONNECTED && (
         <ItemGroup className="rounded-lg border">
-          {accounts.data.map((account, index) => (
+          {view.accounts.map((account, index) => (
             <Fragment key={account.id}>
               <AccountRow account={account} />
-              {index < accounts.data.length - 1 && <ItemSeparator />}
+              {index < view.accounts.length - 1 && <ItemSeparator />}
             </Fragment>
           ))}
         </ItemGroup>
-      ) : null}
+      )}
+
+      {view.kind === CONNECTIONS_VIEW_KIND.EMPTY && (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyTitle>{i18n._(CONNECTIONS_COPY.emptyTitle)}</EmptyTitle>
+            <EmptyDescription>
+              {i18n._(CONNECTIONS_COPY.emptyDescription)}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      )}
 
       <Separator />
 
@@ -94,6 +173,26 @@ export function ConnectionsScreen() {
 function AccountRow({ account }: { account: TrackedAccount }) {
   const { i18n } = useLingui();
   const Icon = IMPORT_SOURCES[account.platform].icon;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const disconnect = useDisconnectAccount();
+
+  const confirmDisconnect = () => {
+    disconnect.mutate(account.id, {
+      onSuccess: () => {
+        setConfirmOpen(false);
+        toast.add({ type: "success", title: i18n._(CONNECTIONS_COPY.disconnectedTitle) });
+      },
+      onError: () => {
+        setConfirmOpen(false);
+        toast.add({
+          type: "error",
+          title: i18n._(CONNECTIONS_COPY.disconnectFailedTitle),
+          description: i18n._(CONNECTIONS_COPY.disconnectFailedDescription),
+        });
+      },
+    });
+  };
 
   const sync = useSyncGames({
     onOutcome: (outcome: SyncOutcome) => {
@@ -136,7 +235,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
   const label = sync.isPending ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
 
   return (
-    <Item>
+    <Item id={accountRowId(account.id)}>
       <ItemMedia>
         <Icon className="size-5" />
       </ItemMedia>
@@ -158,7 +257,64 @@ function AccountRow({ account }: { account: TrackedAccount }) {
         >
           {sync.isPending ? <Spinner aria-hidden="true" /> : <RefreshCw />}
         </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={i18n._(CONNECTIONS_COPY.moreActions)}
+              >
+                <MoreVertical />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
+              <Trash2 />
+              {i18n._(CONNECTIONS_COPY.disconnect)}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </ItemActions>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent showCloseButton={!disconnect.isPending}>
+          <DialogHeader>
+            <DialogTitle>{i18n._(CONNECTIONS_COPY.disconnectTitle)}</DialogTitle>
+            <DialogDescription>
+              {i18n._({
+                ...CONNECTIONS_COPY.disconnectDescription,
+                values: {
+                  username: account.username,
+                  platform: IMPORT_SOURCES[account.platform].label,
+                },
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={disconnect.isPending}
+              onClick={() => setConfirmOpen(false)}
+            >
+              {i18n._(CONNECTIONS_COPY.cancel)}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={disconnect.isPending}
+              onClick={confirmDisconnect}
+            >
+              {disconnect.isPending ? (
+                <Spinner aria-hidden="true" />
+              ) : (
+                i18n._(CONNECTIONS_COPY.disconnectConfirm)
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Item>
   );
 }

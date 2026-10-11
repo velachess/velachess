@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { addGames } from "../../../test/archive.ts";
 import { ME, aGame } from "../../../test/games.ts";
+import { accountIsTracked } from "../../../test/handlers/accounts.ts";
 import { renderApp } from "../../../test/render.tsx";
 
 /**
@@ -58,5 +59,34 @@ describe("import games", () => {
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Enter your username")).toBeInTheDocument();
+  });
+
+  it("blocks a second Chess.com handle once one is already connected", async () => {
+    // One account per provider: the form for an already-connected
+    // platform is a dead end for every username, not just the typed one —
+    // so it never gets the chance to be typed.
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    await renderApp({ path: "/import" });
+
+    expect(await screen.findByText("Account already connected")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This Chess.com account is already connected. Manage your existing connection above instead.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Chess.com username")).not.toBeInTheDocument();
+  });
+
+  it("leaves the other provider's tab free to import", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    const { user } = await renderApp({ path: "/import" });
+    await screen.findByText("Account already connected");
+
+    await user.click(screen.getByRole("tab", { name: "Lichess" }));
+
+    expect(screen.getByLabelText("Lichess username")).toBeInTheDocument();
+    expect(screen.queryByText("Account already connected")).not.toBeInTheDocument();
   });
 });

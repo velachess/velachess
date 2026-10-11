@@ -4,6 +4,7 @@ import { DetailedError, hc, parseResponse as parseHonoResponse } from "../libs/h
 import {
   CancelledError,
   NetworkError,
+  ProviderAlreadyConnectedError,
   RateLimitedError,
   UnauthorizedError,
 } from "./errors.ts";
@@ -44,6 +45,24 @@ function retryAfterOf(error: DetailedError): number | null {
   return typeof data?.retryAfterSeconds === "number" ? data.retryAfterSeconds : null;
 }
 
+/** The existing-connection identity a 409 on `POST /accounts` carries, or
+ * `null` if the body didn't have the expected shape. */
+function providerConflictOf(
+  error: DetailedError,
+): { platform: string; username: string; accountId: string } | null {
+  const data = error.detail?.data as
+    | { platform?: unknown; username?: unknown; accountId?: unknown }
+    | undefined;
+  if (
+    typeof data?.platform !== "string" ||
+    typeof data?.username !== "string" ||
+    typeof data?.accountId !== "string"
+  ) {
+    return null;
+  }
+  return { platform: data.platform, username: data.username, accountId: data.accountId };
+}
+
 export const parseResponse: typeof parseHonoResponse = async (...args) => {
   try {
     return await parseHonoResponse(...args);
@@ -53,6 +72,17 @@ export const parseResponse: typeof parseHonoResponse = async (...args) => {
     }
     if (error instanceof DetailedError && error.statusCode === 429) {
       throw new RateLimitedError(retryAfterOf(error), { cause: error });
+    }
+    if (error instanceof DetailedError && error.statusCode === 409) {
+      const conflict = providerConflictOf(error);
+      if (conflict) {
+        throw new ProviderAlreadyConnectedError(
+          conflict.platform,
+          conflict.username,
+          conflict.accountId,
+          { cause: error },
+        );
+      }
     }
     throw error;
   }

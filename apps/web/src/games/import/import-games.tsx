@@ -20,7 +20,14 @@ import {
 import { Input } from "@velachess/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
-import { useImportGames, type ImportRequest } from "./queries.ts";
+import { isProviderAlreadyConnectedError } from "../../api/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
+import {
+  trackedAccountsQuery,
+  useImportGames,
+  type ImportRequest,
+  type TrackedAccount,
+} from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";
 import {
   IMPORT_COPY,
@@ -31,6 +38,10 @@ import {
   type SourceId,
   type Translate,
 } from "./sources.ts";
+
+/** The DOM id `connections-screen.tsx` puts on each account row — shared
+ * so this form's "manage it above" link can scroll straight to it. */
+export const accountRowId = (accountId: string) => `account-${accountId}`;
 
 const FIELD_NAME = "value" as const;
 
@@ -52,11 +63,30 @@ export function ImportGames({
   const sourceId = useSourceStore((state) => state.sourceId);
   const selectSource = useSourceStore((state) => state.selectSource);
   const importGames = useImportGames();
+  const accounts = useQuery(trackedAccountsQuery);
   const navigate = useNavigate();
   const { i18n } = useLingui();
   const translate: Translate = (message) => i18n._(message);
 
   const source: ImportSource = IMPORT_SOURCES[sourceId];
+
+  // One account per provider: the selected tab's platform already being
+  // tracked makes every username doomed, so the block is on the platform,
+  // not on what was typed. A race (another tab/device connects first)
+  // answers the same 409 the pre-check would have, carrying the same
+  // identity — so this also catches it after the fact, not just before.
+  const connectedOnPlatform:
+    | Pick<TrackedAccount, "id" | "platform" | "username">
+    | undefined =
+    accounts.data?.find((account) => account.platform === sourceId) ??
+    (isProviderAlreadyConnectedError(importGames.error) &&
+    importGames.error.platform === sourceId
+      ? {
+          id: importGames.error.accountId,
+          platform: sourceId,
+          username: importGames.error.username,
+        }
+      : undefined);
 
   const form = useForm({
     defaultValues: { [FIELD_NAME]: "" },
@@ -111,53 +141,61 @@ export function ImportGames({
           </TabsList>
         </Tabs>
 
-        <FieldGroup>
-          <form.Field
-            name={FIELD_NAME}
-            validators={{ onSubmit: source.buildSchema(translate) }}
-          >
-            {(field) => {
-              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        {connectedOnPlatform && (
+          <AlreadyConnectedNotice account={connectedOnPlatform} source={source} />
+        )}
 
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel className="sr-only" htmlFor={field.name}>
-                    {i18n._(source.inputLabel)}
-                  </FieldLabel>
-                  <div className="flex gap-2">
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      aria-invalid={isInvalid}
-                      placeholder={i18n._(source.inputLabel)}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      disabled={importGames.isPending}
-                    />
-                    <form.Subscribe selector={(state) => state.isSubmitting}>
-                      {(isSubmitting) => (
-                        <Button
-                          type="submit"
-                          disabled={isSubmitting || importGames.isPending}
-                        >
-                          <SubmitLabel
-                            isSubmitting={isSubmitting}
-                            isImporting={importGames.isPending}
-                          />
-                        </Button>
-                      )}
-                    </form.Subscribe>
-                  </div>
+        {!connectedOnPlatform && (
+          <FieldGroup>
+            <form.Field
+              name={FIELD_NAME}
+              validators={{ onSubmit: source.buildSchema(translate) }}
+            >
+              {(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              );
-            }}
-          </form.Field>
-        </FieldGroup>
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel className="sr-only" htmlFor={field.name}>
+                      {i18n._(source.inputLabel)}
+                    </FieldLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        aria-invalid={isInvalid}
+                        placeholder={i18n._(source.inputLabel)}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={importGames.isPending}
+                      />
+                      <form.Subscribe selector={(state) => state.isSubmitting}>
+                        {(isSubmitting) => (
+                          <Button
+                            type="submit"
+                            disabled={isSubmitting || importGames.isPending}
+                          >
+                            <SubmitLabel
+                              isSubmitting={isSubmitting}
+                              isImporting={importGames.isPending}
+                            />
+                          </Button>
+                        )}
+                      </form.Subscribe>
+                    </div>
 
-        <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                );
+              }}
+            </form.Field>
+          </FieldGroup>
+        )}
+
+        {!connectedOnPlatform && (
+          <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
+        )}
       </form>
     </>
   );
@@ -209,6 +247,43 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
   }
 
   return null;
+}
+
+function AlreadyConnectedNotice({
+  account,
+  source,
+}: {
+  account: Pick<TrackedAccount, "id" | "username">;
+  source: ImportSource;
+}) {
+  const { i18n } = useLingui();
+
+  return (
+    <Alert variant="destructive">
+      <AlertDescription className="flex flex-col items-start gap-1.5">
+        <span className="font-medium">{i18n._(IMPORT_COPY.alreadyConnectedTitle)}</span>
+        <span>
+          {i18n._({
+            ...IMPORT_COPY.alreadyConnectedDescription,
+            values: { platform: source.label },
+          })}
+        </span>
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0"
+          onClick={() =>
+            document
+              .getElementById(accountRowId(account.id))
+              ?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+        >
+          {i18n._(IMPORT_COPY.manageConnection)}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function buildRequest(source: ImportSource, value: string): ImportRequest | null {

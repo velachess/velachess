@@ -5,6 +5,11 @@
  * archive (via the sync slice's fetch half), so a bad username fails in
  * front of the person who typed it.
  *
+ * A user tracks at most one handle per provider. Connecting a second
+ * Chess.com handle while one is already tracked does not overwrite it —
+ * `importAccount` answers `provider-connected` with the existing handle's
+ * identity instead, before ever asking the provider about the new one.
+ *
  * `syncAccount` is its own module-mate in `@velachess/accounts`, yet it
  * is external to this slice exactly like any other module's capability —
  * a slice never calls another slice's handler directly, same module or
@@ -17,6 +22,13 @@ import { fetchChessComProfile, fetchLichessProfile } from "@velachess/infra-plat
 import type { ProviderSeat, TrackedAccount } from "@velachess/infra-db";
 
 export type Platform = "chess_com" | "lichess";
+
+export type ConnectOutcome =
+  | { status: "connected"; account: TrackedAccount }
+  | {
+      status: "provider-connected";
+      existing: { id: string; platform: Platform; username: string };
+    };
 
 interface CachedProfile {
   platform: Platform;
@@ -39,6 +51,15 @@ type UpsertTrackedAccount = (
   username: string,
 ) => Promise<TrackedAccount>;
 type GetTrackedAccount = (accountId: string) => Promise<TrackedAccount | null>;
+/** The one account (if any) this user already has on a provider — read
+ * before touching the provider, so a doomed connect never costs a request. */
+type GetTrackedAccountByPlatform = (
+  userId: string,
+  platform: Platform,
+) => Promise<TrackedAccount | null>;
+/** Rolls back a connection first contact never finished — see the
+ * `syncAccount` catch below. */
+type DeleteTrackedAccount = (accountId: string) => Promise<void>;
 /**
  * `sync-account`'s own outcome, narrowed to the one field this slice
  * reads — this slice declares its dependency in its own vocabulary
@@ -52,6 +73,8 @@ export interface ConnectAccountDeps {
   isProfileFresh: IsProfileFresh;
   upsertTrackedAccount: UpsertTrackedAccount;
   getTrackedAccount: GetTrackedAccount;
+  getTrackedAccountByPlatform: GetTrackedAccountByPlatform;
+  deleteTrackedAccount: DeleteTrackedAccount;
   syncAccount: SyncAccount;
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
@@ -99,19 +122,53 @@ async function warmProfileCache(
  *
  * A bad username throws out of the provider here, which is the point:
  * the caller learns immediately instead of finding out later that a
- * background job gave up.
+ * background job gave up. It must not also leave a dead connection behind
+ * — with one slot per provider, a row stuck at "never synced" would
+ * permanently occupy that platform for this user, blocking even a
+ * correction, so a first-contact failure deletes the row it just made
+ * (see the catch below) instead of leaving it to rot.
+ *
+ * One handle per provider: a different username on a platform the caller
+ * already tracks is refused — `upsertTrackedAccount`'s conflict target is
+ * `(user_id, platform)`, so silently proceeding would overwrite the
+ * existing connection's identity rather than create a sibling. The check
+ * happens before `warmProfileCache`, so a refusal costs no provider
+ * request.
  */
 export async function importAccount(
   deps: ConnectAccountDeps,
   userId: string,
   platform: Platform,
   username: string,
-) {
+): Promise<ConnectOutcome> {
+  const normalized = username.toLowerCase();
+  const existing = await deps.getTrackedAccountByPlatform(userId, platform);
+  if (existing && existing.username !== normalized) {
+    return {
+      status: "provider-connected",
+      existing: {
+        id: existing.id,
+        platform: existing.platform,
+        username: existing.username,
+      },
+    };
+  }
+
   // The cache write lands before the upsert, so the handle's identity
   // exists before its connection — unless a still-fresh row already
   // carries it, in which case connecting costs no request at all.
   await warmProfileCache(deps, platform, username);
   const tracked = await deps.upsertTrackedAccount(userId, platform, username);
-  if (tracked.lastSyncedAt === null) await deps.syncAccount(tracked.id);
-  return (await deps.getTrackedAccount(tracked.id))!;
+  if (tracked.lastSyncedAt === null) {
+    try {
+      await deps.syncAccount(tracked.id);
+    } catch (error) {
+      // Never synced, so this attempt is the only thing that ever
+      // touched the row — safe to undo in full, not just mark failed.
+      await deps.deleteTrackedAccount(tracked.id);
+      throw error;
+    }
+  }
+  const account = (await deps.getTrackedAccount(tracked.id))!;
+  return { status: "connected", account };
 }

@@ -13,7 +13,9 @@
  * composition helper).
  */
 import {
+  deleteTrackedAccount,
   findProviderProfiles,
+  findTrackedAccountByPlatform,
   getTrackedAccount,
   getTrackedAccountForUser,
   isProfileFresh,
@@ -29,6 +31,7 @@ import type { Database } from "@velachess/infra-db";
 import { syncAccount as syncAccountSlice } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
+  DisconnectAccountDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
   SyncAccountDeps,
@@ -80,7 +83,18 @@ export function buildImportAccountDeps(
     upsertTrackedAccount: (userId, platform, username) =>
       upsertTrackedAccount(db, userId, platform, username),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
+    getTrackedAccountByPlatform: (userId, platform) =>
+      findTrackedAccountByPlatform(db, userId, platform),
+    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
     syncAccount: (accountId) => syncAccountSlice(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
+  };
+}
+
+export function buildDisconnectAccountDeps(db: Database): DisconnectAccountDeps {
+  return {
+    getTrackedAccountForUser: (userId, accountId) =>
+      getTrackedAccountForUser(db, userId, accountId),
+    deleteTrackedAccount: (accountId) => deleteTrackedAccount(db, accountId),
   };
 }

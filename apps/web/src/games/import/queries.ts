@@ -131,3 +131,19 @@ export function useImportGames() {
     onSuccess: () => queryClient.invalidateQueries(),
   });
 }
+
+/** Stops tracking an account. Games it brought in stay — the server only
+ * clears their provenance link (`ON DELETE SET NULL`) — so the only cache
+ * fact this needs to settle is the accounts list itself. */
+export function useDisconnectAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountId: string) =>
+      parseResponse(api.accounts[":id"].$delete({ param: { id: accountId } })),
+    onSuccess: (_, accountId) => {
+      useMyAccounts.getState().forget(accountId);
+      return queryClient.invalidateQueries();
+    },
+  });
+}

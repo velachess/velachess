@@ -35,7 +35,7 @@ msgstr "{opponent} vs you"
 
 #: src/games/import/sync-games-button.tsx:31
 #: src/games/request-analysis/analysis-status.tsx:19
-#: src/settings/connections/connections-screen.tsx:49
+#: src/settings/connections/connections-screen.tsx:77
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
@@ -51,8 +51,12 @@ msgstr "{white} vs {black}"
 msgid "Account"
 msgstr "Account"
 
+#: src/games/import/sources.ts:83
+msgid "Account already connected"
+msgstr "Account already connected"
+
 #: src/games/import/sync-games-button.tsx:20
-#: src/settings/connections/connections-screen.tsx:41
+#: src/settings/connections/connections-screen.tsx:57
 msgid "Already up to date"
 msgstr "Already up to date"
 
@@ -130,6 +134,7 @@ msgid "Bullet"
 msgstr "Bullet"
 
 #: src/settings/account/avatar-field.tsx:39
+#: src/settings/connections/connections-screen.tsx:67
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -164,16 +169,24 @@ msgid "Color"
 msgstr "Color"
 
 #: src/onboarding/onboarding-dialog.tsx:25
-#: src/settings/connections/connections-screen.tsx:38
+#: src/settings/connections/connections-screen.tsx:54
 msgid "Connect an account"
 msgstr "Connect an account"
+
+#: src/settings/connections/connections-screen.tsx:74
+msgid "Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish."
+msgstr "Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish."
 
 #: src/settings/account/sign-in-methods.tsx:24
 msgid "Connected — you can sign in with Google."
 msgstr "Connected — you can sign in with Google."
 
+#: src/settings/connections/connections-screen.tsx:70
+msgid "Connection removed"
+msgstr "Connection removed"
+
 #: src/routes/_app/settings/connections.tsx:7
-#: src/settings/connections/connections-screen.tsx:33
+#: src/settings/connections/connections-screen.tsx:49
 #: src/settings/layout/navigation.ts:30
 #: src/test/routes.tsx:131
 msgid "Connections"
@@ -204,7 +217,7 @@ msgstr "Couldn't load analysis."
 msgid "Couldn't load games."
 msgstr "Couldn't load games."
 
-#: src/settings/connections/connections-screen.tsx:35
+#: src/settings/connections/connections-screen.tsx:51
 msgid "Couldn't load your connected accounts."
 msgstr "Couldn't load your connected accounts."
 
@@ -213,7 +226,7 @@ msgid "Couldn't load your sign-in methods."
 msgstr "Couldn't load your sign-in methods."
 
 #: src/games/import/sync-games-button.tsx:24
-#: src/settings/connections/connections-screen.tsx:45
+#: src/settings/connections/connections-screen.tsx:61
 msgid "Couldn't reach that account"
 msgstr "Couldn't reach that account"
 
@@ -228,6 +241,10 @@ msgstr "Couldn't reach the server. Try again."
 #: src/settings/account/avatar-field.tsx:45
 msgid "Couldn't remove it. Try again."
 msgstr "Couldn't remove it. Try again."
+
+#: src/settings/connections/connections-screen.tsx:71
+msgid "Couldn't remove the connection"
+msgstr "Couldn't remove the connection"
 
 #: src/settings/account/avatar-field.tsx:44
 msgid "Couldn't save that picture. Try again."
@@ -249,6 +266,10 @@ msgstr "Dark"
 #: src/games/list/columns.tsx:17
 msgid "Date"
 msgstr "Date"
+
+#: src/settings/connections/connections-screen.tsx:64
+msgid "Disconnect"
+msgstr "Disconnect"
 
 #: src/settings/account/avatar-field.tsx:37
 msgid "Drag to reposition, and zoom to fill the circle."
@@ -473,7 +494,11 @@ msgstr "Main"
 msgid "Main, bottom bar"
 msgstr "Main, bottom bar"
 
-#: src/settings/connections/connections-screen.tsx:34
+#: src/games/import/sources.ts:85
+msgid "Manage connection"
+msgstr "Manage connection"
+
+#: src/settings/connections/connections-screen.tsx:50
 msgid "Manage the chess accounts VelaChess imports games from."
 msgstr "Manage the chess accounts VelaChess imports games from."
 
@@ -484,6 +509,10 @@ msgstr "Manage your account and application preferences."
 #: src/games/analysis-read.ts:154
 msgid "Mistake"
 msgstr "Mistake"
+
+#: src/settings/connections/connections-screen.tsx:63
+msgid "More actions"
+msgstr "More actions"
 
 #: src/games/open-game/analysis-panel.tsx:19
 msgid "Move"
@@ -510,7 +539,7 @@ msgid "Name"
 msgstr "Name"
 
 #: src/games/import/sync-games-button.tsx:22
-#: src/settings/connections/connections-screen.tsx:43
+#: src/settings/connections/connections-screen.tsx:59
 msgid "New games imported"
 msgstr "New games imported"
 
@@ -523,6 +552,10 @@ msgstr "Next"
 #: src/games/open-game/replay-controls.tsx:10
 msgid "Next move"
 msgstr "Next move"
+
+#: src/settings/connections/connections-screen.tsx:73
+msgid "No chess accounts connected"
+msgstr "No chess accounts connected"
 
 #: src/games/import/sources.ts:82
 msgid "No games found for that username. Check the spelling and try again."
@@ -537,7 +570,7 @@ msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr "No games yet. Connect Chess.com or Lichess, or import a PGN."
 
 #: src/games/import/sync-games-button.tsx:21
-#: src/settings/connections/connections-screen.tsx:42
+#: src/settings/connections/connections-screen.tsx:58
 msgid "No new games since your last sync."
 msgstr "No new games since your last sync."
 
@@ -545,7 +578,7 @@ msgstr "No new games since your last sync."
 msgid "Not graded yet"
 msgstr "Not graded yet"
 
-#: src/settings/connections/connections-screen.tsx:36
+#: src/settings/connections/connections-screen.tsx:52
 msgid "Not synced yet"
 msgstr "Not synced yet"
 
@@ -635,9 +668,21 @@ msgstr "Reading your games…"
 msgid "Reload"
 msgstr "Reload"
 
+#: src/settings/connections/connections-screen.tsx:68
+msgid "Remove connection"
+msgstr "Remove connection"
+
+#: src/settings/connections/connections-screen.tsx:65
+msgid "Remove connection?"
+msgstr "Remove connection?"
+
 #: src/settings/account/avatar-field.tsx:35
 msgid "Remove picture"
 msgstr "Remove picture"
+
+#: src/settings/connections/connections-screen.tsx:69
+msgid "Removing…"
+msgstr "Removing…"
 
 #: src/games/open-game/analysis-panel.tsx:20
 msgid "Report"
@@ -733,18 +778,18 @@ msgid "Step forward to walk through the game."
 msgstr "Step forward to walk through the game."
 
 #: src/games/import/sync-games-button.tsx:18
-#: src/settings/connections/connections-screen.tsx:39
+#: src/settings/connections/connections-screen.tsx:55
 msgid "Sync games"
 msgstr "Sync games"
 
 #: src/games/import/sync-games-button.tsx:23
-#: src/settings/connections/connections-screen.tsx:44
+#: src/settings/connections/connections-screen.tsx:60
 msgid "Synced a moment ago"
 msgstr "Synced a moment ago"
 
 #: src/games/import/sync-games-button.tsx:19
-#: src/settings/connections/connections-screen.tsx:37
-#: src/settings/connections/connections-screen.tsx:40
+#: src/settings/connections/connections-screen.tsx:53
+#: src/settings/connections/connections-screen.tsx:56
 msgid "Syncing…"
 msgstr "Syncing…"
 
@@ -793,6 +838,10 @@ msgstr "The starting position."
 msgid "There is nothing to import yet."
 msgstr "There is nothing to import yet."
 
+#: src/games/import/sources.ts:84
+msgid "This {platform} account is already connected. Manage your existing connection above instead."
+msgstr "This {platform} account is already connected. Manage your existing connection above instead."
+
 #: src/onboarding/onboarding-dialog.tsx:28
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr "This takes a moment. The app opens as soon as they land."
@@ -814,7 +863,8 @@ msgid "Try again"
 msgstr "Try again"
 
 #: src/games/import/sync-games-button.tsx:25
-#: src/settings/connections/connections-screen.tsx:46
+#: src/settings/connections/connections-screen.tsx:62
+#: src/settings/connections/connections-screen.tsx:72
 msgid "Try again in a moment."
 msgstr "Try again in a moment."
 
@@ -852,6 +902,10 @@ msgstr "White"
 #: src/games/list/filters.ts:39
 msgid "Win"
 msgstr "Win"
+
+#: src/settings/connections/connections-screen.tsx:66
+msgid "You are about to remove the connection to {username} on {platform}. This stops future syncing for this account; games already imported from it stay in your library."
+msgstr "You are about to remove the connection to {username} on {platform}. This stops future syncing for this account; games already imported from it stay in your library."
 
 #: src/games/list/columns.tsx:28
 msgid "You played black"

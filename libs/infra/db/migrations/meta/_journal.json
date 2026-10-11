@@ -155,6 +155,13 @@
       "when": 1791645503271,
       "tag": "0021_games_and_analysis",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791724994198,
+      "tag": "0022_one_account_per_provider",
+      "breakpoints": true
     }
   ]
 }

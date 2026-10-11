@@ -17,6 +17,7 @@ import { logger } from "@velachess/infra-logger";
 
 import type { ApiDeps } from "./deps.ts";
 import {
+  buildDisconnectAccountDeps,
   buildImportAccountDeps,
   buildListAccountGamesDeps,
   buildListAccountsDeps,
@@ -203,6 +204,7 @@ export function createApp(deps: ApiDeps) {
         games: buildListAccountGamesDeps(deps.db),
         connect: buildImportAccountDeps(deps.db, deps.sync?.fetch),
         sync: buildSyncAccountDeps(deps.db, deps.sync?.fetch),
+        disconnect: buildDisconnectAccountDeps(deps.db),
       }),
     )
     .route(

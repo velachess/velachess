@@ -223,6 +223,12 @@ export const rateLimits = pgTable("rate_limits", {
  * Before this, uniqueness was `(platform, username)` globally — written
  * in migration 0000, before users existed in 0001 — and importing a name
  * someone else already tracked silently transferred their whole archive.
+ *
+ * The unique key is `(user_id, platform)`, not `(user_id, platform,
+ * username)` — a user tracks at most one handle per provider. Connecting a
+ * second Chess.com handle must fail, not create a sibling row; the connect
+ * slice checks for an existing row on the platform before upserting, so
+ * this constraint is the backstop against a race, not the only guard.
  */
 export const trackedAccounts = pgTable(
   "tracked_accounts",
@@ -246,11 +252,7 @@ export const trackedAccounts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("tracked_accounts_user_platform_username").on(
-      table.userId,
-      table.platform,
-      table.username,
-    ),
+    uniqueIndex("tracked_accounts_user_platform").on(table.userId, table.platform),
     index("tracked_accounts_user_id").on(table.userId),
   ],
 );
