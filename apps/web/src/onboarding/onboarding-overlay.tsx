@@ -23,7 +23,7 @@ export function OnboardingOverlay() {
   const state = onboardingState({
     games: library.data?.total,
     accounts: accounts.data,
-    onboarded: session.isPending ? undefined : session.data?.onboardedAt != null,
+    onboarded: session.isPending ? undefined : (session.data?.onboarded ?? false),
     failed: library.isError || accounts.isError,
   });
 
