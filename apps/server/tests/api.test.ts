@@ -62,7 +62,7 @@ async function readSome(response: Response, ms = 1500) {
 function largeArchiveFetch(count: number): typeof fetch {
   const bits = Math.ceil(Math.log2(count));
   const games = Array.from({ length: count }, (_, game) => {
-    const moves = Array.from({ length: bits }, (_, bit) => {
+    const moves = Array.from({ length: bits }, (_unused, bit) => {
       const n = 2 * bit + 1;
       return game & (1 << bit)
         ? `${n}. Nf3 Nf6 ${n + 1}. Ng1 Ng8`

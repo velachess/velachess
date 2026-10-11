@@ -56,6 +56,12 @@ function pastedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
+/** Distinct games, as many as asked: a unique external id and movetext per row. */
+const manyGames = (count: number) =>
+  Array.from({ length: count }, (_, i) =>
+    chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
+  );
+
 describe("libs/infra/db (games + tracked accounts)", () => {
   let ownerId: string;
 
@@ -139,12 +145,6 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     });
     expect(result.inserted).toBe(1);
   });
-
-  /** Distinct games, as many as asked: a unique external id and movetext per row. */
-  const manyGames = (count: number) =>
-    Array.from({ length: count }, (_, i) =>
-      chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
-    );
 
   it("saveGames writes 10,000 games, and a re-run inserts none", async () => {
     const opts = { userId: ownerId };
