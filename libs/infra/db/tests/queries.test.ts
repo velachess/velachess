@@ -7,8 +7,8 @@ import {
   createUser,
   findTrackedAccountByPlatform,
   games,
-  getTrackedAccountCursor,
   getGame,
+  getTrackedAccount,
   listGamesPage,
   listGamesWithStatusForAccount,
   saveGames,
@@ -242,11 +242,13 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     });
     await updateTrackedAccountCursor(db, lichessAccount.id, { sinceMs: 1704067200000 });
 
-    expect(await getTrackedAccountCursor(db, chessComAccount.id)).toEqual({
+    // Read back the way production does: the sync slice takes the whole
+    // row and validates `syncCursor` against its platform's schema.
+    expect((await getTrackedAccount(db, chessComAccount.id))?.syncCursor).toEqual({
       month: "2024/01",
       lastEndTime: 1704133706,
     });
-    expect(await getTrackedAccountCursor(db, lichessAccount.id)).toEqual({
+    expect((await getTrackedAccount(db, lichessAccount.id))?.syncCursor).toEqual({
       sinceMs: 1704067200000,
     });
   });

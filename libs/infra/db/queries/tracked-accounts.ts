@@ -103,18 +103,6 @@ export async function deleteTrackedAccountAndGames(
   });
 }
 
-export async function getTrackedAccountCursor(
-  db: Database,
-  accountId: string,
-): Promise<Cursor | null> {
-  const [account] = await db
-    .select({ syncCursor: trackedAccounts.syncCursor })
-    .from(trackedAccounts)
-    .where(eq(trackedAccounts.id, accountId));
-
-  return account?.syncCursor ?? null;
-}
-
 /** Where to resume from. Advances only on a pass with nothing to retry. */
 export async function updateTrackedAccountCursor(
   db: Database,
