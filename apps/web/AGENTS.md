@@ -49,6 +49,22 @@ does not restate it.
   two copies of the same fact in sync.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
+- A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,
+  `form.Subscribe`) with Zod validators, not hand-rolled `useState` +
+  `safeParse` plumbing — see `settings/account/profile-form.tsx`,
+  `games/import/import-games.tsx`, and `games/import-pgn/pgn-import-dialog.tsx`.
+  Per render: zod bakes error text in, so a schema needing copy takes a
+  `translate` function and is built inside the component (`buildSchema(translate)`
+  in `games/import/sources.ts`), never a module-level schema with English baked
+  in. Render a field's error through `<FieldError errors={field.state.meta.errors} />`
+  (plural, from the schema) rather than indexing `errors[0]` or branching text
+  in JSX — a validator returning more than one message is for `FieldError` to
+  show, not for the field to pick from.
+- An event handler stays inline (`onChange={(e) => field.handleChange(e.target.value)}`)
+  only while it does exactly one thing. The moment it does more than one —
+  reads a second value, awaits something, branches — it becomes a named
+  `handleXxx` function the prop references, never a multi-statement arrow
+  function or a ternary written inline in the JSX.
 - Tailwind: token utilities only. No arbitrary values, no `dark:` in a
   screen (that means a token is missing), no class built by concatenation
   — Tailwind reads source as text, so `bg-move-${x}` does not exist.

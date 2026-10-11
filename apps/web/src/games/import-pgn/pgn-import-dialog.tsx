@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
+import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 
 import { Button } from "@velachess/ui/components/button";
@@ -21,13 +22,20 @@ import {
   FieldSet,
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
+import { Textarea } from "@velachess/ui/components/textarea";
 import { toast } from "@velachess/ui/components/toast";
 import { ToggleGroup, ToggleGroupItem } from "@velachess/ui/components/toggle-group";
 import { FileText } from "@velachess/ui/icons";
-import { cn } from "@velachess/ui/lib/utils";
 
 import { useImportPgn } from "./queries.ts";
-import { pgnImportFormSchema, pgnSchema, type Participation } from "./validation.ts";
+import {
+  buildParticipationModeSchema,
+  buildPgnSchema,
+  buildPlayerNameSchema,
+  type Participation,
+  type ParticipationMode,
+  type Translate,
+} from "./validation.ts";
 
 const COPY = {
   action: msg`Import PGN`,
@@ -50,8 +58,6 @@ const COPY = {
   submit: msg`Import`,
   importing: msg`Importing…`,
 } as const;
-
-type ParticipationMode = Participation["mode"];
 
 const RESULT_COPY = {
   done: msg`Games imported`,
@@ -93,8 +99,6 @@ export function PgnImportButton() {
 
 const DIALOG_TITLE_ID = "pgn-import-title";
 
-type Translate = (message: MessageDescriptor) => string;
-
 /** Builds the candidate `Participation`, or undefined while nothing's chosen yet. */
 function toParticipation(
   mode: ParticipationMode | undefined,
@@ -105,172 +109,210 @@ function toParticipation(
   return undefined;
 }
 
+interface FormValues {
+  pgn: string;
+  participationMode: ParticipationMode | undefined;
+  playerName: string;
+}
+
+const DEFAULT_VALUES: FormValues = {
+  pgn: "",
+  participationMode: undefined,
+  playerName: "",
+};
+
+/** A .pgn is plain text by definition; read it into the paste field so
+ * there is exactly one place the import reads from. */
+async function handlePgnFileChange(
+  file: File | undefined,
+  setPgnValue: (value: string) => void,
+) {
+  if (!file) return;
+  setPgnValue(await file.text());
+}
+
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const { i18n } = useLingui();
-  const [participationMode, setParticipationMode] = useState<
-    ParticipationMode | undefined
-  >(undefined);
-  const [playerName, setPlayerName] = useState("");
-  const [pgn, setPgn] = useState("");
-  // Per-field, not one global flag: picking White shouldn't surface the PGN
-  // field's "nothing to import yet" error before the user has touched it.
-  const [pgnTouched, setPgnTouched] = useState(false);
-  const [participationTouched, setParticipationTouched] = useState(false);
+  const translate: Translate = (message) => i18n._(message);
 
   const importPgn = useImportPgn({
     onImported: (outcome) => {
-      announce(outcome, (message) => i18n._(message));
+      announce(outcome, translate);
       onDone();
     },
     onError: () => {
       toast.add({
         type: "error",
-        title: i18n._(RESULT_COPY.failedTitle),
-        description: i18n._(RESULT_COPY.failedDescription),
+        title: translate(RESULT_COPY.failedTitle),
+        description: translate(RESULT_COPY.failedDescription),
       });
     },
   });
 
-  const participation = toParticipation(participationMode, playerName);
-  const form = pgnImportFormSchema.safeParse({ pgn, participation });
+  const form = useForm({
+    defaultValues: DEFAULT_VALUES,
+    onSubmit: async ({ value }) => {
+      const participation = toParticipation(value.participationMode, value.playerName);
+      // Guarded by the field validators already — only reachable if a
+      // required-field re-render raced the submit, never a real path.
+      if (!participation) return;
 
-  const pgnEmpty = pgn.trim().length === 0;
-  const pgnParsed = pgnSchema.safeParse(pgn);
-  const pgnInvalid = pgnTouched && !pgnParsed.success;
+      try {
+        await importPgn.mutateAsync({ pgn: value.pgn, participation });
+      } catch {
+        // The mutation already holds the failure and onError reports it;
+        // rethrowing here would leave the rejection unhandled.
+        return;
+      }
+    },
+  });
 
-  const participationModeMissing =
-    participationTouched && participationMode === undefined;
-  const playerNameInvalid =
-    participationTouched &&
-    participationMode === "byName" &&
-    playerName.trim().length === 0;
-
-  const submit = () => {
-    setPgnTouched(true);
-    setParticipationTouched(true);
-    if (!form.success) return;
-    importPgn.mutate(form.data);
-  };
-
-  const readFile = async (file: File | undefined) => {
-    if (!file) return;
-    // A .pgn is plain text by definition; read it into the paste field so
-    // there is exactly one place the import reads from.
-    setPgn(await file.text());
-    setPgnTouched(true);
-  };
+  const pgnSchema = buildPgnSchema(translate, COPY.pgnRequired, COPY.pgnInvalid);
+  const participationModeSchema = buildParticipationModeSchema(
+    translate,
+    COPY.participationRequired,
+  );
+  const playerNameSchema = buildPlayerNameSchema(translate, COPY.playerRequired);
 
   return (
     <form
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        submit();
+        void form.handleSubmit();
       }}
     >
       <FieldSet>
-        <FieldLegend>{i18n._(COPY.participation)}</FieldLegend>
-        <ToggleGroup
-          value={participationMode ? [participationMode] : []}
-          variant="outline"
-          onValueChange={(next) => {
-            setParticipationMode(next[0] as ParticipationMode | undefined);
-            setParticipationTouched(true);
+        <FieldLegend>{translate(COPY.participation)}</FieldLegend>
+        <form.Field
+          name="participationMode"
+          validators={{
+            onMount: participationModeSchema,
+            onChange: participationModeSchema,
           }}
         >
-          <ToggleGroupItem value="white" disabled={importPgn.isPending}>
-            {i18n._(COPY.white)}
-          </ToggleGroupItem>
-          <ToggleGroupItem value="black" disabled={importPgn.isPending}>
-            {i18n._(COPY.black)}
-          </ToggleGroupItem>
-          <ToggleGroupItem value="byName" disabled={importPgn.isPending}>
-            {i18n._(COPY.byName)}
-          </ToggleGroupItem>
-        </ToggleGroup>
-        <FieldDescription>{i18n._(COPY.participationHint)}</FieldDescription>
-        {participationModeMissing && (
-          <FieldError>{i18n._(COPY.participationRequired)}</FieldError>
-        )}
+          {(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+            return (
+              <>
+                <ToggleGroup
+                  value={field.state.value ? [field.state.value] : []}
+                  variant="outline"
+                  onValueChange={(next) =>
+                    field.handleChange(next[0] as ParticipationMode | undefined)
+                  }
+                >
+                  <ToggleGroupItem value="white" disabled={importPgn.isPending}>
+                    {translate(COPY.white)}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="black" disabled={importPgn.isPending}>
+                    {translate(COPY.black)}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="byName" disabled={importPgn.isPending}>
+                    {translate(COPY.byName)}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </>
+            );
+          }}
+        </form.Field>
+        <FieldDescription>{translate(COPY.participationHint)}</FieldDescription>
       </FieldSet>
 
-      {participationMode === "byName" && (
-        <Field data-invalid={playerNameInvalid}>
-          <FieldLabel htmlFor="pgn-player-name">{i18n._(COPY.playerName)}</FieldLabel>
-          <Input
-            id="pgn-player-name"
-            aria-label={i18n._(COPY.playerName)}
-            value={playerName}
-            aria-invalid={playerNameInvalid}
-            onChange={(event) => {
-              setPlayerName(event.target.value);
-              setParticipationTouched(true);
-            }}
-            disabled={importPgn.isPending}
-          />
-          <FieldLabel
-            htmlFor="pgn-player-name"
-            className="text-muted-foreground font-normal"
-          >
-            {i18n._(COPY.playerNameHint)}
-          </FieldLabel>
-          {playerNameInvalid && <FieldError>{i18n._(COPY.playerRequired)}</FieldError>}
-        </Field>
-      )}
+      <form.Subscribe selector={(state) => state.values.participationMode}>
+        {(mode) =>
+          mode === "byName" && (
+            // Mounts fresh each render "By name" is picked (this block only
+            // renders for that mode), so onMount catches the empty default
+            // without waiting for a keystroke.
+            <form.Field
+              name="playerName"
+              validators={{ onMount: playerNameSchema, onChange: playerNameSchema }}
+            >
+              {(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-      <Field data-invalid={pgnInvalid}>
-        <FieldLabel htmlFor="pgn-file">{i18n._(COPY.file)}</FieldLabel>
-        <Input
-          id="pgn-file"
-          type="file"
-          accept=".pgn,text/plain"
-          aria-label={i18n._(COPY.file)}
-          onChange={(event) => void readFile(event.target.files?.[0])}
-          disabled={importPgn.isPending}
-        />
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>
+                      {translate(COPY.playerName)}
+                    </FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      aria-label={translate(COPY.playerName)}
+                      aria-invalid={isInvalid}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      disabled={importPgn.isPending}
+                    />
+                    <FieldDescription>{translate(COPY.playerNameHint)}</FieldDescription>
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                  </Field>
+                );
+              }}
+            </form.Field>
+          )
+        }
+      </form.Subscribe>
 
-        <FieldLabel htmlFor="pgn-paste">{i18n._(COPY.paste)}</FieldLabel>
-        <textarea
-          id="pgn-paste"
-          rows={6}
-          value={pgn}
-          placeholder={i18n._(COPY.pastePlaceholder)}
-          aria-invalid={pgnInvalid}
-          onChange={(event) => {
-            setPgn(event.target.value);
-            setPgnTouched(true);
-          }}
-          disabled={importPgn.isPending}
-          className={cn(inputClassName(pgnInvalid), "font-mono text-xs")}
-        />
-        {pgnInvalid && (
-          <FieldError>{i18n._(pgnEmpty ? COPY.pgnRequired : COPY.pgnInvalid)}</FieldError>
-        )}
-      </Field>
+      <form.Field name="pgn" validators={{ onMount: pgnSchema, onChange: pgnSchema }}>
+        {(field) => {
+          const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+          return (
+            <Field data-invalid={isInvalid}>
+              <FieldLabel htmlFor="pgn-file">{translate(COPY.file)}</FieldLabel>
+              <Input
+                id="pgn-file"
+                type="file"
+                accept=".pgn,text/plain"
+                aria-label={translate(COPY.file)}
+                onChange={(event) =>
+                  void handlePgnFileChange(event.target.files?.[0], field.handleChange)
+                }
+                disabled={importPgn.isPending}
+              />
+
+              <FieldLabel htmlFor={field.name}>{translate(COPY.paste)}</FieldLabel>
+              <Textarea
+                id={field.name}
+                name={field.name}
+                rows={6}
+                value={field.state.value}
+                placeholder={translate(COPY.pastePlaceholder)}
+                aria-invalid={isInvalid}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                disabled={importPgn.isPending}
+                className="font-mono text-xs"
+              />
+              {isInvalid && <FieldError errors={field.state.meta.errors} />}
+            </Field>
+          );
+        }}
+      </form.Field>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={importPgn.isPending || !form.success}>
-          {importPgn.isPending ? i18n._(COPY.importing) : i18n._(COPY.submit)}
-        </Button>
+        <form.Subscribe selector={(state) => state.canSubmit}>
+          {(canSubmit) => (
+            <Button type="submit" disabled={importPgn.isPending || !canSubmit}>
+              {importPgn.isPending ? translate(COPY.importing) : translate(COPY.submit)}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </form>
-  );
-}
-
-/** Same token classes the shared Input wears, adapted to multi-line content — local until a second consumer earns a primitive. */
-function inputClassName(invalid: boolean): string {
-  return cn(
-    "w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none",
-    "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-    invalid && "border-destructive ring-3 ring-destructive/20",
   );
 }
 
 /** The receipt names every pile: what landed, what was already there, what couldn't be read. */
 function announce(
   outcome: { duplicates: number; rejected: number },
-  translate: Translate,
+  translate: (message: MessageDescriptor) => string,
 ) {
   const notes = [
     outcome.duplicates > 0 &&

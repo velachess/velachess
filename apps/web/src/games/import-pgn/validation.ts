@@ -1,6 +1,12 @@
-import { z } from "../../libs/zod.ts";
+import type { MessageDescriptor } from "@lingui/core";
 
 import { hasPlayableGame } from "@velachess/chess";
+
+import { z } from "../../libs/zod.ts";
+
+export type Translate = (message: MessageDescriptor) => string;
+
+export type ParticipationMode = "white" | "black" | "byName";
 
 /**
  * How the uploader identifies themselves — ChessBase-style: forced White or
@@ -8,26 +14,50 @@ import { hasPlayableGame } from "@velachess/chess";
  * headers. Mirrors the server's `participation` shape 1:1 (apps/server/src/
  * routes/games.ts) so the two never drift silently.
  */
-const participationSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("white") }),
-  z.object({ mode: z.literal("black") }),
-  z.object({
-    mode: z.literal("byName"),
-    playerName: z.string().trim().min(1),
-  }),
-]);
-export type Participation = z.infer<typeof participationSchema>;
+export type Participation =
+  | { mode: "white" }
+  | { mode: "black" }
+  | { mode: "byName"; playerName: string };
 
 /**
- * The PGN field's own check — reuses the same parser/legality logic as the
- * backend (`replayMainline`) instead of a regex, so "looks like PGN" never
- * passes as "is a game". No `message` here on purpose: display text is a
- * Lingui `msg` the dialog picks itself (empty vs unplayable), never a raw
- * Zod string.
+ * The PGN field's own check — reuses the backend's own parser/legality
+ * logic (`hasPlayableGame`, libs/chess) instead of a regex, so "looks like
+ * PGN" never passes as "is a game". `superRefine` so an empty value reports
+ * only `requiredMessage`, never both messages at once. Per render: zod
+ * bakes error text in, so it needs an active locale — same pattern as
+ * games/import/sources.ts's `buildSchema(translate)`.
  */
-export const pgnSchema = z.string().trim().min(1).refine(hasPlayableGame);
+export function buildPgnSchema(
+  translate: Translate,
+  requiredMessage: MessageDescriptor,
+  invalidMessage: MessageDescriptor,
+) {
+  return z
+    .string()
+    .trim()
+    .superRefine((value, ctx) => {
+      if (value.length === 0) {
+        ctx.addIssue({ code: "custom", message: translate(requiredMessage) });
+        return;
+      }
+      if (!hasPlayableGame(value)) {
+        ctx.addIssue({ code: "custom", message: translate(invalidMessage) });
+      }
+    });
+}
 
-export const pgnImportFormSchema = z.object({
-  pgn: pgnSchema,
-  participation: participationSchema,
-});
+/** One of White, Black or By name — nothing selected yet fails with `requiredMessage`. */
+export function buildParticipationModeSchema(
+  translate: Translate,
+  requiredMessage: MessageDescriptor,
+) {
+  return z.enum(["white", "black", "byName"], { message: translate(requiredMessage) });
+}
+
+/** Only rendered (and therefore only validated) while By name is selected. */
+export function buildPlayerNameSchema(
+  translate: Translate,
+  requiredMessage: MessageDescriptor,
+) {
+  return z.string().trim().min(1, translate(requiredMessage));
+}
