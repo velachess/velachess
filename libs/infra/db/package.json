@@ -19,7 +19,6 @@
     "postgres": "^3.4.0"
   },
   "devDependencies": {
-    "@velachess/analysis": "workspace:*",
     "@electric-sql/pglite": "^0.5.8",
     "drizzle-kit": "^0.31.10"
   },
