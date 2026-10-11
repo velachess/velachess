@@ -6,18 +6,25 @@ import { z } from "../../libs/zod.ts";
 
 export type Translate = (message: MessageDescriptor) => string;
 
-export type ParticipationMode = "white" | "black" | "byName";
+/** ChessBase-style: forced White or Black for the whole batch, or by name
+ * matched against each game's own headers. */
+export const PARTICIPATION_MODES = {
+  white: "white",
+  black: "black",
+  byName: "byName",
+} as const;
+
+export type ParticipationMode =
+  (typeof PARTICIPATION_MODES)[keyof typeof PARTICIPATION_MODES];
 
 /**
- * How the uploader identifies themselves — ChessBase-style: forced White or
- * Black for the whole batch, or by name matched against each game's own
- * headers. Mirrors the server's `participation` shape 1:1 (apps/server/src/
- * routes/games.ts) so the two never drift silently.
+ * Mirrors the server's `participation` shape 1:1 (apps/server/src/routes/
+ * games.ts) so the two never drift silently.
  */
 export type Participation =
-  | { mode: "white" }
-  | { mode: "black" }
-  | { mode: "byName"; playerName: string };
+  | { mode: typeof PARTICIPATION_MODES.white }
+  | { mode: typeof PARTICIPATION_MODES.black }
+  | { mode: typeof PARTICIPATION_MODES.byName; playerName: string };
 
 /**
  * The PGN field's own check — reuses the backend's own parser/legality
@@ -66,13 +73,16 @@ export function buildPgnImportFormSchema(translate: Translate, copy: PgnImportCo
   return z
     .object({
       pgn: buildPgnSchema(translate, copy.pgnRequired, copy.pgnInvalid),
-      participationMode: z.enum(["white", "black", "byName"], {
+      participationMode: z.enum(PARTICIPATION_MODES, {
         message: translate(copy.participationRequired),
       }),
       playerName: z.string(),
     })
     .superRefine((value, ctx) => {
-      if (value.participationMode === "byName" && value.playerName.trim().length === 0) {
+      if (
+        value.participationMode === PARTICIPATION_MODES.byName &&
+        value.playerName.trim().length === 0
+      ) {
         ctx.addIssue({
           code: "custom",
           path: ["playerName"],
@@ -88,8 +98,8 @@ export function buildPgnImportFormSchema(translate: Translate, copy: PgnImportCo
       }): { pgn: string; participation: Participation } => ({
         pgn,
         participation:
-          participationMode === "byName"
-            ? { mode: "byName", playerName: playerName.trim() }
+          participationMode === PARTICIPATION_MODES.byName
+            ? { mode: PARTICIPATION_MODES.byName, playerName: playerName.trim() }
             : { mode: participationMode },
       }),
     );

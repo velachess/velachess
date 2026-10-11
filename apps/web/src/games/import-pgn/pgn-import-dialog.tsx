@@ -30,6 +30,7 @@ import { FileText } from "@velachess/ui/icons";
 import { useImportPgn } from "./queries.ts";
 import {
   buildPgnImportFormSchema,
+  PARTICIPATION_MODES,
   type ParticipationMode,
   type Translate,
 } from "./validation.ts";
@@ -130,6 +131,25 @@ async function handlePgnFileChange(
   }
 }
 
+/**
+ * tanstack-form keeps field meta (touched, errors) in the form instance,
+ * not the component — switching away from "By name" unmounts the name
+ * field but leaves its old error cached, ready to reappear the instant
+ * "By name" is picked again. Resetting it here is what makes that a
+ * clean field, not a stale one.
+ */
+function handleParticipationModeChange(
+  mode: ParticipationMode | undefined,
+  field: { handleChange: (value: ParticipationMode | undefined) => void },
+  form: { resetField: (name: "playerName") => void },
+) {
+  field.handleChange(mode);
+  // Only leaving "By name" has anything stale to clear — resetting on
+  // every change would run the reset before the name field has even
+  // mounted for the mode that's just been picked.
+  if (mode !== PARTICIPATION_MODES.byName) form.resetField("playerName");
+}
+
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const { i18n } = useLingui();
   const translate: Translate = (message) => i18n._(message);
@@ -198,15 +218,26 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
                 <ToggleGroup<ParticipationMode>
                   value={field.state.value ? [field.state.value] : []}
                   variant="outline"
-                  onValueChange={(next) => field.handleChange(next[0])}
+                  onValueChange={(next) =>
+                    handleParticipationModeChange(next[0], field, form)
+                  }
                 >
-                  <ToggleGroupItem value="white" disabled={importPgn.isPending}>
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.white}
+                    disabled={importPgn.isPending}
+                  >
                     {translate(COPY.white)}
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="black" disabled={importPgn.isPending}>
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.black}
+                    disabled={importPgn.isPending}
+                  >
                     {translate(COPY.black)}
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="byName" disabled={importPgn.isPending}>
+                  <ToggleGroupItem
+                    value={PARTICIPATION_MODES.byName}
+                    disabled={importPgn.isPending}
+                  >
                     {translate(COPY.byName)}
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -220,7 +251,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
 
       <form.Subscribe selector={(state) => state.values.participationMode}>
         {(mode) =>
-          mode === "byName" && (
+          mode === PARTICIPATION_MODES.byName && (
             <form.Field name="playerName">
               {(field) => {
                 const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;

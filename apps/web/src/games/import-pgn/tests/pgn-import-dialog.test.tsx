@@ -1,9 +1,11 @@
 import { fireEvent, screen } from "@testing-library/react";
+import { delay, http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { addGames, stagePgnImport } from "../../../test/archive.ts";
 import { aGame } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
+import { server } from "../../../test/server.ts";
 
 /**
  * The manual import, read the way its user would: a header action that
@@ -82,6 +84,37 @@ describe("pgn import", () => {
     // The receipt is not enough on its own — the refetched list must
     // carry what landed.
     expect(await screen.findByText("from-the-file")).toBeInTheDocument();
+    // A successful import is also the one thing that closes the dialog.
+    expect(screen.queryByText("Import games from a PGN")).not.toBeInTheDocument();
+  });
+
+  it("switching participation mode away from By name drops its stale state", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "By name" }));
+    // Submit once with nothing typed so the name field actually has an
+    // error to carry — switching away must clear it, not just hide it.
+    fireEvent.submit(screen.getByRole("button", { name: "Import" }).closest("form")!);
+    expect(
+      await screen.findByText(
+        "Enter your name so your games can be told apart from your opponents'.",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    expect(screen.queryByLabelText("Your name in these games")).not.toBeInTheDocument();
+
+    paste(VALID_PGN);
+    expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
+
+    // Back to By name: a fresh, unvalidated field, not the old error.
+    await user.click(screen.getByRole("button", { name: "By name" }));
+    expect(screen.getByLabelText("Your name in these games")).toHaveValue("");
+    expect(
+      screen.queryByText(
+        "Enter your name so your games can be told apart from your opponents'.",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("imports with White selected — no name needed", async () => {
@@ -298,5 +331,27 @@ describe("pgn import", () => {
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Import failed")).toBeInTheDocument();
+  });
+
+  it("shows a loading state and locks the form while the import is in flight", async () => {
+    server.use(
+      http.post("/api/games/import", async () => {
+        await delay(50);
+        return HttpResponse.json({ imported: 1, duplicates: 0, rejected: 0 });
+      }),
+    );
+
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    paste(VALID_PGN);
+    await user.click(screen.getByRole("button", { name: "Import" }));
+
+    const pendingButton = screen.getByRole("button", { name: "Importing…" });
+    expect(pendingButton).toBeDisabled();
+    expect(screen.getByLabelText("Or paste the moves")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "White" })).toBeDisabled();
+
+    expect(await screen.findByText("Games imported")).toBeInTheDocument();
   });
 });
