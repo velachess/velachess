@@ -1,5 +1,5 @@
 // @vitest-environment node
-/** The account's game list: one row per game, newest first, with the analyzed flag. */
+/** The account's game list: one row per game, newest first. */
 import type { NormalizedGame } from "@velachess/infra-platforms";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -53,6 +53,5 @@ describe("the account's game list", () => {
   it("shows one row per game", async () => {
     const rows = (await listGamesWithStatusForAccount(db, accountId))!;
     expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.analyzed === false)).toBe(true);
   });
 });

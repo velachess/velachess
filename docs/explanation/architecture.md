@@ -73,7 +73,6 @@ separate domain library — see the module doc comments for the current set.
 ```
 libs/accounts/     connect-account/  request-sync/  get-sync/  sync-account/  list-accounts/  list-account-games/
 libs/games/        list-games/  import-pgn/  get-game/
-libs/analysis/     request-analysis/  process-analysis/  get-analysis/  watch-analysis/
 libs/user/         bootstrap-user/  set-avatar/  read-avatar/  remove-avatar/
 ```
 
@@ -81,8 +80,11 @@ Each top-level module is its own workspace package (`@velachess/accounts`,
 `@velachess/games`, …), with `index.ts` as its only reachable surface —
 see root `AGENTS.md`. A slice contains whatever that behavior needs — a
 single file for a trivial read, several for a complex process — and there
-is **no mandatory internal template**. `get-game` is one file; `process-analysis` is an execution engine with locking and
-streaming. That difference is intentional.
+is **no mandatory internal template**. `get-game` is one file; `sync-account`
+runs a background job with locking and conditional-write fencing. That
+difference is intentional. `libs/analysis` is the exception that proves the
+module/slice split is earned, not mandatory: it has no slices left, only a
+pure module root — see `libs/analysis/AGENTS.md`.
 
 Slices start as the simplest thing that works — usually a transaction
 script over Drizzle directly. Richer patterns are earned by observed
@@ -97,8 +99,7 @@ complexity, never installed in advance.
   and which code changes together?
 - No `core/`, `common/`, `shared/`, `utils/` buckets.
 - No mediator/command-bus. Commands and queries are separated by being
-  different slices (`request-analysis` vs `get-analysis`), not by a
-  framework.
+  different slices (`request-sync` vs `get-sync`), not by a framework.
 
 ## Sharing, and when it is legitimate
 
@@ -117,7 +118,7 @@ Documented exceptions that exist today, each with its reason at the
 definition site:
 
 - Multi-consumer queries stay in `libs/infra/db/queries/` (tracked
-  accounts, games, analysis, users). A query used by exactly one slice
+  accounts, games, users). A query used by exactly one slice
   belongs in the slice.
 
 The same order applies to a value's _shape_ rather than its behavior — where

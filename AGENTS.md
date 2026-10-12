@@ -25,7 +25,7 @@ apps/site         Next.js static public site
 
 libs/accounts     tracked-account lifecycle: connect, list, sync, disconnect
 libs/games        the game record: read, list and import PGN
-libs/analysis     the Stockfish job lifecycle: request, watch, process, get
+libs/analysis     pure Stockfish score/classification policy, run browser-side
 libs/user         the person: first-user bootstrap and profile avatar
 libs/infra        db, queue, engine, logger, platforms, storage, and auth
 libs/chess        chess rules and notation
@@ -64,13 +64,14 @@ fix whichever is wrong.
   Declares its own narrow dependency function types, in its own
   vocabulary, for everything external: DB reads/writes, queue enqueue,
   provider HTTP, and any other slice's behavior. A slice never imports or
-  receives a `Database`, `AnalysisQueue`, `SyncQueue`, or
+  receives a `Database`, `SyncQueue`, or
   another slice's handler directly.
 - **Module** — a package under `libs/<module>` grouping slices that change
-  together (e.g. `analysis` owns `request-analysis`,
-  `process-analysis`, `watch-analysis`). May hold shared **pure** policies/calculators at the
+  together (e.g. `accounts` owns `connect-account`, `sync-account`,
+  `disconnect-account`). May hold shared **pure** policies/calculators at the
   module root (no DB/queue/provider dependency of their own — e.g.
-  `libs/analysis/accuracy.ts`).
+  `libs/analysis`, which has no slices left, only its pure root: see
+  `libs/analysis/AGENTS.md`).
 - **Module API (`index.ts`)** — what the module offers the rest of the
   system. The only file reachable from outside the module, structurally
   (package `exports`, non-wildcard `tsconfig.json` paths) and by
@@ -172,11 +173,12 @@ from business modules at the import site, including from the business
 ## Critical invariants
 
 - The engine has one product trigger: opening a game. Importing and refreshing
-  fetch and persist; they do not fan Stockfish analysis across an archive.
-- An analysis report commits in one transaction.
+  fetch and persist; they never run Stockfish. Analysis runs entirely in the
+  browser (Stockfish WASM) with no server or worker leg and no persisted
+  report — see `docs/reference/analysis.md`.
 - pg-boss owns delivery, retry, backoff, concurrency, heartbeat, and dead
-  letters. The database session advisory lock owns analysis execution across
-  HTTP and worker callers.
+  letters for the `sync` queue, its only queue. The database session advisory
+  lock's only remaining caller is first-user bootstrap.
 - Derived game perspective, result, and time class use one semantic rule across
   filters, lists, and analysis. That rule is written once in `libs/chess`,
   which every app and module may import; evaluation policies belong to
@@ -228,7 +230,7 @@ Task-dependent procedures live under `.agents/skills/`:
   `architecture-review`.
 - Chess rules or representation: `chess-domain`.
 - Import, sync, providers, identity, or deduplication: `game-ingestion`.
-- Stockfish, evaluations, classification, or analysis persistence:
+- Stockfish, evaluations, or classification (browser-side):
   `engine-analysis`.
 - Cross-boundary inconsistent data: `debug-pipeline`.
 - Change review: `code-review`, which routes to the relevant domain skills.

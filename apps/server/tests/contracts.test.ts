@@ -16,19 +16,11 @@ import {
 import { syncJobErrorEnum, syncJobStatusEnum } from "@velachess/infra-db";
 import { describe, expect, it } from "vitest";
 
-import type { GradedPly } from "@velachess/analysis";
-
 import {
   ACCOUNT_PLATFORM,
   SYNC_JOB_ERROR as ACCOUNT_SYNC_JOB_ERROR,
 } from "../src/routes/accounts.ts";
-import {
-  GAME_PERSPECTIVE,
-  GAME_RESULT,
-  GAME_SOURCE,
-  gradedPlySchema,
-  type GradedPlyWire,
-} from "../src/routes/games.ts";
+import { GAME_PERSPECTIVE, GAME_RESULT, GAME_SOURCE } from "../src/routes/games.ts";
 import { SYNC_JOB_ERROR, SYNC_JOB_STATUS } from "../src/routes/syncs.ts";
 
 describe("route vocabulary mirrors", () => {
@@ -47,27 +39,4 @@ describe("route vocabulary mirrors", () => {
     expect(SYNC_JOB_STATUS).toEqual(syncJobStatusEnum.enumValues);
     expect(SYNC_JOB_ERROR).toEqual(syncJobErrorEnum.enumValues);
   });
-});
-
-// `exactOptionalPropertyTypes` makes zod's inferred `cp?: number | undefined`
-// a one-way match against `WhitePovScore`'s plain `cp?: number`, so only this
-// direction type-checks; `it.each` over the schema's own keys below catches a
-// field dropped from `gradedPlySchema` that this alone would miss.
-const toWire: GradedPlyWire = {} as GradedPly;
-void toWire;
-
-it("gradedPlySchema declares every GradedPly field", () => {
-  const fields: Record<keyof GradedPly, true> = {
-    ply: true,
-    fen: true,
-    san: true,
-    evalBefore: true,
-    evalAfter: true,
-    bestMove: true,
-    category: true,
-    winChanceLoss: true,
-  };
-  expect(Object.keys(gradedPlySchema.shape).toSorted()).toEqual(
-    Object.keys(fields).toSorted(),
-  );
 });

@@ -14,18 +14,11 @@ import {
   createSyncNotifications,
   postgresLockExecutor,
 } from "@velachess/infra-db";
-import { createWatchers } from "@velachess/analysis";
 import { logger } from "@velachess/infra-logger";
-import {
-  createBoss,
-  ensureQueues,
-  makeAnalysisQueue,
-  makeSyncQueue,
-} from "@velachess/infra-queue";
+import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
 
 import { createApp } from "./server.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
-import { buildWatcherDeps } from "./composition/analysis.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -39,8 +32,6 @@ await boss.start();
 await ensureQueues(boss);
 
 const { lock, close: closeLockSql } = postgresLockExecutor(databaseUrl);
-
-const analysisQueue = makeAnalysisQueue(boss, db);
 
 // The ear on `sync_job_changed`. postgres.js keeps a connection of its
 // own for LISTEN, reconnecting and re-listening by itself; awaited so an
@@ -109,8 +100,6 @@ const app = createApp({
   // configured. Derived from the same resolved env the auth instance is built
   // from, so the screen and the server cannot disagree about what exists.
   signInMethods: { password: true, google: Boolean(authEnv.google) },
-  analysisQueue,
-  watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
   syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,

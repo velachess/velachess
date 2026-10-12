@@ -1,9 +1,9 @@
 // @vitest-environment node
 /**
- * The worker over the real harness: pg-boss delivers, the handlers call
- * the slices, the loop runs sync → analysis in the background. The slice
- * cases below hand deliveries over themselves, composed the way the
- * worker composes them.
+ * The worker over the real harness: pg-boss delivers, the handler calls
+ * the sync slice, the loop runs in the background. The slice cases below
+ * hand deliveries over themselves, composed the way the worker composes
+ * them. Analysis has no worker handler — it runs browser-side.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -12,7 +12,6 @@ import {
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
-  getAnalysis,
   getSyncJobForUser,
   getTrackedAccount,
   getTrackedAccountForUser,
@@ -27,14 +26,12 @@ import {
   syncAccount,
   type SyncDeps,
 } from "@velachess/accounts";
-import { completeAnalysis } from "@velachess/analysis";
 import { LOOPER_USERNAME } from "@velachess/fixtures";
 import {
   chessComFixtureFetch,
   chessComListingFixtureFetch,
   createLoopHarness,
   deliverSyncJob,
-  makeStockfishSession,
   poll,
   type LoopHarness,
 } from "@velachess/test-utils";
@@ -42,11 +39,9 @@ import { logger } from "@velachess/infra-logger";
 import { QUEUES } from "@velachess/infra-queue";
 
 import { buildSyncAccountDeps } from "../src/composition/accounts.ts";
-import { buildAnalyzeDeps, type EngineDeps } from "../src/composition/analysis.ts";
 import { Worker } from "../src/worker.ts";
 
 let h: LoopHarness;
-let analyze: EngineDeps;
 let userId: string;
 let accountId: string;
 const testLogger = logger.child({ component: "test-worker" }, { level: "silent" });
@@ -73,9 +68,6 @@ const deliver = (job: { id: string }) => deliverSyncJob(h.boss, job.id);
 /** The sync handler's call, composed as `worker.ts` composes it. */
 const sync = (deps: SyncDeps, delivery: { id: string; signal: AbortSignal }) =>
   syncAccount(buildSyncAccountDeps(h.db, deps), delivery);
-
-const analyzeGame = (gameId: string) =>
-  completeAnalysis(buildAnalyzeDeps(h.db, analyze), gameId);
 
 const bossStateOf = async (job: { id: string }) =>
   (
@@ -134,11 +126,6 @@ const gamesWithStatus = (forUser: string, forAccount: string) =>
 
 beforeAll(async () => {
   h = await createLoopHarness();
-  analyze = {
-    makeSession: makeStockfishSession,
-    tryAcquireLock: (key) => h.lock.tryAcquire(key),
-    depth: 8,
-  };
 
   // Seed the user's side: a tracked account, as the api would.
   const user = await createUser(h.db);
@@ -157,18 +144,17 @@ afterAll(async () => {
 });
 
 describe("worker", () => {
-  it("a sync job lands the games — and starts no engine", async () => {
+  it("a sync job lands the games", async () => {
     await new Worker({
       boss: h.boss,
       db: h.db,
-      analyze,
       sync: { fetch: chessComFixtureFetch() },
       log: testLogger,
     }).start();
     const job = await createSyncJob(h.db, { userId, accountId, trigger: "manual" });
     await h.syncQueue.enqueue(h.db, job!);
 
-    const games = await poll(async () => {
+    await poll(async () => {
       const rows = (await gamesWithStatus(userId, accountId))!;
       return rows.length === 2 ? rows : null;
     }, 60_000);
@@ -185,51 +171,9 @@ describe("worker", () => {
       }, 30_000),
     ).toMatchObject({ state: "completed" });
 
-    // Refreshing an archive is a routine, not a fanout: nothing was sent
-    // to the engine.
-    for (const game of games) {
-      expect(await h.analysisQueue.getState(game.id)).toBe("none");
-      expect(await getAnalysis(h.db, game.id)).toBeNull();
-    }
     // The tests below hand sync deliveries over themselves.
     await h.boss.offWork(QUEUES.sync);
   }, 120_000);
-
-  it("an enqueued analysis job produces a real engine report", async () => {
-    // What opening a game does: one deliberate enqueue, one run.
-    const games = (await gamesWithStatus(userId, accountId))!;
-    const first = games[0]!;
-    await h.analysisQueue.enqueue(h.db, first.id);
-
-    const analysis = await poll(() => getAnalysis(h.db, first.id), 60_000);
-    expect(analysis.depth).toBe(8);
-    expect(analysis.positions.length).toBeGreaterThan(0);
-  }, 120_000);
-
-  it("a malformed analysis payload fails the delivery instead of reaching the slice", async () => {
-    // The guard runs before the handler and before the log line, so
-    // pg-boss owns the retry and then the DLQ.
-    const jobId = await h.boss.send(QUEUES.analysis, {} as never);
-
-    const settled = await poll(async () => {
-      const job = await h.boss.getJobById(QUEUES.analysis, jobId!);
-      return job && job.state !== "created" && job.state !== "active" ? job : null;
-    }, 30_000);
-
-    expect(settled.state).not.toBe("completed");
-    expect(settled.output).toMatchObject({ message: expect.stringContaining("gameId") });
-    await h.boss.offWork(QUEUES.analysis);
-  }, 60_000);
-
-  it("an analysis job for an already-analyzed game completes without a second run", async () => {
-    const games = (await gamesWithStatus(userId, accountId))!;
-    const first = games[0]!;
-    const before = await getAnalysis(h.db, first.id);
-    // No throw, no re-run: the row already exists.
-    await analyzeGame(first.id);
-    const after = await getAnalysis(h.db, first.id);
-    expect(after!.id).toBe(before!.id);
-  });
 });
 
 describe("sync deliveries", () => {
@@ -481,68 +425,5 @@ describe("sync deliveries", () => {
     expect(await jobOf(job)).toBeNull();
     // Not even an orphan with its account nulled.
     expect((await listGamesPage(h.db, job.userId)).total).toBe(0);
-  });
-});
-
-describe("analysis deliveries", () => {
-  it("a dead-lettered analysis job redrives with its payload intact", async () => {
-    // Unlike sync, the analysis payload says which game: a redrive from
-    // the dashboard puts a deliverable job back on the queue.
-    const games = (await gamesWithStatus(userId, accountId))!;
-    const gameId = games[0]!.id;
-    // Ahead of whatever this file left on the queue; priority survives the redrive.
-    const priority = 9_999_999;
-    const id = await h.boss.send(
-      QUEUES.analysis,
-      { gameId },
-      { retryLimit: 0, priority },
-    );
-    const [delivery] = await h.boss.fetch(QUEUES.analysis, {
-      ignoreStartAfter: true,
-      minPriority: priority,
-    });
-    expect(delivery?.id).toBe(id);
-    await h.boss.fail(QUEUES.analysis, delivery!, new Error("engine crashed"));
-    expect(await h.boss.findJobs(QUEUES.analysisDlq)).toContainEqual(
-      expect.objectContaining({ sourceId: id, data: { gameId } }),
-    );
-
-    expect(await h.boss.redrive(QUEUES.analysisDlq)).toBe(1);
-    const [redriven] = await h.boss.fetch<{ gameId: string }>(QUEUES.analysis, {
-      ignoreStartAfter: true,
-      minPriority: priority,
-    });
-    expect(redriven?.data).toEqual({ gameId });
-    await h.boss.complete(QUEUES.analysis, redriven!);
-  });
-
-  it("running with no persisted report throws — the retry schedule owns the wait", async () => {
-    // An "interactive" holder owns the lock and hasn't persisted: the
-    // delivery must fail (for pg-boss to redeliver later), never complete.
-    const games = (await gamesWithStatus(userId, accountId))!;
-    const second = games[1]!;
-    const release = await h.lock.tryAcquire(`analysis:${second.id}`);
-    expect(release).not.toBeNull();
-
-    await expect(analyzeGame(second.id)).rejects.toThrow(/running elsewhere/);
-    expect(await getAnalysis(h.db, second.id)).toBeNull();
-
-    // The holder vanished without persisting — the redelivery (here: the
-    // next call) takes over and finishes the work.
-    await release!();
-    await analyzeGame(second.id);
-    expect((await getAnalysis(h.db, second.id))?.positions.length).toBeGreaterThan(0);
-  }, 60_000);
-
-  it("running while the holder's report already landed completes the delivery", async () => {
-    // The first game is analyzed; a held lock plus a persisted report means
-    // the operation is satisfied, so the delivery completes.
-    const games = (await gamesWithStatus(userId, accountId))!;
-    const first = games[0]!;
-    const release = await h.lock.tryAcquire(`analysis:${first.id}`);
-    expect(release).not.toBeNull();
-
-    await analyzeGame(first.id);
-    await release!();
   });
 });

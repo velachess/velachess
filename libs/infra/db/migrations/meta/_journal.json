@@ -183,6 +183,13 @@
       "when": 1791817981455,
       "tag": "0025_avatar_source_check",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791839665511,
+      "tag": "0026_eager_masque",
+      "breakpoints": true
     }
   ]
 }

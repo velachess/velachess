@@ -1,33 +1,26 @@
 /**
- * [WORKER] — the two pg-boss handlers and the process lifecycle around
- * them. Behaviors live in the business modules under libs/; a handler
+ * [WORKER] — the sync pg-boss handler and the process lifecycle around
+ * it. Behavior lives in the business modules under libs/; the handler
  * composes a slice's deps and calls it. pg-boss owns the rest: a handler
  * that returns completes its job, one that throws fails it, and the queue's
  * policy decides retry, backoff and dead letter.
+ *
+ * Analysis has no worker handler — it runs browser-side (Stockfish WASM),
+ * not queued here. See PR #155 and docs/reference/analysis.md.
  */
 
 import { syncAccount, type SyncDeps } from "@velachess/accounts";
-import { completeAnalysis } from "@velachess/analysis";
 import type { Database } from "@velachess/infra-db";
 import { logger, type Logger } from "@velachess/infra-logger";
-import {
-  analysisJobDataSchema,
-  ensureQueues,
-  QUEUES,
-  type PgBoss,
-} from "@velachess/infra-queue";
+import { ensureQueues, QUEUES, type PgBoss } from "@velachess/infra-queue";
 
 import { buildSyncAccountDeps } from "./composition/accounts.ts";
-import { buildAnalyzeDeps, type EngineDeps } from "./composition/analysis.ts";
 
 const workerLogger = logger.child({ component: "worker" });
 
 export interface WorkerDeps {
   boss: PgBoss;
   db: Database;
-  /** The engine/lock bits `completeAnalysis` needs beyond what `db`
-   * already derives. */
-  analyze: EngineDeps;
   sync?: SyncDeps;
   log?: Logger;
 }
@@ -62,22 +55,6 @@ export class Worker {
         log.info(fields, "job start");
         // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
         await syncAccount(buildSyncAccountDeps(db, this.#deps.sync), job).catch(
-          failed(log, fields),
-        );
-      }
-    });
-
-    await boss.work(QUEUES.analysis, async (jobs) => {
-      for (const job of jobs) {
-        // The payload is parsed before anything else touches it, the log
-        // line included: `boss.work<T>` is an assertion, and the queue
-        // holds whatever an older deploy or a hand-inserted row left there.
-        // A rejected payload throws, so pg-boss retries then dead-letters it.
-        const { gameId } = analysisJobDataSchema.parse(job.data);
-        const fields = { queue: QUEUES.analysis, jobId: job.id, gameId };
-        log.info(fields, "job start");
-        // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
-        await completeAnalysis(buildAnalyzeDeps(db, this.#deps.analyze), gameId).catch(
           failed(log, fields),
         );
       }

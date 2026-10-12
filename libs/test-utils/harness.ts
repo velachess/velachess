@@ -9,10 +9,8 @@ import type { Database } from "@velachess/infra-db";
 import {
   createTestBoss,
   ensureQueues,
-  makeAnalysisQueue,
   makeSyncQueue,
   QUEUES,
-  type AnalysisQueue,
   type Job,
   type PgBoss,
   type SyncQueue,
@@ -24,7 +22,6 @@ export interface LoopHarness {
   db: Database;
   pglite: PGlite;
   boss: PgBoss;
-  analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
   lock: ExecutionLock;
   close(): Promise<void>;
@@ -52,7 +49,6 @@ export async function createLoopHarness(): Promise<LoopHarness> {
     db,
     pglite,
     boss,
-    analysisQueue: makeAnalysisQueue(boss, db),
     syncQueue: makeSyncQueue(boss),
     lock: pgliteLock(pglite),
     close: async () => {

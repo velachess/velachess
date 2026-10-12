@@ -18,7 +18,6 @@ import {
 import { sql } from "drizzle-orm";
 import {
   bigint,
-  bigserial,
   boolean,
   check,
   index,
@@ -436,7 +435,9 @@ export const games = pgTable(
  * libs/analysis/process-analysis/tests/analyze-game.test.ts: analysis
  * already depends on this package, so the guard runs with the package
  * graph instead of against it. Asserting it here would need
- * @velachess/analysis as a devDependency, and that edge is a cycle. */
+ * @velachess/analysis as a devDependency, and that edge is a cycle.
+ * No longer backs a column — analysis is browser-only and persists
+ * nothing server-side — kept only for that typecheck-time guard. */
 export interface StoredGradedPly {
   ply: number;
   fen: string;
@@ -448,64 +449,6 @@ export interface StoredGradedPly {
   winChanceLoss: number;
 }
 
-/** One row per analyzed game. Row existence = analyzed; the row is also
- * the whole-report cache — re-requesting an analyzed game reads it back. */
-export const gameAnalyses = pgTable(
-  "game_analyses",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    engineVersion: text("engine_version").notNull(),
-    depth: integer("depth").notNull(),
-    positions: jsonb("positions").$type<StoredGradedPly[]>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [uniqueIndex("game_analyses_game_id").on(table.gameId)],
-);
-
-/**
- * A run's graded positions, as they land. Deliberately NOT part of the
- * report.
- *
- * `game_analyses` is the durable record and commits in one transaction. Progress cannot live in that
- * transaction — an uncommitted row is invisible to the connection
- * streaming it — so it is written and committed one position at a time,
- * and deleted once the report lands. Losing these rows costs nothing.
- *
- * `run_id` is why a crashed run cannot poison the next one: a stale
- * writer appends under its own id and readers only ever follow the
- * newest.
- */
-export const analysisProgress = pgTable(
-  "analysis_progress",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    /**
-     * Insertion order, and the only reliable way to tell which run is the
-     * newer one. `created_at` is not: several rows written inside the same
-     * clock tick tie, and a tie here means reading a dead run's progress.
-     */
-    seq: bigserial("seq", { mode: "number" }).notNull(),
-    runId: uuid("run_id").notNull(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    /** 0-based, matching the analysis event. Not the position's ply. */
-    index: integer("index").notNull(),
-    total: integer("total").notNull(),
-    position: jsonb("position").$type<StoredGradedPly>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    // A retried job replaying the same index is a no-op, not a duplicate.
-    uniqueIndex("analysis_progress_run_index").on(table.runId, table.index),
-    index("analysis_progress_game_seq").on(table.gameId, table.seq.desc()),
-  ],
-);
-
-export type GameAnalysisRow = typeof gameAnalyses.$inferSelect;
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
 export type SyncJob = typeof syncJobs.$inferSelect;

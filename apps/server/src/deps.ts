@@ -8,9 +8,8 @@ import type { ExecutionLock } from "@velachess/infra-db";
 import type { SyncDeps } from "@velachess/accounts";
 import type { Auth } from "@velachess/infra-auth";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
-import type { AnalysisQueue, SyncQueue } from "@velachess/infra-queue";
+import type { SyncQueue } from "@velachess/infra-queue";
 import type { FileStore } from "@velachess/infra-storage";
-import type { Watchers } from "@velachess/analysis";
 
 /**
  * What the sign-in screen may render. Capability flags, nothing more: the
@@ -33,12 +32,10 @@ export interface ApiDeps {
   trustedOrigins: string[];
   /** Served publicly at GET /config — see SignInMethods. */
   signInMethods: SignInMethods;
-  analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
-  /** Held for the advisory-lock plumbing; the API runs no engine itself. */
+  /** First-user bootstrap's own race guard; the API runs no engine and
+   * acquires no other advisory lock. */
   lock: ExecutionLock;
-  /** One poll loop per game, shared by everyone watching it. */
-  watchers: Watchers;
   /** One LISTEN on `sync_job_changed`, shared by every sync stream. */
   syncNotifications: SyncNotifications;
   /** Avatar bytes — the only binary this app stores. */

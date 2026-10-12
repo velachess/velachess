@@ -32,10 +32,6 @@ import {
   buildSetAvatarDeps,
 } from "./composition/user.ts";
 import {
-  buildGetAnalysisDeps,
-  buildRequestAnalysisDeps,
-} from "./composition/analysis.ts";
-import {
   buildGetGameDeps,
   buildImportPgnDeps,
   buildListGamesDeps,
@@ -195,7 +191,6 @@ export function createApp(deps: ApiDeps) {
     // The whole-library button gets its own budget, independent of each
     // account's own cooldown-backed one above.
     .use("/accounts/sync", rateLimit(deps, POLICIES.import))
-    .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
     .route(
       "/me",
       userRoutes({
@@ -228,11 +223,6 @@ export function createApp(deps: ApiDeps) {
         get: buildGetGameDeps(deps.db, deps.sync?.fetch),
         list: buildListGamesDeps(deps.db),
         importPgn: buildImportPgnDeps(deps.db),
-        analysis: {
-          getAnalysis: buildGetAnalysisDeps(deps.db, deps.analysisQueue),
-          requestAnalysis: buildRequestAnalysisDeps(deps.db, deps.analysisQueue),
-          watchers: deps.watchers,
-        },
       }),
     );
 

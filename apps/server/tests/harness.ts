@@ -9,20 +9,14 @@ import { hc } from "hono/client";
 
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
-import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
 import { syncAccount } from "@velachess/accounts";
 import {
-  appendProgress,
-  clearProgress,
+  claimSyncAttempt,
   createSyncNotifications,
   finishSyncJob,
-  getAnalysis,
-  getGame,
   getTrackedAccount,
-  claimSyncAttempt,
   markSyncRunning,
   markTrackedAccountSynced,
-  saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
@@ -31,12 +25,10 @@ import {
   chessComFixtureFetch,
   createLoopHarness,
   deliverSyncJob,
-  makeStockfishSession,
   type LoopHarness,
 } from "@velachess/test-utils";
 
 import { createApp } from "../src/server.ts";
-import { buildWatcherDeps } from "../src/composition/analysis.ts";
 import type { ApiDeps } from "../src/deps.ts";
 import type { AppType } from "../src/server.ts";
 
@@ -58,8 +50,6 @@ export interface ApiHarness extends LoopHarness {
    * never mounted on HTTP. `bootstrapUser` and `signUp` go through it;
    * the mounted `auth` keeps its sign-up surface closed, like prod. */
   bootstrapAuth: Auth;
-  /** The worker's dependencies. Not the API's — it runs no engine. */
-  analyze: AnalyzeDeps;
   /** The worker's part of a sync the API scheduled, run inline as its
    * first delivery — the API never fetches an archive itself. A second
    * argument overrides the harness's own fetch for this one delivery only
@@ -109,9 +99,6 @@ export async function createApiHarness(
     // reported honestly, and auth.test.ts builds its own configured instance
     // where the provider matters.
     signInMethods: { password: true, google: false },
-    analysisQueue: harness.analysisQueue,
-    // A short interval: the suite should not wait out a production poll.
-    watchers: createWatchers(buildWatcherDeps(harness.db, harness.analysisQueue, 50)),
     // PGlite listens on its one session — the same session the worker's
     // twin below commits on, which is exactly the delivery a LISTEN sees.
     syncNotifications: createSyncNotifications((channel, onNotify) =>
@@ -126,26 +113,9 @@ export async function createApiHarness(
     sync,
   };
 
-  // The worker's own composition (apps/worker/src/composition/analysis.ts)
+  // The worker's own composition (apps/worker/src/composition/accounts.ts)
   // builds the equivalent for production — apps never share a composition
-  // helper, so this restates the same DB wiring independently, the way
-  // apps/worker/src/composition/accounts.ts duplicates apps/server's own
-  // account wiring.
-  const analyze: AnalyzeDeps = {
-    makeSession: makeStockfishSession,
-    tryAcquireLock: (key) => harness.lock.tryAcquire(key),
-    getGame: (gameId) => getGame(harness.db, gameId),
-    getAnalysis: (gameId) => getAnalysis(harness.db, gameId),
-    withTransaction: (fn) => harness.db.transaction(fn),
-    saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    appendProgress: (entry) => appendProgress(harness.db, entry),
-    clearProgress: (gameId) => clearProgress(harness.db, gameId),
-    depth: 8,
-  };
-
-  // The worker's sync composition, restated like `analyze` above, run on
-  // the job's real pg-boss delivery; the slice returns, so pg-boss
-  // completes the job, as it would under `boss.work`.
+  // helper, so this restates the same DB wiring independently.
   const runSync = async (syncId: string, fetchOverride?: typeof fetch) => {
     const job = await deliverSyncJob(harness.boss, syncId);
     const deliveryFetch = fetchOverride ?? sync?.fetch;
@@ -230,11 +200,7 @@ export async function createApiHarness(
     runSync,
     signIn,
     signUp,
-    analyze,
-    // Wrap the loop harness's close so the shared watch loops stop with
-    // it — one outliving the database is an unhandled rejection.
     close: async () => {
-      deps.watchers.close();
       await deps.syncNotifications.close();
       await harness.close();
       await rm(filesRoot, { recursive: true, force: true });

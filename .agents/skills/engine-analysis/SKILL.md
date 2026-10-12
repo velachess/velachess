@@ -1,29 +1,30 @@
 ---
 name: engine-analysis
-description: Change or review VelaChess Stockfish execution, engine sessions, UCI scores, mate and centipawn normalization, side-to-move perspective, per-ply classification, analysis locking, queue execution, persistence, progress, retry, or re-analysis behavior. Use for libs/infra/engine, libs/analysis, or the worker analysis consumer.
+description: Change or review VelaChess Stockfish execution, engine sessions, UCI scores, mate and centipawn normalization, side-to-move perspective, or per-ply classification. Use for libs/infra/engine, libs/analysis, or apps/web's browser-side analysis runner.
 ---
 
 # Work on engine analysis
 
 Keep two concerns separate:
 
-- `libs/infra/engine` owns UCI transport and session mechanics.
-- `libs/analysis` owns pure score normalization and per-ply classification at
-  its module root, and (in `process-analysis/`) execution, locking,
-  persistence, progress, and the meaning of completion.
+- `libs/infra/engine` owns UCI transport and session mechanics, used by both
+  `ChildProcessTransport` (no production caller, retained for tests/local
+  use) and `WorkerTransport` (the browser).
+- `libs/analysis` owns the pure algorithm (`process-analysis/analyze-game.ts`)
+  and score normalization/classification at its module root. No
+  persistence, no queue, no HTTP route — analysis runs entirely in
+  `apps/web/src/games/browser-analysis/` (Stockfish WASM in a Web Worker),
+  and a result lives only in that session's React Query cache.
 
-Prefer Stockfish/UCI and pg-boss primitives over local schedulers, polling,
-timeouts, or retry frameworks. Keep classification pure and reproducible from
-its explicit inputs.
+Prefer Stockfish/UCI primitives over local schedulers, polling, timeouts, or
+retry frameworks. Keep classification pure and reproducible from its
+explicit inputs.
 
 Trace score point of view explicitly across UCI, normalization,
-classification, persistence, and presentation. Preserve mate as a distinct
-score shape. Delivery deduplication does not replace the database execution
-lock, and queue state does not replace a persisted report as completion truth.
-Do not make import or refresh an engine trigger. Preserve the transactional
-pairs named in root `AGENTS.md`.
+classification, and presentation. Preserve mate as a distinct score shape.
+Do not make import or refresh an engine trigger — the only trigger is
+opening a game, client-side.
 
-Canonical detail lives in `docs/reference/analysis.md`,
-`docs/explanation/modules/engine.md`, `docs/explanation/modules/queue.md`, and
-the live code/tests. Verify those owners before changing an option,
-threshold, watchdog, retry, or persisted shape.
+Canonical detail lives in `docs/reference/analysis.md` and the live
+code/tests. Verify those owners before changing an option, threshold, or
+watchdog.

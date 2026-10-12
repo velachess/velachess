@@ -3,16 +3,18 @@
 **[QUEUE] — job delivery behind ports (pg-boss + Postgres).**
 Owns everything pg-boss: queue creation, send, state reads, the adapter
 over pg-boss's own `pgboss.job` table. Nothing else in the codebase
-imports pg-boss — a business-module slice sees only the `AnalysisQueue`
-and `SyncQueue` ports, and even that only via its own composition root,
-never a slice-held field (`module-no-queue-object`).
+imports pg-boss — a business-module slice sees only the `SyncQueue`
+port, and even that only via its own composition root,
+never a slice-held field (`module-no-queue-object`). `sync` is the only
+topology today; analysis runs entirely in the browser and has no queue
+leg (`docs/reference/analysis.md`).
 
 ## Why a library, and not part of the worker
 
 Reviewed and kept deliberately. The queue is not worker-private: the api
 **produces** (enqueue inside the caller's transaction, plus the state read
 behind 202/409 on the interactive routes), the worker **consumes**, and the
-test harness starts both against PGlite. Three consumers across two
+test harness starts both against PGlite. Two consumers across two
 deployables is a reusable boundary, not organizational tidiness.
 
 Folding it into `apps/worker` would make `apps/server` import worker
@@ -44,45 +46,40 @@ One database is already the system of record; pg-boss adds delivery
 infrastructure. The same property makes the whole stack testable
 in-process: PGlite runs both the domain schema and the `pgboss` schema.
 
-## Two dedup layers, two concerns
+## Delivery dedup
 
-- **Delivery** — queues use policy `stately` with the domain id as
-  `singletonKey`: at most one queued-or-active job per game/account. A sync
-  job is sent under its `sync_jobs` id, inside the transaction that writes
-  that row, and the send throws when pg-boss accepts nothing — the row and
-  its delivery commit together or not at all. `isLive` reads whether pg-boss
-  may still deliver a job; its terminal states never change, so a sync request or a status read
-  can safely close a job whose delivery ended without the worker. The worker
-  settles nothing: a handler that returns completes its job, one that throws
-  fails it. The sync slice fences its own writes to the attempt instead —
-  `sync_jobs.started_at` is stamped by the delivery that marks the job
-  running, and every later write of that attempt is conditional on the
-  stamp, so a delivery a retry replaced writes nothing. Not
-  `work({ transactional: true })`: pg-boss opens that transaction before the
-  handler, so it would wrap the provider fetch, the handler's `tx` is
-  pg-boss's own `IDatabase` rather than a drizzle transaction, a throw would
-  roll back the partial pass and its `retrying` status, and `fromPglite`
-  implements no `beginTransaction`, so the test harness could not register
-  such a worker at all. Accepted caveat,
-  straight from pg-boss's docs: with stately, a failing job whose key
-  already has a job in retry state can skip remaining retries and land in
-  failed. Acceptable here because delivery state is not domain truth —
-  recovery is a fresh enqueue, which stately permits once nothing is
-  queued or active, or an operator's retry of the failed job from the
-  dashboard (`pnpm queue:dashboard`; a sync job must be retried, not
-  redriven, because its id is the `sync_jobs` id).
-- **Execution** — owning an analysis run is decided by a session advisory
-  lock in `libs/infra/db`, invoked by application rather than by the queue. A job being delivered
-  twice (crash-retry) or a user clicking while a worker runs can never
-  produce two engine runs.
+Queues use policy `stately` with the domain id as `singletonKey`: at most
+one queued-or-active job per account. A sync job is sent under its
+`sync_jobs` id, inside the transaction that writes that row, and the send
+throws when pg-boss accepts nothing — the row and its delivery commit
+together or not at all. `isLive` reads whether pg-boss may still deliver a
+job; its terminal states never change, so a sync request or a status read
+can safely close a job whose delivery ended without the worker. The worker
+settles nothing: a handler that returns completes its job, one that throws
+fails it. The sync slice fences its own writes to the attempt instead —
+`sync_jobs.started_at` is stamped by the delivery that marks the job
+running, and every later write of that attempt is conditional on the
+stamp, so a delivery a retry replaced writes nothing. Not
+`work({ transactional: true })`: pg-boss opens that transaction before the
+handler, so it would wrap the provider fetch, the handler's `tx` is
+pg-boss's own `IDatabase` rather than a drizzle transaction, a throw would
+roll back the partial pass and its `retrying` status, and `fromPglite`
+implements no `beginTransaction`, so the test harness could not register
+such a worker at all. Accepted caveat,
+straight from pg-boss's docs: with stately, a failing job whose key
+already has a job in retry state can skip remaining retries and land in
+failed. Acceptable here because delivery state is not domain truth —
+recovery is a fresh enqueue, which stately permits once nothing is
+queued or active, or an operator's retry of the failed job from the
+dashboard (`pnpm queue:dashboard`; a sync job must be retried, not
+redriven, because its id is the `sync_jobs` id).
 
 ## Truth split
 
 pg-boss's job state is _delivery_ truth (queued/active/failed). Domain
-success lives in `game_analyses` — `getState` deliberately ignores
-completed jobs and reports the newest non-completed one, so a re-enqueue
-after history is invisible to callers who should be looking at the domain
-table instead.
+truth is the `sync_jobs` row itself (`status`, `started_at`, `error`) —
+`isLive` only answers whether pg-boss may still attempt a delivery, never
+whether the sync succeeded.
 
 ## Transactional enqueue
 
@@ -100,15 +97,15 @@ that send happens inside a caller transaction. Verified empirically;
 ## Layout
 
 ```
-ports.ts            AnalysisQueue / SyncQueue — what application sees
-queues.ts           topology: queue names, job payloads, per-queue
-                    delivery policy (stately, retry/backoff, DLQs,
-                    expireInSeconds, heartbeatSeconds), ensureQueues
-                    and its send-path warm-up
-pgboss-adapter.ts   makeAnalysisQueue / makeSyncQueue — send + typed
-                    reads of pgboss.job (declared via pgSchema)
+ports.ts            SyncQueue — what application sees
+queues.ts           topology: queue names, per-queue delivery policy
+                    (stately, retry/backoff, DLQ, expireInSeconds,
+                    heartbeatSeconds), ensureQueues and its send-path
+                    warm-up
+pgboss-adapter.ts   makeSyncQueue — send + typed reads of pgboss.job
+                    (declared via pgSchema)
 client.ts           createBoss (postgres) / createTestBoss (PGlite)
-tests/              stately dedup, getState, tx-rollback atomicity,
+tests/              stately dedup, isLive, tx-rollback atomicity,
                     retry → DLQ, first-send-inside-tx regression
 index.ts            public surface
 ```

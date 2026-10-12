@@ -97,9 +97,6 @@ importers:
       '@velachess/accounts':
         specifier: workspace:*
         version: link:../../libs/accounts
-      '@velachess/analysis':
-        specifier: workspace:*
-        version: link:../../libs/analysis
       '@velachess/games':
         specifier: workspace:*
         version: link:../../libs/games
@@ -337,24 +334,15 @@ importers:
       '@velachess/accounts':
         specifier: workspace:*
         version: link:../../libs/accounts
-      '@velachess/analysis':
-        specifier: workspace:*
-        version: link:../../libs/analysis
       '@velachess/infra-db':
         specifier: workspace:*
         version: link:../../libs/infra/db
-      '@velachess/infra-engine':
-        specifier: workspace:*
-        version: link:../../libs/infra/engine
       '@velachess/infra-logger':
         specifier: workspace:*
         version: link:../../libs/infra/logger
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
-      stockfish:
-        specifier: ^19.0.0
-        version: 19.0.1
 
   libs/accounts:
     dependencies:
@@ -481,9 +469,6 @@ importers:
       pg-boss:
         specifier: 12.37.1
         version: 12.37.1(@opentelemetry/api@1.9.1)
-      zod:
-        specifier: 4.4.3
-        version: 4.4.3
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.8

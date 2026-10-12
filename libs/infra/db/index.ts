@@ -11,7 +11,6 @@ export * from "./queries/sync-jobs.ts";
 export * from "./queries/provider-profiles.ts";
 export * from "./queries/games.ts";
 export * from "./queries/users.ts";
-export * from "./queries/analysis.ts";
 export * from "./queries/rate-limit.ts";
 export * from "./queries/pagination.ts";
 export * from "./queries/status.ts";

@@ -93,18 +93,9 @@ succeeds with counts) — never Stockfish.
 owns across all sources, ownership read straight off `games.user_id`.
 
 All import paths fetch or parse, normalize, and persist. None of them run
-Stockfish; analysis starts only when a person asks for it.
-
-## Analysis and progress
-
-`POST /games/:id/analyze` is the explicit product trigger and requests pg-boss
-delivery. The worker owns Stockfish execution. GET endpoints expose current
-state and an EventSource-compatible stream over persisted progress/report
-state; the API does not become a second execution owner.
-
-SSE event names are namespaced and terminal frames close the connection.
-`Last-Event-ID` resumes after the last observed ply, keep-alives prevent idle
-proxy closure, and disconnect does not cancel analysis.
+Stockfish. Analysis has no endpoint here: it runs entirely in the browser
+(Stockfish WASM, `apps/web/src/games/browser-analysis/`), with no
+persistence and no server/worker leg — see `docs/reference/analysis.md`.
 
 ## Sync events
 

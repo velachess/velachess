@@ -1,9 +1,9 @@
 import type { NormalizedGame } from "@velachess/infra-platforms";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { perspectiveSql } from "./perspective.ts";
-import { gameAnalyses, games, trackedAccounts } from "../schema.ts";
+import { games, trackedAccounts } from "../schema.ts";
 
 function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
@@ -106,10 +106,10 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
 }
 
 /**
- * Game list with analysis presence in one join — what a game-list UI
- * renders without N+1. rawPgn deliberately excluded. Unscoped by owner —
- * callers that need ownership enforced check the tracked account first
- * (see `@velachess/accounts`'s list-account-games).
+ * Game list for one account — what a game-list UI renders without N+1.
+ * rawPgn deliberately excluded. Unscoped by owner — callers that need
+ * ownership enforced check the tracked account first (see
+ * `@velachess/accounts`'s list-account-games).
  *
  * `perspective` is derived, not read off the column, for the reason
  * `perspective.ts` states: a synced game stores null there, and this list
@@ -127,13 +127,11 @@ export async function listGamesWithStatusForAccount(db: Database, accountId: str
         playedAt: games.playedAt,
         perspective: perspectiveSql,
         openingName: games.openingName,
-        analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
       })
       .from(games)
       // Provenance, not ownership: a LEFT join, so a pasted PGN with no
       // account survives the read and answers from its stored column.
       .leftJoin(trackedAccounts, eq(trackedAccounts.id, games.accountId))
-      .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
       .where(eq(games.accountId, accountId))
       .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id))
   );

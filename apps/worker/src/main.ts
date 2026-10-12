@@ -3,55 +3,28 @@
  * shutdown. Same image as the api — different command.
  */
 
-import { createRequire } from "node:module";
-
-import { createDb, postgresLockExecutor } from "@velachess/infra-db";
-import { EngineSession } from "@velachess/infra-engine";
-import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
+import { createDb } from "@velachess/infra-db";
 import { logger } from "@velachess/infra-logger";
 import { createBoss } from "@velachess/infra-queue";
 
 import { Worker } from "./worker.ts";
 
-const require = createRequire(import.meta.url);
 const workerLogger = logger.child({ component: "worker" });
 
 const databaseUrl = process.env["DATABASE_URL"];
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
-const engineCmd = process.env["ENGINE_CMD"];
-
-async function makeSession(): Promise<EngineSession> {
-  const transport = engineCmd
-    ? new ChildProcessTransport(engineCmd, [])
-    : new ChildProcessTransport(process.execPath, [
-        require.resolve("stockfish/bin/stockfish-19-lite-single.js"),
-      ]);
-  const session = new EngineSession(transport);
-  await session.init();
-  return session;
-}
-
 const db = createDb(databaseUrl);
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => workerLogger.error({ error }, "pg-boss error"));
 
-const { lock, close: closeLockSql } = postgresLockExecutor(databaseUrl);
-
-const worker = new Worker({
-  boss,
-  db,
-  analyze: { makeSession, tryAcquireLock: (key) => lock.tryAcquire(key) },
-  log: workerLogger,
-});
+const worker = new Worker({ boss, db, log: workerLogger });
 await worker.start();
 
 workerLogger.info("worker consuming");
 
 async function shutdown() {
-  // In-flight jobs finish, then the pinned lock connection drains before exit.
   await worker.stop();
-  await closeLockSql();
   process.exit(0);
 }
 

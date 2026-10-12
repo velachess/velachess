@@ -193,7 +193,7 @@ it("error responses honor the documented { error } contract", async () => {
   expect(bodyError.details.length).toBeGreaterThan(0);
 
   // malformed path id → 400, never a db error
-  const badParam = await owner.request("/games/not-a-uuid/analysis");
+  const badParam = await owner.request("/games/not-a-uuid");
   expect(badParam.status).toBe(400);
   expect(((await badParam.json()) as { error: string }).error).toBe("invalid id");
 

@@ -172,7 +172,7 @@ describe("POST /games/import", () => {
 });
 
 describe("imported games join the library", () => {
-  it("lists them without queueing Stockfish", async () => {
+  it("lists them", async () => {
     const owner = (await harness.signUp("pgn-flow@api.test")).app;
 
     const outcome = await parseResponse(
@@ -185,11 +185,7 @@ describe("imported games join the library", () => {
     );
     expect(outcome.imported).toBe(2);
 
-    // Import never queued Stockfish — analysis waits for an opened game.
     const games = (await library(owner)).games;
     expect(games).toHaveLength(2);
-    for (const game of games) {
-      expect(await harness.deps.analysisQueue.getState(game.id)).toBe("none");
-    }
   });
 });

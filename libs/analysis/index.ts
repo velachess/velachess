@@ -1,76 +1,23 @@
 /**
- * [ANALYSIS] — what this module offers the rest of the system.
+ * [ANALYSIS] — the pure Stockfish analysis algorithm and its classifying
+ * policies, with no persistence or queue of its own.
  *
- * Owns the Stockfish job lifecycle end to end: request (queue or report),
- * process (execute under the advisory lock, persist), watch (poll progress
- * for a live stream), and get (the composed read a game page renders).
+ * Analysis runs entirely in `apps/web/src/games/browser-analysis/`
+ * (Stockfish WASM, Web Worker, no server round-trip — see PR #155). This
+ * module owns the per-ply search/classify loop (`analyzeGame`) and the
+ * pure score/win-chance/move-category policies the result is read
+ * through, nothing else: no job, no table, no route.
  *
  * `score.ts`/`winchance.ts`/`classify-move.ts` are module-level pure
- * policies (no DB/queue dependency of their own). The classifier sits
- * beside them rather than inside `process-analysis/`: `scoreToWinChance`
- * is exported from here for apps/web, so it was never private to that
- * slice however the file was filed.
- *
- * `requestAnalysis` (unscoped) is exported alongside `requestAnalysisForUser`
- * so `apps/server/src/composition/analysis.ts` can wire `get-analysis` and
- * `watch-analysis`'s own declared dependency on their sibling slice
- * `request-analysis` to the same real handler.
- *
- * `scoreToWinChance` is exported for `apps/web/src/games/analysis-read.ts`,
- * the one consumer outside this whole module's graph. `completeAnalysis`
- * is a lazy wrapper, not a direct re-export: `process-analysis.ts` uses
- * `node:crypto`/`node:events`, and a static re-export here would put both
- * in the static import graph of every consumer of this file, including
- * apps/web's own bundle — a browser can't load either. The dynamic
- * `import()` keeps that subtree out of anything that only touches this
- * module's pure exports; nothing about the backend's own call sites
- * changes; `completeAnalysis` is still one `await` away.
- *
- * `analyzeGame` is exported statically (not behind a dynamic import) for
- * `apps/web/src/games/browser-analysis/`, which runs this same per-ply
- * search/classify loop against a browser Worker engine instead of a
- * server process. Checked to be free of `process-analysis.ts`'s Node-only
- * imports.
+ * policies (no DB/queue dependency of their own).
  */
 
-export { getAnalysisReport } from "./get-analysis/get-analysis.ts";
-export type { AnalysisReport, GetAnalysisDeps } from "./get-analysis/get-analysis.ts";
-
-export {
-  requestAnalysis,
-  requestAnalysisForUser,
-  startAnalysisForUser,
-} from "./request-analysis/request-analysis.ts";
-export type {
-  AnalysisRequest,
-  GameAnalysisRecord,
-  RequestAnalysisDeps,
-} from "./request-analysis/request-analysis.ts";
-
-export { createWatchers } from "./watch-analysis/watchers.ts";
-export type {
-  WatcherDeps,
-  Watchers,
-  WatchSnapshot,
-  WatchTerminal,
-} from "./watch-analysis/watchers.ts";
-
-export type { AnalyzeDeps } from "./process-analysis/process-analysis.ts";
 export { analyzeGame } from "./process-analysis/analyze-game.ts";
 export type {
   AnalysisEvent,
   AnalyzeOptions,
   GradedPly,
 } from "./process-analysis/analyze-game.ts";
-
-export async function completeAnalysis(
-  deps: import("./process-analysis/process-analysis.ts").AnalyzeDeps,
-  gameId: string,
-): Promise<void> {
-  const { completeAnalysis: run } =
-    await import("./process-analysis/process-analysis.ts");
-  return run(deps, gameId);
-}
 
 /** The move vocabulary itself, for consumers that render it — `apps/web`
  * reads the ordered list for the report's rows instead of restating it. */

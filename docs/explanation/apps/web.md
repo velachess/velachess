@@ -26,7 +26,7 @@ src/
     import-pgn/     paste or upload a PGN
     list/           filter and page owned games
     open-game/      load the playable game record and review it on the board
-    request-analysis/ view-analysis/ watch-analysis/
+    browser-analysis/ request-analysis/ view-analysis/
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring

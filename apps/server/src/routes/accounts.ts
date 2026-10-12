@@ -217,7 +217,6 @@ const accountGameSchema = z.object({
   playedAt: z.string().nullable(),
   perspective: z.string().nullable(),
   openingName: z.string().nullable(),
-  analyzed: z.boolean(),
 });
 
 const accountGameWire = accountGameSchema.extend({ playedAt: wireDateOrNull });

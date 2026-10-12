@@ -1,16 +1,13 @@
 // @vitest-environment node
 /**
- * Repository-wide integration suite: the full sync -> list -> analyze
- * pipeline exercised across the business module packages, against the
- * real harness (PGlite + migrations + pg-boss + advisory lock), Stockfish
- * real where the engine runs.
+ * Repository-wide integration suite: the full sync -> list pipeline
+ * exercised across the business module packages, against the real
+ * harness (PGlite + migrations + pg-boss + advisory lock).
  *
  * Lives at the repo root, not inside any one module, because it is a
  * genuine cross-module fact: no single package owns "importing a game
- * makes it listable and analyzable." `process-analysis`'s own
- * TOCTOU/disconnect/streaming contract lives in
- * `libs/analysis/tests/execution.test.ts` — that behavior is private to
- * one slice, not a cross-module pipeline fact.
+ * makes it listable." Analysis has no cross-module pipeline here — it
+ * runs browser-side, with no server leg to exercise.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -19,15 +16,11 @@ import type { NormalizedGame } from "@velachess/infra-platforms";
 import type { Database } from "@velachess/infra-db";
 import type { GameFilters, GamePage } from "@velachess/infra-db";
 import {
-  appendProgress,
-  clearProgress,
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
   findTrackedAccountByPlatform,
   finishSyncJob,
-  getAnalysis,
-  getGame,
   getTrackedAccount,
   getTrackedAccountForUser,
   listGamesPage,
@@ -35,7 +28,6 @@ import {
   markSyncRunning,
   markTrackedAccountSynced,
   markUserOnboarded,
-  saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
   upsertProviderProfile,
@@ -53,7 +45,6 @@ import {
   type SyncAccountDeps,
   type SyncDeps,
 } from "@velachess/accounts";
-import { completeAnalysis, type AnalyzeDeps } from "@velachess/analysis";
 import { QUEUES } from "@velachess/infra-queue";
 
 import { LISTER_USERNAME, LOOPER_USERNAME } from "@velachess/fixtures";
@@ -62,7 +53,6 @@ import {
   chessComListingFixtureFetch,
   createLoopHarness,
   deliverSyncJob,
-  makeStockfishSession as makeSession,
   type LoopHarness,
 } from "@velachess/test-utils";
 
@@ -139,25 +129,6 @@ function disconnectAccountDeps(db: Database): DisconnectAccountDeps {
     getTrackedAccountForUser: (userId, accountId) =>
       getTrackedAccountForUser(db, userId, accountId),
     deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
-  };
-}
-
-/**
- * The same adapter apps/worker/src/composition/analysis.ts builds,
- * restated here: `analysis/process-analysis`'s `completeAnalysis` is
- * narrow-deps, not Database-first.
- */
-function analyzeDeps(db: Database, lock: LoopHarness["lock"]): AnalyzeDeps {
-  return {
-    makeSession,
-    tryAcquireLock: (key) => lock.tryAcquire(key),
-    getGame: (gameId) => getGame(db, gameId),
-    getAnalysis: (gameId) => getAnalysis(db, gameId),
-    withTransaction: (fn) => db.transaction(fn),
-    saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    appendProgress: (entry) => appendProgress(db, entry),
-    clearProgress: (gameId) => clearProgress(db, gameId),
-    depth: 8,
   };
 }
 
@@ -307,20 +278,6 @@ describe("application services (the flow, end to end)", () => {
     expect(synced?.lastSyncedAt).not.toBeNull();
   });
 
-  it("analyze: a synced game gets a real, persisted report", async () => {
-    // `completeAnalysis` is the same public entry apps/worker's analysis
-    // consumer calls — its own TOCTOU/streaming contract is covered at
-    // libs/analysis/tests/execution.test.ts.
-    const library = await openLibrary(listGamesDeps(h.db), userId, {});
-    const gameId = library.games[0]!.id;
-
-    await completeAnalysis(analyzeDeps(h.db, h.lock), gameId);
-
-    const analysis = await getAnalysis(h.db, gameId);
-    expect(analysis).not.toBeNull();
-    expect(analysis!.positions.length).toBeGreaterThan(0);
-  }, 120_000);
-
   it("importAccount: a first import fills the archive, a second one only reads", async () => {
     // Its own movetext: games dedupe per user and account, so reusing
     // the looper fixture here would save nothing and prove nothing.
@@ -374,13 +331,6 @@ describe("application services (the flow, end to end)", () => {
     expect(Object.keys(bySeat).toSorted()).toEqual(["black", "white"]);
     expect(bySeat.white!.whiteName).toBe("fresh_import");
     expect(bySeat.black!.blackName).toBe("fresh_import");
-
-    // Importing runs no engine. Analysis is intent —
-    // an archive of hundreds of games must not queue hundreds of runs.
-    for (const game of library.games) {
-      expect(await h.analysisQueue.getState(game.id)).toBe("none");
-      expect(game.analyzed).toBe(false);
-    }
 
     // Reconnecting the handle already tracked asks the provider nothing.
     const again = await openImported(

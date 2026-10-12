@@ -1,19 +1,20 @@
 # libs/infra/db
 
-**[DB] — persists what libs/infra/platforms produces and what libs/analysis
-reports (Postgres + Drizzle).**
+**[DB] — persists what libs/infra/platforms produces (Postgres + Drizzle).**
 Doesn't fetch, doesn't normalize, doesn't grade a move. Doesn't know who's
 calling it — `apps/server` and `apps/worker` import it directly, no HTTP hop in between.
+There is no analysis table — analysis runs entirely in the browser and is
+never persisted (`docs/reference/analysis.md`).
 
 ## Schema
 
-Twelve tables across four domains — identity (who signs in), sync (what
+Ten tables across three domains — identity (who signs in), sync (what
 platforms produce, and `sync_jobs`: each request to bring an account up to
-date, with its status and progress), games (what the user reviews), analysis
-(what the engine said). A partial unique index keeps one active sync job per
-account. `started_at` is the delivering attempt's stamp: a delivery's
-writes are conditional on the stamp it took, and a retry re-stamps, so a
-delivery that lost the job writes nothing.
+date, with its status and progress), games (what the user reviews). A
+partial unique index keeps one active sync job per account. `started_at` is
+the delivering attempt's stamp: a delivery's writes are conditional on the
+stamp it took, and a retry re-stamps, so a delivery that lost the job writes
+nothing.
 Sync writers lock the job row, then the account (through the games' FK);
 disconnecting takes the same order — the account's jobs, then the account —
 so it waits for a sync in flight, deletes its games with the rest, and never
@@ -36,20 +37,6 @@ auth_rate_limits                    Better Auth's rate-limit store, keyed by key
 rate_limits                         the API's rate limiter, one row per key
 provider_profiles                   avatar + flair per (platform, username),
                                     no owner
-
-games ──── game_analyses   one row per analyzed game (unique game_id):
-             cascade        jsonb per-ply report — row existence = analyzed,
-                            row = whole-report cache (delivery state lives
-                            in pg-boss; this row is the domain truth)
-
-games ──── analysis_progress   a run's graded positions as they land, so a
-             cascade            watcher can see work in flight. Committed one
-                                at a time and deleted when the report lands —
-                                deliberately NOT in the report's transaction,
-                                because an uncommitted row cannot be read by
-                                the connection streaming it. Scoped by run_id
-                                and ordered by a serial, so a crashed attempt's
-                                leftovers never blend into its replacement.
 ```
 
 Enums are derived from
@@ -111,27 +98,22 @@ it's built on data volume this project doesn't have. The upgrade path,
 if size or volume ever becomes a _measured_ problem, is En Croissant's
 simpler scheme, not Lichess's.
 
-`game_analyses.positions` is a `jsonb` array of `StoredGradedPly`, a
-structural mirror of `libs/analysis`'s `GradedPly` declared locally so
-drizzle-kit's schema loader never touches the chess toolchain and infra
-never imports a business module (`no-infra-to-modules`). A test asserts the
-two stay assignable in both directions. `analysis_progress` has a unique
-index on `(run_id, index)`, so a retried job replaying an index is a no-op,
-and an index on `(game_id, seq desc)` for "newest run first" reads.
+`StoredGradedPly` is a structural mirror of `libs/analysis`'s `GradedPly`,
+kept only as a typecheck-time compatibility guard
+(`libs/analysis/process-analysis/tests/analyze-game.test.ts`) — it no longer
+backs a column; analysis is browser-only and persists nothing server-side.
 
 Every foreign key has an explicit `onDelete`, and every FK gets an explicit
 index (Drizzle does not auto-index FKs — a join on an unindexed FK column
 is a full table scan). The delete policies encode product decisions:
 
-| FK                          | onDelete | Why                                                                              |
-| --------------------------- | -------- | -------------------------------------------------------------------------------- |
-| `sessions.user_id`          | cascade  | a session without a user cannot authenticate anyone                              |
-| `auth_accounts.user_id`     | cascade  | a credential without a user is meaningless                                       |
-| `tracked_accounts.user_id`  | cascade  | a connected handle belongs to one user                                           |
-| `games.user_id`             | cascade  | a game without an owner is unreadable — ownership is direct, not inferred        |
-| `games.account_id`          | set null | untracking an account keeps its games (provenance only, null for manual imports) |
-| `game_analyses.game_id`     | cascade  | a report without its game is meaningless                                         |
-| `analysis_progress.game_id` | cascade  | in-flight progress without its game is meaningless                               |
+| FK                         | onDelete | Why                                                                              |
+| -------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `sessions.user_id`         | cascade  | a session without a user cannot authenticate anyone                              |
+| `auth_accounts.user_id`    | cascade  | a credential without a user is meaningless                                       |
+| `tracked_accounts.user_id` | cascade  | a connected handle belongs to one user                                           |
+| `games.user_id`            | cascade  | a game without an owner is unreadable — ownership is direct, not inferred        |
+| `games.account_id`         | set null | untracking an account keeps its games (provenance only, null for manual imports) |
 
 ## Ownership
 
@@ -227,8 +209,8 @@ API rate limiter (`rate-limit.test.ts`).
 ```
 schema.ts                    users, sessions, auth_accounts, verifications,
                              auth_rate_limits, rate_limits, tracked_accounts,
-                             provider_profiles, games, game_analyses,
-                             analysis_progress — enums, indexes, inferred types
+                             provider_profiles, games, sync_jobs — enums,
+                             indexes, inferred types
 client.ts                    module-scope singleton + exported schema
 advisory-lock.ts             sessionAdvisoryLock (pg_try_advisory_lock)
 queries/
@@ -241,10 +223,9 @@ queries/
   perspective.ts             perspectiveSql — which side was you
   users.ts                   countUsers, markEmailVerified, writeAvatarState, createUser, ensureUser
   provider-profiles.ts       isProfileFresh, findProviderProfiles, upsertProviderProfile
-  analysis.ts                saveAnalysis, getAnalysis, appendProgress, listProgress, countProgress, clearProgress
   rate-limit.ts              consumeRateLimit
 drizzle.config.ts            schema/out paths, dbCredentials from DATABASE_URL
-migrations/                  NNNN_name.sql, 0000 … 0021_games_and_analysis.sql
+migrations/                  NNNN_name.sql
 tests/
   test-db.ts                 DATABASE_URL or PGlite — real migrations either way
 index.ts                     public surface
