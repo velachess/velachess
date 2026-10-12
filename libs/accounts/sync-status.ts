@@ -12,8 +12,9 @@
  * The SQL predicate in `libs/infra/db/queries/sync-jobs.ts` is the one
  * expression of this rule that cannot call it — a predicate runs inside
  * Postgres, and infra may not import a business module. It is held to this
- * list by the route and worker tests, not by shared code; same arrangement
- * `libs/chess/game-result.ts` documents for its own SQL counterpart.
+ * list by that package's `sync-jobs.test.ts`, not by shared code; same
+ * arrangement `libs/chess/game-result.ts` documents for its own SQL
+ * counterpart.
  */
 
 /** The job lifecycle, as `sync_job_status` stores it. */

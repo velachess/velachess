@@ -60,7 +60,7 @@ modules (see `docs/explanation/architecture.md` for the full rationale).
 This section is the precise model; when code and this section disagree,
 fix whichever is wrong.
 
-- **Slice** — owns one behavior (e.g. `process-sync`, `import-pgn`).
+- **Slice** — owns one behavior (e.g. `sync-account`, `import-pgn`).
   Declares its own narrow dependency function types, in its own
   vocabulary, for everything external: DB reads/writes, queue enqueue,
   provider HTTP, and any other slice's behavior. A slice never imports or

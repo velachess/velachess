@@ -21,7 +21,7 @@ to prevent. So the line is drawn by responsibility, not by package:
 
 | Lives here (`libs/infra/queue`)           | Lives in `apps/worker`         |
 | ----------------------------------------- | ------------------------------ |
-| pg-boss client and test client            | handlers (`consumers/`)        |
+| pg-boss client and test client            | handlers (`worker.ts`)         |
 | topology: names, payloads, `ensureQueues` | registration (`boss.work`)     |
 | send + state adapters                     | consumer concurrency           |
 | the ports application sees                | runtime bootstrap and shutdown |
@@ -53,17 +53,24 @@ in-process: PGlite runs both the domain schema and the `pgboss` schema.
   its delivery commit together or not at all. `isLive` reads whether pg-boss
   may still deliver a job; its terminal states never change, so a sync request or a status read
   can safely close a job whose delivery ended without the worker. The worker
-  settles a sync delivery with `complete`/`fail` on `{ id, retryCount }`
-  inside its own transaction: pg-boss (12.35+) fences settles and heartbeats
-  to that attempt, so a delivery that lost its claim can neither commit nor
-  settle the retry that replaced it. Not `work({ transactional: true })`: that
-  holds a pg-boss transaction open across the provider fetch, and a throw
-  would roll back the partial pass and its `retrying` status. Accepted caveat,
+  settles nothing: a handler that returns completes its job, one that throws
+  fails it. The sync slice fences its own writes to the attempt instead —
+  `sync_jobs.started_at` is stamped by the delivery that marks the job
+  running, and every later write of that attempt is conditional on the
+  stamp, so a delivery a retry replaced writes nothing. Not
+  `work({ transactional: true })`: pg-boss opens that transaction before the
+  handler, so it would wrap the provider fetch, the handler's `tx` is
+  pg-boss's own `IDatabase` rather than a drizzle transaction, a throw would
+  roll back the partial pass and its `retrying` status, and `fromPglite`
+  implements no `beginTransaction`, so the test harness could not register
+  such a worker at all. Accepted caveat,
   straight from pg-boss's docs: with stately, a failing job whose key
   already has a job in retry state can skip remaining retries and land in
   failed. Acceptable here because delivery state is not domain truth —
   recovery is a fresh enqueue, which stately permits once nothing is
-  queued or active.
+  queued or active, or an operator's retry of the failed job from the
+  dashboard (`pnpm queue:dashboard`; a sync job must be retried, not
+  redriven, because its id is the `sync_jobs` id).
 - **Execution** — owning an analysis run is decided by a session advisory
   lock in `libs/infra/db`, invoked by application rather than by the queue. A job being delivered
   twice (crash-retry) or a user clicking while a worker runs can never

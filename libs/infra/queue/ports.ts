@@ -1,8 +1,8 @@
 /**
  * The interfaces business modules consume. Queue lifecycle concepts
- * (retry schedules, DLQ, claims) stay behind this boundary: a module
- * enqueues, reads a coarse state, and — for sync — settles the one
- * delivery it holds.
+ * (retry schedules, DLQ, claims, settlement) stay behind this boundary: a
+ * module enqueues and reads a coarse state; pg-boss settles what it
+ * delivers.
  */
 
 import type { Database } from "@velachess/infra-db";
@@ -29,17 +29,4 @@ export interface SyncQueue {
    * reached a terminal state, which only an operator's retry or redrive
    * revives. */
   isLive(dbOrTx: Database, jobId: string): Promise<boolean>;
-  /** Settle one delivery inside the caller's transaction, so the delivery's
-   * writes commit with it. False when that delivery no longer holds the job
-   * (pg-boss timed it out, or a later attempt took it): the caller must
-   * roll back. `fail` retries or dead-letters per the queue's policy. */
-  complete(dbOrTx: Database, delivery: SyncDelivery): Promise<boolean>;
-  fail(dbOrTx: Database, delivery: SyncDelivery): Promise<boolean>;
-}
-
-/** One pg-boss attempt at a sync job: its id and the retry count it was
- * fetched with. */
-export interface SyncDelivery {
-  id: string;
-  retryCount: number;
 }

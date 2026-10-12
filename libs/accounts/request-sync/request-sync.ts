@@ -78,10 +78,16 @@ export async function requestSync(
     }
 
     const job = await deps.createSyncJob(tx, { userId, accountId, trigger: "manual" });
-    // A concurrent request won the insert: share its job.
-    if (!job)
-      return { status: "accepted", job: (await deps.lockLatestSyncJob(tx, accountId))! };
-    await deps.enqueueSync(tx, { id: job.id, accountId });
-    return { status: "accepted", job };
+    if (job) {
+      await deps.enqueueSync(tx, { id: job.id, accountId });
+      return { status: "accepted", job };
+    }
+    // A concurrent request won the insert: share its job. The insert waited
+    // for that commit, so the row is there — unless a disconnect took it in
+    // the same instant, which no answer here describes.
+    const shared = await deps.lockLatestSyncJob(tx, accountId);
+    if (!shared)
+      throw new Error(`sync job for account ${accountId} vanished mid-request`);
+    return { status: "accepted", job: shared };
   });
 }

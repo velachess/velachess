@@ -31,7 +31,7 @@ import {
   getTrackedAccount,
   getTrackedAccountForUser,
   listGamesPage,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   markTrackedAccountSynced,
   markUserOnboarded,
@@ -46,14 +46,15 @@ import { openLibrary, type ListGamesDeps } from "@velachess/games";
 import {
   disconnectAccount,
   importAccount,
-  processSync,
+  syncAccount,
   type ConnectAccountDeps,
   type ConnectOutcome,
   type DisconnectAccountDeps,
-  type ProcessSyncDeps,
+  type SyncAccountDeps,
   type SyncDeps,
 } from "@velachess/accounts";
 import { completeAnalysis, type AnalyzeDeps } from "@velachess/analysis";
+import { QUEUES } from "@velachess/infra-queue";
 
 import { LISTER_USERNAME, LOOPER_USERNAME } from "@velachess/fixtures";
 import {
@@ -76,20 +77,18 @@ function listGamesDeps(db: Database): ListGamesDeps {
 /**
  * The same adapter apps/worker/src/composition/accounts.ts builds,
  * restated here: libs never import from apps, and @velachess/accounts's
- * process-sync slice is narrow-deps, not Database-first.
+ * sync-account slice is narrow-deps, not Database-first.
  */
-function processSyncDeps(db: Database, fetch?: SyncDeps["fetch"]): ProcessSyncDeps {
+function syncAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): SyncAccountDeps {
   return {
     markSyncRunning: (id) => markSyncRunning(db, id),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     withTransaction: (fn) => db.transaction(fn),
-    lockSyncJob,
+    claimSyncAttempt,
     finishSyncJob,
     saveGames,
     updateTrackedAccountCursor,
     markTrackedAccountSynced,
-    completeDelivery: (tx, delivery) => h.syncQueue.complete(tx, delivery),
-    failDelivery: (tx, delivery) => h.syncQueue.fail(tx, delivery),
     ...(fetch ? { fetch } : {}),
   };
 }
@@ -109,15 +108,12 @@ function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAcco
   };
 }
 
-/** Runs a sync job the way the worker's first delivery would. */
+/** Runs a sync job the way the worker's first delivery would: the slice
+ * returns, so pg-boss completes the job. */
 async function runSync(syncJobId: string, fetch?: SyncDeps["fetch"]) {
   const job = await deliverSyncJob(h.boss, syncJobId);
-  await processSync(processSyncDeps(h.db, fetch), {
-    syncJobId,
-    retryCount: job.retryCount,
-    retryLimit: job.retryLimit,
-    signal: job.signal,
-  });
+  await syncAccount(syncAccountDeps(h.db, fetch), job);
+  await h.boss.complete(QUEUES.sync, job);
 }
 
 /** A manual sync of an account: its job, the worker's run of it, the result. */

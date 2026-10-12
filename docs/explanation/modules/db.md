@@ -11,8 +11,9 @@ Twelve tables across four domains — identity (who signs in), sync (what
 platforms produce, and `sync_jobs`: each request to bring an account up to
 date, with its status and progress), games (what the user reviews), analysis
 (what the engine said). A partial unique index keeps one active sync job per
-account. A delivery's writes commit in the transaction that settles it with
-pg-boss, so a delivery that lost the job writes nothing.
+account. `started_at` is the delivering attempt's stamp: a delivery's
+writes are conditional on the stamp it took, and a retry re-stamps, so a
+delivery that lost the job writes nothing.
 Sync writers lock the job row, then the account (through the games' FK);
 disconnecting takes the same order — the account's jobs, then the account —
 so it waits for a sync in flight, deletes its games with the rest, and never

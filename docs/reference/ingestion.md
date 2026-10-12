@@ -59,14 +59,18 @@ after the account's newest job.
   `gamesInserted` the rows actually inserted; the difference is
   deduplication. `unitsDone` / `unitsTotal` are `null` until sync works in
   units.
-- Games, cursor and outcome commit in one transaction with the delivery's
-  pg-boss settle, which pg-boss fences to the delivery's `retryCount`,
-  so a delivery pg-boss timed out or handed to a retry, or one whose account
-  was deleted, writes nothing. An aborted delivery that still holds the job
-  records `internal` before giving up.
-- A job left active after pg-boss ended its delivery (a worker crash on the
-  last attempt) is closed as `internal` by the next `GET /syncs/:id` or sync
-  request, so polling never follows a job nothing runs.
+- Games, cursor and outcome commit in one transaction, conditional on the
+  `started_at` stamp the delivery took when it marked the job running: a
+  retry re-stamps, so a delivery pg-boss timed out or handed to a retry, or
+  one whose account was deleted, writes nothing. The cursor and
+  `lastSyncedAt` advance only on a complete pass; a partial one keeps its
+  games and retries from the same cursor.
+- The worker never writes a retryable `failed`: pg-boss owns the retry
+  schedule and its exhaustion. A job left active after pg-boss ended its
+  delivery (retries spent, or a worker crash) is closed as `failed` by the
+  next `GET /syncs/:id` or sync request — keeping the error the last pass
+  recorded (`incomplete`), `internal` when it left none — so polling never
+  follows a job nothing runs.
 - Two connects racing for one provider slot create one account: the loser
   answers like a repeat connect (`201` with `syncId: null` for the same
   handle, `409` for a different one).
@@ -103,5 +107,5 @@ successfully normalized games and is stored only after a complete pass.
 
 Current cursor shapes, bootstrap limits, request headers, cooldowns, and rate
 behavior can change. Inspect the provider clients, the sync slices
-(`request-sync`, `process-sync`), and their tests before changing or
+(`request-sync`, `sync-account`), and their tests before changing or
 documenting one of those values.

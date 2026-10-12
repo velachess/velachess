@@ -4,7 +4,7 @@
  * readers/writers each accounts route's slice declared. Routes never see
  * a Database or SyncQueue value directly.
  *
- * The worker builds `processSync`'s deps on its own
+ * The worker builds `syncAccount`'s deps on its own
  * (`apps/worker/src/composition/accounts.ts`) — apps never share a
  * composition helper.
  */

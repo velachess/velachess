@@ -65,7 +65,7 @@ in-flight `analysis_progress` rows are cleared.
 - `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`, `tryStartAnalysis`
 - `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`,
   `GET /:id/analysis/events` (SSE progress)
-- `apps/worker/src/consumers/analysis.ts` → `consumeAnalysisJob`
+- `apps/worker/src/worker.ts` → the analysis handler
 
 ## Currently unused
 

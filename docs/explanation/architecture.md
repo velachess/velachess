@@ -71,7 +71,7 @@ separate domain library — see the module doc comments for the current set.
 ## A slice
 
 ```
-libs/accounts/     connect-account/  request-sync/  get-sync/  process-sync/  list-accounts/  list-account-games/
+libs/accounts/     connect-account/  request-sync/  get-sync/  sync-account/  list-accounts/  list-account-games/
 libs/games/        list-games/  import-pgn/  get-game/
 libs/analysis/     request-analysis/  process-analysis/  get-analysis/  watch-analysis/
 libs/user/         bootstrap-user/  set-avatar/  read-avatar/  remove-avatar/

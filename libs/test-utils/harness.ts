@@ -13,9 +13,8 @@ import {
   makeSyncQueue,
   QUEUES,
   type AnalysisQueue,
-  type JobWithMetadata,
+  type Job,
   type PgBoss,
-  type SyncJobData,
   type SyncQueue,
 } from "@velachess/infra-queue";
 
@@ -68,17 +67,13 @@ let pickPriority = 1_000_000;
 
 /**
  * One sync job's delivery, fetched from pg-boss the way a worker gets it
- * (active, with its retry count), but picked by id: the job is moved ahead
- * of the queue first, so the fetch claims it and nothing else.
+ * (active, with a signal of its own), but picked by id: the job is moved
+ * ahead of the queue first, so the fetch claims it and nothing else.
  */
-export async function deliverSyncJob(
-  boss: PgBoss,
-  id: string,
-): Promise<JobWithMetadata<SyncJobData>> {
+export async function deliverSyncJob(boss: PgBoss, id: string): Promise<Job> {
   pickPriority += 1;
   await boss.update(QUEUES.sync, undefined, { id, priority: pickPriority });
-  const [job] = await boss.fetch<SyncJobData>(QUEUES.sync, {
-    includeMetadata: true,
+  const [job] = await boss.fetch<object>(QUEUES.sync, {
     ignoreStartAfter: true,
     minPriority: pickPriority,
   });

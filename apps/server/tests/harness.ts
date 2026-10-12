@@ -8,7 +8,7 @@ import path from "node:path";
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
-import { processSync } from "@velachess/accounts";
+import { syncAccount } from "@velachess/accounts";
 import {
   appendProgress,
   clearProgress,
@@ -16,13 +16,14 @@ import {
   getAnalysis,
   getGame,
   getTrackedAccount,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   markTrackedAccountSynced,
   saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
+import { QUEUES } from "@velachess/infra-queue";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -126,30 +127,25 @@ export async function createApiHarness(
   };
 
   // The worker's sync composition, restated like `analyze` above, run on
-  // the job's real pg-boss delivery.
+  // the job's real pg-boss delivery; the slice returns, so pg-boss
+  // completes the job, as it would under `boss.work`.
   const runSync = async (syncId: string) => {
     const job = await deliverSyncJob(harness.boss, syncId);
-    await processSync(
+    await syncAccount(
       {
         markSyncRunning: (id) => markSyncRunning(harness.db, id),
         getTrackedAccount: (accountId) => getTrackedAccount(harness.db, accountId),
         withTransaction: (fn) => harness.db.transaction(fn),
-        lockSyncJob,
+        claimSyncAttempt,
         finishSyncJob,
         saveGames,
         updateTrackedAccountCursor,
         markTrackedAccountSynced,
-        completeDelivery: (tx, delivery) => harness.syncQueue.complete(tx, delivery),
-        failDelivery: (tx, delivery) => harness.syncQueue.fail(tx, delivery),
         ...(sync?.fetch ? { fetch: sync.fetch } : {}),
       },
-      {
-        syncJobId: syncId,
-        retryCount: job.retryCount,
-        retryLimit: job.retryLimit,
-        signal: job.signal,
-      },
+      job,
     );
+    await harness.boss.complete(QUEUES.sync, job);
   };
 
   const app = createApp(deps);

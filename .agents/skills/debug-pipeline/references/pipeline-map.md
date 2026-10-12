@@ -9,7 +9,7 @@ provider fetch -> normalization -> game persistence -> list/open
 ```
 
 - account sync: `libs/accounts/request-sync` records and enqueues a
-  `sync_jobs` row; `libs/accounts/process-sync` (worker) fetches through
+  `sync_jobs` row; `libs/accounts/sync-account` (worker) fetches through
   `libs/infra/platforms`, which normalizes; the games are saved with the
   owner's id.
 - manual import: `libs/games/import-pgn` parses and normalizes in-request, then
@@ -27,7 +27,7 @@ deduplicated.
 
 Useful starting points:
 
-- `libs/accounts/request-sync/`, `libs/accounts/process-sync/`
+- `libs/accounts/request-sync/`, `libs/accounts/sync-account/`
 - `libs/games/`
 - `libs/analysis/`
 - `libs/infra/db/queries/status.ts`

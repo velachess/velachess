@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { syncJobs } from "../schema.ts";
@@ -6,13 +6,15 @@ import { syncJobs } from "../schema.ts";
 type SyncJobRow = typeof syncJobs.$inferSelect;
 
 /**
- * The same rule as `@velachess/accounts`' `ACTIVE_SYNC_STATUSES`, written
- * a second time because this one runs inside Postgres and infra may not
- * import a business module. Held to that list by the route and worker
- * tests, not by shared code — the arrangement
- * `libs/chess/game-result.ts` documents for its own SQL counterpart.
+ * The same rule as `@velachess/accounts`' `isActiveSyncStatus`, written a
+ * second time because this one runs inside Postgres and infra may not
+ * import a business module — the arrangement `libs/chess/game-result.ts`
+ * documents for its own SQL counterpart. A literal, not parameters, and
+ * spelled exactly as the `sync_jobs_one_active_per_account` index
+ * predicate: Postgres matches `createSyncJob`'s conflict target against it
+ * to infer the arbiter. `tests/sync-jobs.test.ts` holds it to the list.
  */
-const ACTIVE_STATUSES: SyncJobRow["status"][] = ["queued", "running", "retrying"];
+const ACTIVE = sql`${syncJobs.status} in ('queued', 'running', 'retrying')`;
 
 /**
  * The account's newest job, row-locked until the caller's transaction ends.
@@ -43,62 +45,74 @@ export async function createSyncJob(
   const [row] = await tx
     .insert(syncJobs)
     .values(job)
-    .onConflictDoNothing({
-      target: syncJobs.accountId,
-      // Literal, not parameters: Postgres matches it against the index
-      // predicate to infer the arbiter.
-      where: sql`${syncJobs.status} in ('queued', 'running', 'retrying')`,
-    })
+    .onConflictDoNothing({ target: syncJobs.accountId, where: ACTIVE })
     .returning();
   return row ?? null;
 }
 
-/** Closes an active job whose delivery pg-boss already finished without it. */
+/**
+ * Closes a job pg-boss finished without the worker recording it — a crash,
+ * or the retries spent — keeping the reason the last attempt left, so a
+ * pass that ran out of retries on `incomplete` reads as that.
+ */
 export async function abandonSyncJob(tx: Database, id: string): Promise<void> {
   await tx
     .update(syncJobs)
-    .set({ status: "failed", errorCode: "internal", finishedAt: new Date() })
-    .where(and(eq(syncJobs.id, id), inArray(syncJobs.status, ACTIVE_STATUSES)));
+    .set({
+      status: "failed",
+      errorCode: sql`coalesce(${syncJobs.errorCode}, 'internal')`,
+      finishedAt: new Date(),
+    })
+    .where(and(eq(syncJobs.id, id), ACTIVE));
 }
 
 /**
- * Marks the job running for the delivery that picked it up. Any active
- * status qualifies: pg-boss hands a job out again only after the previous
- * delivery lost it.
+ * Marks the job running for the delivery that picked it up, stamping
+ * `started_at` as that delivery's claim on the row. Any active status
+ * qualifies: pg-boss hands a job out again only after the previous
+ * delivery lost it, and the new stamp is what makes the old one's writes
+ * miss (`ownedBy`).
  */
 export async function markSyncRunning(db: Database, id: string) {
   const [job] = await db
     .update(syncJobs)
     .set({ status: "running", errorCode: null, startedAt: new Date() })
-    .where(and(eq(syncJobs.id, id), inArray(syncJobs.status, ACTIVE_STATUSES)))
-    .returning({ accountId: syncJobs.accountId });
-  return job ?? null;
+    .where(and(eq(syncJobs.id, id), ACTIVE))
+    .returning({ accountId: syncJobs.accountId, startedAt: syncJobs.startedAt });
+  return job?.startedAt ? { accountId: job.accountId, startedAt: job.startedAt } : null;
 }
 
+/** The row, as long as it still carries this attempt's stamp. */
+const ownedBy = (attempt: { id: string; startedAt: Date }) =>
+  and(eq(syncJobs.id, attempt.id), eq(syncJobs.startedAt, attempt.startedAt));
+
 /**
- * Locks the job before a delivery's other writes, in the order disconnecting
- * takes its locks. False when the job is gone with its account — the caller
- * then writes nothing. Whether the delivery may write at all is pg-boss's
- * fenced settle, in the same transaction.
+ * Claims the row for this attempt before its other writes: locked, in the
+ * order disconnecting takes its locks. False when the row is gone with its
+ * account (the only way a row leaves this table), or a newer delivery
+ * re-stamped it — the attempt is obsolete and writes nothing.
  */
-export async function lockSyncJob(tx: Database, id: string): Promise<boolean> {
+export async function claimSyncAttempt(
+  tx: Database,
+  attempt: { id: string; startedAt: Date },
+): Promise<boolean> {
   const rows = await tx
     .select({ id: syncJobs.id })
     .from(syncJobs)
-    .where(eq(syncJobs.id, id))
+    .where(ownedBy(attempt))
     .for("update");
   return rows.length > 0;
 }
 
 /**
- * Records how a delivery ended, on the row `lockSyncJob` locked.
+ * Records how a delivery ended, on the row it still owns (`ownedBy`).
  * `gamesInserted` adds to earlier passes: a partial pass keeps its saves, so
  * the retry that completes inserts only the rest. `gamesFetched` is the
  * latest pass alone, since every pass fetches the whole window again.
  */
 export async function finishSyncJob(
   tx: Database,
-  id: string,
+  attempt: { id: string; startedAt: Date },
   outcome: {
     status: "succeeded" | "retrying" | "failed";
     errorCode: SyncJobRow["errorCode"];
@@ -118,7 +132,7 @@ export async function finishSyncJob(
           }),
       finishedAt: outcome.status === "retrying" ? null : new Date(),
     })
-    .where(eq(syncJobs.id, id));
+    .where(ownedBy(attempt));
 }
 
 /** Owner-scoped, like every HTTP read: someone else's job reads as absent. */

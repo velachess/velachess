@@ -25,28 +25,21 @@ export const QUEUES = {
 } as const;
 
 /**
- * What rides on each queue, and what a consumer validates before handing
- * it to a slice.
+ * What rides on the analysis queue, and what the worker validates before
+ * handing it to a slice.
  *
  * `boss.work<T>`'s generic is a type assertion and nothing more:
  * `pgboss.job.data` is `jsonb` holding whatever an older deploy, the
  * warm-up send below, or a hand-inserted row left there. The schema is the
  * declaration and the type is read off it — a payload contract between two
  * deployables has exactly one spelling.
+ *
+ * The sync queue carries no payload: its job id is the `sync_jobs` id, and
+ * the worker reads the rest from that row.
  */
 export const analysisJobDataSchema = z.object({
   gameId: z.string(),
 });
-
-export type AnalysisJobData = z.infer<typeof analysisJobDataSchema>;
-
-/** `syncJobId` is also the pg-boss job id; `accountId` rides along for logs. */
-export const syncJobDataSchema = z.object({
-  syncJobId: z.string(),
-  accountId: z.string(),
-});
-
-export type SyncJobData = z.infer<typeof syncJobDataSchema>;
 
 /** Not a real id: the warm-up payload needs a shape, not a target. */
 const NIL_UUID = "00000000-0000-0000-0000-000000000000";
@@ -117,13 +110,13 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   for (const name of Object.values(QUEUES)) {
     // Concurrent sends here race the single-connection deadlock above.
     //
-    // The payload satisfies the queue's own contract: this used to send
-    // `{}`, the single message in the system its own consumer would now
-    // reject, and it is deliverable in the window before the delete below.
+    // The payload satisfies the analysis queue's contract (sync has none):
+    // it is deliverable in the window before the delete below, and a
+    // rejected payload would dead-letter.
     // oxlint-disable-next-line eslint/no-await-in-loop
     const warmId = await boss.send(
       name,
-      { gameId: NIL_UUID, syncJobId: NIL_UUID, accountId: NIL_UUID },
+      { gameId: NIL_UUID },
       { singletonKey: "__warmup__" },
     );
     // oxlint-disable-next-line eslint/no-await-in-loop
