@@ -18,9 +18,15 @@ import { useSyncSettlementToast } from "./use-sync-settlement-toast.ts";
 const SYNC_COPY = {
   action: msg`Sync games`,
   running: msg`Syncing…`,
+  tooSoon: msg`Synced a moment ago`,
   failed: msg`Couldn't sync your games`,
   retry: msg`Try again in a moment.`,
 } as const;
+
+// Parameterised, so it lives outside the const table the way other
+// parameterised messages do. The wait is the one fact that makes this toast
+// actionable — "a moment" invites an immediate retry; a number does not.
+const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 export function SyncGamesButton() {
   const { i18n } = useLingui();
@@ -28,6 +34,16 @@ export function SyncGamesButton() {
   const { watch } = useSyncSettlementToast();
 
   const sync = useSyncGames({
+    onTooSoon: (retryAfterSeconds) => {
+      toast.add({
+        type: "info",
+        title: i18n._(SYNC_COPY.tooSoon),
+        description: i18n._({
+          ...retryIn,
+          values: { seconds: retryAfterSeconds },
+        }),
+      });
+    },
     onError: () => {
       toast.add({
         type: "error",

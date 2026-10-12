@@ -87,11 +87,17 @@ export function isSyncInProgress(
 
 /**
  * Asks the server to sync every tracked account and stops there — which
- * accounts exist, their cooldowns, and any already-active job are the
- * backend's to fold together; this button only reacts to the ids it hands
- * back, via `useSyncSettlementToast`.
+ * accounts exist, their per-account cooldowns, and any already-active job
+ * are the backend's to fold together silently; this button only reacts to
+ * the ids it hands back, via `useSyncSettlementToast`. The one exception is
+ * this route's own burst limit (shared across every tracked account, unlike
+ * the per-account cooldown): unlike a folded cooldown, it is visible here —
+ * a person clicking it manually needs to know the button heard them.
  */
-export function useSyncGames(handlers: { onError: () => void }) {
+export function useSyncGames(handlers: {
+  onTooSoon: (retryAfterSeconds: number) => void;
+  onError: () => void;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -99,12 +105,13 @@ export function useSyncGames(handlers: { onError: () => void }) {
       try {
         return await parseResponse(api.accounts.sync.$post());
       } catch (error) {
-        // The same "nothing new to watch" the backend already answers for
-        // a cooling-down account — this is the API's own burst limit
-        // saying the same thing one layer up, so it gets the same silence.
-        if (isRateLimitedError(error)) return { syncIds: [] };
+        if (isRateLimitedError(error))
+          return { syncIds: [], retryAfterSeconds: error.retryAfterSeconds ?? 60 };
         throw error;
       }
+    },
+    onSuccess: (answer) => {
+      if ("retryAfterSeconds" in answer) handlers.onTooSoon(answer.retryAfterSeconds);
     },
     onError: handlers.onError,
     // Whatever's now in flight is a job the accounts list as active.

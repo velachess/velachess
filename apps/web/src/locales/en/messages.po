@@ -37,6 +37,7 @@ msgstr "{opponent} vs you"
 msgid "{platform} is connected"
 msgstr "{platform} is connected"
 
+#: src/games/import/sync-games-button.tsx:29
 #: src/games/request-analysis/analysis-status.tsx:19
 #: src/settings/connections/connections-screen.tsx:80
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
@@ -265,7 +266,7 @@ msgstr "Couldn't save that picture. Try again."
 msgid "Couldn't save that. Try again."
 msgstr "Couldn't save that. Try again."
 
-#: src/games/import/sync-games-button.tsx:21
+#: src/games/import/sync-games-button.tsx:22
 msgid "Couldn't sync your games"
 msgstr "Couldn't sync your games"
 
@@ -799,6 +800,7 @@ msgstr "Step forward to walk through the game."
 msgid "Sync games"
 msgstr "Sync games"
 
+#: src/games/import/sync-games-button.tsx:21
 #: src/settings/connections/connections-screen.tsx:63
 msgid "Synced a moment ago"
 msgstr "Synced a moment ago"
@@ -874,7 +876,7 @@ msgstr "Too many analyses at once."
 msgid "Try again"
 msgstr "Try again"
 
-#: src/games/import/sync-games-button.tsx:22
+#: src/games/import/sync-games-button.tsx:23
 #: src/settings/connections/connections-screen.tsx:65
 #: src/settings/connections/connections-screen.tsx:75
 msgid "Try again in a moment."
