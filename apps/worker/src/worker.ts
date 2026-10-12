@@ -33,13 +33,20 @@ export interface WorkerDeps {
 }
 
 export class Worker {
-  constructor(private readonly deps: WorkerDeps) {}
+  // A plain field, not a parameter property: `main.ts` runs under Node's
+  // `--experimental-strip-types`, which strips types only and rejects the
+  // TypeScript-only `constructor(private deps)` shorthand.
+  readonly #deps: WorkerDeps;
+
+  constructor(deps: WorkerDeps) {
+    this.#deps = deps;
+  }
 
   /** Registration is awaited: startup fails loudly if a handler cannot
    * register instead of logging "consuming" over a dead one. `boss.start`
    * is a no-op on a boss already started (the test harness's). */
   async start(): Promise<void> {
-    const { boss, db, log = workerLogger } = this.deps;
+    const { boss, db, log = workerLogger } = this.#deps;
     await boss.start();
     await ensureQueues(boss);
 
@@ -54,7 +61,7 @@ export class Worker {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");
         // oxlint-disable-next-line eslint/no-await-in-loop
-        await syncAccount(buildSyncAccountDeps(db, this.deps.sync), job).catch(
+        await syncAccount(buildSyncAccountDeps(db, this.#deps.sync), job).catch(
           failed(log, fields),
         );
       }
@@ -70,7 +77,7 @@ export class Worker {
         const fields = { queue: QUEUES.analysis, jobId: job.id, gameId };
         log.info(fields, "job start");
         // oxlint-disable-next-line eslint/no-await-in-loop
-        await completeAnalysis(buildAnalyzeDeps(db, this.deps.analyze), gameId).catch(
+        await completeAnalysis(buildAnalyzeDeps(db, this.#deps.analyze), gameId).catch(
           failed(log, fields),
         );
       }
@@ -79,7 +86,7 @@ export class Worker {
 
   /** In-flight jobs finish, new fetches stop. */
   stop(): Promise<void> {
-    return this.deps.boss.stop({ graceful: true });
+    return this.#deps.boss.stop({ graceful: true });
   }
 }
 
