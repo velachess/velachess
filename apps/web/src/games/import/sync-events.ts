@@ -43,7 +43,7 @@ export function onSyncSettled(listener: (settled: SettledSync) => void): () => v
 const settledPayloadSchema = z.object({ syncId: z.string(), accountId: z.string() });
 
 function isSettledEventName(
-  event: string,
+  event: SseMessage["event"],
 ): event is keyof typeof SETTLED_STATUS_BY_EVENT {
   return event in SETTLED_STATUS_BY_EVENT;
 }
