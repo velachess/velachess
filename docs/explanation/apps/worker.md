@@ -53,8 +53,13 @@ job's `gameId`, parsed before the log line) — injectable `log` in
 `WorkerDeps`; console by default, silent in tests. pg-boss's own job table
 records the rest (state, output, timings).
 There are deliberately NO DLQ handlers: consuming a dead letter completes
-it and destroys the redrive option — dead jobs stay queryable in
-`pgboss.job` and observable operationally. Queue-level
+it and destroys the operator's options — dead jobs stay queryable in
+`pgboss.job` and visible in the pg-boss dashboard (`pnpm queue:dashboard`,
+see [run locally](../../how-to/run-locally.md#queue-dashboard)). Reviving
+one differs per queue: a failed **sync** job is _retried_ (same id, which
+is the `sync_jobs` id, so the row recovers on its own); a _redrive_ of the
+`sync-dlq` copy mints a new id the slice resolves to nothing. An
+**analysis** job carries its `gameId`, so either works. Queue-level
 `heartbeatSeconds` means a worker that dies mid-job is detected by the
 monitor and the job retried, without handler cooperation (`boss.work`
 auto-refreshes heartbeats).

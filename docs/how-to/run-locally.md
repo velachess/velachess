@@ -37,6 +37,36 @@ pnpm infra:dev:prune  # stop it and delete the volume
 After adding a migration, apply it with `pnpm db:migrate` — see
 [add a migration](add-a-migration.md).
 
+## Queue dashboard
+
+```bash
+pnpm queue:dashboard   # http://127.0.0.1:3002
+```
+
+[`@pg-boss/dashboard`](https://pgboss.io/dashboard) over the same
+`DATABASE_URL` the apps read (`.env`, then `.env.local`), bound to
+loopback. It is a root dev dependency and never part of an app or image:
+queues, job states, attempts, errors and the `sync-dlq` / `analysis-dlq`
+copies, with retry, cancel, resume and delete per job. Each dashboard
+release pairs with one pg-boss schema version — 1.11.x with pg-boss
+12.37.1 — so bump the two together.
+
+Locally the dashboard is mutable, so retries can be exercised. The same
+binary serves a later deployment with no code of ours: the dashboard reads
+`PGBOSS_DASHBOARD_READ_ONLY=1` (every non-GET answers 403, destructive
+controls hidden) and `PGBOSS_DASHBOARD_AUTH_USERNAME` /
+`PGBOSS_DASHBOARD_AUTH_PASSWORD` (basic auth, both or neither), and the
+script passes the environment through. Read-only plus credentials is the
+intended production default; lifting read-only is the controlled step for
+a recovery.
+
+To revive a dead-lettered **sync** job, retry the `failed` job in the
+`sync` queue: its id is the `sync_jobs` id, and the row (still `retrying`,
+or already closed by a poll — then the retry is a no-op) recovers through
+the normal delivery. Redriving the `sync-dlq` copy creates a job with a
+new id, which the worker cannot resolve to a sync. An **analysis** job
+carries its `gameId`, so retry and redrive both work.
+
 ## Everything in containers
 
 `docker/docker-compose.yml` is the full stack: Postgres, a one-shot

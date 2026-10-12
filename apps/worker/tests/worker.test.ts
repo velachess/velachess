@@ -393,6 +393,79 @@ describe("sync deliveries", () => {
     expect(await jobOf(job)).toMatchObject({ status: "succeeded", gamesInserted: 2 });
   });
 
+  it("a dead-lettered sync retried by an operator runs again and recovers", async () => {
+    // What the dashboard's "retry" on the failed job does: the job keeps
+    // its id — the sync job's id — so the row, still `retrying`, picks up
+    // where it left off once the provider answers.
+    const job = await newSyncJob();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const delivery = await deliver(job);
+      await expect(sync({ fetch: brokenMonth }, delivery)).rejects.toThrow(/incomplete/);
+      await h.boss.fail(QUEUES.sync, delivery);
+    }
+    expect(await bossStateOf(job)).toMatchObject({ state: "failed" });
+    // The dead letter is the copy an operator sees.
+    expect(await h.boss.findJobs(QUEUES.syncDlq)).toContainEqual(
+      expect.objectContaining({ sourceId: job.id }),
+    );
+
+    await h.boss.retry(QUEUES.sync, job.id);
+    await sync(fixture, await deliver(job));
+    expect(await jobOf(job)).toMatchObject({
+      status: "succeeded",
+      errorCode: null,
+      gamesInserted: 2,
+    });
+  });
+
+  it("redriving the sync dead-letter queue cannot revive a sync", async () => {
+    // A redrive mints a new job id; the slice resolves it to no sync job
+    // and the delivery completes without work. The operator's move is the
+    // retry above.
+    const job = await newSyncJob();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const delivery = await deliver(job);
+      await expect(sync({ fetch: brokenMonth }, delivery)).rejects.toThrow(/incomplete/);
+      await h.boss.fail(QUEUES.sync, delivery);
+    }
+
+    // The dead-letter queue holds every sync this file let die; the
+    // redriven copy of this one is told apart by its singleton key.
+    expect(await h.boss.redrive(QUEUES.syncDlq)).toBeGreaterThanOrEqual(1);
+    const redriven = await h.boss.fetch(QUEUES.sync, {
+      batchSize: 50,
+      ignoreStartAfter: true,
+      includeMetadata: true,
+    });
+    const copy = redriven.find((candidate) => candidate.singletonKey === job.accountId);
+    expect(copy).toBeDefined();
+    expect(copy!.id).not.toBe(job.id);
+
+    await expect(
+      sync(fixture, { id: copy!.id, signal: new AbortController().signal }),
+    ).resolves.toBeUndefined();
+    expect(await jobOf(job)).toMatchObject({
+      status: "retrying",
+      errorCode: "incomplete",
+    });
+    await h.boss.complete(QUEUES.sync, redriven);
+  });
+
+  it("retrying a job polling already closed does nothing", async () => {
+    const job = await newSyncJob();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const delivery = await deliver(job);
+      await expect(sync({ fetch: brokenMonth }, delivery)).rejects.toThrow(/incomplete/);
+      await h.boss.fail(QUEUES.sync, delivery);
+    }
+    expect(await jobAsPolled(job)).toMatchObject({ status: "failed" });
+
+    await h.boss.retry(QUEUES.sync, job.id);
+    await expect(sync(fixture, await deliver(job))).resolves.toBeUndefined();
+    expect(await jobOf(job)).toMatchObject({ status: "failed", errorCode: "incomplete" });
+    expect(await gamesWithStatus(job.userId, job.accountId)).toEqual([]);
+  });
+
   it("an account deleted mid-sync gets no games back", async () => {
     const job = await newSyncJob();
     const held = heldFetch(chessComFixtureFetch());
@@ -412,6 +485,37 @@ describe("sync deliveries", () => {
 });
 
 describe("analysis deliveries", () => {
+  it("a dead-lettered analysis job redrives with its payload intact", async () => {
+    // Unlike sync, the analysis payload says which game: a redrive from
+    // the dashboard puts a deliverable job back on the queue.
+    const games = (await gamesWithStatus(userId, accountId))!;
+    const gameId = games[0]!.id;
+    // Ahead of whatever this file left on the queue; priority survives the redrive.
+    const priority = 9_999_999;
+    const id = await h.boss.send(
+      QUEUES.analysis,
+      { gameId },
+      { retryLimit: 0, priority },
+    );
+    const [delivery] = await h.boss.fetch(QUEUES.analysis, {
+      ignoreStartAfter: true,
+      minPriority: priority,
+    });
+    expect(delivery?.id).toBe(id);
+    await h.boss.fail(QUEUES.analysis, delivery!, new Error("engine crashed"));
+    expect(await h.boss.findJobs(QUEUES.analysisDlq)).toContainEqual(
+      expect.objectContaining({ sourceId: id, data: { gameId } }),
+    );
+
+    expect(await h.boss.redrive(QUEUES.analysisDlq)).toBe(1);
+    const [redriven] = await h.boss.fetch<{ gameId: string }>(QUEUES.analysis, {
+      ignoreStartAfter: true,
+      minPriority: priority,
+    });
+    expect(redriven?.data).toEqual({ gameId });
+    await h.boss.complete(QUEUES.analysis, redriven!);
+  });
+
   it("running with no persisted report throws — the retry schedule owns the wait", async () => {
     // An "interactive" holder owns the lock and hasn't persisted: the
     // delivery must fail (for pg-boss to redeliver later), never complete.

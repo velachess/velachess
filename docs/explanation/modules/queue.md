@@ -68,7 +68,9 @@ in-process: PGlite runs both the domain schema and the `pgboss` schema.
   already has a job in retry state can skip remaining retries and land in
   failed. Acceptable here because delivery state is not domain truth —
   recovery is a fresh enqueue, which stately permits once nothing is
-  queued or active.
+  queued or active, or an operator's retry of the failed job from the
+  dashboard (`pnpm queue:dashboard`; a sync job must be retried, not
+  redriven, because its id is the `sync_jobs` id).
 - **Execution** — owning an analysis run is decided by a session advisory
   lock in `libs/infra/db`, invoked by application rather than by the queue. A job being delivered
   twice (crash-retry) or a user clicking while a worker runs can never

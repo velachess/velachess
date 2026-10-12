@@ -44,7 +44,10 @@ export class Worker {
     await ensureQueues(boss);
 
     // No DLQ handlers on purpose: consuming a dead letter completes it and
-    // destroys the redrive option. Dead jobs stay queryable (pgboss.job).
+    // destroys the operator's options. Dead jobs stay visible in the
+    // dashboard (`pnpm queue:dashboard`): a failed sync is revived by
+    // *retrying* it there, which keeps its id — the sync job's id — while
+    // a redrive of the DLQ copy mints a new id the slice cannot resolve.
 
     await boss.work(QUEUES.sync, async (jobs) => {
       for (const job of jobs) {
