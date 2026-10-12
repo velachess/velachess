@@ -7,8 +7,26 @@
  */
 import { describe, expect, it } from "vitest";
 
+import type { SyncJob } from "@velachess/infra-db";
+
 import { syncAllAccounts, type SyncAllAccountsDeps } from "../index.ts";
 import type { RequestSyncOutcome } from "../request-sync/request-sync.ts";
+
+function aJob(id: string): SyncJob {
+  return {
+    id,
+    userId: "me",
+    accountId: "account",
+    trigger: "manual",
+    status: "queued",
+    gamesFetched: null,
+    gamesInserted: null,
+    errorCode: null,
+    createdAt: new Date(),
+    startedAt: null,
+    finishedAt: null,
+  };
+}
 
 function anAccountList(
   accountIds: string[],
@@ -28,9 +46,9 @@ function anAccountList(
 describe("syncAllAccounts", () => {
   it("answers only the accounts that actually started a job", async () => {
     const { deps, requested } = anAccountList(["a", "b", "c"], {
-      a: { status: "accepted", job: { id: "job-a" } as never },
+      a: { status: "accepted", job: aJob("job-a") },
       b: { status: "too-soon", retryAfterSeconds: 42 },
-      c: { status: "accepted", job: { id: "job-c" } as never },
+      c: { status: "accepted", job: aJob("job-c") },
     });
 
     const result = await syncAllAccounts(deps, "me");

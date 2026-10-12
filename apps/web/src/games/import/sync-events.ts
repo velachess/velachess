@@ -1,6 +1,7 @@
 import { apiBaseUrl, reportUnauthorized } from "../../api/index.ts";
 import { EventSourcePlus } from "../../libs/event-source.ts";
 import type { QueryClientType } from "../../libs/react-query.ts";
+import { z } from "../../libs/zod.ts";
 import { gamesQueryKey } from "../list/queries.ts";
 import { trackedAccountsQuery } from "./queries.ts";
 
@@ -25,21 +26,18 @@ export interface SettledSync {
 
 const settledListeners = new Set<(settled: SettledSync) => void>();
 
-/**
- * Watches every sync's settlement, without opening a second stream — the
- * one `startSyncEvents` already holds is reused. A reconnection's catch-up
- * refresh never reaches this: the server cannot say which ids settled
- * during the gap, so a watch spanning one never resolves here, even though
- * `refresh()` still brings the data current.
- */
+/** Reuses `startSyncEvents`' one stream. A reconnection's catch-up
+ * `refresh()` never reaches this — no precise ids to resolve against. */
 export function onSyncSettled(listener: (settled: SettledSync) => void): () => void {
   settledListeners.add(listener);
   return () => settledListeners.delete(listener);
 }
 
+const settledPayloadSchema = z.object({ syncId: z.string(), accountId: z.string() });
+
 function parseSettled(message: { event: string; data: string }): SettledSync | null {
   try {
-    const payload = JSON.parse(message.data) as { syncId: string; accountId: string };
+    const payload = settledPayloadSchema.parse(JSON.parse(message.data));
     return {
       syncId: payload.syncId,
       accountId: payload.accountId,

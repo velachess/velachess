@@ -12,6 +12,10 @@ import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
 
+/** Fallback wait when a 429 carries none — mirrors the server's own
+ * `SYNC_COOLDOWN_SECONDS`. */
+const FALLBACK_RETRY_SECONDS = 60;
+
 /** Lichess serves its flairs from one public asset directory keyed by the
  * id the API reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`),
  * rendered as webp by its own frontend. Only the id crosses the API; the
@@ -85,15 +89,9 @@ export function isSyncInProgress(
   return isPending || accounts.some((account) => isSyncActive(account.syncStatus));
 }
 
-/**
- * Asks the server to sync every tracked account and stops there — which
- * accounts exist, their per-account cooldowns, and any already-active job
- * are the backend's to fold together silently; this button only reacts to
- * the ids it hands back, via `useSyncSettlementToast`. The one exception is
- * this route's own burst limit (shared across every tracked account, unlike
- * the per-account cooldown): unlike a folded cooldown, it is visible here —
- * a person clicking it manually needs to know the button heard them.
- */
+/** Syncs every tracked account in one request. Per-account cooldowns and
+ * already-active jobs are folded in silently by the backend; only this
+ * route's own rate limit surfaces as `onTooSoon`. */
 export function useSyncGames(handlers: {
   onTooSoon: (retryAfterSeconds: number) => void;
   onError: () => void;
@@ -106,7 +104,10 @@ export function useSyncGames(handlers: {
         return await parseResponse(api.accounts.sync.$post());
       } catch (error) {
         if (isRateLimitedError(error))
-          return { syncIds: [], retryAfterSeconds: error.retryAfterSeconds ?? 60 };
+          return {
+            syncIds: [],
+            retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS,
+          };
         throw error;
       }
     },
@@ -153,7 +154,7 @@ async function requestSync(accountId: string) {
     // arrives as the same class with the same wait. A 429 that somehow
     // carried no wait falls back to the cooldown's own window.
     if (isRateLimitedError(error))
-      return { retryAfterSeconds: error.retryAfterSeconds ?? 60 };
+      return { retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS };
     throw error;
   }
 }

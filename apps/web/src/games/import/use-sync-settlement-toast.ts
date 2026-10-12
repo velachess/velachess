@@ -11,12 +11,8 @@ const SETTLEMENT_COPY = {
   failed: msg`Couldn't finish syncing`,
 } as const;
 
-/**
- * Toasts once, when every sync id a caller handed to `watch` has settled —
- * success if all of them did, error if any failed. Nothing toasts for a
- * sync nobody here asked for (an automatic sync, or one from another tab):
- * those ids never enter `watch`, so their settlement passes through unseen.
- */
+/** One toast once every watched id settles — success if all did, error if
+ * any failed. An unwatched (automatic) sync's settlement stays silent. */
 export function useSyncSettlementToast() {
   const { i18n } = useLingui();
   const pending = useRef(new Set<string>());
