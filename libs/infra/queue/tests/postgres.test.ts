@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * The sync settle on the production driver path: pg-boss SQL bound through
+ * The sync enqueue on the production driver path: pg-boss SQL bound through
  * drizzle on postgres-js, which PGlite does not exercise. Runs only against
  * a Postgres server (`DATABASE_URL`); CI's Postgres job runs it.
  */
@@ -35,29 +35,23 @@ describe.skipIf(!url)("sync settle on Postgres", () => {
   });
   afterAll(() => boss.stop({ graceful: false }));
 
-  it("an old delivery can neither complete nor fail the retry; the retry settles in its transaction", async () => {
-    const id = randomUUID();
-    await queue.enqueue(db, { id, accountId: `account-${id}` });
-    const old = await deliverSyncJob(boss, id);
-    await boss.fail(QUEUES.sync, id);
-    const current = await deliverSyncJob(boss, id);
-
-    expect(await queue.complete(db, old)).toBe(false);
-    expect(await queue.fail(db, old)).toBe(false);
-    expect(await queue.isLive(db, id)).toBe(true);
-
+  it("sends only inside a transaction that commits, and reads the delivery's state back", async () => {
+    const rolledBack = randomUUID();
     await expect(
       db.transaction(async (tx) => {
-        expect(await queue.fail(tx, current)).toBe(true);
-        throw new Error("writes failed");
+        await queue.enqueue(tx, { id: rolledBack, accountId: `account-${rolledBack}` });
+        throw new Error("job row failed");
       }),
-    ).rejects.toThrow("writes failed");
-    expect(await db.transaction((tx) => queue.fail(tx, current))).toBe(true);
+    ).rejects.toThrow("job row failed");
+    expect(await queue.isLive(db, rolledBack)).toBe(false);
+
+    const id = randomUUID();
+    await db.transaction((tx) => queue.enqueue(tx, { id, accountId: `account-${id}` }));
     expect(await queue.isLive(db, id)).toBe(true);
 
-    const last = await deliverSyncJob(boss, id);
-    expect(last.retryCount).toBe(2);
-    expect(await db.transaction((tx) => queue.complete(tx, last))).toBe(true);
+    const delivery = await deliverSyncJob(boss, id);
+    expect(delivery.id).toBe(id);
+    await boss.complete(QUEUES.sync, delivery);
     expect(await queue.isLive(db, id)).toBe(false);
   });
 });

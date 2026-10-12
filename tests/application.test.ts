@@ -54,6 +54,7 @@ import {
   type SyncDeps,
 } from "@velachess/accounts";
 import { completeAnalysis, type AnalyzeDeps } from "@velachess/analysis";
+import { QUEUES } from "@velachess/infra-queue";
 
 import { LISTER_USERNAME, LOOPER_USERNAME } from "@velachess/fixtures";
 import {
@@ -88,8 +89,6 @@ function processSyncDeps(db: Database, fetch?: SyncDeps["fetch"]): ProcessSyncDe
     saveGames,
     updateTrackedAccountCursor,
     markTrackedAccountSynced,
-    completeDelivery: (tx, delivery) => h.syncQueue.complete(tx, delivery),
-    failDelivery: (tx, delivery) => h.syncQueue.fail(tx, delivery),
     ...(fetch ? { fetch } : {}),
   };
 }
@@ -109,15 +108,12 @@ function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAcco
   };
 }
 
-/** Runs a sync job the way the worker's first delivery would. */
+/** Runs a sync job the way the worker's first delivery would: the slice
+ * returns, so pg-boss completes the job. */
 async function runSync(syncJobId: string, fetch?: SyncDeps["fetch"]) {
   const job = await deliverSyncJob(h.boss, syncJobId);
-  await processSync(processSyncDeps(h.db, fetch), {
-    syncJobId,
-    retryCount: job.retryCount,
-    retryLimit: job.retryLimit,
-    signal: job.signal,
-  });
+  await processSync(processSyncDeps(h.db, fetch), job);
+  await h.boss.complete(QUEUES.sync, job);
 }
 
 /** A manual sync of an account: its job, the worker's run of it, the result. */

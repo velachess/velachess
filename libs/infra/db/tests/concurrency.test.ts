@@ -121,10 +121,10 @@ describe.skipIf(!url)("concurrent writers on Postgres", async () => {
   it("a disconnect during a sync's final write waits for it instead of deadlocking", async () => {
     const owner = await anAccount();
     const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
-    await markSyncRunning(db, job.id);
+    const run = (await markSyncRunning(db, job.id))!;
     // The worker's commit order: its job first, then the games.
     const sync = heldTransaction(
-      (tx) => lockSyncJob(tx, job.id),
+      (tx) => lockSyncJob(tx, { id: job.id, startedAt: run.startedAt }),
       (tx) => saveGames(tx, [lateGame], owner),
     );
     await sync.didFirst;

@@ -2,9 +2,10 @@
 
 Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
 
-- Consumers unpack a typed job and invoke a business-module slice through its
+- Handlers unpack a typed job and invoke a business-module slice through its
   `index.ts`. They do not own retry, backoff, heartbeat, deadlines,
-  deduplication, polling, or dead letters.
+  deduplication, polling, dead letters, or settlement: a handler that
+  returns completes its job, one that throws fails it.
 - A job payload is validated before any domain call, not asserted. `boss.work<T>`
   and a `!` on `job.data` are compile-time claims: the queue carries whatever an
   older deploy, a warm-up send, or a hand-inserted row left there. A payload that
@@ -30,8 +31,8 @@ the other's composition, even for identical-looking adapter code — see
 `composition/accounts.ts` for the duplicated-by-design pair). Each file
 adapts `main.ts`'s real infra (`db`, `analysisQueue`, the engine session
 factory) and other modules' `index.ts` capabilities into the narrow
-dependency shape a consumer's slice declared. `consumers/*.ts` call the
-composed builder, never construct a slice's deps inline.
+dependency shape a handler's slice declared. The handlers in `worker.ts`
+call the composed builder, never construct a slice's deps inline.
 
 Read `docs/explanation/apps/worker.md` and
 `docs/explanation/modules/queue.md` before changing registration or delivery.

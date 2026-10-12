@@ -23,6 +23,7 @@ import {
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
+import { QUEUES } from "@velachess/infra-queue";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -126,7 +127,8 @@ export async function createApiHarness(
   };
 
   // The worker's sync composition, restated like `analyze` above, run on
-  // the job's real pg-boss delivery.
+  // the job's real pg-boss delivery; the slice returns, so pg-boss
+  // completes the job, as it would under `boss.work`.
   const runSync = async (syncId: string) => {
     const job = await deliverSyncJob(harness.boss, syncId);
     await processSync(
@@ -139,17 +141,11 @@ export async function createApiHarness(
         saveGames,
         updateTrackedAccountCursor,
         markTrackedAccountSynced,
-        completeDelivery: (tx, delivery) => harness.syncQueue.complete(tx, delivery),
-        failDelivery: (tx, delivery) => harness.syncQueue.fail(tx, delivery),
         ...(sync?.fetch ? { fetch: sync.fetch } : {}),
       },
-      {
-        syncJobId: syncId,
-        retryCount: job.retryCount,
-        retryLimit: job.retryLimit,
-        signal: job.signal,
-      },
+      job,
     );
+    await harness.boss.complete(QUEUES.sync, job);
   };
 
   const app = createApp(deps);

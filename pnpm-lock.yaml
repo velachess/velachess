@@ -346,9 +346,6 @@ importers:
       stockfish:
         specifier: ^19.0.0
         version: 19.0.1
-      zod:
-        specifier: 4.4.3
-        version: 4.4.3
 
   libs/accounts:
     dependencies:

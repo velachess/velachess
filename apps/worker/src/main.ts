@@ -1,5 +1,5 @@
 /**
- * Production entrypoint: postgres-backed deps, pg-boss consumers, graceful
+ * Production entrypoint: postgres-backed deps, the pg-boss worker, graceful
  * shutdown. Same image as the api — different command.
  */
 
@@ -12,9 +12,9 @@ import { createDb } from "@velachess/infra-db";
 import { EngineSession } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { logger } from "@velachess/infra-logger";
-import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
+import { createBoss } from "@velachess/infra-queue";
 
-import { registerConsumers } from "./worker.ts";
+import { Worker } from "./worker.ts";
 
 const require = createRequire(import.meta.url);
 const workerLogger = logger.child({ component: "worker" });
@@ -38,8 +38,6 @@ async function makeSession(): Promise<EngineSession> {
 const db = createDb(databaseUrl);
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => workerLogger.error({ error }, "pg-boss error"));
-await boss.start();
-await ensureQueues(boss);
 
 const lockSql = postgres(databaseUrl, { max: 1 });
 const lock = sessionAdvisoryLock({
@@ -49,21 +47,20 @@ const lock = sessionAdvisoryLock({
   },
 });
 
-// Awaited: if a consumer cannot register, the process dies loudly here
-// instead of logging "consuming" over dead workers.
-await registerConsumers(boss, {
+const worker = new Worker({
+  boss,
   db,
-  syncQueue: makeSyncQueue(boss),
   analyze: { makeSession, tryAcquireLock: (key) => lock.tryAcquire(key) },
   log: workerLogger,
 });
+await worker.start();
 
 workerLogger.info("worker consuming");
 
 async function shutdown() {
-  // Graceful: in-flight jobs finish, new fetches stop, then the pinned
-  // lock connection drains (sql.end waits for queries) before exit.
-  await boss.stop({ graceful: true });
+  // In-flight jobs finish, then the pinned lock connection drains
+  // (sql.end waits for queries) before exit.
+  await worker.stop();
   await lockSql.end({ timeout: 5 });
   process.exit(0);
 }

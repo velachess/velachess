@@ -287,8 +287,9 @@ export const syncJobErrorEnum = pgEnum("sync_job_error", [
 /**
  * One request to bring an account's archive up to date — the durable record
  * of its status and progress. pg-boss delivers it (the queue job shares this
- * row's id); it does not own its outcome. A delivery's writes commit with
- * its pg-boss settle, which pg-boss fences to the attempt it holds.
+ * row's id); it does not own its outcome. `started_at` is the delivering
+ * attempt's stamp: a newer delivery re-stamps it, and an older one's writes
+ * are conditional on the stamp they took.
  */
 export const syncJobs = pgTable(
   "sync_jobs",

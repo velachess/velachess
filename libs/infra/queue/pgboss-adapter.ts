@@ -77,20 +77,14 @@ export function makeAnalysisQueue(boss: PgBoss, db: Database): AnalysisQueue {
   };
 }
 
-/**
- * pg-boss resolves settles with `{ jobs, requested, affected }` and documents
- * `affected: 0` as the answer to a fenced-out attempt, but its published
- * `CommandResponse` type declares no fields.
- */
-const affectedOne = (response: object) =>
-  (response as { affected: number }).affected === 1;
-
 export function makeSyncQueue(boss: PgBoss): SyncQueue {
   return {
     async enqueue(dbOrTx, job) {
+      // No payload: the job id is the sync job's id, the account is its
+      // singleton key, and the worker reads everything else from the row.
       const sent = await boss.send(
         QUEUES.sync,
-        { syncJobId: job.id, accountId: job.accountId },
+        {},
         { id: job.id, singletonKey: job.accountId, db: asBossDb(dbOrTx) },
       );
       if (!sent) throw new Error(`sync job ${job.id} was not enqueued`);
@@ -101,21 +95,6 @@ export function makeSyncQueue(boss: PgBoss): SyncQueue {
         .from(bossJob)
         .where(and(eq(bossJob.name, QUEUES.sync), eq(bossJob.id, jobId)));
       return row !== undefined && LIVE_STATES.has(row.state ?? "");
-    },
-    async complete(dbOrTx, delivery) {
-      const settled = await boss.complete(QUEUES.sync, delivery, null, {
-        db: asBossDb(dbOrTx),
-      });
-      return affectedOne(settled);
-    },
-    // No output: pg-boss hands a settle's output to the adapter as an
-    // object, which postgres-js cannot bind. The worker logs the error and
-    // the sync job records its code.
-    async fail(dbOrTx, delivery) {
-      const settled = await boss.fail(QUEUES.sync, delivery, null, {
-        db: asBossDb(dbOrTx),
-      });
-      return affectedOne(settled);
     },
   };
 }

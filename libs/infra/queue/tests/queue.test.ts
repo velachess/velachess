@@ -135,45 +135,17 @@ describe("sync queue port", () => {
     const queue = makeSyncQueue(boss);
     const last = randomUUID();
     // No retries left: the same path pg-boss takes when a last attempt expires.
-    await boss.send(QUEUES.sync, { syncJobId: last }, { id: last, retryLimit: 0 });
+    await boss.send(QUEUES.sync, {}, { id: last, retryLimit: 0 });
     const fetched = await boss.fetch(QUEUES.sync, { batchSize: 10 });
     expect(fetched.map((job) => job.id)).toContain(last);
     await boss.fail(QUEUES.sync, last);
 
     expect(await queue.isLive(db, last)).toBe(false);
-    const dead = await pglite.query<{ data: { syncJobId: string } }>(
-      "select data from pgboss.job where name = $1",
+    const dead = await pglite.query<{ source_id: string }>(
+      "select source_id from pgboss.job where name = $1",
       [QUEUES.syncDlq],
     );
-    expect(dead.rows.map((row) => row.data.syncJobId)).toContain(last);
-  });
-
-  it("settles a delivery only inside a committing transaction, fenced to its attempt", async () => {
-    const queue = makeSyncQueue(boss);
-    const id = randomUUID();
-    await queue.enqueue(db, syncJob(id, "fenced-account"));
-    const old = await deliverSyncJob(boss, id);
-    // pg-boss's supervisor takes the job back (a missed heartbeat), and a
-    // retry picks it up while the old delivery is still running.
-    await boss.fail(QUEUES.sync, id, new Error("heartbeat timeout"));
-    const current = await deliverSyncJob(boss, id);
-    expect([old.retryCount, current.retryCount]).toEqual([0, 1]);
-
-    // The old delivery can neither complete nor fail the retry.
-    expect(await queue.complete(db, old)).toBe(false);
-    expect(await queue.fail(db, old)).toBe(false);
-    expect(await jobState(id)).toEqual({ state: "active", retry_count: 1 });
-
-    await expect(
-      db.transaction(async (tx) => {
-        expect(await queue.complete(tx, current)).toBe(true);
-        throw new Error("writes failed");
-      }),
-    ).rejects.toThrow("writes failed");
-    expect(await jobState(id)).toEqual({ state: "active", retry_count: 1 });
-
-    expect(await db.transaction((tx) => queue.complete(tx, current))).toBe(true);
-    expect(await jobState(id)).toMatchObject({ state: "completed" });
+    expect(dead.rows.map((row) => row.source_id)).toContain(last);
   });
 
   it("a delivery pg-boss ended is no longer live", async () => {

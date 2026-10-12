@@ -25,7 +25,7 @@ import { completeAnalysis } from "@velachess/analysis";
 import { logger } from "@velachess/infra-logger";
 import { chessComFixtureFetch, poll } from "@velachess/test-utils";
 
-import { registerConsumers } from "../apps/worker/src/worker.ts";
+import { Worker } from "../apps/worker/src/worker.ts";
 import {
   createApiHarness,
   type ApiHarness,
@@ -47,13 +47,13 @@ beforeAll(async () => {
   owner = (await harness.signUp("owner@e2e.test")).app;
   // The worker rides the same boss/db — exactly the deployment shape
   // (api + worker containers, one Postgres — docker/docker-compose.yml).
-  await registerConsumers(harness.boss, {
+  await new Worker({
+    boss: harness.boss,
     db: harness.db,
-    syncQueue: harness.syncQueue,
     analyze: harness.analyze,
     sync: { fetch: chessComFixtureFetch() },
     log: testLogger,
-  });
+  }).start();
 }, 120_000);
 
 afterAll(async () => {
