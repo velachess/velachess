@@ -35,18 +35,18 @@ describe("a throttled sync", () => {
     addGames(aGame({ blackName: "already-here" }));
   });
 
-  it("lands in the same calm toast as the domain cooldown", async () => {
+  it("lands in the same quiet no-op as the domain cooldown", async () => {
     // The API rate limit and the sync cooldown are different mechanisms
-    // on the server and the same fact to the person: come back shortly.
-    server.use(http.post("/api/accounts/:id/sync", () => rateLimited(37)));
+    // on the server and the same fact to the person: nothing new started,
+    // so the button just returns to idle rather than claiming a failure.
+    server.use(http.post("/api/accounts/sync", () => rateLimited(37)));
 
     const { user } = await renderApp();
     await screen.findByText("already-here");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
 
-    expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
-    expect(screen.getByText("Try again in 37 seconds.")).toBeInTheDocument();
-    expect(screen.queryByText("Couldn't reach that account")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
+    expect(screen.queryByText("Couldn't sync your games")).not.toBeInTheDocument();
   });
 });

@@ -17,6 +17,41 @@ import { trackedAccountsQuery } from "./queries.ts";
 export const SYNC_SETTLED_EVENT_NAMES = ["sync.completed", "sync.failed"] as const;
 const SETTLED_EVENTS: ReadonlySet<string> = new Set(SYNC_SETTLED_EVENT_NAMES);
 
+export interface SettledSync {
+  syncId: string;
+  accountId: string;
+  status: "succeeded" | "failed";
+}
+
+const settledListeners = new Set<(settled: SettledSync) => void>();
+
+/**
+ * Watches every sync's settlement, without opening a second stream — the
+ * one `startSyncEvents` already holds is reused. A reconnection's catch-up
+ * refresh never reaches this: the server cannot say which ids settled
+ * during the gap, so a watch spanning one never resolves here, even though
+ * `refresh()` still brings the data current.
+ */
+export function onSyncSettled(listener: (settled: SettledSync) => void): () => void {
+  settledListeners.add(listener);
+  return () => settledListeners.delete(listener);
+}
+
+function parseSettled(message: { event: string; data: string }): SettledSync | null {
+  try {
+    const payload = JSON.parse(message.data) as { syncId: string; accountId: string };
+    return {
+      syncId: payload.syncId,
+      accountId: payload.accountId,
+      status: message.event === SYNC_SETTLED_EVENT_NAMES[0] ? "succeeded" : "failed",
+    };
+  } catch {
+    // A malformed frame still leaves `refresh()` to bring the data current;
+    // there is simply nothing precise to tell a watcher here.
+    return null;
+  }
+}
+
 /**
  * The one stream the app keeps on `GET /syncs/events`. A sync runs in the
  * worker whatever the browser does; this only hears when one settles and
@@ -39,7 +74,10 @@ export function startSyncEvents(queryClient: QueryClientType): () => void {
   const source = new EventSourcePlus(`${apiBaseUrl}/syncs/events`);
   const controller = source.listen({
     onMessage: (message) => {
-      if (SETTLED_EVENTS.has(message.event)) refresh();
+      if (!SETTLED_EVENTS.has(message.event)) return;
+      refresh();
+      const settled = parseSettled(message);
+      if (settled) settledListeners.forEach((listener) => listener(settled));
     },
     // Fires for every response, failures included: only a stream that
     // actually opened counts, and only the ones after the first mean a

@@ -2,7 +2,6 @@ import { act, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useMyAccounts } from "../my-accounts.ts";
 import {
   addGames,
   landSync,
@@ -12,7 +11,6 @@ import {
   stageIncomingGames,
 } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
-import { accountIsTracked } from "../../../test/handlers/accounts.ts";
 import { aGame } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
@@ -34,18 +32,6 @@ function countRequests(prefix: string) {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/** A second tracked account whose syncs the archive schedules like the first's. */
-function secondAccountSyncs() {
-  const second = accountIsTracked({ platform: "lichess", username: "second-seat" });
-  server.use(
-    http.post(`/api/accounts/${second.id}/sync`, () => {
-      const job = scheduleSync(second.id, "manual");
-      return HttpResponse.json({ syncId: job.id, status: job.status }, { status: 202 });
-    }),
-  );
-  return second;
-}
 
 /**
  * The button asks; the worker syncs; the stream says when it landed. What
@@ -76,7 +62,9 @@ describe("sync games button", () => {
     expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
   });
 
-  it("treats the cooldown as an answer, not a failure", async () => {
+  it("treats a cooldown as nothing to do, silently", async () => {
+    // The backend folds a cooling-down account out of its answer; there is
+    // nothing new to watch, so the button just returns to idle.
     refuseRefreshFor(45);
 
     const { user } = await renderApp();
@@ -84,59 +72,14 @@ describe("sync games button", () => {
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
 
-    expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
-    // With the actual wait — "a moment" invites an immediate retry.
-    expect(screen.getByText("Try again in 45 seconds.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
+    expect(screen.queryByText("Synced a moment ago")).not.toBeInTheDocument();
+    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
   });
 
-  it("reports an account in cooldown while another one's sync still goes through", async () => {
-    const cooling = accountIsTracked({ platform: "lichess", username: "second-seat" });
+  it("admits it could not sync", async () => {
     server.use(
-      http.post(`/api/accounts/${cooling.id}/sync`, () =>
-        HttpResponse.json(
-          { error: "synced too recently", retryAfterSeconds: 30 },
-          { status: 429, headers: { "Retry-After": "30" } },
-        ),
-      ),
-    );
-    stageIncomingGames(aGame({ blackName: "just-arrived" }));
-
-    const { user } = await renderApp();
-    await screen.findByText("already-here");
-
-    await user.click(screen.getByRole("button", { name: "Sync games" }));
-
-    expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
-    expect(screen.getByText("Try again in 30 seconds.")).toBeInTheDocument();
-    // The 429 did not discard the other account's 202.
-    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
-    landSync(latestSync().id);
-    expect(await screen.findByText("just-arrived")).toBeInTheDocument();
-  });
-
-  it("syncs the accounts the server knows, never a stale remembered id", async () => {
-    // A browser that imported against a database since rebuilt still
-    // remembers the old uuid. The server's list is the authority; a
-    // remembered id reaching the sync route is a guaranteed 404.
-    useMyAccounts.getState().remember({
-      accountId: "gone-from-a-rebuilt-db",
-      platform: "chess_com",
-      username: "me",
-    });
-
-    const { user } = await renderApp();
-    await screen.findByText("already-here");
-
-    await user.click(screen.getByRole("button", { name: "Sync games" }));
-
-    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeInTheDocument();
-    expect(screen.queryByText("Couldn't reach that account")).not.toBeInTheDocument();
-  });
-
-  it("admits it could not reach the account", async () => {
-    server.use(
-      http.post("/api/accounts/:id/sync", () =>
+      http.post("/api/accounts/sync", () =>
         HttpResponse.json({ error: "boom" }, { status: 500 }),
       ),
     );
@@ -146,7 +89,47 @@ describe("sync games button", () => {
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
 
-    expect(await screen.findByText("Couldn't reach that account")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't sync your games")).toBeInTheDocument();
+  });
+
+  it("fires a success toast once the sync it started lands", async () => {
+    stageIncomingGames(aGame({ blackName: "just-arrived" }));
+
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
+    await screen.findByRole("button", { name: "Syncing…" });
+
+    landSync(latestSync().id);
+
+    expect(await screen.findByText("Games synced")).toBeInTheDocument();
+  });
+
+  it("fires an error toast when the sync it started lands as failed", async () => {
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
+    await screen.findByRole("button", { name: "Syncing…" });
+
+    landSync(latestSync().id, { fails: true });
+
+    expect(await screen.findByText("Couldn't finish syncing")).toBeInTheDocument();
+  });
+
+  it("stays quiet for a sync nobody clicked this button for", async () => {
+    // An automatic sync (e.g. first-connect) the button never watched —
+    // its settlement still refreshes the data, but earns no toast.
+    const job = scheduleSync("account-1", "connect");
+
+    await renderApp();
+    await screen.findByText("already-here");
+
+    landSync(job.id);
+
+    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
+    expect(screen.queryByText("Couldn't finish syncing")).not.toBeInTheDocument();
   });
 
   it("follows a sync the server was already running, from any screen", async () => {
@@ -193,7 +176,6 @@ describe("the sync stream", () => {
   });
 
   it("refreshes the library and the accounts on each sync that lands, and nothing else", async () => {
-    const second = secondAccountSyncs();
     stageIncomingGames(aGame({ blackName: "just-arrived" }));
     const { user } = await renderApp();
     await screen.findByText("already-here");
@@ -202,22 +184,21 @@ describe("the sync stream", () => {
     const library = countRequests("/api/games");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    // Two POSTs, plus the accounts refresh once the requests settle.
-    await waitFor(() => expect(accounts.count).toBe(3));
-    const first = [...Array(2)].map((_, index) => `sync-${index + 1}`);
+    // One POST, plus the accounts refresh once it settles.
+    await waitFor(() => expect(accounts.count).toBe(2));
 
-    landSync(first[0]!);
+    landSync(latestSync().id);
     expect(await screen.findByText("just-arrived")).toBeInTheDocument();
-    await waitFor(() => expect(accounts.count).toBe(4));
+    await waitFor(() => expect(accounts.count).toBe(3));
     const afterFirst = library.count;
     expect(afterFirst).toBeGreaterThan(0);
 
-    landSync(first[1]!, { fails: true });
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
     await waitFor(() => expect(accounts.count).toBe(5));
-    await waitFor(() => expect(library.count).toBe(afterFirst + 1));
+    landSync(latestSync().id, { fails: true });
+    await waitFor(() => expect(accounts.count).toBe(6));
     // A failed sync refreshes what it changed; it claims nothing.
-    expect(screen.queryByText("Couldn't reach that account")).not.toBeInTheDocument();
-    expect(screen.queryByText(second.username)).not.toBeInTheDocument();
+    await waitFor(() => expect(library.count).toBe(afterFirst + 1));
     expect(sessions.count).toBe(0);
     [sessions, accounts, library].forEach((counter) => counter.stop());
   });

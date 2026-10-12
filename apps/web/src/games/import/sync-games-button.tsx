@@ -12,38 +12,22 @@ import {
 import { RefreshCw } from "@velachess/ui/icons";
 
 import { useQuery } from "../../libs/react-query.ts";
-import { isSyncActive, trackedAccountsQuery, useSyncGames } from "./queries.ts";
+import { isSyncInProgress, trackedAccountsQuery, useSyncGames } from "./queries.ts";
+import { useSyncSettlementToast } from "./use-sync-settlement-toast.ts";
 
 const SYNC_COPY = {
   action: msg`Sync games`,
   running: msg`Syncing…`,
-  tooSoon: msg`Synced a moment ago`,
-  failed: msg`Couldn't reach that account`,
+  failed: msg`Couldn't sync your games`,
   retry: msg`Try again in a moment.`,
 } as const;
-
-// Parameterised, so it lives outside the const table the way other
-// parameterised messages do. The wait is the one fact that makes this toast
-// actionable — "a moment" invites an immediate retry; a number does not.
-const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 export function SyncGamesButton() {
   const { i18n } = useLingui();
   const accounts = useQuery(trackedAccountsQuery).data ?? [];
+  const { watch } = useSyncSettlementToast();
 
   const sync = useSyncGames({
-    onTooSoon: (retryAfterSeconds) => {
-      toast.add({
-        type: "info",
-        title: i18n._(SYNC_COPY.tooSoon),
-        description: i18n._({
-          ...retryIn,
-          // Raw, not i18n.number()'d: the plural rule itself picks the
-          // category from the number, and `#` formats it.
-          values: { seconds: retryAfterSeconds },
-        }),
-      });
-    },
     onError: () => {
       toast.add({
         type: "error",
@@ -56,9 +40,12 @@ export function SyncGamesButton() {
   // Running means the server says so: the request in flight, or an account
   // whose job the worker still holds — a reload or another screen shows
   // the same thing, because none of it lives here.
-  const syncing =
-    sync.isPending || accounts.some((account) => isSyncActive(account.syncStatus));
+  const syncing = isSyncInProgress(sync.isPending, accounts);
   const label = syncing ? SYNC_COPY.running : SYNC_COPY.action;
+
+  const handleSync = () => {
+    sync.mutate(undefined, { onSuccess: (data) => watch(data.syncIds) });
+  };
 
   return (
     <Tooltip>
@@ -68,7 +55,7 @@ export function SyncGamesButton() {
             variant="ghost"
             size="icon"
             aria-label={i18n._(label)}
-            onClick={() => sync.mutate(accounts)}
+            onClick={handleSync}
             disabled={syncing || accounts.length === 0}
           >
             <SyncIcon isPending={syncing} />

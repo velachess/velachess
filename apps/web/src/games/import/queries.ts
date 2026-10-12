@@ -75,33 +75,61 @@ export function isSyncActive(status: TrackedAccount["syncStatus"]) {
   return ACTIVE_SYNC.has(status);
 }
 
+/** The spinner condition both sync buttons share: the request itself still
+ * in flight, or the server already holding an active job for any of the
+ * accounts this button covers. */
+export function isSyncInProgress(
+  isPending: boolean,
+  accounts: readonly Pick<TrackedAccount, "syncStatus">[],
+): boolean {
+  return isPending || accounts.some((account) => isSyncActive(account.syncStatus));
+}
+
 /**
- * Asks the server to sync and stops there: the worker runs the jobs, the
- * accounts list them as active, and the sync stream says when they land.
- * Server ids, never the device's remembered ones: a browser can hold an id
- * from a database that no longer exists, and syncing it 404s forever.
+ * Asks the server to sync every tracked account and stops there — which
+ * accounts exist, their cooldowns, and any already-active job are the
+ * backend's to fold together; this button only reacts to the ids it hands
+ * back, via `useSyncSettlementToast`.
  */
-export function useSyncGames(handlers: {
-  /** The shortest wait among the accounts still cooling down. */
+export function useSyncGames(handlers: { onError: () => void }) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      try {
+        return await parseResponse(api.accounts.sync.$post());
+      } catch (error) {
+        // The same "nothing new to watch" the backend already answers for
+        // a cooling-down account — this is the API's own burst limit
+        // saying the same thing one layer up, so it gets the same silence.
+        if (isRateLimitedError(error)) return { syncIds: [] };
+        throw error;
+      }
+    },
+    onError: handlers.onError,
+    // Whatever's now in flight is a job the accounts list as active.
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
+  });
+}
+
+/**
+ * Asks the server to sync one account. Server ids, never the device's
+ * remembered ones: a browser can hold an id from a database that no longer
+ * exists, and syncing it 404s forever.
+ */
+export function useSyncAccount(handlers: {
   onTooSoon: (retryAfterSeconds: number) => void;
   onError: () => void;
 }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // Parallel, and a cooldown is an answer rather than a rejection: one
-    // account's 429 never discards the jobs the others started.
-    mutationFn: (accounts: readonly { id: string }[]) =>
-      Promise.all(accounts.map((account) => requestSync(account.id))),
-    onSuccess: (answers) => {
-      const waits = answers.flatMap((answer) =>
-        "retryAfterSeconds" in answer ? [answer.retryAfterSeconds] : [],
-      );
-      if (waits.length > 0) handlers.onTooSoon(Math.min(...waits));
+    mutationFn: (accountId: string) => requestSync(accountId),
+    onSuccess: (answer) => {
+      if ("retryAfterSeconds" in answer) handlers.onTooSoon(answer.retryAfterSeconds);
     },
     onError: handlers.onError,
-    // Whatever went through is a job the accounts now list as active —
-    // including the ones started before a failure.
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
   });

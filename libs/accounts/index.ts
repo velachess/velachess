@@ -28,6 +28,9 @@ export type {
 export { requestSync } from "./request-sync/request-sync.ts";
 export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request-sync.ts";
 
+export { syncAllAccounts } from "./sync-all-accounts/sync-all-accounts.ts";
+export type { SyncAllAccountsDeps } from "./sync-all-accounts/sync-all-accounts.ts";
+
 export { getSync } from "./get-sync/get-sync.ts";
 export type { GetSyncDeps } from "./get-sync/get-sync.ts";
 

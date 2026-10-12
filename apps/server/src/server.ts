@@ -24,6 +24,7 @@ import {
   buildListAccountGamesDeps,
   buildListAccountsDeps,
   buildRequestSyncDeps,
+  buildSyncAllAccountsDeps,
 } from "./composition/accounts.ts";
 import {
   buildReadAvatarDeps,
@@ -191,6 +192,9 @@ export function createApp(deps: ApiDeps) {
       "/accounts/:id/sync",
       rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
     )
+    // The whole-library button gets its own budget, independent of each
+    // account's own cooldown-backed one above.
+    .use("/accounts/sync", rateLimit(deps, POLICIES.import))
     .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
     .route(
       "/me",
@@ -207,6 +211,7 @@ export function createApp(deps: ApiDeps) {
         games: buildListAccountGamesDeps(deps.db),
         connect: buildImportAccountDeps(deps.db, deps.syncQueue, deps.sync?.fetch),
         sync: buildRequestSyncDeps(deps.db, deps.syncQueue),
+        syncAll: buildSyncAllAccountsDeps(deps.db, deps.syncQueue),
         disconnect: buildDisconnectAccountDeps(deps.db),
       }),
     )

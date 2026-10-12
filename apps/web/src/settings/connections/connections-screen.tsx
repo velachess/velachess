@@ -41,13 +41,14 @@ import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
 import { ImportGames } from "../../games/import/import-games.tsx";
 import {
-  isSyncActive,
+  isSyncInProgress,
   trackedAccountsQuery,
   useDisconnectAccount,
-  useSyncGames,
+  useSyncAccount,
   type TrackedAccount,
 } from "../../games/import/queries.ts";
 import { IMPORT_SOURCES } from "../../games/import/sources.ts";
+import { useSyncSettlementToast } from "../../games/import/use-sync-settlement-toast.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const CONNECTIONS_COPY = {
@@ -191,7 +192,8 @@ function AccountRow({ account }: { account: TrackedAccount }) {
     });
   };
 
-  const sync = useSyncGames({
+  const { watch } = useSyncSettlementToast();
+  const sync = useSyncAccount({
     onTooSoon: (retryAfterSeconds) => {
       toast.add({
         type: "info",
@@ -213,8 +215,16 @@ function AccountRow({ account }: { account: TrackedAccount }) {
 
   // The server's word, not this row's memory: a job it still holds reads
   // as running on any screen, after any reload.
-  const syncing = sync.isPending || isSyncActive(account.syncStatus);
+  const syncing = isSyncInProgress(sync.isPending, [account]);
   const label = syncing ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
+
+  const handleSync = () => {
+    sync.mutate(account.id, {
+      onSuccess: (answer) => {
+        if (!("retryAfterSeconds" in answer)) watch([answer.syncId]);
+      },
+    });
+  };
 
   return (
     <Item>
@@ -234,7 +244,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
           variant="ghost"
           size="icon"
           aria-label={i18n._(label)}
-          onClick={() => sync.mutate([account])}
+          onClick={handleSync}
           disabled={syncing}
         >
           {syncing ? <Spinner aria-hidden="true" /> : <RefreshCw />}

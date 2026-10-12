@@ -522,6 +522,37 @@ describe("sync jobs", () => {
     expect(await second.json()).toEqual({ syncId: account.syncId, status: "queued" });
   });
 
+  it("POST /accounts/sync starts every account that needs it, idempotently", async () => {
+    const { app } = await harness.signUp("sync-all-active@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+
+    // The connect job is still queued: the aggregate route hands back the
+    // very same job, not a new one — one account, one id, not two.
+    const response = await app.api.accounts.sync.$post();
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ syncIds: [account.syncId] });
+  });
+
+  it("POST /accounts/sync folds a cooling-down account out, answering an empty list", async () => {
+    const { app } = await harness.signUp("sync-all-cooldown@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+    await harness.runSync(account.syncId);
+
+    // Settled a moment ago: within the cooldown, so there is nothing new
+    // to watch — and nothing to tell apart from having no accounts at all.
+    const response = await app.api.accounts.sync.$post();
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ syncIds: [] });
+  });
+
+  it("POST /accounts/sync with no tracked accounts answers an empty list", async () => {
+    const { app } = await harness.signUp("sync-all-empty@api.test");
+
+    const response = await app.api.accounts.sync.$post();
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ syncIds: [] });
+  });
+
   it("GET /syncs/:id follows the job to its outcome, for its owner only", async () => {
     const { app } = await harness.signUp("sync-status@api.test");
     const stranger = (await harness.signUp("sync-stranger@api.test")).app;

@@ -6,6 +6,7 @@ import {
   listAccounts,
   listGamesWithStatus,
   requestSync,
+  syncAllAccounts,
 } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
@@ -13,6 +14,7 @@ import type {
   ListAccountGamesDeps,
   ListAccountsDeps,
   RequestSyncDeps,
+  SyncAllAccountsDeps,
 } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
@@ -164,6 +166,24 @@ const rateLimitedSchema = errorResponseSchema.extend({
   retryAfterSeconds: z.number().int(),
 });
 
+const syncAllAcceptedSchema = z.object({
+  syncIds: z.array(z.string().uuid()),
+});
+
+const syncAllAccountsRoute = createRoute({
+  method: "post",
+  path: "/sync",
+  summary: "Schedule a sync of every account this user tracks",
+  description:
+    "One request for every tracked account: a cooldown or an already-active job on one of them is folded in silently, so this answers only the jobs actually now in flight. An empty list is a valid answer — there is nothing new to watch. Follow each id with GET /syncs/{id} or the SSE stream.",
+  responses: {
+    202: {
+      description: "Every job now in flight for this user, new or already running",
+      content: { "application/json": { schema: syncAllAcceptedSchema } },
+    },
+  },
+});
+
 const syncAccountRoute = createRoute({
   method: "post",
   path: "/{id}/sync",
@@ -242,6 +262,7 @@ export interface AccountsRouteDeps {
   games: ListAccountGamesDeps;
   connect: ConnectAccountDeps;
   sync: RequestSyncDeps;
+  syncAll: SyncAllAccountsDeps;
   disconnect: DisconnectAccountDeps;
 }
 
@@ -297,6 +318,10 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
           accounts.map((account) => trackedAccountWire.parse(account)),
           200,
         );
+      })
+      .openapi(syncAllAccountsRoute, async (c) => {
+        const { syncIds } = await syncAllAccounts(deps.syncAll, c.get("userId"));
+        return c.json({ syncIds }, 202);
       })
       .openapi(syncAccountRoute, async (c) => {
         const outcome = await requestSync(

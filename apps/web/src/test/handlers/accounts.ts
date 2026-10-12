@@ -88,6 +88,20 @@ export const accountsHandlers = [
     );
   }),
 
+  /** One request for every tracked row: an already-active job is reused
+   * (its id, no new job), a cooling-down or unknown row is folded out —
+   * mirrors `requestSync`'s own idempotency, the way the aggregate route
+   * only reuses it rather than adding logic of its own. */
+  http.post("/api/accounts/sync", () => {
+    const syncIds = trackedAccounts.flatMap((row) => {
+      const active = activeSyncOf(row.id);
+      if (active) return [active.id];
+      const outcome = refreshArchive(row.id);
+      return outcome.status === "accepted" ? [outcome.job.id] : [];
+    });
+    return HttpResponse.json({ syncIds }, { status: 202 });
+  }),
+
   http.post("/api/accounts/:id/sync", ({ params }) => {
     const outcome = refreshArchive(String(params["id"]));
 

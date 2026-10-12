@@ -24,6 +24,7 @@ import {
   insertTrackedAccount,
 } from "@velachess/infra-db";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
+import { requestSync } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
@@ -31,6 +32,7 @@ import type {
   ListAccountGamesDeps,
   ListAccountsDeps,
   RequestSyncDeps,
+  SyncAllAccountsDeps,
   WatchSyncsDeps,
 } from "@velachess/accounts";
 import type { FetchFn } from "@velachess/infra-platforms";
@@ -64,6 +66,20 @@ export function buildRequestSyncDeps(
     abandonSyncJob,
     createSyncJob,
     enqueueSync: (tx, job) => syncQueue.enqueue(tx, job),
+  };
+}
+
+/** Fans out to the same `requestSync` the per-account route calls — one
+ * cooldown/single-flight implementation, reused rather than duplicated. */
+export function buildSyncAllAccountsDeps(
+  db: Database,
+  syncQueue: SyncQueue,
+): SyncAllAccountsDeps {
+  const syncDeps = buildRequestSyncDeps(db, syncQueue);
+  return {
+    listAccountIds: async (userId) =>
+      (await listTrackedAccountsByUser(db, userId)).map((account) => account.id),
+    requestSync: (userId, accountId) => requestSync(syncDeps, userId, accountId),
   };
 }
 
