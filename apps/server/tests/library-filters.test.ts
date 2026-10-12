@@ -116,7 +116,6 @@ describe("GET /games?timeClass", () => {
 
   it("leaves a game with no clock out of every class, without losing it", async () => {
     for (const timeClass of ["bullet", "blitz", "rapid", "classical"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       expect(await namesIn(owner, `/games?timeClass=${timeClass}`)).not.toContain(
         "tc-none",
       );
@@ -282,7 +281,6 @@ describe("GET /games?outcome", () => {
 
   it("leaves an unfinished game out of every outcome, without losing it", async () => {
     for (const outcome of ["win", "loss", "draw"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       expect(await labelsIn(player, `/games?outcome=${outcome}`)).not.toContain(
         "unfinished-as-white",
       );

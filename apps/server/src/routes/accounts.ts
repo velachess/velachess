@@ -48,8 +48,17 @@ const ACCOUNT_DISCONNECT_STATUS = {
 /** Repeated across both this file's 404s — one place to change the wording. */
 const ACCOUNT_NOT_FOUND_ERROR = "account not found";
 
+/** Mirrors `@velachess/infra-platforms`' `accountPlatformSchema` —
+ * `routes-no-direct-infra` forbids importing it, so this is a hand-kept
+ * copy, one per file instead of one per field; guarded by
+ * `apps/server/tests/contracts.test.ts`. */
+export const ACCOUNT_PLATFORM = ["chess_com", "lichess"] as const;
+/** Mirrors `@velachess/accounts`' job-error vocabulary; guarded alongside
+ * `ACCOUNT_PLATFORM`. */
+export const SYNC_JOB_ERROR = ["not-found", "incomplete", "internal"] as const;
+
 const createAccountSchema = z.object({
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string().min(1),
 });
 
@@ -61,7 +70,7 @@ const createAccountSchema = z.object({
  * RPC typecheck gate, fixed here). */
 const accountSchema = z.object({
   id: z.string().uuid(),
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
   syncId: z
     .string()
@@ -74,7 +83,7 @@ const accountSchema = z.object({
  * account per provider, so this refuses instead of overwriting. Carries
  * the existing connection's identity so the client can point at it. */
 const providerConflictSchema = errorResponseSchema.extend({
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
   accountId: z.string().uuid(),
 });
@@ -114,7 +123,7 @@ const createAccountRoute = createRoute({
  * travels as ISO text on the wire, not a `Date`. */
 const trackedAccountSchema = z.object({
   id: z.string().uuid(),
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
   lastSyncedAt: z.string().nullable(),
   syncStatus: z
@@ -122,7 +131,7 @@ const trackedAccountSchema = z.object({
     .describe("The active sync job's status, or idle when none is active"),
   activeSyncId: z.string().uuid().nullable(),
   lastSyncError: z
-    .enum(["not-found", "incomplete", "internal"])
+    .enum(SYNC_JOB_ERROR)
     .nullable()
     .describe("Why the newest job failed; cleared by the next success"),
 });

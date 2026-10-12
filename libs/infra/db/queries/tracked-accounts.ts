@@ -3,6 +3,7 @@ import type {
   ChessComCursor,
   LichessCursor,
 } from "@velachess/infra-platforms";
+import { normalizeUsername } from "@velachess/infra-platforms";
 import { and, asc, desc, eq } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
@@ -35,7 +36,7 @@ export async function insertTrackedAccount(
 ) {
   const [account] = await db
     .insert(trackedAccounts)
-    .values({ userId, platform, username: username.toLowerCase() })
+    .values({ userId, platform, username: normalizeUsername(username) })
     .onConflictDoNothing({ target: [trackedAccounts.userId, trackedAccounts.platform] })
     .returning();
   return account ?? null;
@@ -209,7 +210,7 @@ export async function findTrackedAccount(
       and(
         eq(trackedAccounts.userId, userId),
         eq(trackedAccounts.platform, platform),
-        eq(trackedAccounts.username, username.toLowerCase()),
+        eq(trackedAccounts.username, normalizeUsername(username)),
       ),
     );
   return account ?? null;

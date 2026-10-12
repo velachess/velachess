@@ -24,6 +24,13 @@ export type GameSource = z.infer<typeof gameSourceSchema>;
 export const accountPlatformSchema = z.enum(["chess_com", "lichess"]);
 export type AccountPlatform = z.infer<typeof accountPlatformSchema>;
 
+/** Both providers fold case on a handle, so every write and every lookup
+ * key on this instead of the username as typed. One function so a write
+ * path and a read path can never normalize it differently. */
+export function normalizeUsername(username: string): string {
+  return username.toLowerCase();
+}
+
 export const perspectiveSchema = z.enum(["white", "black"]);
 export type Perspective = z.infer<typeof perspectiveSchema>;
 

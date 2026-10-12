@@ -37,7 +37,6 @@ describe("rate limiting", () => {
     const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await limited.app.request(sync(accountId), { method: "POST" });
       expect(response.status, `request ${i + 1}`).not.toBe(429);
     }
@@ -80,7 +79,6 @@ describe("rate limiting", () => {
     const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await spender.app.request(sync(accountId), { method: "POST" });
     }
 
@@ -99,7 +97,6 @@ describe("rate limiting", () => {
     const first = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await owner.app.request(sync(first), { method: "POST" });
     }
     const firstExhausted = await owner.app.request(sync(first), { method: "POST" });
@@ -113,7 +110,6 @@ describe("rate limiting", () => {
     // /health sits above the gate and outside every policy on purpose: a
     // probe that can be throttled is a probe that lies during an incident.
     for (let i = 0; i < POLICIES.import.max + 5; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request("/health");
       expect(response.status).toBe(200);
     }
@@ -178,7 +174,6 @@ describe("the request edge", () => {
 
   it("sends the baseline security headers on every answer", async () => {
     for (const path of ["/health", "/games"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path, {
         headers: { cookie: user.cookie },
       });
@@ -234,7 +229,6 @@ describe("what sits above the session gate", () => {
     // Anything else answering without a cookie would be a route mounted
     // above the gate by accident — the failure this test exists to catch.
     for (const path of ["/health", "/config", "/openapi.json"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(200);
     }
@@ -251,7 +245,6 @@ describe("what sits above the session gate", () => {
     expect(await session.json()).toBeNull();
 
     for (const path of ["/games", "/accounts"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);
     }

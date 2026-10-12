@@ -6,11 +6,14 @@
 import { serve } from "@hono/node-server";
 import postgres from "postgres";
 
-import { sessionAdvisoryLock } from "@velachess/infra-db";
 import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
 import { createFileStore, resolveStorageEnv } from "@velachess/infra-storage";
 import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
-import { createDb, createSyncNotifications } from "@velachess/infra-db";
+import {
+  createDb,
+  createSyncNotifications,
+  postgresLockExecutor,
+} from "@velachess/infra-db";
 import { createWatchers } from "@velachess/analysis";
 import { logger } from "@velachess/infra-logger";
 import {
@@ -35,15 +38,7 @@ boss.on("error", (error) => apiLogger.error({ error }, "pg-boss error"));
 await boss.start();
 await ensureQueues(boss);
 
-// Dedicated session for advisory locks — session locks must outlive
-// individual queries, so the connection is pinned (max: 1).
-const lockSql = postgres(databaseUrl, { max: 1 });
-const lock = sessionAdvisoryLock({
-  query: async <T>(sql: string, params?: unknown[]) => {
-    const rows = await lockSql.unsafe(sql, (params ?? []) as never[]);
-    return { rows: rows as unknown as T[] };
-  },
-});
+const { lock, close: closeLockSql } = postgresLockExecutor(databaseUrl);
 
 const analysisQueue = makeAnalysisQueue(boss, db);
 
@@ -131,7 +126,7 @@ async function shutdown() {
   await boss.stop({ graceful: true });
   await syncNotifications.close();
   await listenSql.end({ timeout: 5 });
-  await lockSql.end({ timeout: 5 });
+  await closeLockSql();
   process.exit(0);
 }
 

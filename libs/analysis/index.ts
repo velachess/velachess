@@ -1,10 +1,6 @@
 /**
  * [ANALYSIS] — what this module offers the rest of the system.
  *
- * Root index.ts is the public interface of a vertical/module/capability.
- * It is not a convenience barrel. See AGENTS.md "Modules and slices" for
- * what belongs here versus what stays a private slice file.
- *
  * Owns the Stockfish job lifecycle end to end: request (queue or report),
  * process (execute under the advisory lock, persist), watch (poll progress
  * for a live stream), and get (the composed read a game page renders).

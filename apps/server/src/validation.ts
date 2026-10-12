@@ -59,6 +59,7 @@ export const wireDateOrNull = z
 // `OpenAPIHonoOptions<E>['defaultHook']` shape (`Hook<any, E, any, any>`)
 // — one hook value must be assignable regardless of which app's `Env` it's
 // passed to, and this hook never reads an env-specific context variable.
+// oxlint-disable-next-line typescript/no-explicit-any -- mirrors the upstream Hook<any, E, any, any> signature
 export const defaultHook: Hook<unknown, any, string, Response | undefined> = (
   result,
   c,

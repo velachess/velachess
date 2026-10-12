@@ -54,7 +54,7 @@ export async function saveGames(
   let inserted = 0;
 
   for (let start = 0; start < normalizedGames.length; start += SAVE_GAMES_BATCH_SIZE) {
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- each batch commits independently, by design
     const rows = await db
       .insert(games)
       .values(

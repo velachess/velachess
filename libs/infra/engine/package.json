@@ -11,9 +11,6 @@
     "./transport-worker": "./transport-worker.ts"
   },
   "scripts": {
-    "lint": "oxlint .",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
     "test": "vitest run"
   },
   "devDependencies": {

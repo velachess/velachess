@@ -1,10 +1,4 @@
-/**
- * [ACCOUNTS] — what this module offers the rest of the system.
- *
- * Root index.ts is the public interface of a vertical/module/capability.
- * It is not a convenience barrel. See AGENTS.md "Modules and slices" for
- * what belongs here versus what stays a private slice file.
- */
+/** [ACCOUNTS] — the tracked-account lifecycle: connect, list, sync, disconnect. */
 
 export { importAccount } from "./connect-account/connect-account.ts";
 export type {
@@ -20,6 +14,7 @@ export type {
 
 export { listAccounts } from "./list-accounts/list-accounts.ts";
 export type {
+  JobError,
   ListAccountsDeps,
   TrackedAccountSummary,
 } from "./list-accounts/list-accounts.ts";
@@ -41,3 +36,6 @@ export type { SyncSettled, WatchSyncsDeps } from "./watch-syncs/watch-syncs.ts";
 
 export { syncAccount } from "./sync-account/sync-account.ts";
 export type { SyncAccountDeps, SyncDeps } from "./sync-account/sync-account.ts";
+
+export { SYNC_SETTLED_EVENTS } from "./sync-status.ts";
+export type { SyncJobStatus } from "./sync-status.ts";

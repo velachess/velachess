@@ -77,8 +77,7 @@ function neverResolves(): Promise<void> {
 }
 
 function stageFailedAnalysis(): void {
-  // Intentionally never yields: mocks a run that fails before grading anything.
-  // oxlint-disable-next-line eslint/require-yield
+  // oxlint-disable-next-line eslint/require-yield -- mocks a run that fails before grading anything
   vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
     throw new Error("engine failed");
   });
@@ -308,8 +307,7 @@ describe("game analysis", () => {
     // belonged to whatever game is open now.
     const first = aGame();
     addGames(first);
-    // Intentionally never yields: mocks a run that never grades anything.
-    // oxlint-disable-next-line eslint/require-yield
+    // oxlint-disable-next-line eslint/require-yield -- mocks a run that never grades anything
     vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
       await neverResolves();
     });

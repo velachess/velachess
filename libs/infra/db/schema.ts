@@ -20,6 +20,7 @@ import {
   bigint,
   bigserial,
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -38,8 +39,11 @@ import {
  * type the columns as the union, so a bad value fails to compile here
  * rather than at runtime in Postgres.
  */
-const enumValues = <T extends string>(values: readonly T[]) =>
-  values as unknown as [T, ...T[]];
+function enumValues<T extends string>(values: readonly T[]): [T, ...T[]] {
+  const [first, ...rest] = values;
+  if (first === undefined) throw new Error("pgEnum needs at least one value");
+  return [first, ...rest];
+}
 
 export const gameSourceEnum = pgEnum("game_source", enumValues(gameSourceSchema.options));
 export const perspectiveEnum = pgEnum(
@@ -64,45 +68,52 @@ export const platformEnum = pgEnum("platform", enumValues(accountPlatformSchema.
  * A VelaChess user is NOT a chess.com or Lichess account. Those are
  * `tracked_accounts`, and one user may hold several.
  */
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Better Auth's `name`. Not null because Better Auth requires it. */
-  displayName: text("display_name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  /**
-   * The effective avatar URL, whatever its origin. Better Auth writes the
-   * OAuth profile picture here when it creates the user, and never again —
-   * both of its overwrite paths (`overrideUserInfoOnSignIn`,
-   * `accountLinking.updateUserInfoOnLink`) are opt-in and unset. The
-   * application owns the column after that.
-   */
-  image: text("image"),
-  /**
-   * Who last set `image`, written only by VelaChess: `custom` for an
-   * upload, `none` for a deliberate removal. `null` means untouched by us,
-   * so OAuth-initialized is `image != null AND avatar_source IS NULL`.
-   *
-   * Exists because `image IS NULL` alone cannot tell "never had a picture"
-   * from "deleted theirs", and only the second must stay empty.
-   */
-  avatarSource: text("avatar_source").$type<"custom" | "none">(),
-  /**
-   * When this person finished onboarding — stamped on their first
-   * successful connection, and never again.
-   *
-   * A column rather than a derived fact: onboarding used to be inferred
-   * from "no games and no accounts", which made it reappear every time
-   * someone disconnected everything. Theirs to keep, so it outlives both
-   * the connection and the browser.
-   */
-  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Better Auth's `name`. Not null because Better Auth requires it. */
+    displayName: text("display_name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    /**
+     * The effective avatar URL, whatever its origin. Better Auth writes the
+     * OAuth profile picture here when it creates the user, and never again —
+     * both of its overwrite paths (`overrideUserInfoOnSignIn`,
+     * `accountLinking.updateUserInfoOnLink`) are opt-in and unset. The
+     * application owns the column after that.
+     */
+    image: text("image"),
+    /**
+     * Who last set `image`, written only by VelaChess: `custom` for an
+     * upload, `none` for a deliberate removal. `null` means untouched by us,
+     * so OAuth-initialized is `image != null AND avatar_source IS NULL`.
+     *
+     * Exists because `image IS NULL` alone cannot tell "never had a picture"
+     * from "deleted theirs", and only the second must stay empty. The check
+     * constraint below is the runtime guard `$type<>()` cannot be.
+     */
+    avatarSource: text("avatar_source").$type<"custom" | "none">(),
+    /**
+     * When this person finished onboarding — stamped on their first
+     * successful connection, and never again.
+     *
+     * A column rather than a derived fact: onboarding used to be inferred
+     * from "no games and no accounts", which made it reappear every time
+     * someone disconnected everything. Theirs to keep, so it outlives both
+     * the connection and the browser.
+     */
+    onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check("users_avatar_source_check", sql`${table.avatarSource} IN ('custom', 'none')`),
+  ],
+);
 
 /**
  * A logged-in browser. Better Auth's `session`, database-backed on

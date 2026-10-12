@@ -79,13 +79,14 @@ export function createWatchers(deps: WatcherDeps): Watchers {
       // database going away — a shutdown, a suite tearing down — is the
       // ordinary case, and subscribers are woken so they end too.
       try {
+        // oxlint-disable-next-line eslint/no-unmodified-loop-condition -- `running` is set false from `watch.stop`'s closure, which the rule cannot see
         while (running) {
           // Progress first, then the terminal check: a run that finished
           // between the two reads still reports everything it graded
           // before it reports being over.
-          // oxlint-disable-next-line eslint/no-await-in-loop
+          // oxlint-disable-next-line eslint/no-await-in-loop -- one shared poll loop per game; each check must wait for the last
           const rows = await deps.listProgress(gameId);
-          // oxlint-disable-next-line eslint/no-await-in-loop
+          // oxlint-disable-next-line eslint/no-await-in-loop -- same poll, second half
           const state = await deps.requestAnalysis(gameId);
           const terminal =
             state.status === "completed" || state.status === "failed" ? state : null;
@@ -102,7 +103,7 @@ export function createWatchers(deps: WatcherDeps): Watchers {
             return;
           }
 
-          // oxlint-disable-next-line eslint/no-await-in-loop
+          // oxlint-disable-next-line eslint/no-await-in-loop -- the wait before the next poll
           await new Promise((resolve) => setTimeout(resolve, interval));
         }
       } catch {
@@ -148,7 +149,7 @@ export function createWatchers(deps: WatcherDeps): Watchers {
           // waiting forever.
           if (signal.aborted || watches.get(gameId) !== watch) return;
 
-          // oxlint-disable-next-line eslint/no-await-in-loop
+          // oxlint-disable-next-line eslint/no-await-in-loop -- waits for the next wake signal; nothing to parallelize
           await new Promise<void>((resolve) => {
             wake = resolve;
           });

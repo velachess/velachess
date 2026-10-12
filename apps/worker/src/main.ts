@@ -5,10 +5,7 @@
 
 import { createRequire } from "node:module";
 
-import postgres from "postgres";
-
-import { sessionAdvisoryLock } from "@velachess/infra-db";
-import { createDb } from "@velachess/infra-db";
+import { createDb, postgresLockExecutor } from "@velachess/infra-db";
 import { EngineSession } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { logger } from "@velachess/infra-logger";
@@ -39,13 +36,7 @@ const db = createDb(databaseUrl);
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => workerLogger.error({ error }, "pg-boss error"));
 
-const lockSql = postgres(databaseUrl, { max: 1 });
-const lock = sessionAdvisoryLock({
-  query: async <T>(sql: string, params?: unknown[]) => {
-    const rows = await lockSql.unsafe(sql, (params ?? []) as never[]);
-    return { rows: rows as unknown as T[] };
-  },
-});
+const { lock, close: closeLockSql } = postgresLockExecutor(databaseUrl);
 
 const worker = new Worker({
   boss,
@@ -58,10 +49,9 @@ await worker.start();
 workerLogger.info("worker consuming");
 
 async function shutdown() {
-  // In-flight jobs finish, then the pinned lock connection drains
-  // (sql.end waits for queries) before exit.
+  // In-flight jobs finish, then the pinned lock connection drains before exit.
   await worker.stop();
-  await lockSql.end({ timeout: 5 });
+  await closeLockSql();
   process.exit(0);
 }
 

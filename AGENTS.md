@@ -154,7 +154,20 @@ from business modules at the import site, including from the business
   messages, and user-facing source copy. Conversations may use any language.
 - Comments carry a decision, external constraint, or prevented bug that code
   cannot express. Put maintained reasoning in `docs/` rather than expanding an
-  inline explanation into a second specification.
+  inline explanation into a second specification. Comments are exceptional:
+  never narrate what the next line already says, explain ordinary syntax, or
+  restate a guarantee types or a test already enforce — encode the guarantee
+  instead of describing it. No JSDoc by default; add it only where a public
+  signature needs non-obvious parameter, return, or lifecycle semantics.
+  `eslint/no-inline-comments`, `eslint/no-warning-comments`, and unused
+  disable directives are Oxlint errors, enforcing the mechanical half of
+  this; the semantic half — is a comment narration or rationale — is a
+  review call, not a lint rule's.
+- Every cast and non-null assertion needs a concrete reason — a verified
+  third-party type limitation, never a convenient way past a type error.
+  Prefer narrowing, a schema, or the library's own exposed type first. A
+  surviving Oxlint suppression is one line, one rule, and a `-- reason` that
+  names the constraint, not the rule.
 
 ## Critical invariants
 

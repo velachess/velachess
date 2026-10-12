@@ -45,7 +45,7 @@ describe("bootstrap", () => {
     expect(first.status).toBe("created");
     // The created outcome exposes status and userId — nothing else, by
     // construction, which is what makes main.ts's log of it safe.
-    expect(Object.keys(first).sort()).toEqual(["status", "userId"]);
+    expect(Object.keys(first).toSorted()).toEqual(["status", "userId"]);
     expect(JSON.stringify(first)).not.toContain("dev-password");
 
     // A second startup with the same env does nothing — the guard is
@@ -160,7 +160,7 @@ describe("bootstrap under concurrent startup", () => {
       ),
     ]);
 
-    const statuses = outcomes.map((o) => o.status).sort();
+    const statuses = outcomes.map((o) => o.status).toSorted();
     expect(statuses).toEqual(["created", "skipped", "skipped"]);
     for (const skipped of outcomes.filter((o) => o.status === "skipped")) {
       expect(skipped).toEqual({ status: "skipped", reason: "concurrent-startup" });
@@ -243,7 +243,6 @@ describe("the closed surfaces", () => {
     // Bootstrap is env-var provisioning at startup; nothing on the wire
     // can trigger it. These paths answer like any other unknown route.
     for (const path of ["/bootstrap", "/setup", "/auth/bootstrap", "/auth/setup"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path, { method: "POST" });
       expect([401, 404], path).toContain(response.status);
       expect(response.headers.get("set-cookie"), path).toBeNull();
@@ -330,7 +329,6 @@ describe("secure cookies behind TLS", () => {
 describe("the session gate", () => {
   it("rejects an unauthenticated request with 401, uniformly", async () => {
     for (const path of ["/games", "/accounts"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);
     }

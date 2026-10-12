@@ -7,7 +7,7 @@ import type { AccountPlatform } from "@velachess/infra-platforms";
 
 import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
 
-type JobError = "not-found" | "incomplete" | "internal";
+export type JobError = "not-found" | "incomplete" | "internal";
 
 export interface TrackedAccountSummary {
   id: string;

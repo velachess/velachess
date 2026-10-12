@@ -276,7 +276,8 @@ describe("libs/infra/db (games + tracked accounts)", () => {
       ],
       { userId: ownerId, accountId: account.id },
     );
-    await saveGames(db, [pastedGame()], { userId: ownerId }); // unrelated, no account
+    // Unrelated to the account above: no accountId, just the owner.
+    await saveGames(db, [pastedGame()], { userId: ownerId });
 
     const rows = await listGamesWithStatusForAccount(db, account.id);
     expect(rows).toHaveLength(2);

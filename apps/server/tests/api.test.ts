@@ -122,7 +122,8 @@ describe("api routes", () => {
       username: string;
       syncId: string;
     };
-    expect(account.username).toBe(LOOPER_USERNAME); // normalized
+    // The stored handle is case-folded, not whatever casing the caller sent.
+    expect(account.username).toBe(LOOPER_USERNAME);
     accountId = account.id;
 
     // Connecting schedules the first sync; the archive arrives in the background.
@@ -325,7 +326,8 @@ describe("api routes", () => {
     // The worker, inline. Delivery is pg-boss's business and lives in
     // apps/worker; what this pins is that the run is not the request.
     const run = completeAnalysis(harness.analyze, reviewedGameId);
-    const transcript = await events.text(); // resolves when the route closes
+    // Resolves only once the route closes the stream.
+    const transcript = await events.text();
     await run;
 
     expect(transcript).toContain("event: analysis.move-graded");

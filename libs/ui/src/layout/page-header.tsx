@@ -10,7 +10,6 @@ import { cn } from "../lib/utils.ts";
 export interface PageHeaderProps {
   title: string;
   description?: string;
-  /** Primary and secondary actions for the page. */
   actions?: React.ReactNode;
   className?: string;
 }

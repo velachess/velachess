@@ -40,7 +40,7 @@ export async function startBoss(pglite: PGlite): Promise<PgBoss> {
 
 export function pgliteLock(pglite: PGlite): ExecutionLock {
   return sessionAdvisoryLock({
-    query: (sql, params) => pglite.query(sql, params as never),
+    query: (sql, params) => pglite.query(sql, params),
   });
 }
 

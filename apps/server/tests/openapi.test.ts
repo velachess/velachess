@@ -36,7 +36,8 @@ afterAll(async () => {
 function registeredOperations(): Set<string> {
   const operations = new Set<string>();
   for (const route of harness.app.routes) {
-    if (route.method === "ALL") continue; // middleware, not an endpoint
+    // "ALL" is middleware, not a documented endpoint.
+    if (route.method === "ALL") continue;
     const path = route.path.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
     operations.add(`${route.method} ${path}`);
   }
@@ -118,9 +119,8 @@ interface JsonSchema {
  * branches is the bare `{ type: "null" }` schema — never via the
  * OpenAPI-3.0-only `nullable: true` keyword. */
 function acceptsNull(schema: JsonSchema): boolean {
-  if (schema.nullable === true) return false; // the very keyword this issue removes
-  if (Array.isArray(schema.type) && (schema.type as string[]).includes("null"))
-    return true;
+  if (schema.nullable === true) return false;
+  if (Array.isArray(schema.type) && schema.type.includes("null")) return true;
   if (schema.type === "null") return true;
   const branches = schema.anyOf ?? schema.oneOf ?? [];
   return branches.some((branch) => branch.type === "null");

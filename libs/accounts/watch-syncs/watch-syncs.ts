@@ -60,7 +60,7 @@ export function watchSyncs(
       while (!signal.aborted) {
         const next = pending.shift();
         if (!next) {
-          // oxlint-disable-next-line eslint/no-await-in-loop
+          // oxlint-disable-next-line eslint/no-await-in-loop -- waits for the next signal; nothing to parallelize
           await new Promise<void>((resolve) => {
             wake = resolve;
           });
@@ -68,7 +68,7 @@ export function watchSyncs(
         }
         if (next.kind === "reset") return;
 
-        // oxlint-disable-next-line eslint/no-await-in-loop
+        // oxlint-disable-next-line eslint/no-await-in-loop -- one shared stream; signals resolve in arrival order
         const job = await deps.getSyncJob(next.syncId);
         // Gone with its account, someone else's, or not settled after all.
         if (!job || job.userId !== userId || isActiveSyncStatus(job.status)) continue;

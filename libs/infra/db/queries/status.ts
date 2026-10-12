@@ -13,7 +13,6 @@ import { gameAnalyses, games, trackedAccounts } from "../schema.ts";
 /** What the games screen filters by. Every field is optional: absent means
  * "don't narrow on this", which is what an untouched filter should do. */
 export interface GameFilters {
-  /** Which side you played. */
   color?: "white" | "black" | undefined;
   /** From your side of the board, not the scoresheet's. */
   outcome?: "win" | "loss" | "draw" | undefined;

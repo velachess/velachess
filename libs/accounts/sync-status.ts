@@ -41,3 +41,15 @@ export function isActiveSyncStatus(
 ): status is ActiveSyncStatus {
   return ACTIVE_SYNC_STATUSES.some((active) => active === status);
 }
+
+/**
+ * The settled-sync SSE event names: `apps/server` emits them on
+ * `GET /syncs/events`, `apps/web` matches on them to know when to refetch.
+ * One declaration so a rename cannot compile on one side while silently
+ * breaking the other — both apps reach it through this module's `index.ts`,
+ * never through each other (`no-cross-app-runtime-imports`).
+ */
+export const SYNC_SETTLED_EVENTS = {
+  completed: "sync.completed",
+  failed: "sync.failed",
+} as const;

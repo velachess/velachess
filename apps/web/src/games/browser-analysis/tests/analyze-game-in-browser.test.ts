@@ -38,7 +38,8 @@ class ScriptedTransport implements Transport {
       if (lines) {
         for (const line of lines) this.push(line);
       } else {
-        this.awaitingGo = true; // left pending until queued or stopped
+        // Left pending until a response is queued or the transport stops.
+        this.awaitingGo = true;
       }
     } else if (command === "stop" && this.awaitingGo) {
       this.awaitingGo = false;
@@ -125,8 +126,9 @@ describe("analyzeGameInBrowser", () => {
 
     const firstPly = gen.next();
     await vi.waitFor(() => expect(transports).toHaveLength(1));
-    transports[0]!.queueGoResponse(goLines(1, "e2e4")); // answers search 1
-    transports[0]!.queueGoResponse(goLines(2, "e7e5")); // answers search 2 — unlocks ply 1
+    // Answers search 1, then search 2 — the second unlocks ply 1.
+    transports[0]!.queueGoResponse(goLines(1, "e2e4"));
+    transports[0]!.queueGoResponse(goLines(2, "e7e5"));
 
     const ply1 = await firstPly;
     expect(ply1.done).toBe(false);
