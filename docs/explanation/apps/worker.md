@@ -12,7 +12,7 @@ settlement either.
 Each handler answers exactly one question — "which use case does this
 job trigger?" — and nothing else:
 
-- **sync** → `processSync` (`@velachess/accounts`), handed the pg-boss job
+- **sync** → `syncAccount` (`@velachess/accounts`), handed the pg-boss job
   as fetched: its id is the `sync_jobs` id and it carries no payload. The
   slice marks the row running — stamping `started_at` as this attempt's
   claim — pulls what's new, then persists games, cursor and outcome in one

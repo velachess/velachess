@@ -36,5 +36,5 @@ export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request
 export { getSync } from "./get-sync/get-sync.ts";
 export type { GetSyncDeps } from "./get-sync/get-sync.ts";
 
-export { processSync } from "./process-sync/process-sync.ts";
-export type { ProcessSyncDeps, SyncDeps } from "./process-sync/process-sync.ts";
+export { syncAccount } from "./sync-account/sync-account.ts";
+export type { SyncAccountDeps, SyncDeps } from "./sync-account/sync-account.ts";

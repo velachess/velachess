@@ -1,5 +1,5 @@
 /**
- * ProcessSync — one pg-boss delivery of a sync job: mark it running, pull
+ * SyncAccount — one pg-boss delivery of a sync job: mark it running, pull
  * the account's new games, persist them with the outcome.
  *
  * pg-boss owns the delivery: returning completes it, throwing fails it
@@ -44,9 +44,9 @@ type MarkSyncRunning = (
 ) => Promise<{ accountId: string; startedAt: Date } | null>;
 type GetTrackedAccount = (accountId: string) => Promise<TrackedAccount | null>;
 type WithTransaction = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
-/** Locks the row for this attempt. False when it is gone, or a newer
- * attempt has re-stamped it. */
-type LockSyncJob = (tx: Tx, attempt: Attempt) => Promise<boolean>;
+/** Claims the row for this attempt, locked. False when it is gone, or a
+ * newer attempt has re-stamped it: this one is obsolete. */
+type ClaimSyncAttempt = (tx: Tx, attempt: Attempt) => Promise<boolean>;
 /** Writes the outcome, only while the row is still this attempt's. */
 type FinishSyncJob = (tx: Tx, attempt: Attempt, outcome: Outcome) => Promise<void>;
 type SaveGames = (
@@ -61,11 +61,11 @@ type UpdateTrackedAccountCursor = (
 ) => Promise<void>;
 type MarkTrackedAccountSynced = (tx: Tx, accountId: string) => Promise<void>;
 
-export interface ProcessSyncDeps {
+export interface SyncAccountDeps {
   markSyncRunning: MarkSyncRunning;
   getTrackedAccount: GetTrackedAccount;
   withTransaction: WithTransaction;
-  lockSyncJob: LockSyncJob;
+  claimSyncAttempt: ClaimSyncAttempt;
   finishSyncJob: FinishSyncJob;
   saveGames: SaveGames;
   updateTrackedAccountCursor: UpdateTrackedAccountCursor;
@@ -88,9 +88,9 @@ export interface ProcessSyncDeps {
  * account fetch, since both narrow to the exact same shape. */
 export interface SyncDeps {
   fetch?: FetchFn;
-  /** See `ProcessSyncDeps.onUnreadableCursor` — the same sink, reached
+  /** See `SyncAccountDeps.onUnreadableCursor` — the same sink, reached
    * through the bag a composition root already passes into sync. */
-  onUnreadableCursor?: ProcessSyncDeps["onUnreadableCursor"];
+  onUnreadableCursor?: SyncAccountDeps["onUnreadableCursor"];
 }
 
 /** What pg-boss hands the worker — its job fits as it is. The id is the
@@ -100,8 +100,8 @@ export interface SyncDelivery {
   signal: AbortSignal;
 }
 
-export async function processSync(
-  deps: ProcessSyncDeps,
+export async function syncAccount(
+  deps: SyncAccountDeps,
   job: SyncDelivery,
 ): Promise<void> {
   const sync = await deps.markSyncRunning(job.id);
@@ -140,7 +140,7 @@ export async function processSync(
   // the retry starts from the same place and the unique constraints absorb
   // the repeats.
   await deps.withTransaction(async (tx) => {
-    if (!(await deps.lockSyncJob(tx, attempt))) return;
+    if (!(await deps.claimSyncAttempt(tx, attempt))) return; // obsolete attempt
     const { inserted } = await deps.saveGames(tx, fetched.games, {
       userId: account.userId,
       accountId: account.id,
@@ -184,7 +184,7 @@ export async function processSync(
  * `ChessComCursor & LichessCursor`, which no cursor satisfies.
  */
 function fetchGameHistory(
-  deps: ProcessSyncDeps,
+  deps: SyncAccountDeps,
   account: TrackedAccount,
   signal: AbortSignal,
 ): Promise<SyncResult & { cursor: Cursor | null }> {

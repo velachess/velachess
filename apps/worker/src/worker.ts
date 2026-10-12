@@ -6,7 +6,7 @@
  * policy decides retry, backoff and dead letter.
  */
 
-import { processSync, type SyncDeps } from "@velachess/accounts";
+import { syncAccount, type SyncDeps } from "@velachess/accounts";
 import { completeAnalysis } from "@velachess/analysis";
 import type { Database } from "@velachess/infra-db";
 import { logger, type Logger } from "@velachess/infra-logger";
@@ -17,7 +17,7 @@ import {
   type PgBoss,
 } from "@velachess/infra-queue";
 
-import { buildProcessSyncDeps } from "./composition/accounts.ts";
+import { buildSyncAccountDeps } from "./composition/accounts.ts";
 import { buildAnalyzeDeps, type EngineDeps } from "./composition/analysis.ts";
 
 const workerLogger = logger.child({ component: "worker" });
@@ -51,7 +51,7 @@ export class Worker {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");
         // oxlint-disable-next-line eslint/no-await-in-loop
-        await processSync(buildProcessSyncDeps(db, this.deps.sync), job).catch(
+        await syncAccount(buildSyncAccountDeps(db, this.deps.sync), job).catch(
           failed(log, fields),
         );
       }

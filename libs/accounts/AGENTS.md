@@ -10,17 +10,17 @@ unique at the schema level) — `connect-account` enforces it before
 
 Sync never fetches inside a request: `request-sync` and `connect-account`
 write a `sync_jobs` row and enqueue it under the row's id in one
-transaction; `process-sync` (the worker) takes the pg-boss job as
+transaction; `sync-account` (the worker) takes the pg-boss job as
 delivered, stamps the row as its attempt, fetches, then commits games,
 cursor and outcome conditional on that stamp. pg-boss settles the
 delivery. See `docs/reference/ingestion.md` "Sync jobs".
 
 `index.ts` exports: `importAccount`, `disconnectAccount`, `listAccounts`,
-`listGamesWithStatus`, `requestSync`, `getSync`, `processSync`; types
+`listGamesWithStatus`, `requestSync`, `getSync`, `syncAccount`; types
 `ConnectAccountDeps`, `ConnectOutcome`, `Platform`, `DisconnectAccountDeps`,
 `DisconnectOutcome`, `ListAccountsDeps`, `TrackedAccountSummary`,
 `GameWithStatus`, `ListAccountGamesDeps`, `RequestSyncDeps`,
-`RequestSyncOutcome`, `GetSyncDeps`, `ProcessSyncDeps`, `SyncDelivery`,
+`RequestSyncOutcome`, `GetSyncDeps`, `SyncAccountDeps`, `SyncDelivery`,
 `SyncDeps`.
 
 Cross-module dependencies: none. Provider HTTP, the database and the queue

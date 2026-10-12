@@ -10,7 +10,7 @@ import {
   getSyncJobForUser,
   insertTrackedAccount,
   listTrackedAccountsByUser,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   syncJobs,
 } from "@velachess/infra-db";
@@ -121,7 +121,7 @@ describe("sync jobs", () => {
     const current = await deliver(job);
     expect(current.startedAt.getTime()).toBeGreaterThan(stale.startedAt.getTime());
 
-    expect(await db.transaction((tx) => lockSyncJob(tx, stale))).toBe(false);
+    expect(await db.transaction((tx) => claimSyncAttempt(tx, stale))).toBe(false);
     await finishSyncJob(db, stale, {
       status: "succeeded",
       errorCode: null,
@@ -132,7 +132,7 @@ describe("sync jobs", () => {
       gamesInserted: null,
     });
 
-    expect(await db.transaction((tx) => lockSyncJob(tx, current))).toBe(true);
+    expect(await db.transaction((tx) => claimSyncAttempt(tx, current))).toBe(true);
     await finishSyncJob(db, current, {
       status: "succeeded",
       errorCode: null,

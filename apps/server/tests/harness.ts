@@ -8,7 +8,7 @@ import path from "node:path";
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
-import { processSync } from "@velachess/accounts";
+import { syncAccount } from "@velachess/accounts";
 import {
   appendProgress,
   clearProgress,
@@ -16,7 +16,7 @@ import {
   getAnalysis,
   getGame,
   getTrackedAccount,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   markTrackedAccountSynced,
   saveAnalysis,
@@ -131,12 +131,12 @@ export async function createApiHarness(
   // completes the job, as it would under `boss.work`.
   const runSync = async (syncId: string) => {
     const job = await deliverSyncJob(harness.boss, syncId);
-    await processSync(
+    await syncAccount(
       {
         markSyncRunning: (id) => markSyncRunning(harness.db, id),
         getTrackedAccount: (accountId) => getTrackedAccount(harness.db, accountId),
         withTransaction: (fn) => harness.db.transaction(fn),
-        lockSyncJob,
+        claimSyncAttempt,
         finishSyncJob,
         saveGames,
         updateTrackedAccountCursor,

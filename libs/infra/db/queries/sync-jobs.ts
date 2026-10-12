@@ -87,12 +87,12 @@ const ownedBy = (attempt: { id: string; startedAt: Date }) =>
   and(eq(syncJobs.id, attempt.id), eq(syncJobs.startedAt, attempt.startedAt));
 
 /**
- * Locks the job before a delivery's other writes, in the order disconnecting
- * takes its locks. False when the row is gone with its account (the only
- * way a row leaves this table), or a newer delivery re-stamped it — the
- * caller then writes nothing.
+ * Claims the row for this attempt before its other writes: locked, in the
+ * order disconnecting takes its locks. False when the row is gone with its
+ * account (the only way a row leaves this table), or a newer delivery
+ * re-stamped it — the attempt is obsolete and writes nothing.
  */
-export async function lockSyncJob(
+export async function claimSyncAttempt(
   tx: Database,
   attempt: { id: string; startedAt: Date },
 ): Promise<boolean> {

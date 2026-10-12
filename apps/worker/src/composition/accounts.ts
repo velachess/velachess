@@ -1,31 +1,31 @@
 /**
  * Composition root for the accounts module's worker-side handler: adapts
  * the DB client and fetch-override fixture `main.ts` builds into the narrow
- * `ProcessSyncDeps` `processSync` declared.
+ * `SyncAccountDeps` `syncAccount` declared.
  */
 import {
   finishSyncJob,
   getTrackedAccount,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   markTrackedAccountSynced,
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import type { ProcessSyncDeps, SyncDeps } from "@velachess/accounts";
+import type { SyncAccountDeps, SyncDeps } from "@velachess/accounts";
 import { logger } from "@velachess/infra-logger";
 
 /** The cursor warning needs somewhere to land; the slice declares the
  * callback and the composition root owns the sink. */
 const syncLogger = logger.child({ component: "sync" });
 
-export function buildProcessSyncDeps(db: Database, sync: SyncDeps = {}): ProcessSyncDeps {
+export function buildSyncAccountDeps(db: Database, sync: SyncDeps = {}): SyncAccountDeps {
   return {
     markSyncRunning: (id) => markSyncRunning(db, id),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     withTransaction: (fn) => db.transaction(fn),
-    lockSyncJob,
+    claimSyncAttempt,
     finishSyncJob,
     saveGames,
     updateTrackedAccountCursor,

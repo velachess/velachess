@@ -107,5 +107,5 @@ successfully normalized games and is stored only after a complete pass.
 
 Current cursor shapes, bootstrap limits, request headers, cooldowns, and rate
 behavior can change. Inspect the provider clients, the sync slices
-(`request-sync`, `process-sync`), and their tests before changing or
+(`request-sync`, `sync-account`), and their tests before changing or
 documenting one of those values.

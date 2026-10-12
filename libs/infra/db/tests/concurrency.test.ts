@@ -16,7 +16,7 @@ import {
   createUser,
   deleteTrackedAccountAndGames,
   games,
-  lockSyncJob,
+  claimSyncAttempt,
   markSyncRunning,
   lockLatestSyncJob,
   saveGames,
@@ -124,7 +124,7 @@ describe.skipIf(!url)("concurrent writers on Postgres", async () => {
     const run = (await markSyncRunning(db, job.id))!;
     // The worker's commit order: its job first, then the games.
     const sync = heldTransaction(
-      (tx) => lockSyncJob(tx, { id: job.id, startedAt: run.startedAt }),
+      (tx) => claimSyncAttempt(tx, { id: job.id, startedAt: run.startedAt }),
       (tx) => saveGames(tx, [lateGame], owner),
     );
     await sync.didFirst;

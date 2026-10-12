@@ -24,7 +24,7 @@ import {
 import {
   getSync,
   listGamesWithStatus,
-  processSync,
+  syncAccount,
   type SyncDeps,
 } from "@velachess/accounts";
 import { completeAnalysis } from "@velachess/analysis";
@@ -41,7 +41,7 @@ import {
 import { logger } from "@velachess/infra-logger";
 import { QUEUES } from "@velachess/infra-queue";
 
-import { buildProcessSyncDeps } from "../src/composition/accounts.ts";
+import { buildSyncAccountDeps } from "../src/composition/accounts.ts";
 import { buildAnalyzeDeps, type EngineDeps } from "../src/composition/analysis.ts";
 import { Worker } from "../src/worker.ts";
 
@@ -72,7 +72,7 @@ const deliver = (job: { id: string }) => deliverSyncJob(h.boss, job.id);
 
 /** The sync handler's call, composed as `worker.ts` composes it. */
 const sync = (deps: SyncDeps, delivery: { id: string; signal: AbortSignal }) =>
-  processSync(buildProcessSyncDeps(h.db, deps), delivery);
+  syncAccount(buildSyncAccountDeps(h.db, deps), delivery);
 
 /** The analysis handler's call. */
 const analyzeGame = (gameId: string) =>
