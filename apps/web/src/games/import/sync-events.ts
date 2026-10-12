@@ -1,5 +1,5 @@
 import { apiBaseUrl, reportUnauthorized } from "../../api/index.ts";
-import { EventSourcePlus } from "../../libs/event-source.ts";
+import { EventSourcePlus, type SseMessage } from "../../libs/event-source.ts";
 import type { QueryClientType } from "../../libs/react-query.ts";
 import { z } from "../../libs/zod.ts";
 import { gamesQueryKey } from "../list/queries.ts";
@@ -16,6 +16,13 @@ import { trackedAccountsQuery } from "./queries.ts";
  * sync" — and the payload adds nothing a refetch does not already bring.
  */
 export const SYNC_SETTLED_EVENT_NAMES = ["sync.completed", "sync.failed"] as const;
+const SETTLED_STATUS_BY_EVENT: Record<
+  (typeof SYNC_SETTLED_EVENT_NAMES)[number],
+  "succeeded" | "failed"
+> = {
+  "sync.completed": "succeeded",
+  "sync.failed": "failed",
+};
 const SETTLED_EVENTS: ReadonlySet<string> = new Set(SYNC_SETTLED_EVENT_NAMES);
 
 export interface SettledSync {
@@ -35,13 +42,20 @@ export function onSyncSettled(listener: (settled: SettledSync) => void): () => v
 
 const settledPayloadSchema = z.object({ syncId: z.string(), accountId: z.string() });
 
-function parseSettled(message: { event: string; data: string }): SettledSync | null {
+function isSettledEventName(
+  event: string,
+): event is keyof typeof SETTLED_STATUS_BY_EVENT {
+  return event in SETTLED_STATUS_BY_EVENT;
+}
+
+function parseSettled(message: SseMessage): SettledSync | null {
+  if (!isSettledEventName(message.event)) return null;
   try {
     const payload = settledPayloadSchema.parse(JSON.parse(message.data));
     return {
       syncId: payload.syncId,
       accountId: payload.accountId,
-      status: message.event === SYNC_SETTLED_EVENT_NAMES[0] ? "succeeded" : "failed",
+      status: SETTLED_STATUS_BY_EVENT[message.event],
     };
   } catch {
     // A malformed frame still leaves `refresh()` to bring the data current;
