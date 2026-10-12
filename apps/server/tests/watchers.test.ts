@@ -8,6 +8,7 @@
  * shared one produce identical streams and a tenfold difference in load,
  * so the only way to hold the difference is to count.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { appendProgress } from "@velachess/infra-db";
@@ -23,15 +24,12 @@ beforeAll(async () => {
   harness = await createApiHarness();
   // Reads no longer import; the connection is created explicitly first.
   const owner = (await harness.signUp("owner@watchers.test")).app;
-  const connected = await owner.request("/accounts", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ platform: "chess_com", username: "looper" }),
-  });
-  await harness.runSync(((await connected.json()) as { syncId: string }).syncId);
-  const games = (await (await owner.request("/games")).json()) as {
-    games: { id: string }[];
-  };
+  const connected = await parseResponse(
+    owner.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
+  );
+  if (!connected.syncId) throw new Error("expected a first sync on a fresh connect");
+  await harness.runSync(connected.syncId);
+  const games = await parseResponse(owner.api.games.$get({ query: {} }));
   gameId = games.games[0]!.id;
 });
 

@@ -43,7 +43,8 @@ describe("fetchChessCom", () => {
     // the latest.
     expect(requested.some((u) => u.endsWith("/2023/12"))).toBe(true);
 
-    expect(result.games).toHaveLength(1); // 3 entries in fixture: 1 real, 1 in-progress (no pgn), 1 chess960
+    // 3 entries in the fixture: 1 real, 1 in-progress (no pgn), 1 chess960.
+    expect(result.games).toHaveLength(1);
     expect(result.games[0]?.source).toBe("chess_com");
     expect(result.failures).toEqual([
       {
@@ -54,7 +55,8 @@ describe("fetchChessCom", () => {
         detail: "chess960",
       },
     ]);
-    expect(result.complete).toBe(false); // the filtered variant counts as a failure
+    // The filtered variant counts as a failure, not a silent skip.
+    expect(result.complete).toBe(false);
     expect(result.cursor).toEqual({ month: "2024/01", lastEndTime: 1704133706 });
   });
 
@@ -98,7 +100,8 @@ describe("fetchChessCom", () => {
       },
     ]);
     expect(result.complete).toBe(false);
-    expect(result.cursor).toEqual(cursor); // did not advance past the failed month
+    // Did not advance past the failed month.
+    expect(result.cursor).toEqual(cursor);
   });
 
   it("a malformed month response becomes an invalid-response failure", async () => {

@@ -36,7 +36,6 @@ interface ArchiveState {
   refusesRefreshFor: number | null;
   /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
-  /** Scheduled syncs, by id. */
   syncs: Map<string, SyncJob>;
 }
 

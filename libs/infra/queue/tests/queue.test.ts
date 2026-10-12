@@ -92,7 +92,8 @@ describe("analysis queue port", () => {
 
     const dead = await dlqReceived;
     expect(dead.gameId).toBe("game-poison");
-    expect(attempts).toBeGreaterThanOrEqual(2); // original + retries
+    // The original attempt plus at least one retry.
+    expect(attempts).toBeGreaterThanOrEqual(2);
   }, 60_000);
 });
 

@@ -3,6 +3,7 @@ import { streamSSE } from "hono/streaming";
 
 import {
   getAnalysisReport,
+  MOVE_CATEGORIES,
   requestAnalysisForUser,
   startAnalysisForUser,
   type GetAnalysisDeps,
@@ -72,6 +73,14 @@ const importPgnSchema = z.object({
     .describe("How the uploader is identified across the batch"),
 });
 
+/** Mirrors `@velachess/infra-platforms`' `resultSchema`, `perspectiveSchema`
+ * and `gameSourceSchema` — `routes-no-direct-infra` forbids importing them,
+ * so this file keeps one hand-written copy of each; guarded by
+ * `apps/server/tests/contracts.test.ts`. */
+export const GAME_RESULT = ["1-0", "0-1", "1/2-1/2", "*"] as const;
+export const GAME_PERSPECTIVE = ["white", "black"] as const;
+export const GAME_SOURCE = ["chess_com", "lichess", "pgn"] as const;
+
 /**
  * Mirrors the `.select({...})` projection in
  * `libs/infra/db/queries/status.ts`'s `listGamesPage` — inferred from a
@@ -87,10 +96,10 @@ const gameListRowSchema = z.object({
   whiteRating: z.number().int().nullable(),
   blackName: z.string(),
   blackRating: z.number().int().nullable(),
-  result: z.enum(["1-0", "0-1", "1/2-1/2", "*"]),
+  result: z.enum(GAME_RESULT),
   playedAt: z.string().nullable(),
-  perspective: z.enum(["white", "black"]).nullable(),
-  source: z.enum(["chess_com", "lichess", "pgn"]),
+  perspective: z.enum(GAME_PERSPECTIVE).nullable(),
+  source: z.enum(GAME_SOURCE),
   externalUrl: z.string().nullable(),
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
@@ -111,16 +120,16 @@ const seatIdentitySchema = z.object({
 const gameDetailSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  source: z.enum(["chess_com", "lichess", "pgn"]),
+  source: z.enum(GAME_SOURCE),
   externalId: z.string().nullable(),
   externalUrl: z.string().nullable(),
   accountId: z.string().uuid().nullable(),
-  perspective: z.enum(["white", "black"]).nullable(),
+  perspective: z.enum(GAME_PERSPECTIVE).nullable(),
   whiteName: z.string(),
   whiteRating: z.number().int().nullable(),
   blackName: z.string(),
   blackRating: z.number().int().nullable(),
-  result: z.enum(["1-0", "0-1", "1/2-1/2", "*"]),
+  result: z.enum(GAME_RESULT),
   playedAt: z.string().nullable(),
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
@@ -224,21 +233,23 @@ const getGameRoute = createRoute({
   },
 });
 
-/** Mirrors `@velachess/infra-db`'s `StoredGradedPly`. */
 const evalScoreSchema = z.object({
   cp: z.number().int().optional(),
   mate: z.number().int().optional(),
 });
-const gradedPlySchema = z.object({
+/** Mirrors `@velachess/analysis`'s `GradedPly`; guarded by
+ * `apps/server/tests/contracts.test.ts`. */
+export const gradedPlySchema = z.object({
   ply: z.number().int(),
   fen: z.string(),
   san: z.string(),
   evalBefore: evalScoreSchema,
   evalAfter: evalScoreSchema,
   bestMove: z.string(),
-  category: z.enum(["best", "good", "inaccuracy", "mistake", "blunder"]),
+  category: z.enum(MOVE_CATEGORIES),
   winChanceLoss: z.number(),
 });
+export type GradedPlyWire = z.infer<typeof gradedPlySchema>;
 
 /** Mirrors `@velachess/analysis`'s `GameAnalysisRecord` (`GameAnalysisRow`)
  * — `createdAt` travels as ISO text on the wire, not a `Date`. */
@@ -566,7 +577,7 @@ export function gamesRoutes(deps: GamesRouteDeps) {
             }
 
             for (const row of snapshot.rows.filter((entry) => entry.index >= sent)) {
-              // oxlint-disable-next-line eslint/no-await-in-loop
+              // oxlint-disable-next-line eslint/no-await-in-loop -- frames must write in ply order
               await stream.writeSSE({
                 event: STREAM_EVENTS.moveGraded,
                 // A stream cursor, scoped to the run that produced it.

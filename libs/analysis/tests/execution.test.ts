@@ -114,7 +114,8 @@ describe("process-analysis execution", () => {
     const analysis = await started.execution.result;
     await consume;
 
-    expect(seen[0]).toBe(0); // never lost the first event
+    // Never lost the first event to a race with the subscriber attaching.
+    expect(seen[0]).toBe(0);
     expect(analysis.positions.length).toBe(4);
 
     expect(await getAnalysis(h.db, gameId)).not.toBeNull();
@@ -134,8 +135,9 @@ describe("process-analysis execution", () => {
     })();
 
     execution.start();
-    await abandoned; // subscriber gone mid-flight
-    const analysis = await execution.result; // execution continued regardless
+    // The subscriber is gone mid-flight, but execution continues regardless.
+    await abandoned;
+    const analysis = await execution.result;
     expect(analysis.positions.length).toBe(2);
     expect(await getAnalysis(h.db, game.id)).not.toBeNull();
   }, 120_000);

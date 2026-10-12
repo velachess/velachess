@@ -4,9 +4,18 @@ import type { QueryClientType } from "../../libs/react-query.ts";
 import { gamesQueryKey } from "../list/queries.ts";
 import { trackedAccountsQuery } from "./queries.ts";
 
-/** Both answer the same question — "the server has new facts about this
- * sync" — and the payload adds nothing a refetch does not already bring. */
-const SETTLED_EVENTS = new Set(["sync.completed", "sync.failed"]);
+/**
+ * Mirrors `@velachess/accounts`' `SYNC_SETTLED_EVENTS` — this app cannot
+ * import that package at runtime (its slices pull in Postgres and
+ * `node:crypto`, which a browser bundle cannot load), so the names are
+ * duplicated here and held to the server's copy by
+ * `tests/sync-events.test.ts`'s drift guard.
+ *
+ * Both answer the same question — "the server has new facts about this
+ * sync" — and the payload adds nothing a refetch does not already bring.
+ */
+export const SYNC_SETTLED_EVENT_NAMES = ["sync.completed", "sync.failed"] as const;
+const SETTLED_EVENTS: ReadonlySet<string> = new Set(SYNC_SETTLED_EVENT_NAMES);
 
 /**
  * The one stream the app keeps on `GET /syncs/events`. A sync runs in the

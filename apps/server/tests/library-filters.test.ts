@@ -10,24 +10,16 @@
  * production rule computed — a single-sourced rule must not also
  * single-source its own expectation.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
 let harness: ApiHarness;
 
-interface LibraryRow {
-  whiteName: string;
-  /** Every seeded game carries its case in its `[Opening]` header. */
-  openingName: string | null;
-  timeControlInitialSeconds: number | null;
-  timeControlIncrementSeconds: number | null;
-}
-
-interface Library {
-  games: LibraryRow[];
-  total: number;
-}
+const TIME_CLASSES = ["bullet", "blitz", "rapid", "classical"] as const;
+type TimeClass = (typeof TIME_CLASSES)[number];
+type Outcome = "win" | "loss" | "draw";
 
 /**
  * One game per clock, each with its own first move: deduplication is
@@ -57,17 +49,13 @@ ${timeControl === null ? "" : `[TimeControl "${timeControl}"]\n`}
 `,
 ).join("\n");
 
-async function labelsIn(app: AuthedApp, query: string): Promise<string[]> {
-  const response = await app.request(query);
-  expect(response.status).toBe(200);
-  const library = (await response.json()) as Library;
+async function labelsIn(app: AuthedApp, outcome: Outcome): Promise<string[]> {
+  const library = await parseResponse(app.api.games.$get({ query: { outcome } }));
   return library.games.map((game) => game.openingName ?? "?").toSorted();
 }
 
-async function namesIn(app: AuthedApp, query: string): Promise<string[]> {
-  const response = await app.request(query);
-  expect(response.status).toBe(200);
-  const library = (await response.json()) as Library;
+async function namesIn(app: AuthedApp, timeClass: TimeClass): Promise<string[]> {
+  const library = await parseResponse(app.api.games.$get({ query: { timeClass } }));
   return library.games.map((game) => game.whiteName).toSorted();
 }
 
@@ -92,45 +80,32 @@ afterAll(async () => {
 
 describe("GET /games?timeClass", () => {
   it("buckets by estimated duration, with the ceiling belonging to the next class", async () => {
-    expect(await namesIn(owner, "/games?timeClass=bullet")).toEqual([
-      "tc-179-0",
-      "tc-60-0",
-    ]);
-    expect(await namesIn(owner, "/games?timeClass=blitz")).toEqual([
-      "tc-180-0",
-      "tc-479-0",
-      "tc-60-3",
-    ]);
-    expect(await namesIn(owner, "/games?timeClass=rapid")).toEqual([
-      "tc-1499-0",
-      "tc-480-0",
-    ]);
-    expect(await namesIn(owner, "/games?timeClass=classical")).toEqual(["tc-1500-0"]);
+    expect(await namesIn(owner, "bullet")).toEqual(["tc-179-0", "tc-60-0"]);
+    expect(await namesIn(owner, "blitz")).toEqual(["tc-180-0", "tc-479-0", "tc-60-3"]);
+    expect(await namesIn(owner, "rapid")).toEqual(["tc-1499-0", "tc-480-0"]);
+    expect(await namesIn(owner, "classical")).toEqual(["tc-1500-0"]);
   });
 
   it("counts the increment: 1+3 is blitz where 1+0 is bullet", async () => {
     // Both start from a 60-second clock; only the increment separates them.
-    expect(await namesIn(owner, "/games?timeClass=bullet")).toContain("tc-60-0");
-    expect(await namesIn(owner, "/games?timeClass=blitz")).toContain("tc-60-3");
+    expect(await namesIn(owner, "bullet")).toContain("tc-60-0");
+    expect(await namesIn(owner, "blitz")).toContain("tc-60-3");
   });
 
   it("leaves a game with no clock out of every class, without losing it", async () => {
-    for (const timeClass of ["bullet", "blitz", "rapid", "classical"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
-      expect(await namesIn(owner, `/games?timeClass=${timeClass}`)).not.toContain(
-        "tc-none",
-      );
+    for (const timeClass of TIME_CLASSES) {
+      expect(await namesIn(owner, timeClass)).not.toContain("tc-none");
     }
 
-    const library = (await (await owner.request("/games")).json()) as Library;
+    const library = await parseResponse(owner.api.games.$get({ query: {} }));
     expect(library.total).toBe(CLOCKS.length);
     expect(library.games.map((game) => game.whiteName)).toContain("tc-none");
   });
 
   it("reports the page total of the filtered set, not of the library", async () => {
-    const blitz = (await (
-      await owner.request("/games?timeClass=blitz")
-    ).json()) as Library;
+    const blitz = await parseResponse(
+      owner.api.games.$get({ query: { timeClass: "blitz" } }),
+    );
     expect(blitz.total).toBe(3);
   });
 });
@@ -252,18 +227,12 @@ describe("GET /games?outcome", () => {
   });
 
   it("reads the result from the player's seat, not the scoresheet's", async () => {
-    expect(await labelsIn(player, "/games?outcome=win")).toEqual([
-      "win-as-black",
-      "win-as-white",
-    ]);
-    expect(await labelsIn(player, "/games?outcome=loss")).toEqual([
-      "loss-as-black",
-      "loss-as-white",
-    ]);
+    expect(await labelsIn(player, "win")).toEqual(["win-as-black", "win-as-white"]);
+    expect(await labelsIn(player, "loss")).toEqual(["loss-as-black", "loss-as-white"]);
   });
 
   it("calls a draw a draw from either seat, and with no seat at all", async () => {
-    expect(await labelsIn(player, "/games?outcome=draw")).toEqual([
+    expect(await labelsIn(player, "draw")).toEqual([
       "draw-as-black",
       "draw-as-white",
       "drawn-unattributed",
@@ -272,23 +241,16 @@ describe("GET /games?outcome", () => {
 
   it("leaves a decided game with no resolved seat out of win and loss", async () => {
     // Nobody can be said to have won it: the result is real, the seat is not.
-    expect(await labelsIn(player, "/games?outcome=win")).not.toContain(
-      "decided-unattributed",
-    );
-    expect(await labelsIn(player, "/games?outcome=loss")).not.toContain(
-      "decided-unattributed",
-    );
+    expect(await labelsIn(player, "win")).not.toContain("decided-unattributed");
+    expect(await labelsIn(player, "loss")).not.toContain("decided-unattributed");
   });
 
   it("leaves an unfinished game out of every outcome, without losing it", async () => {
-    for (const outcome of ["win", "loss", "draw"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
-      expect(await labelsIn(player, `/games?outcome=${outcome}`)).not.toContain(
-        "unfinished-as-white",
-      );
+    for (const outcome of ["win", "loss", "draw"] as const) {
+      expect(await labelsIn(player, outcome)).not.toContain("unfinished-as-white");
     }
 
-    const library = (await (await player.request("/games")).json()) as Library;
+    const library = await parseResponse(player.api.games.$get({ query: {} }));
     expect(library.total).toBe(OUTCOMES.length);
     expect(library.games.map((game) => game.openingName)).toContain(
       "unfinished-as-white",

@@ -12,7 +12,11 @@
  * identity instead, before ever asking the provider about the new one.
  */
 import type { AccountPlatform, FetchFn, ProfileFetch } from "@velachess/infra-platforms";
-import { fetchChessComProfile, fetchLichessProfile } from "@velachess/infra-platforms";
+import {
+  fetchChessComProfile,
+  fetchLichessProfile,
+  normalizeUsername,
+} from "@velachess/infra-platforms";
 import type {
   Database,
   ProviderSeat,
@@ -129,7 +133,10 @@ export async function importAccount(
   });
   // A concurrent connect created the account after the check above.
   if (!connected) {
-    const winner = (await deps.getTrackedAccountByPlatform(userId, platform))!;
+    const winner = await deps.getTrackedAccountByPlatform(userId, platform);
+    if (!winner) {
+      throw new Error(`tracked account for user ${userId}/${platform} vanished`);
+    }
     return alreadyTracked(deps, userId, winner, username);
   }
   // Onboarding is over the moment a connection sticks — recorded on the
@@ -148,7 +155,7 @@ async function alreadyTracked(
   existing: TrackedAccount,
   username: string,
 ): Promise<ConnectOutcome> {
-  if (existing.username !== username.toLowerCase()) {
+  if (existing.username !== normalizeUsername(username)) {
     return {
       status: "provider-connected",
       existing: {

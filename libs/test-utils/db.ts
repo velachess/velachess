@@ -21,6 +21,6 @@ export async function createTestDb(): Promise<TestDb> {
   const pglite = new PGlite();
   const pgliteDb = drizzle(pglite, { schema });
   await migrate(pgliteDb, { migrationsFolder });
-  const db: Database = pgliteDb; // PgDatabase supertype — assignable, no cast
+  const db: Database = pgliteDb;
   return { pglite, db, close: () => pglite.close() };
 }

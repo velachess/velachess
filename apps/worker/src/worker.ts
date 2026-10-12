@@ -60,7 +60,7 @@ export class Worker {
       for (const job of jobs) {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");
-        // oxlint-disable-next-line eslint/no-await-in-loop
+        // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
         await syncAccount(buildSyncAccountDeps(db, this.#deps.sync), job).catch(
           failed(log, fields),
         );
@@ -76,7 +76,7 @@ export class Worker {
         const { gameId } = analysisJobDataSchema.parse(job.data);
         const fields = { queue: QUEUES.analysis, jobId: job.id, gameId };
         log.info(fields, "job start");
-        // oxlint-disable-next-line eslint/no-await-in-loop
+        // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
         await completeAnalysis(buildAnalyzeDeps(db, this.#deps.analyze), gameId).catch(
           failed(log, fields),
         );

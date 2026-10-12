@@ -155,9 +155,7 @@ export async function* analyzeGame(
       if (isLast && replay.finalPosition.isEnd()) {
         next = { score: terminalScore(), bestMove: null };
       } else {
-        // Single engine session, evaluated move by move — each position
-        // depends on the previous one having been replayed.
-        // oxlint-disable-next-line eslint/no-await-in-loop
+        // oxlint-disable-next-line eslint/no-await-in-loop -- one engine session; each position depends on the last one having been replayed
         next = await evaluate(played.fenAfter);
       }
 

@@ -27,7 +27,7 @@ export function openingNameFrom(source: {
 
   const words: string[] = [];
   for (const token of slug.split("-")) {
-    if (/^\d/.test(token) || token.startsWith("...")) break; // moves begin
+    if (/^\d/.test(token) || token.startsWith("...")) break;
     if (token.length > 0) words.push(token);
   }
   return words.length > 0 ? words.join(" ") : null;

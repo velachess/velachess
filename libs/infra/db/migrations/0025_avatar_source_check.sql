@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD CONSTRAINT "users_avatar_source_check" CHECK ("users"."avatar_source" IN ('custom', 'none'));

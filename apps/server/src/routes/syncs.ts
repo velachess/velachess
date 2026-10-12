@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { streamSSE } from "hono/streaming";
 
-import { getSync, watchSyncs } from "@velachess/accounts";
+import { getSync, SYNC_SETTLED_EVENTS, watchSyncs } from "@velachess/accounts";
 import type { GetSyncDeps, WatchSyncsDeps } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
@@ -12,11 +12,24 @@ import {
   wireDateOrNull,
 } from "../validation.ts";
 
+/** Mirrors `@velachess/accounts`' `SyncJobStatus` and job-error vocabulary
+ * — `routes-no-module-internals` only exposes the module's `index.ts`, and
+ * that type is not a slice dependency this route can declare around. Guarded
+ * by `apps/server/tests/contracts.test.ts`. */
+export const SYNC_JOB_STATUS = [
+  "queued",
+  "running",
+  "retrying",
+  "succeeded",
+  "failed",
+] as const;
+export const SYNC_JOB_ERROR = ["not-found", "incomplete", "internal"] as const;
+
 const syncJobSchema = z.object({
   id: z.string().uuid(),
   accountId: z.string().uuid(),
   trigger: z.enum(["connect", "manual"]),
-  status: z.enum(["queued", "running", "retrying", "succeeded", "failed"]),
+  status: z.enum(SYNC_JOB_STATUS),
   progress: z.object({
     unitsDone: z.null().describe("Reported once sync works in units"),
     unitsTotal: z.null().describe("Reported once sync works in units"),
@@ -29,7 +42,7 @@ const syncJobSchema = z.object({
   }),
   error: z
     .object({
-      code: z.enum(["not-found", "incomplete", "internal"]),
+      code: z.enum(SYNC_JOB_ERROR),
       retryable: z.boolean(),
     })
     .nullable(),
@@ -81,9 +94,6 @@ const watchSyncsRoute = createRoute({
   },
 });
 
-/** Namespaced, past-tense event names, like the analysis stream's. */
-const STREAM_EVENTS = { completed: "sync.completed", failed: "sync.failed" } as const;
-
 /** How long a quiet stream may stay quiet before a proxy assumes it died. */
 const HEARTBEAT_MS = 15_000;
 
@@ -113,12 +123,11 @@ export function syncsRoutes(deps: { get: GetSyncDeps; watch: WatchSyncsDeps }) {
           stream.onAbort(() => clearInterval(heartbeat));
           try {
             for await (const sync of settled) {
-              // oxlint-disable-next-line eslint/no-await-in-loop
               await stream.writeSSE({
                 event:
                   sync.status === "succeeded"
-                    ? STREAM_EVENTS.completed
-                    : STREAM_EVENTS.failed,
+                    ? SYNC_SETTLED_EVENTS.completed
+                    : SYNC_SETTLED_EVENTS.failed,
                 id: sync.syncId,
                 data: JSON.stringify({
                   syncId: sync.syncId,

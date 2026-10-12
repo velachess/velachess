@@ -5,6 +5,8 @@
  * handler so the archive can announce without importing msw.
  */
 
+import type { SYNC_SETTLED_EVENT_NAMES } from "../games/import/sync-events.ts";
+
 type Controller = ReadableStreamDefaultController<Uint8Array>;
 
 const encoder = new TextEncoder();
@@ -30,7 +32,7 @@ export function openSyncStreams(): number {
 
 /** The frame the real route writes once a job settles. */
 export function announceSync(
-  event: "sync.completed" | "sync.failed",
+  event: (typeof SYNC_SETTLED_EVENT_NAMES)[number],
   job: { id: string; accountId: string; gamesInserted: number | null },
 ): void {
   const frame = `event: ${event}\nid: ${job.id}\ndata: ${JSON.stringify({

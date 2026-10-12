@@ -5,6 +5,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { hc } from "hono/client";
+
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
 import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
@@ -33,14 +35,20 @@ import {
   type LoopHarness,
 } from "@velachess/test-utils";
 
-/** What a signed-in browser sees — the harness app with a cookie attached. */
-export interface AuthedApp {
-  request: (input: string, init?: RequestInit) => Promise<Response>;
-}
-
 import { createApp } from "../src/server.ts";
 import { buildWatcherDeps } from "../src/composition/analysis.ts";
 import type { ApiDeps } from "../src/deps.ts";
+import type { AppType } from "../src/server.ts";
+
+/** What a signed-in browser sees — the harness app with a cookie attached.
+ * `api` is the same `hc<AppType>` RPC client `apps/web` builds from this
+ * package's own `AppType`, so a test gets the route's real response type
+ * instead of hand-casting the body; `request` stays for SSE, the
+ * `/openapi.json` meta route, and anything else outside the RPC surface. */
+export interface AuthedApp {
+  request: (input: string, init?: RequestInit) => Promise<Response>;
+  api: ReturnType<typeof hc<AppType>>;
+}
 
 export interface ApiHarness extends LoopHarness {
   app: ReturnType<typeof createApp>;
@@ -186,13 +194,20 @@ export async function createApiHarness(
   };
 
   /** The app as seen by a signed-in browser: same routes, cookie attached. */
-  const asUser = (cookie: string) => ({
-    request: async (input: string, init?: RequestInit) =>
-      app.request(input, {
-        ...init,
-        headers: { ...(init?.headers as Record<string, string>), cookie },
-      }),
-  });
+  const asUser = (cookie: string): AuthedApp => {
+    const authedFetch: typeof fetch = async (input, init) => {
+      // `new Headers(...)` normalizes whatever shape the caller passed
+      // (plain object, array, or a `Headers` instance — hc's own client
+      // builds one of these) instead of losing it to an object spread.
+      const headers = new Headers(init?.headers);
+      headers.set("cookie", cookie);
+      return app.request(input, { ...init, headers });
+    };
+    return {
+      request: authedFetch,
+      api: hc<AppType>(ORIGIN, { fetch: authedFetch }),
+    };
+  };
 
   const signUp = async (email: string, password = "test-password-123") => {
     const created = await bootstrapAuth.api.signUpEmail({

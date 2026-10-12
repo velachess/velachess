@@ -60,6 +60,7 @@ async function singletonState(
  * and never leaks into callers.
  */
 const asBossDb = (dbOrTx: Database) =>
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- drizzle's execute() types as unknown; bridged once, at this boundary
   fromDrizzle(dbOrTx as DrizzleTransactionLike, drizzleSql);
 
 export function makeAnalysisQueue(boss: PgBoss, db: Database): AnalysisQueue {

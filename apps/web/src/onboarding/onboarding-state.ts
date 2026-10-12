@@ -27,14 +27,18 @@ export function onboardingState(input: OnboardingInput): OnboardingState {
   }
 
   if (input.games > 0) return { kind: "ready" };
+  // Checked before `onboarded`: the server marks onboarding done the
+  // moment a connection sticks, synchronously, before that account's
+  // first sync has landed a single game — so a freshly connected account
+  // reads `onboarded: true` while still `syncing`, and must stay covered.
+  if (input.accounts.some((account) => isSyncActive(account.syncStatus))) {
+    return { kind: "syncing" };
+  }
   // Onboarding happens once. Someone who has been through it and then
   // disconnected everything gets the empty library, not the tour again —
   // an empty screen they can act on, rather than a modal with no way out.
   if (input.onboarded) return { kind: "no-games" };
   if (input.accounts.length === 0) return { kind: "onboarding" };
-  if (input.accounts.some((account) => isSyncActive(account.syncStatus))) {
-    return { kind: "syncing" };
-  }
 
   return { kind: "no-games" };
 }

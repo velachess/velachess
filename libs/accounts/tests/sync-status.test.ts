@@ -5,9 +5,36 @@
  * Dropping a status from the list silently reported `idle` for a retrying
  * job and left a stale one un-abandoned, and nothing failed.
  */
+import { syncJobErrorEnum, syncJobStatusEnum } from "@velachess/infra-db";
 import { describe, expect, it } from "vitest";
 
+import type { JobError } from "../list-accounts/list-accounts.ts";
 import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
+
+const ALL_SYNC_JOB_STATUSES = [
+  "queued",
+  "running",
+  "retrying",
+  "succeeded",
+  "failed",
+] as const satisfies readonly SyncJobStatus[];
+const ALL_JOB_ERRORS = [
+  "not-found",
+  "incomplete",
+  "internal",
+] as const satisfies readonly JobError[];
+
+describe("sync_job_status / sync_job_error drift guard", () => {
+  // Infra may not import a business module, so `libs/infra/db`'s pgEnums
+  // stay hand-written. This runs the value-equality check from this side.
+  it("keeps the pgEnum in step with SyncJobStatus", () => {
+    expect(syncJobStatusEnum.enumValues).toEqual(ALL_SYNC_JOB_STATUSES);
+  });
+
+  it("keeps the pgEnum in step with JobError", () => {
+    expect(syncJobErrorEnum.enumValues).toEqual(ALL_JOB_ERRORS);
+  });
+});
 
 describe("isActiveSyncStatus", () => {
   it.each<SyncJobStatus>(["queued", "running", "retrying"])(

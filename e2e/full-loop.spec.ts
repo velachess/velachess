@@ -19,6 +19,7 @@
  * reach into apps/worker/src, which is exactly the dependency the
  * two-deployable split exists to prevent.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { completeAnalysis } from "@velachess/analysis";
@@ -35,12 +36,6 @@ import {
 let harness: ApiHarness;
 let owner: AuthedApp;
 const testLogger = logger.child({ component: "test-worker" }, { level: "silent" });
-
-const json = (body: unknown): RequestInit => ({
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
 
 beforeAll(async () => {
   harness = await createApiHarness();
@@ -65,48 +60,40 @@ it("full loop: HTTP in, worker in the background, a reviewed game out", async ()
 
   // 1. Import: one POST schedules the first sync; the worker fetches the
   //    archive in the background, engine untouched.
-  const imported = await app.request(
-    "/accounts",
-    json({ platform: "chess_com", username: "looper" }),
+  const account = await parseResponse(
+    app.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
   );
-  expect(imported.status).toBe(201);
-  const account = (await imported.json()) as { id: string; syncId: string };
+  const { syncId } = account;
+  if (!syncId) throw new Error("expected a first sync on a fresh connect");
   const synced = await poll(async () => {
-    const job = (await (await app.request(`/syncs/${account.syncId}`)).json()) as {
-      status: string;
-      progress: { gamesInserted: number | null };
-    };
+    const job = await parseResponse(app.api.syncs[":id"].$get({ param: { id: syncId } }));
     return job.status === "succeeded" ? job : null;
   }, 60_000);
   expect(synced.progress.gamesInserted).toBe(2);
 
-  const library = (await (await app.request("/games")).json()) as {
-    total: number;
-    games: { id: string; analyzed: boolean }[];
-  };
+  const library = await parseResponse(app.api.games.$get({ query: {} }));
   expect(library.games).toHaveLength(2);
   expect(library.total).toBe(2);
   expect(library.games.every((g) => !g.analyzed)).toBe(true);
 
   // 2. Refreshing now is refused: the import's sync started a moment ago,
   //    and the platforms answer 429 to bursts.
-  const tooSoon = await app.request(`/accounts/${account.id}/sync`, {
-    method: "POST",
+  const tooSoon = await app.api.accounts[":id"].sync.$post({
+    param: { id: account.id },
   });
   expect(tooSoon.status).toBe(429);
   expect(Number(tooSoon.headers.get("Retry-After"))).toBeGreaterThan(0);
 
-  const games = (await (await app.request(`/accounts/${account.id}/games`)).json()) as {
-    id: string;
-    analyzed: boolean;
-  }[];
+  const games = await parseResponse(
+    app.api.accounts[":id"].games.$get({ param: { id: account.id } }),
+  );
   const game = games[0]!;
   expect(games.every((g) => !g.analyzed)).toBe(true);
 
   // 3. Open a game. THIS is what asks for Stockfish — one game,
   //    because someone wanted to see it. The request only enqueues; the
   //    worker below is what runs it.
-  const asked = await app.request(`/games/${game.id}/analyze`, { method: "POST" });
+  const asked = await app.api.games[":id"].analyze.$post({ param: { id: game.id } });
   expect(asked.status).toBe(202);
 
   await completeAnalysis(harness.analyze, game.id);
@@ -114,13 +101,11 @@ it("full loop: HTTP in, worker in the background, a reviewed game out", async ()
   const watched = await app.request(`/games/${game.id}/analysis/events`);
   expect(await watched.text()).toContain("event: analysis.completed");
 
-  const analyzed = (await (await app.request(`/games/${game.id}/analysis`)).json()) as {
-    status: string;
-  };
+  const analyzed = await parseResponse(
+    app.api.games[":id"].analysis.$get({ param: { id: game.id } }),
+  );
   expect(analyzed.status).toBe("completed");
 
-  const listed = (await (await app.request("/games")).json()) as {
-    games: { id: string; analyzed: boolean }[];
-  };
+  const listed = await parseResponse(app.api.games.$get({ query: {} }));
   expect(listed.games.find((g) => g.id === game.id)?.analyzed).toBe(true);
 }, 120_000);

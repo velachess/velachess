@@ -79,7 +79,6 @@ describe("analysis progress", () => {
     // Deliberately out of order — the engine is sequential, but a reader
     // must not depend on insertion order to get the game's order.
     for (const index of [1, 0, 2]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await appendProgress(db, {
         runId,
         gameId,
@@ -122,7 +121,6 @@ describe("analysis progress", () => {
     const live = randomUUID();
 
     for (const index of [0, 1, 2, 3, 4]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await appendProgress(db, {
         runId: crashed,
         gameId,

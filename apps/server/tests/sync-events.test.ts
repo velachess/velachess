@@ -4,6 +4,7 @@
  * the same PGlite session the api listens on, so what a browser would hear
  * is what pg_notify delivered on commit — nothing is pushed by hand.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { abandonSyncJob, createSyncJob } from "@velachess/infra-db";
@@ -14,12 +15,6 @@ let harness: ApiHarness;
 let owner: AuthedApp;
 let ownerId: string;
 let stranger: AuthedApp;
-
-const json = (body: unknown): RequestInit => ({
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
 
 beforeAll(async () => {
   harness = await createApiHarness();
@@ -52,12 +47,14 @@ async function readSome(response: Response, ms = 1500) {
 }
 
 async function connectLooper(app: AuthedApp) {
-  const created = await app.request(
-    "/accounts",
-    json({ platform: "chess_com", username: "looper" }),
-  );
+  const created = await app.api.accounts.$post({
+    json: { platform: "chess_com", username: "looper" },
+  });
   expect(created.status).toBe(201);
-  return (await created.json()) as { id: string; syncId: string };
+  if (created.status !== 201) throw new Error("unreachable");
+  const account = await created.json();
+  if (!account.syncId) throw new Error("expected a first sync on a fresh connect");
+  return { ...account, syncId: account.syncId };
 }
 
 describe("GET /syncs/events", () => {
@@ -83,14 +80,12 @@ describe("GET /syncs/events", () => {
     expect(frame.gamesInserted).toBeGreaterThan(0);
     // Delivered on commit: the library a browser refetches on this frame is
     // already the synced one.
-    const library = (await (await owner.request("/games")).json()) as { total: number };
+    const library = await parseResponse(owner.api.games.$get({ query: {} }));
     expect(library.total).toBe(frame.gamesInserted);
   });
 
   it("announces a job the api had to abandon as failed", async () => {
-    const accounts = (await (await owner.request("/accounts")).json()) as {
-      id: string;
-    }[];
+    const accounts = await parseResponse(owner.api.accounts.$get());
     const job = (await createSyncJob(harness.db, {
       userId: ownerId,
       accountId: accounts[0]!.id,
@@ -108,9 +103,7 @@ describe("GET /syncs/events", () => {
 
   it("tells a stranger nothing about it", async () => {
     const theirs = await stranger.request("/syncs/events");
-    const accounts = (await (await owner.request("/accounts")).json()) as {
-      id: string;
-    }[];
+    const accounts = await parseResponse(owner.api.accounts.$get());
     const job = (await createSyncJob(harness.db, {
       userId: ownerId,
       accountId: accounts[0]!.id,

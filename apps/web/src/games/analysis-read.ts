@@ -152,7 +152,6 @@ export function badgeForCategory(category: MoveCategory): BadgeTone | null {
   return CATEGORY_BADGE[category] ?? null;
 }
 
-/** Translated category names for UI display. */
 export const CATEGORY_LABELS: Record<MoveCategory, MessageDescriptor> = {
   best: msg`Best`,
   good: msg`Good`,
@@ -185,7 +184,6 @@ export function whiteShareOf(score: GradedPly["evalAfter"]): number {
   return (scoreToWinChance(score) + 1) / SHARE_SPAN;
 }
 
-/** A side of the board. */
 export type Seat = "white" | "black";
 
 /** Board perspective: the seat `@velachess/chess` resolves, else white — somewhere for the board to start, not evidence about who the person is. */

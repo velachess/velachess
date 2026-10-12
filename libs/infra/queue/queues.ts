@@ -1,16 +1,7 @@
 /**
  * The topology: what queues exist, what rides on them, and the delivery
- * policy each is created with.
- *
- * This is a contract between two deployables, which is why it lives here
- * and not in apps/worker. The api sends and reads state; the worker
- * consumes; neither may import the other, and both bootstrap the topology
- * at start so either can boot alone (createQueue is idempotent).
- *
- * What is NOT here, and must never arrive: handlers, registration
- * (`boss.work`) and consumer concurrency. Those are the worker's — they
- * live in apps/worker/src/worker.ts, and tests/ownership.test.ts fails
- * the build if they drift back into a library.
+ * policy each is created with. See docs/explanation/modules/queue.md for
+ * why this is a library and the api/worker boundary it enforces.
  */
 
 import { z } from "zod";
@@ -108,18 +99,16 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   // cache (verified empirically); a real send does. The warm job is
   // deleted immediately and uses a reserved key no domain id collides with.
   for (const name of Object.values(QUEUES)) {
-    // Concurrent sends here race the single-connection deadlock above.
-    //
     // The payload satisfies the analysis queue's contract (sync has none):
     // it is deliverable in the window before the delete below, and a
     // rejected payload would dead-letter.
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- concurrent sends here race the single-connection deadlock above
     const warmId = await boss.send(
       name,
       { gameId: NIL_UUID },
       { singletonKey: "__warmup__" },
     );
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- must follow its own send above, per queue
     if (warmId) await boss.deleteJob(name, warmId);
   }
 }

@@ -159,7 +159,6 @@ export async function tryStartAnalysis(
             // transaction below: a row nobody has committed cannot be read
             // by the connection streaming it. Sequential because each
             // position is a separate durable fact, not a batch.
-            // oxlint-disable-next-line eslint/no-await-in-loop
             await deps.appendProgress({
               runId,
               gameId,

@@ -74,7 +74,6 @@ const deliver = (job: { id: string }) => deliverSyncJob(h.boss, job.id);
 const sync = (deps: SyncDeps, delivery: { id: string; signal: AbortSignal }) =>
   syncAccount(buildSyncAccountDeps(h.db, deps), delivery);
 
-/** The analysis handler's call. */
 const analyzeGame = (gameId: string) =>
   completeAnalysis(buildAnalyzeDeps(h.db, analyze), gameId);
 
@@ -226,7 +225,8 @@ describe("worker", () => {
     const games = (await gamesWithStatus(userId, accountId))!;
     const first = games[0]!;
     const before = await getAnalysis(h.db, first.id);
-    await analyzeGame(first.id); // no throw, no re-run
+    // No throw, no re-run: the row already exists.
+    await analyzeGame(first.id);
     const after = await getAnalysis(h.db, first.id);
     expect(after!.id).toBe(before!.id);
   });
@@ -542,7 +542,7 @@ describe("analysis deliveries", () => {
     const release = await h.lock.tryAcquire(`analysis:${first.id}`);
     expect(release).not.toBeNull();
 
-    await analyzeGame(first.id); // no throw
+    await analyzeGame(first.id);
     await release!();
   });
 });

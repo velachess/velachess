@@ -140,7 +140,8 @@ export async function syncAccount(
   // the retry starts from the same place and the unique constraints absorb
   // the repeats.
   await deps.withTransaction(async (tx) => {
-    if (!(await deps.claimSyncAttempt(tx, attempt))) return; // obsolete attempt
+    // A newer attempt re-stamped `started_at` — this one is obsolete.
+    if (!(await deps.claimSyncAttempt(tx, attempt))) return;
     const { inserted } = await deps.saveGames(tx, fetched.games, {
       userId: account.userId,
       accountId: account.id,

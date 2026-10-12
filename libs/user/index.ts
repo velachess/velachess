@@ -6,9 +6,6 @@
  * is libs/infra/auth and apps/server/src/middleware/session.ts), and the
  * chess.com/Lichess handles a person tracks (that is libs/accounts — a
  * public handle is a data source, never identity).
- *
- * Root index.ts is the public interface of a vertical/module/capability.
- * It is not a convenience barrel.
  */
 
 export { AVATAR_MAX_BYTES } from "./avatar.ts";

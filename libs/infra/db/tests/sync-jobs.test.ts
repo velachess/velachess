@@ -232,7 +232,8 @@ describe("sync jobs", () => {
       const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
       const stale = await deliver(job);
       await finishSyncJob(db, stale, { status: "retrying", errorCode: "internal" });
-      await deliver(job); // re-stamped: the old attempt is obsolete
+      // Re-stamped: the old attempt is obsolete.
+      await deliver(job);
 
       const heard: string[] = [];
       const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
@@ -249,7 +250,8 @@ describe("sync jobs", () => {
       const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
 
       await abandonSyncJob(db, job.id);
-      await abandonSyncJob(db, job.id); // already closed: no second announcement
+      // Already closed: no second announcement.
+      await abandonSyncJob(db, job.id);
       await settle();
       expect(heard).toEqual([job.id]);
       expect(await getSyncJobSettlement(db, job.id)).toMatchObject({

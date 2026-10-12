@@ -18,7 +18,7 @@ const KING: PieceKind = "K";
 const CASTLING_PREFIX = "O-O";
 
 function isPieceKind(letter: string): letter is PieceKind {
-  return (PIECE_KINDS as readonly string[]).includes(letter);
+  return PIECE_KINDS.some((kind) => kind === letter);
 }
 
 /**
