@@ -37,21 +37,23 @@ describe("rate limiting", () => {
     const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      const response = await limited.app.request(sync(accountId), { method: "POST" });
+      const response = await limited.app.api.accounts[":id"].sync.$post({
+        param: { id: accountId },
+      });
       expect(response.status, `request ${i + 1}`).not.toBe(429);
     }
 
-    const refused = await limited.app.request(sync(accountId), { method: "POST" });
+    const refused = await limited.app.api.accounts[":id"].sync.$post({
+      param: { id: accountId },
+    });
     expect(refused.status).toBe(429);
+    if (refused.status !== 429) throw new Error("unreachable");
 
     // The wait lives in the body as well as the header, because the SPA's
     // client can only read the body of a rejection — same contract as the
     // sync cooldown. Never 0: a client told to wait zero seconds retries
     // immediately, which is the behaviour the refusal exists to prevent.
-    const body = (await refused.json()) as {
-      error: string;
-      retryAfterSeconds: number;
-    };
+    const body = await refused.json();
     expect(body.error).toBe("too many requests");
     expect(body.retryAfterSeconds).toBeGreaterThan(0);
     expect(body.retryAfterSeconds).toBeLessThanOrEqual(POLICIES.import.windowSeconds);

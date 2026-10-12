@@ -52,6 +52,7 @@
     "@velachess/accounts": "workspace:*",
     "@velachess/games": "workspace:*",
     "dependency-cruiser": "^18.4.0",
+    "hono": "^4.13.13",
     "jsdom": "^30.1.2",
     "knip": "^6.40.0",
     "lefthook": "^2.1.17",

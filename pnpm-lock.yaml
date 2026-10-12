@@ -55,6 +55,9 @@ importers:
       dependency-cruiser:
         specifier: ^18.4.0
         version: 18.4.0
+      hono:
+        specifier: ^4.13.13
+        version: 4.13.13
       jsdom:
         specifier: ^30.1.2
         version: 30.1.2(@noble/hashes@2.4.0)
