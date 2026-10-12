@@ -52,7 +52,7 @@ describe("which first-run state this is", () => {
     expect(state({ onboarded: true, accounts: [account("idle")] })).toBe("no-games");
     // Still nothing dishonest while a pass is on its way or an answer is
     // missing: those states don't depend on having onboarded.
-    expect(state({ onboarded: true, accounts: [account("queued")] })).toBe("no-games");
+    expect(state({ onboarded: true, accounts: [account("queued")] })).toBe("syncing");
     expect(state({ onboarded: true, games: undefined })).toBe("loading");
     expect(state({ onboarded: true, failed: true })).toBe("error");
   });
