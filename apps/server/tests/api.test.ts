@@ -505,6 +505,21 @@ async function connected(app: AuthedApp, username: string) {
   return { ...account, syncId: account.syncId };
 }
 
+/** A fetch that answers only once `release` is called — a delivery held
+ * mid-fetch, the same shape `apps/worker/tests/worker.test.ts` uses. */
+function heldFetch(answer: typeof fetch) {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => (release = resolve));
+  let reached!: () => void;
+  const fetching = new Promise<void>((resolve) => (reached = resolve));
+  const held = (async (...args: Parameters<typeof fetch>) => {
+    reached();
+    await released;
+    return answer(...args);
+  }) as typeof fetch;
+  return { held, fetching, release };
+}
+
 describe("sync jobs", () => {
   it("a sync request answers 202 with a job; a repeat shares the active one", async () => {
     const { app } = await harness.signUp("sync-202@api.test");
@@ -551,6 +566,38 @@ describe("sync jobs", () => {
     const response = await app.api.accounts.sync.$post();
     expect(response.status).toBe(202);
     expect(await response.json()).toEqual({ syncIds: [] });
+  });
+
+  it("disconnecting mid-sync waits for it instead of deadlocking, and leaves no orphan games", async () => {
+    // Only the connect job's own delivery (below) is held; the connect
+    // step's own handle confirmation is a separate call and still answers
+    // immediately.
+    const { app } = await harness.signUp("disconnect-mid-sync@api.test");
+    const account = await connected(app, LOOPER_USERNAME);
+
+    const held = heldFetch(chessComFixtureFetch());
+    const syncing = harness.runSync(account.syncId, held.held);
+    await held.fetching;
+
+    // The job is genuinely running (not just queued) by the time this
+    // lands — markSyncRunning stamps it before the fetch call.
+    const deleted = await app.api.accounts[":id"].$delete({
+      param: { id: account.id },
+    });
+    expect(deleted.status).toBe(204);
+
+    held.release();
+    // Resolves rather than deadlocking: the held delivery finishes
+    // against a row that's already gone, as a no-op.
+    await syncing;
+
+    expect(
+      (await app.api.accounts[":id"].games.$get({ param: { id: account.id } })).status,
+    ).toBe(404);
+    // The first sync's games went with the account too — not even an
+    // orphan with its account nulled.
+    const library = await parseResponse(app.api.games.$get({ query: {} }));
+    expect(library.total).toBe(0);
   });
 
   it("GET /syncs/:id follows the job to its outcome, for its owner only", async () => {

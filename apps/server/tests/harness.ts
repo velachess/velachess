@@ -61,8 +61,11 @@ export interface ApiHarness extends LoopHarness {
   /** The worker's dependencies. Not the API's — it runs no engine. */
   analyze: AnalyzeDeps;
   /** The worker's part of a sync the API scheduled, run inline as its
-   * first delivery — the API never fetches an archive itself. */
-  runSync: (syncId: string) => Promise<void>;
+   * first delivery — the API never fetches an archive itself. A second
+   * argument overrides the harness's own fetch for this one delivery only
+   * (e.g. a held fetch, to pause a test mid-sync without also pausing
+   * whatever fetch call connecting the account made). */
+  runSync: (syncId: string, fetchOverride?: typeof fetch) => Promise<void>;
   /** Sign this email in and return the Cookie header for later requests. */
   signIn: (email: string, password: string) => Promise<string>;
   /** Sign a fresh user up and hand back their id + a ready Cookie header. */
@@ -143,8 +146,9 @@ export async function createApiHarness(
   // The worker's sync composition, restated like `analyze` above, run on
   // the job's real pg-boss delivery; the slice returns, so pg-boss
   // completes the job, as it would under `boss.work`.
-  const runSync = async (syncId: string) => {
+  const runSync = async (syncId: string, fetchOverride?: typeof fetch) => {
     const job = await deliverSyncJob(harness.boss, syncId);
+    const deliveryFetch = fetchOverride ?? sync?.fetch;
     await syncAccount(
       {
         markSyncRunning: (id) => markSyncRunning(harness.db, id),
@@ -155,7 +159,7 @@ export async function createApiHarness(
         saveGames,
         updateTrackedAccountCursor,
         markTrackedAccountSynced,
-        ...(sync?.fetch ? { fetch: sync.fetch } : {}),
+        ...(deliveryFetch ? { fetch: deliveryFetch } : {}),
       },
       job,
     );
