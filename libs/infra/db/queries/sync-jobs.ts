@@ -17,6 +17,21 @@ type SyncJobRow = typeof syncJobs.$inferSelect;
 const ACTIVE = sql`${syncJobs.status} in ('queued', 'running', 'retrying')`;
 
 /**
+ * The channel a settled sync is announced on. One spelling for every
+ * process: the worker notifies it from the transaction that settles the
+ * job, the API's own abandon path too, and the API listens. The payload is
+ * the job id — a hint to go read the row, never a fact to act on: the
+ * notification is not durable and carries no proof of ownership.
+ */
+export const SYNC_JOB_CHANGED_CHANNEL = "sync_job_changed";
+
+/** Queued on the caller's transaction, so Postgres delivers it only once
+ * the settlement — and the games committed with it — is visible. */
+function notifySyncJobChanged(tx: Database, id: string) {
+  return tx.execute(sql`select pg_notify(${SYNC_JOB_CHANGED_CHANNEL}, ${id})`);
+}
+
+/**
  * The account's newest job, row-locked until the caller's transaction ends.
  * The only active job is always the newest one (none can be created beside
  * it), so this one read answers both "is one active?" and "when did the
@@ -56,14 +71,16 @@ export async function createSyncJob(
  * pass that ran out of retries on `incomplete` reads as that.
  */
 export async function abandonSyncJob(tx: Database, id: string): Promise<void> {
-  await tx
+  const [closed] = await tx
     .update(syncJobs)
     .set({
       status: "failed",
       errorCode: sql`coalesce(${syncJobs.errorCode}, 'internal')`,
       finishedAt: new Date(),
     })
-    .where(and(eq(syncJobs.id, id), ACTIVE));
+    .where(and(eq(syncJobs.id, id), ACTIVE))
+    .returning({ id: syncJobs.id });
+  if (closed) await notifySyncJobChanged(tx, closed.id);
 }
 
 /**
@@ -121,7 +138,7 @@ export async function finishSyncJob(
   },
 ): Promise<void> {
   const { gamesInserted, ...rest } = outcome;
-  await tx
+  const [settled] = await tx
     .update(syncJobs)
     .set({
       ...rest,
@@ -132,7 +149,31 @@ export async function finishSyncJob(
           }),
       finishedAt: outcome.status === "retrying" ? null : new Date(),
     })
-    .where(ownedBy(attempt));
+    .where(ownedBy(attempt))
+    .returning({ id: syncJobs.id });
+  // A retry is not news: the job is still on its way. An obsolete attempt
+  // updated nothing and announces nothing.
+  if (settled && outcome.status !== "retrying")
+    await notifySyncJobChanged(tx, settled.id);
+}
+
+/**
+ * What a notification resolves to, unscoped: the API checks `userId`
+ * against the session that is listening, so the payload never has to be
+ * trusted. Null once the row went with its account.
+ */
+export async function getSyncJobSettlement(db: Database, id: string) {
+  const [job] = await db
+    .select({
+      id: syncJobs.id,
+      userId: syncJobs.userId,
+      accountId: syncJobs.accountId,
+      status: syncJobs.status,
+      gamesInserted: syncJobs.gamesInserted,
+    })
+    .from(syncJobs)
+    .where(eq(syncJobs.id, id));
+  return job ?? null;
 }
 
 /** Owner-scoped, like every HTTP read: someone else's job reads as absent. */

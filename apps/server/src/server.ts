@@ -19,6 +19,7 @@ import type { ApiDeps } from "./deps.ts";
 import {
   buildDisconnectAccountDeps,
   buildGetSyncDeps,
+  buildWatchSyncsDeps,
   buildImportAccountDeps,
   buildListAccountGamesDeps,
   buildListAccountsDeps,
@@ -209,7 +210,13 @@ export function createApp(deps: ApiDeps) {
         disconnect: buildDisconnectAccountDeps(deps.db),
       }),
     )
-    .route("/syncs", syncsRoutes({ get: buildGetSyncDeps(deps.db, deps.syncQueue) }))
+    .route(
+      "/syncs",
+      syncsRoutes({
+        get: buildGetSyncDeps(deps.db, deps.syncQueue),
+        watch: buildWatchSyncsDeps(deps.db, deps.syncNotifications),
+      }),
+    )
     .route(
       "/games",
       gamesRoutes({

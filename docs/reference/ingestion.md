@@ -71,6 +71,12 @@ after the account's newest job.
   next `GET /syncs/:id` or sync request — keeping the error the last pass
   recorded (`incomplete`), `internal` when it left none — so polling never
   follows a job nothing runs.
+- A job reaching `succeeded` or `failed` — the worker's write or the api's
+  abandon — notifies the `sync_job_changed` channel with its id from the same
+  transaction, so the api's `GET /syncs/events` stream hears it only once the
+  games are visible. `retrying` is not announced. The row stays the record;
+  the notification is a wake-up that a listener not connected at that instant
+  simply never gets.
 - Two connects racing for one provider slot create one account: the loser
   answers like a repeat connect (`201` with `syncId: null` for the same
   handle, `409` for a different one).

@@ -106,6 +106,20 @@ SSE event names are namespaced and terminal frames close the connection.
 `Last-Event-ID` resumes after the last observed ply, keep-alives prevent idle
 proxy closure, and disconnect does not cancel analysis.
 
+## Sync events
+
+`GET /syncs/events` is the session's one stream for syncs, with the same
+conventions: `sync.completed` / `sync.failed` frames carrying the sync id,
+keep-alives, no buffering. Unlike the analysis stream it is not derived from
+polling rows: the transaction that settles a `sync_jobs` row notifies the
+`sync_job_changed` Postgres channel with the job id, the api holds one `LISTEN`
+on it (a dedicated connection, awaited at boot), and `watch-syncs` resolves
+every id against the row before a user's stream sees it — the payload is
+never trusted for ownership. Notifications are not durable, so no frame is a
+record: a client that reconnects refreshes its accounts and games from the
+rows, and when the api's own listener reconnects every open stream ends so
+clients do the same. `GET /syncs/:id` stays for anything that prefers to ask.
+
 ## Validation and errors
 
 Transport Zod stays in route files so the exported `AppType` client remains

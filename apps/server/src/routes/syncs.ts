@@ -1,7 +1,8 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { streamSSE } from "hono/streaming";
 
-import { getSync } from "@velachess/accounts";
-import type { GetSyncDeps } from "@velachess/accounts";
+import { getSync, watchSyncs } from "@velachess/accounts";
+import type { GetSyncDeps, WatchSyncsDeps } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
 import {
@@ -64,29 +65,96 @@ const getSyncRoute = createRoute({
   },
 });
 
-export function syncsRoutes(deps: { get: GetSyncDeps }) {
-  return new OpenAPIHono<ApiEnv>({ defaultHook }).openapi(getSyncRoute, async (c) => {
-    const job = await getSync(deps.get, c.get("userId"), c.req.valid("param").id);
-    if (!job) return c.json({ error: "sync not found" }, 404);
+const watchSyncsRoute = createRoute({
+  method: "get",
+  path: "/events",
+  summary: "The caller's syncs as they settle, over Server-Sent Events",
+  description:
+    "A plain GET, so any EventSource client opens it directly. One stream per session, not per job: it announces every sync of the signed-in user that reaches a terminal state while it is open.\n\nEvents: `sync.completed` or `sync.failed`, the frame `id` set to the sync id, with `{ syncId, accountId, gamesInserted }`. No event is named `error`: that name collides with the one EventSource itself fires on transport failure. Sends `: keep-alive` comments so proxies do not close an idle stream, and `X-Accel-Buffering: no` so nginx does not buffer it.\n\nNot a record: a notification the server was not listening for is never replayed, and the stream ends when the server's own listener reconnects. A client that reconnects refreshes its accounts and games from the persisted rows, which are the only authority on a sync.",
+  responses: {
+    // Not a Zod/JSON response — SSE is a plain literal schema, the same
+    // arrangement the analysis stream makes in routes/games.ts.
+    200: {
+      description: "Event stream, open until the client leaves or the listener resets",
+      content: { "text/event-stream": { schema: { type: "string" } } },
+    },
+  },
+});
 
-    return c.json(
-      syncJobWire.parse({
-        id: job.id,
-        accountId: job.accountId,
-        trigger: job.trigger,
-        status: job.status,
-        progress: {
-          unitsDone: null,
-          unitsTotal: null,
-          gamesFetched: job.gamesFetched,
-          gamesInserted: job.gamesInserted,
-        },
-        error: job.error,
-        retryAfterSeconds: null,
-        startedAt: job.startedAt,
-        finishedAt: job.finishedAt,
-      }),
-      200,
-    );
-  });
+/** Namespaced, past-tense event names, like the analysis stream's. */
+const STREAM_EVENTS = { completed: "sync.completed", failed: "sync.failed" } as const;
+
+/** How long a quiet stream may stay quiet before a proxy assumes it died. */
+const HEARTBEAT_MS = 15_000;
+
+export function syncsRoutes(deps: { get: GetSyncDeps; watch: WatchSyncsDeps }) {
+  return (
+    new OpenAPIHono<ApiEnv>({ defaultHook })
+      // Before `/{id}`: that route validates its param as a uuid, and
+      // `events` is not one.
+      /**
+       * Plain SSE over the process's one LISTEN. The slice resolves every
+       * signal against the row and keeps only the caller's; this only maps
+       * what it yields onto frames.
+       */
+      .openapi(watchSyncsRoute, (c) => {
+        // See routes/games.ts: proxies buffer a stream into a hang.
+        c.header("X-Accel-Buffering", "no");
+
+        // Subscribed before the response leaves. A client that refreshes
+        // its queries once the stream opens cannot miss a sync that settles
+        // between that refresh and this subscription.
+        const settled = watchSyncs(deps.watch, c.get("userId"), c.req.raw.signal);
+
+        return streamSSE(c, async (stream) => {
+          const heartbeat = setInterval(() => {
+            if (!stream.aborted) void stream.write(": keep-alive\n\n").catch(() => {});
+          }, HEARTBEAT_MS);
+          stream.onAbort(() => clearInterval(heartbeat));
+          try {
+            for await (const sync of settled) {
+              // oxlint-disable-next-line eslint/no-await-in-loop
+              await stream.writeSSE({
+                event:
+                  sync.status === "succeeded"
+                    ? STREAM_EVENTS.completed
+                    : STREAM_EVENTS.failed,
+                id: sync.syncId,
+                data: JSON.stringify({
+                  syncId: sync.syncId,
+                  accountId: sync.accountId,
+                  gamesInserted: sync.gamesInserted,
+                }),
+              });
+            }
+          } finally {
+            clearInterval(heartbeat);
+          }
+        });
+      })
+      .openapi(getSyncRoute, async (c) => {
+        const job = await getSync(deps.get, c.get("userId"), c.req.valid("param").id);
+        if (!job) return c.json({ error: "sync not found" }, 404);
+
+        return c.json(
+          syncJobWire.parse({
+            id: job.id,
+            accountId: job.accountId,
+            trigger: job.trigger,
+            status: job.status,
+            progress: {
+              unitsDone: null,
+              unitsTotal: null,
+              gamesFetched: job.gamesFetched,
+              gamesInserted: job.gamesInserted,
+            },
+            error: job.error,
+            retryAfterSeconds: null,
+            startedAt: job.startedAt,
+            finishedAt: job.finishedAt,
+          }),
+          200,
+        );
+      })
+  );
 }

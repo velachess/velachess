@@ -14,6 +14,7 @@ import {
   deleteTrackedAccountAndGames,
   findTrackedAccountByPlatform,
   getSyncJobForUser,
+  getSyncJobSettlement,
   getTrackedAccountForUser,
   listGamesWithStatusForAccount,
   listTrackedAccountsByUser,
@@ -22,7 +23,7 @@ import {
   upsertProviderProfile,
   insertTrackedAccount,
 } from "@velachess/infra-db";
-import type { Database } from "@velachess/infra-db";
+import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
@@ -30,6 +31,7 @@ import type {
   ListAccountGamesDeps,
   ListAccountsDeps,
   RequestSyncDeps,
+  WatchSyncsDeps,
 } from "@velachess/accounts";
 import type { FetchFn } from "@velachess/infra-platforms";
 import type { SyncQueue } from "@velachess/infra-queue";
@@ -70,6 +72,18 @@ export function buildGetSyncDeps(db: Database, syncQueue: SyncQueue): GetSyncDep
     getSyncJobForUser: (userId, id) => getSyncJobForUser(db, userId, id),
     isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
     abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
+  };
+}
+
+/** The one LISTEN the process holds, and the unscoped row read the slice
+ * checks ownership against — the signal itself is never trusted. */
+export function buildWatchSyncsDeps(
+  db: Database,
+  notifications: SyncNotifications,
+): WatchSyncsDeps {
+  return {
+    subscribe: (listener) => notifications.subscribe(listener),
+    getSyncJob: (id) => getSyncJobSettlement(db, id),
   };
 }
 

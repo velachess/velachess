@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 
+import { landSync, latestSync } from "../../../test/archive.ts";
 import { renderApp } from "../../../test/render.tsx";
 import {
   accountIsTracked,
@@ -40,14 +41,17 @@ describe("connections", () => {
     expect(await screen.findByText("Not synced yet")).toBeInTheDocument();
   });
 
-  it("syncs a single account from its own row", async () => {
+  it("syncs a single account from its own row, and shows it running until the server says it landed", async () => {
     accountIsTracked({ platform: "chess_com", username: "magnus" });
 
     const { user } = await renderApp({ path: "/settings/connections" });
 
     await user.click(await screen.findByRole("button", { name: "Sync games" }));
+    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
 
-    expect(await screen.findByText("Already up to date")).toBeInTheDocument();
+    landSync(latestSync().id);
+
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
   });
 
   it("offers the existing connect form to add an account", async () => {

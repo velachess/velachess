@@ -4,10 +4,8 @@ import {
   activeSyncOf,
   archiveAccount,
   knowsPlayer,
-  pollSync,
   refreshArchive,
   scheduleSync,
-  type SyncJob,
 } from "../archive.ts";
 
 interface TrackedAccountRow {
@@ -37,26 +35,6 @@ export function accountIsTracked(
 
 export function resetTrackedAccounts(): void {
   trackedAccounts = [];
-}
-
-/** Shaped exactly as GET /syncs/:id reports it. */
-function syncJobBody(job: SyncJob) {
-  return {
-    id: job.id,
-    accountId: job.accountId,
-    trigger: job.trigger,
-    status: job.status,
-    progress: {
-      unitsDone: null,
-      unitsTotal: null,
-      gamesFetched: job.gamesInserted,
-      gamesInserted: job.gamesInserted,
-    },
-    error: job.error,
-    retryAfterSeconds: null,
-    startedAt: null,
-    finishedAt: null,
-  };
 }
 
 /** Sync contract incl. non-failure answers; 429 sends both a `Retry-After` header and the body field, per the status code contract. */
@@ -131,12 +109,6 @@ export const accountsHandlers = [
       { syncId: outcome.job.id, status: outcome.job.status },
       { status: 202 },
     );
-  }),
-
-  http.get("/api/syncs/:id", ({ params }) => {
-    const job = pollSync(String(params["id"]));
-    if (!job) return HttpResponse.json({ error: "sync not found" }, { status: 404 });
-    return HttpResponse.json(syncJobBody(job));
   }),
 
   /** Owner-scoped delete, mirroring the real route: unknown id answers the

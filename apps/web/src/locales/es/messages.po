@@ -17,15 +17,15 @@ msgstr ""
 msgid "Preparing analysis…"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:32
+#: src/games/import-pgn/pgn-import-dialog.tsx:53
 msgid "[Event \"...\"] …"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:41
+#: src/games/import-pgn/pgn-import-dialog.tsx:64
 msgid "{count, plural, one {One game could not be read.} other {# games could not be read.}}"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:40
+#: src/games/import-pgn/pgn-import-dialog.tsx:63
 msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr ""
 
@@ -37,9 +37,9 @@ msgstr ""
 msgid "{platform} is connected"
 msgstr ""
 
-#: src/games/import/sync-games-button.tsx:31
+#: src/games/import/sync-games-button.tsx:28
 #: src/games/request-analysis/analysis-status.tsx:19
-#: src/settings/connections/connections-screen.tsx:82
+#: src/settings/connections/connections-screen.tsx:79
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
@@ -51,13 +51,8 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:12
 #: src/settings/layout/navigation.ts:29
-#: src/test/routes.tsx:124
+#: src/test/routes.tsx:130
 msgid "Account"
-msgstr ""
-
-#: src/games/import/sync-games-button.tsx:20
-#: src/settings/connections/connections-screen.tsx:62
-msgid "Already up to date"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:52
@@ -76,7 +71,7 @@ msgstr ""
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
-#: src/test/routes.tsx:145
+#: src/test/routes.tsx:151
 msgid "Appearance"
 msgstr ""
 
@@ -84,7 +79,7 @@ msgstr ""
 msgid "Application theme"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:28
+#: src/games/import-pgn/pgn-import-dialog.tsx:49
 msgid "As it appears in the White and Black headers"
 msgstr ""
 
@@ -96,7 +91,7 @@ msgstr ""
 msgid "Backend unavailable · Reload the page to try again"
 msgstr ""
 
-#: src/games/analysis-read.ts:151
+#: src/games/analysis-read.ts:157
 msgid "Best"
 msgstr ""
 
@@ -104,18 +99,19 @@ msgstr ""
 msgid "Best was"
 msgstr ""
 
-#: src/games/list/filters.ts:32
+#: src/games/import-pgn/pgn-import-dialog.tsx:46
+#: src/games/list/filters.ts:31
 #: src/games/open-game/game-result.tsx:9
 msgid "Black"
 msgstr ""
 
-#: src/games/games-list.tsx:30
-#: src/games/list/columns.tsx:23
-#: src/games/list/filters.ts:49
+#: src/games/games-list.tsx:32
+#: src/games/list/columns.tsx:24
+#: src/games/list/filters.ts:48
 msgid "Blitz"
 msgstr ""
 
-#: src/games/analysis-read.ts:155
+#: src/games/analysis-read.ts:161
 msgid "Blunder"
 msgstr ""
 
@@ -127,14 +123,18 @@ msgstr ""
 msgid "Board interaction preferences."
 msgstr ""
 
-#: src/games/games-list.tsx:29
-#: src/games/list/columns.tsx:22
-#: src/games/list/filters.ts:48
+#: src/games/games-list.tsx:31
+#: src/games/list/columns.tsx:23
+#: src/games/list/filters.ts:47
 msgid "Bullet"
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:47
+msgid "By name"
+msgstr ""
+
 #: src/settings/account/avatar-field.tsx:39
-#: src/settings/connections/connections-screen.tsx:72
+#: src/settings/connections/connections-screen.tsx:69
 msgid "Cancel"
 msgstr ""
 
@@ -154,27 +154,31 @@ msgstr ""
 msgid "Choose a JPEG, PNG or WebP image."
 msgstr ""
 
-#: src/games/games-list.tsx:32
-#: src/games/list/columns.tsx:25
-#: src/games/list/filters.ts:51
+#: src/games/import-pgn/pgn-import-dialog.tsx:44
+msgid "Choose how you played before importing."
+msgstr ""
+
+#: src/games/games-list.tsx:34
+#: src/games/list/columns.tsx:26
+#: src/games/list/filters.ts:50
 msgid "Classical"
 msgstr ""
 
-#: src/games/list/filters.ts:62
+#: src/games/list/filters.ts:61
 msgid "Clear all"
 msgstr ""
 
-#: src/games/list/filters.ts:29
+#: src/games/list/filters.ts:28
 msgid "Color"
 msgstr ""
 
-#: src/games/games-list.tsx:23
+#: src/games/games-list.tsx:25
 #: src/onboarding/onboarding-dialog.tsx:25
 #: src/settings/connections/connections-screen.tsx:59
 msgid "Connect an account"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:79
+#: src/settings/connections/connections-screen.tsx:76
 msgid "Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish."
 msgstr ""
 
@@ -182,14 +186,14 @@ msgstr ""
 msgid "Connected — you can sign in with Google."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:75
+#: src/settings/connections/connections-screen.tsx:72
 msgid "Connection removed"
 msgstr ""
 
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:54
 #: src/settings/layout/navigation.ts:30
-#: src/test/routes.tsx:131
+#: src/test/routes.tsx:137
 msgid "Connections"
 msgstr ""
 
@@ -205,7 +209,7 @@ msgstr ""
 msgid "Continue with Google or sign in with your account credentials."
 msgstr ""
 
-#: src/games/list/columns.tsx:26
+#: src/games/list/columns.tsx:27
 msgid "Correspondence"
 msgstr ""
 
@@ -214,7 +218,7 @@ msgstr ""
 msgid "Couldn't load analysis."
 msgstr ""
 
-#: src/games/games-list.tsx:25
+#: src/games/games-list.tsx:27
 msgid "Couldn't load games."
 msgstr ""
 
@@ -226,8 +230,8 @@ msgstr ""
 msgid "Couldn't load your sign-in methods."
 msgstr ""
 
-#: src/games/import/sync-games-button.tsx:24
-#: src/settings/connections/connections-screen.tsx:66
+#: src/games/import/sync-games-button.tsx:21
+#: src/settings/connections/connections-screen.tsx:63
 msgid "Couldn't reach that account"
 msgstr ""
 
@@ -235,15 +239,19 @@ msgstr ""
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:43
+#: src/games/import-pgn/pgn-import-dialog.tsx:66
 msgid "Couldn't reach the server. Try again."
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:56
+msgid "Couldn't read that file. Try again."
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:45
 msgid "Couldn't remove it. Try again."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:76
+#: src/settings/connections/connections-screen.tsx:73
 msgid "Couldn't remove the connection"
 msgstr ""
 
@@ -264,11 +272,11 @@ msgstr ""
 msgid "Dark"
 msgstr ""
 
-#: src/games/list/columns.tsx:17
+#: src/games/list/columns.tsx:18
 msgid "Date"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:69
+#: src/settings/connections/connections-screen.tsx:66
 msgid "Disconnect"
 msgstr ""
 
@@ -276,8 +284,8 @@ msgstr ""
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr ""
 
-#: src/games/list/columns.tsx:20
-#: src/games/list/filters.ts:41
+#: src/games/list/columns.tsx:21
+#: src/games/list/filters.ts:40
 #: src/games/open-game/game-result.tsx:11
 msgid "Draw"
 msgstr ""
@@ -299,7 +307,7 @@ msgstr ""
 msgid "Enter your email."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:29
+#: src/games/import-pgn/pgn-import-dialog.tsx:50
 msgid "Enter your name so your games can be told apart from your opponents'."
 msgstr ""
 
@@ -320,36 +328,36 @@ msgstr ""
 msgid "Evaluation over the game"
 msgstr ""
 
-#: src/games/games-list.tsx:21
+#: src/games/games-list.tsx:23
 msgid "Every game you've imported, and how it went."
 msgstr ""
 
-#: src/games/list/filters.ts:61
+#: src/games/list/filters.ts:60
 msgid "Filters"
 msgstr ""
 
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
-#: src/test/routes.tsx:152
+#: src/test/routes.tsx:158
 msgid "Gameplay"
 msgstr ""
 
-#: src/games/games-list.tsx:20
+#: src/games/games-list.tsx:22
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:72
+#: src/test/routes.tsx:78
 msgid "Games"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:39
+#: src/games/import-pgn/pgn-import-dialog.tsx:62
 msgid "Games imported"
 msgstr ""
 
-#: src/games/games-list.tsx:26
+#: src/games/games-list.tsx:28
 msgid "Games pages"
 msgstr ""
 
-#: src/games/analysis-read.ts:152
+#: src/games/analysis-read.ts:158
 msgid "Good"
 msgstr ""
 
@@ -373,24 +381,28 @@ msgstr ""
 msgid "How VelaChess looks on this device."
 msgstr ""
 
+#: src/games/import-pgn/pgn-import-dialog.tsx:42
+msgid "How you played"
+msgstr ""
+
 #: src/settings/account/profile-form.tsx:24
 msgid "How you're shown in the app."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:34
+#: src/games/import-pgn/pgn-import-dialog.tsx:57
 #: src/games/import/sources.ts:79
 msgid "Import"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:42
+#: src/games/import-pgn/pgn-import-dialog.tsx:65
 msgid "Import failed"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:25
+#: src/games/import-pgn/pgn-import-dialog.tsx:40
 msgid "Import games from a PGN"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:24
+#: src/games/import-pgn/pgn-import-dialog.tsx:39
 msgid "Import PGN"
 msgstr ""
 
@@ -398,16 +410,20 @@ msgstr ""
 msgid "Import your games"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:35
+#: src/games/import-pgn/pgn-import-dialog.tsx:58
 msgid "Importing…"
 msgstr ""
 
-#: src/games/analysis-read.ts:153
+#: src/games/analysis-read.ts:159
 msgid "Inaccuracy"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:43
 msgid "Invalid email or password."
+msgstr ""
+
+#: src/games/import-pgn/pgn-import-dialog.tsx:55
+msgid "Invalid PGN: no valid chess moves found."
 msgstr ""
 
 #: src/games/view-analysis/move-insight.tsx:35
@@ -457,7 +473,7 @@ msgstr ""
 #: src/routes/_app/settings/language-region.tsx:7
 #: src/settings/language-region/language-region-screen.tsx:18
 #: src/settings/layout/navigation.ts:31
-#: src/test/routes.tsx:138
+#: src/test/routes.tsx:144
 msgid "Language & region"
 msgstr ""
 
@@ -482,8 +498,8 @@ msgstr ""
 msgid "Locale preferences for this device."
 msgstr ""
 
-#: src/games/list/columns.tsx:19
-#: src/games/list/filters.ts:40
+#: src/games/list/columns.tsx:20
+#: src/games/list/filters.ts:39
 msgid "Loss"
 msgstr ""
 
@@ -503,11 +519,11 @@ msgstr ""
 msgid "Manage your account and application preferences."
 msgstr ""
 
-#: src/games/analysis-read.ts:154
+#: src/games/analysis-read.ts:160
 msgid "Mistake"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:68
+#: src/settings/connections/connections-screen.tsx:65
 msgid "More actions"
 msgstr ""
 
@@ -535,12 +551,7 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: src/games/import/sync-games-button.tsx:22
-#: src/settings/connections/connections-screen.tsx:64
-msgid "New games imported"
-msgstr ""
-
-#: src/games/games-list.tsx:28
+#: src/games/games-list.tsx:30
 #: src/games/open-game/replay-controls.tsx:13
 #: src/onboarding/onboarding-dialog.tsx:23
 msgid "Next"
@@ -550,7 +561,7 @@ msgstr ""
 msgid "Next move"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:78
+#: src/settings/connections/connections-screen.tsx:75
 msgid "No chess accounts connected"
 msgstr ""
 
@@ -558,17 +569,12 @@ msgstr ""
 msgid "No games found for that username. Check the spelling and try again."
 msgstr ""
 
-#: src/games/games-list.tsx:24
+#: src/games/games-list.tsx:26
 msgid "No games match these filters."
 msgstr ""
 
-#: src/games/games-list.tsx:22
+#: src/games/games-list.tsx:24
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
-msgstr ""
-
-#: src/games/import/sync-games-button.tsx:21
-#: src/settings/connections/connections-screen.tsx:63
-msgid "No new games since your last sync."
 msgstr ""
 
 #: src/games/view-analysis/move-insight.tsx:22
@@ -587,7 +593,7 @@ msgstr ""
 msgid "Opening not recognised"
 msgstr ""
 
-#: src/games/list/columns.tsx:14
+#: src/games/list/columns.tsx:15
 msgid "Opponent"
 msgstr ""
 
@@ -595,7 +601,7 @@ msgstr ""
 msgid "Or continue with"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:31
+#: src/games/import-pgn/pgn-import-dialog.tsx:52
 msgid "Or paste the moves"
 msgstr ""
 
@@ -603,11 +609,11 @@ msgstr ""
 msgid "Password"
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:26
+#: src/games/import-pgn/pgn-import-dialog.tsx:41
 msgid "Paste a PGN or pick a file. Your games join the same library — nothing is connected and nothing syncs."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:30
+#: src/games/import-pgn/pgn-import-dialog.tsx:51
 msgid "PGN file"
 msgstr ""
 
@@ -635,7 +641,7 @@ msgstr ""
 msgid "Prev"
 msgstr ""
 
-#: src/games/games-list.tsx:27
+#: src/games/games-list.tsx:29
 msgid "Previous"
 msgstr ""
 
@@ -647,9 +653,9 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: src/games/games-list.tsx:31
-#: src/games/list/columns.tsx:24
-#: src/games/list/filters.ts:50
+#: src/games/games-list.tsx:33
+#: src/games/list/columns.tsx:25
+#: src/games/list/filters.ts:49
 msgid "Rapid"
 msgstr ""
 
@@ -665,11 +671,11 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:73
+#: src/settings/connections/connections-screen.tsx:70
 msgid "Remove connection"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:70
+#: src/settings/connections/connections-screen.tsx:67
 msgid "Remove connection?"
 msgstr ""
 
@@ -677,11 +683,11 @@ msgstr ""
 msgid "Remove picture"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:71
+#: src/settings/connections/connections-screen.tsx:68
 msgid "Removing the connection to {username} on {platform} also deletes the games VelaChess imported from it, and their analyses. This can't be undone. Games you imported from a PGN file are not affected."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:74
+#: src/settings/connections/connections-screen.tsx:71
 msgid "Removing…"
 msgstr ""
 
@@ -689,8 +695,8 @@ msgstr ""
 msgid "Report"
 msgstr ""
 
-#: src/games/list/columns.tsx:15
-#: src/games/list/filters.ts:37
+#: src/games/list/columns.tsx:16
+#: src/games/list/filters.ts:36
 msgid "Result"
 msgstr ""
 
@@ -726,7 +732,7 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:109
+#: src/test/routes.tsx:115
 msgid "Settings"
 msgstr ""
 
@@ -783,8 +789,8 @@ msgstr ""
 msgid "Sync games"
 msgstr ""
 
-#: src/games/import/sync-games-button.tsx:23
-#: src/settings/connections/connections-screen.tsx:65
+#: src/games/import/sync-games-button.tsx:20
+#: src/settings/connections/connections-screen.tsx:62
 msgid "Synced a moment ago"
 msgstr ""
 
@@ -835,7 +841,7 @@ msgstr ""
 msgid "The starting position."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:33
+#: src/games/import-pgn/pgn-import-dialog.tsx:54
 msgid "There is nothing to import yet."
 msgstr ""
 
@@ -843,11 +849,11 @@ msgstr ""
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr ""
 
-#: src/games/list/columns.tsx:16
+#: src/games/list/columns.tsx:17
 msgid "Time"
 msgstr ""
 
-#: src/games/list/filters.ts:46
+#: src/games/list/filters.ts:45
 msgid "Time control"
 msgstr ""
 
@@ -859,9 +865,9 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
-#: src/games/import/sync-games-button.tsx:25
-#: src/settings/connections/connections-screen.tsx:67
-#: src/settings/connections/connections-screen.tsx:77
+#: src/games/import/sync-games-button.tsx:22
+#: src/settings/connections/connections-screen.tsx:64
+#: src/settings/connections/connections-screen.tsx:74
 msgid "Try again in a moment."
 msgstr ""
 
@@ -869,7 +875,7 @@ msgstr ""
 msgid "Turn move sounds on"
 msgstr ""
 
-#: src/games/list/columns.tsx:21
+#: src/games/list/columns.tsx:22
 #: src/games/open-game/game-result.tsx:12
 msgid "Unfinished"
 msgstr ""
@@ -894,21 +900,26 @@ msgstr ""
 msgid "Ways you can get into this account."
 msgstr ""
 
-#: src/games/list/filters.ts:31
+#: src/games/import-pgn/pgn-import-dialog.tsx:45
+#: src/games/list/filters.ts:30
 #: src/games/open-game/game-result.tsx:8
 msgid "White"
 msgstr ""
 
-#: src/games/list/columns.tsx:18
-#: src/games/list/filters.ts:39
+#: src/games/import-pgn/pgn-import-dialog.tsx:43
+msgid "White or Black applies to every game in this upload."
+msgstr ""
+
+#: src/games/list/columns.tsx:19
+#: src/games/list/filters.ts:38
 msgid "Win"
 msgstr ""
 
-#: src/games/list/columns.tsx:28
+#: src/games/list/columns.tsx:29
 msgid "You played black"
 msgstr ""
 
-#: src/games/list/columns.tsx:27
+#: src/games/list/columns.tsx:28
 msgid "You played white"
 msgstr ""
 
@@ -928,7 +939,7 @@ msgstr ""
 msgid "Your identity on this instance, and how you sign in to it."
 msgstr ""
 
-#: src/games/import-pgn/pgn-import-dialog.tsx:27
+#: src/games/import-pgn/pgn-import-dialog.tsx:48
 msgid "Your name in these games"
 msgstr ""
 

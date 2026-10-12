@@ -1,5 +1,6 @@
 import type { Game } from "../games/list/queries.ts";
 import { ME, resetGameIds } from "./games.ts";
+import { announceSync } from "./sync-stream.ts";
 
 /** One player's archive, in memory. Filters/pages for real — production's filtering rules aren't imported, so both sides check independently. */
 
@@ -37,10 +38,6 @@ interface ArchiveState {
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
   /** Scheduled syncs, by id. */
   syncs: Map<string, SyncJob>;
-  /** How many status polls a sync answers `running` before it settles. */
-  syncPolls: number;
-  /** Set when the next sync should end `failed`. */
-  syncFails: boolean;
 }
 
 export interface SyncJob {
@@ -49,9 +46,6 @@ export interface SyncJob {
   trigger: "connect" | "manual";
   status: "queued" | "running" | "retrying" | "succeeded" | "failed";
   gamesInserted: number | null;
-  error: { code: "incomplete"; retryable: true } | null;
-  pollsLeft: number;
-  fails: boolean;
 }
 
 function fresh(): ArchiveState {
@@ -62,8 +56,6 @@ function fresh(): ArchiveState {
     refusesRefreshFor: null,
     identities: new Map(),
     syncs: new Map(),
-    syncPolls: 0,
-    syncFails: false,
   };
 }
 
@@ -205,17 +197,7 @@ export type RefreshResult =
   | { status: "too-soon"; retryAfterSeconds: number }
   | { status: "accepted"; job: SyncJob };
 
-/** Sync status polls answer `running` this many times before settling. */
-export function syncTakesPolls(polls: number): void {
-  state.syncPolls = polls;
-}
-
-/** Makes the next sync end `failed`, as a pass that never completed does. */
-export function failNextSync(): void {
-  state.syncFails = true;
-}
-
-/** Schedules a sync — the games arrive only once it settles, as with the worker. */
+/** Schedules a sync — active until `landSync`, the way the worker leaves it. */
 export function scheduleSync(accountId: string, trigger: SyncJob["trigger"]): SyncJob {
   const job: SyncJob = {
     id: `sync-${state.syncs.size + 1}`,
@@ -223,13 +205,36 @@ export function scheduleSync(accountId: string, trigger: SyncJob["trigger"]): Sy
     trigger,
     status: "queued",
     gamesInserted: null,
-    error: null,
-    pollsLeft: state.syncPolls,
-    fails: state.syncFails,
   };
-  state.syncFails = false;
   state.syncs.set(job.id, job);
   return job;
+}
+
+/** The account's newest scheduled sync — what a click just started. */
+export function latestSync(): SyncJob {
+  const job = [...state.syncs.values()].at(-1);
+  if (!job) throw new Error("no sync has been scheduled");
+  return job;
+}
+
+/**
+ * The worker finishing: the staged games land (or not), the row settles,
+ * and the stream announces it — in that order, as pg_notify on commit
+ * would have it.
+ */
+export function landSync(id: string, options: { fails?: boolean } = {}): void {
+  const job = state.syncs.get(id);
+  if (!job) throw new Error(`no sync ${id}`);
+  if (options.fails) {
+    job.status = "failed";
+    announceSync("sync.failed", job);
+    return;
+  }
+  job.gamesInserted = state.incoming.length;
+  state.games.push(...state.incoming);
+  state.incoming = [];
+  job.status = "succeeded";
+  announceSync("sync.completed", job);
 }
 
 export function refreshArchive(accountId: string): RefreshResult {
@@ -244,29 +249,6 @@ export function refreshArchive(accountId: string): RefreshResult {
   }
 
   return { status: "accepted", job: scheduleSync(accountId, "manual") };
-}
-
-/** One status poll: `running` while polls are left, then the outcome, landing the games. */
-export function pollSync(id: string): SyncJob | undefined {
-  const job = state.syncs.get(id);
-  if (!job || job.status === "succeeded" || job.status === "failed") return job;
-
-  if (job.pollsLeft > 0) {
-    job.pollsLeft -= 1;
-    job.status = "running";
-    return job;
-  }
-
-  if (job.fails) {
-    job.status = "failed";
-    job.error = { code: "incomplete", retryable: true };
-    return job;
-  }
-  job.gamesInserted = state.incoming.length;
-  state.games.push(...state.incoming);
-  state.incoming = [];
-  job.status = "succeeded";
-  return job;
 }
 
 /** The job active for an account, as `GET /accounts` reports it. */

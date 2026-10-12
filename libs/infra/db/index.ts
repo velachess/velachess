@@ -16,3 +16,4 @@ export * from "./queries/rate-limit.ts";
 export * from "./queries/pagination.ts";
 export * from "./queries/status.ts";
 export * from "./advisory-lock.ts";
+export * from "./sync-notifications.ts";

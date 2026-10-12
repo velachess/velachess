@@ -36,5 +36,8 @@ export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request
 export { getSync } from "./get-sync/get-sync.ts";
 export type { GetSyncDeps } from "./get-sync/get-sync.ts";
 
+export { watchSyncs } from "./watch-syncs/watch-syncs.ts";
+export type { SyncSettled, WatchSyncsDeps } from "./watch-syncs/watch-syncs.ts";
+
 export { syncAccount } from "./sync-account/sync-account.ts";
 export type { SyncAccountDeps, SyncDeps } from "./sync-account/sync-account.ts";

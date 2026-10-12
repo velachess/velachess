@@ -5,13 +5,8 @@ import {
   type InferResponseType,
 } from "../../api/index.ts";
 import { sessionQueryKey } from "../../auth/session.ts";
-import {
-  QueryObserver,
-  queryOptions,
-  useMutation,
-  useQueryClient,
-  type QueryClientType,
-} from "../../libs/react-query.ts";
+import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
+import { gamesQueryKey } from "../list/queries.ts";
 import { useMyAccounts, type RememberedAccount } from "./my-accounts.ts";
 import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
@@ -68,135 +63,47 @@ export function importStatus(remembered: RememberedAccount[]): ImportStatus {
   return remembered.length > 0 ? "ready" : "empty";
 }
 
-/** How often an active sync job is asked for its status. */
-const SYNC_POLL_MS = 3_000;
-
-type SyncJob = InferResponseType<(typeof api.syncs)[":id"]["$get"], 200>;
-
-/** The statuses a sync can still leave, whether read off a job or an account. */
-const ACTIVE_SYNC = new Set<SyncJob["status"] | TrackedAccount["syncStatus"]>([
+/** The statuses an account's sync can still leave. A settled one reads
+ * `idle` here: the stream (`sync-events.ts`) is what announces the change. */
+const ACTIVE_SYNC = new Set<TrackedAccount["syncStatus"]>([
   "queued",
   "running",
   "retrying",
 ]);
 
-export function isSyncActive(status: SyncJob["status"] | TrackedAccount["syncStatus"]) {
+export function isSyncActive(status: TrackedAccount["syncStatus"]) {
   return ACTIVE_SYNC.has(status);
 }
 
-function isSettled(job: SyncJob | undefined): job is SyncJob {
-  return job !== undefined && !isSyncActive(job.status);
-}
-
 /**
- * One sync job, polled while it can still change. Its id comes from the
- * server — a `202` or an account's `activeSyncId` — so a reload resumes.
- * Settling is when a sync's writes become visible, so the query that learns
- * it refreshes the library and the accounts; a settled job is never fetched
- * again, which makes that refresh happen once per job.
- */
-export function syncJobQuery(syncId: string) {
-  return queryOptions({
-    queryKey: ["syncs", syncId],
-    queryFn: async ({ client }) => {
-      const job = await parseResponse(api.syncs[":id"].$get({ param: { id: syncId } }));
-      if (isSettled(job)) {
-        await Promise.all([
-          client.invalidateQueries({ queryKey: ["games"] }),
-          client.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
-        ]);
-      }
-      return job;
-    },
-    staleTime: (query) => (isSettled(query.state.data) ? Infinity : 0),
-    // A failed read stops too; the query client's retry rule already decided.
-    refetchInterval: (query) =>
-      query.state.status === "error" || isSettled(query.state.data)
-        ? false
-        : SYNC_POLL_MS,
-  });
-}
-
-/** The job once it settles. The observer's `refetchInterval` does the polling. */
-function settledSync(client: QueryClientType, syncId: string): Promise<SyncJob> {
-  const observer = new QueryObserver(client, syncJobQuery(syncId));
-  return new Promise((resolve, reject) => {
-    const unsubscribe = observer.subscribe((result) => {
-      if (result.isError) {
-        unsubscribe();
-        reject(result.error);
-      } else if (isSettled(result.data)) {
-        unsubscribe();
-        resolve(result.data);
-      }
-    });
-  });
-}
-
-export const SYNC_OUTCOME = {
-  refreshed: "refreshed",
-  tooSoon: "too-soon",
-} as const;
-
-/**
- * `refreshed` sums the jobs that settled; `too-soon` covers the accounts
- * still cooling down. A batch can report both: "0 new games" for an account
- * that never started would be a different, wrong story.
- */
-export type SyncOutcome =
-  | { status: typeof SYNC_OUTCOME.refreshed; saved: number }
-  | { status: typeof SYNC_OUTCOME.tooSoon; retryAfterSeconds: number };
-
-/**
- * Asks the server to sync, then follows the jobs to one outcome per batch.
+ * Asks the server to sync and stops there: the worker runs the jobs, the
+ * accounts list them as active, and the sync stream says when they land.
  * Server ids, never the device's remembered ones: a browser can hold an id
- * from a database that no longer exists, and syncing it 404s forever. A
- * failed job fails the batch, whatever the others brought.
+ * from a database that no longer exists, and syncing it 404s forever.
  */
 export function useSyncGames(handlers: {
-  onOutcome: (outcome: SyncOutcome) => void;
+  /** The shortest wait among the accounts still cooling down. */
+  onTooSoon: (retryAfterSeconds: number) => void;
   onError: () => void;
 }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (accounts: readonly { id: string }[]) => {
-      // Parallel: the server only schedules, so one account's cooldown
-      // never holds back the others.
-      const answers = await Promise.all(
-        accounts.map((account) => requestSync(account.id)),
-      );
+    // Parallel, and a cooldown is an answer rather than a rejection: one
+    // account's 429 never discards the jobs the others started.
+    mutationFn: (accounts: readonly { id: string }[]) =>
+      Promise.all(accounts.map((account) => requestSync(account.id))),
+    onSuccess: (answers) => {
       const waits = answers.flatMap((answer) =>
         "retryAfterSeconds" in answer ? [answer.retryAfterSeconds] : [],
       );
-      // Reported now, while the wait is exact.
-      if (waits.length > 0) {
-        handlers.onOutcome({
-          status: SYNC_OUTCOME.tooSoon,
-          retryAfterSeconds: Math.min(...waits),
-        });
-      }
-      return Promise.all(
-        answers.flatMap((answer) =>
-          "syncId" in answer ? [settledSync(queryClient, answer.syncId)] : [],
-        ),
-      );
+      if (waits.length > 0) handlers.onTooSoon(Math.min(...waits));
     },
-    onSuccess: (jobs) => {
-      if (jobs.length === 0) return;
-      if (jobs.some((job) => job.status === "failed")) {
-        handlers.onError();
-        return;
-      }
-      const saved = jobs.reduce((sum, job) => sum + (job.progress.gamesInserted ?? 0), 0);
-      handlers.onOutcome({ status: SYNC_OUTCOME.refreshed, saved });
-    },
-    // Requests that went through before the failure may have started jobs:
-    // the accounts list them, so following them survives this batch.
-    onError: () => {
-      void queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey });
-      handlers.onError();
-    },
+    onError: handlers.onError,
+    // Whatever went through is a job the accounts now list as active —
+    // including the ones started before a failure.
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
   });
 }
 
@@ -250,7 +157,7 @@ export function useDisconnectAccount() {
       useMyAccounts.getState().forget(accountId);
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
-        queryClient.invalidateQueries({ queryKey: ["games"] }),
+        queryClient.invalidateQueries({ queryKey: gamesQueryKey }),
         queryClient.invalidateQueries({ queryKey: ["game"] }),
       ]);
     },

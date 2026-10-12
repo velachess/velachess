@@ -10,7 +10,7 @@ import { sessionAdvisoryLock } from "@velachess/infra-db";
 import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
 import { createFileStore, resolveStorageEnv } from "@velachess/infra-storage";
 import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
-import { createDb } from "@velachess/infra-db";
+import { createDb, createSyncNotifications } from "@velachess/infra-db";
 import { createWatchers } from "@velachess/analysis";
 import { logger } from "@velachess/infra-logger";
 import {
@@ -46,6 +46,16 @@ const lock = sessionAdvisoryLock({
 });
 
 const analysisQueue = makeAnalysisQueue(boss, db);
+
+// The ear on `sync_job_changed`. postgres.js keeps a connection of its
+// own for LISTEN, reconnecting and re-listening by itself; awaited so an
+// api that cannot hear the worker refuses to boot rather than going quiet.
+const listenSql = postgres(databaseUrl, { max: 1 });
+const syncNotifications = createSyncNotifications(async (channel, onNotify, onListen) => {
+  const { unlisten } = await listenSql.listen(channel, onNotify, onListen);
+  return unlisten;
+});
+await syncNotifications.ready;
 
 // Validated up front — a bad auth environment refuses to boot with a
 // message naming the variable, and the secret's value appears nowhere
@@ -106,6 +116,7 @@ const app = createApp({
   signInMethods: { password: true, google: Boolean(authEnv.google) },
   analysisQueue,
   watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
+  syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,
   files: createFileStore(storageEnv.root),
@@ -118,6 +129,8 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 async function shutdown() {
   await boss.stop({ graceful: true });
+  await syncNotifications.close();
+  await listenSql.end({ timeout: 5 });
   await lockSql.end({ timeout: 5 });
   process.exit(0);
 }

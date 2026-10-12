@@ -4,11 +4,9 @@ export {
   QueryCache,
   QueryClient,
   QueryClientProvider,
-  QueryObserver,
   queryOptions,
   useIsMutating,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";

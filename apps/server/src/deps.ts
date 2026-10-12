@@ -7,7 +7,7 @@
 import type { ExecutionLock } from "@velachess/infra-db";
 import type { SyncDeps } from "@velachess/accounts";
 import type { Auth } from "@velachess/infra-auth";
-import type { Database } from "@velachess/infra-db";
+import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type { AnalysisQueue, SyncQueue } from "@velachess/infra-queue";
 import type { FileStore } from "@velachess/infra-storage";
 import type { Watchers } from "@velachess/analysis";
@@ -39,6 +39,8 @@ export interface ApiDeps {
   lock: ExecutionLock;
   /** One poll loop per game, shared by everyone watching it. */
   watchers: Watchers;
+  /** One LISTEN on `sync_job_changed`, shared by every sync stream. */
+  syncNotifications: SyncNotifications;
   /** Avatar bytes — the only binary this app stores. */
   files: FileStore;
   /** Read-through fetching for GET /games. Tests inject a fixture. */

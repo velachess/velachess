@@ -8,17 +8,22 @@ import {
   createUser,
   finishSyncJob,
   getSyncJobForUser,
+  getSyncJobSettlement,
   insertTrackedAccount,
   listTrackedAccountsByUser,
   claimSyncAttempt,
   markSyncRunning,
+  SYNC_JOB_CHANGED_CHANNEL,
   syncJobs,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
 
-const { db, close } = await createTestDb();
+const { db, listen, close } = await createTestDb();
 afterAll(() => close());
+
+/** Notifications arrive on their own tick; this lets them. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 async function anAccount() {
   const user = await createUser(db);
@@ -194,5 +199,71 @@ describe("sync jobs", () => {
     expect(await listTrackedAccountsByUser(db, owner.userId)).toEqual([
       expect.objectContaining({ latestJobId: newest.id, latestJobStatus: "queued" }),
     ]);
+  });
+
+  describe("announcing a settled job", () => {
+    it("is heard on commit, by id, and not for a pass that will retry", async () => {
+      const owner = await anAccount();
+      const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
+      const heard: string[] = [];
+      const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
+
+      await finishSyncJob(db, await deliver(job), {
+        status: "retrying",
+        errorCode: "incomplete",
+      });
+      await settle();
+      expect(heard).toEqual([]);
+
+      const retry = await deliver(job);
+      await db.transaction(async (tx) => {
+        await finishSyncJob(tx, retry, { status: "succeeded", errorCode: null });
+        // Not yet: the games committing alongside are not visible either.
+        await settle();
+        expect(heard).toEqual([]);
+      });
+      await settle();
+      expect(heard).toEqual([job.id]);
+      await unlisten();
+    });
+
+    it("says nothing for an attempt that no longer owns the row", async () => {
+      const owner = await anAccount();
+      const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
+      const stale = await deliver(job);
+      await finishSyncJob(db, stale, { status: "retrying", errorCode: "internal" });
+      await deliver(job); // re-stamped: the old attempt is obsolete
+
+      const heard: string[] = [];
+      const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
+      await finishSyncJob(db, stale, { status: "succeeded", errorCode: null });
+      await settle();
+      expect(heard).toEqual([]);
+      await unlisten();
+    });
+
+    it("is heard when a job is abandoned, once", async () => {
+      const owner = await anAccount();
+      const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
+      const heard: string[] = [];
+      const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
+
+      await abandonSyncJob(db, job.id);
+      await abandonSyncJob(db, job.id); // already closed: no second announcement
+      await settle();
+      expect(heard).toEqual([job.id]);
+      expect(await getSyncJobSettlement(db, job.id)).toMatchObject({
+        userId: owner.userId,
+        accountId: owner.accountId,
+        status: "failed",
+      });
+      await unlisten();
+    });
+
+    it("resolves to nothing once the row is gone", async () => {
+      expect(
+        await getSyncJobSettlement(db, "00000000-0000-4000-8000-000000000000"),
+      ).toBeNull();
+    });
   });
 });

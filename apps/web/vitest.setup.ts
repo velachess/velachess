@@ -18,6 +18,7 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { resetBackendStatus } from "./src/backend-status/index.ts";
 import { resetArchive } from "./src/test/archive.ts";
+import { dropSyncStreams } from "./src/test/sync-stream.ts";
 import { resetTrackedAccounts } from "./src/test/handlers/accounts.ts";
 import { resetAuthScenario } from "./src/test/handlers/auth.ts";
 import { resetDevice } from "./src/test/device.ts";
@@ -102,6 +103,7 @@ afterEach(() => {
   resetTrackedAccounts();
   resetBackendStatus();
   resetArchive();
+  dropSyncStreams();
   resetDevice();
 });
 

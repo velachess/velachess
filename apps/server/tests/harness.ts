@@ -12,6 +12,7 @@ import { syncAccount } from "@velachess/accounts";
 import {
   appendProgress,
   clearProgress,
+  createSyncNotifications,
   finishSyncJob,
   getAnalysis,
   getGame,
@@ -100,6 +101,11 @@ export async function createApiHarness(
     analysisQueue: harness.analysisQueue,
     // A short interval: the suite should not wait out a production poll.
     watchers: createWatchers(buildWatcherDeps(harness.db, harness.analysisQueue, 50)),
+    // PGlite listens on its one session — the same session the worker's
+    // twin below commits on, which is exactly the delivery a LISTEN sees.
+    syncNotifications: createSyncNotifications((channel, onNotify) =>
+      harness.pglite.listen(channel, onNotify),
+    ),
     syncQueue: harness.syncQueue,
     lock: harness.lock,
     // A real store over a temp dir, like every other dependency here:
@@ -210,6 +216,7 @@ export async function createApiHarness(
     // it — one outliving the database is an unhandled rejection.
     close: async () => {
       deps.watchers.close();
+      await deps.syncNotifications.close();
       await harness.close();
       await rm(filesRoot, { recursive: true, force: true });
     },

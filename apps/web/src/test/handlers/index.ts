@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { accountsHandlers } from "./accounts.ts";
 import { authHandlers } from "./auth.ts";
 import { gamesHandlers } from "./games.ts";
+import { syncEventsHandlers } from "./sync-events.ts";
 
 /**
  * The network as it behaves when nothing has gone wrong, grouped by the
@@ -18,4 +19,5 @@ export const handlers = [
   ...authHandlers,
   ...gamesHandlers,
   ...accountsHandlers,
+  ...syncEventsHandlers,
 ];

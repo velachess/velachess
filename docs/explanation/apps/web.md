@@ -123,16 +123,20 @@ React Query owns session and account data. A 401 clears the cached session and
 returns the browser to login; local storage does not claim identity. Account
 authorization remains server-side and user-scoped in database queries.
 
-Syncs run in the background, so the client follows them rather than waiting:
-`syncJobQuery` polls `GET /syncs/:id` every 3 s through `refetchInterval` and
-stops once the job settles or its read fails. The ids come from the server — a
-`202` or an account's `activeSyncId` — so a reload resumes. The query that
-learns a job settled invalidates only `games` and `accounts`, and a settled job
-is never fetched again, so that happens once per job. The sync button's
-mutation waits on the same queries through a `QueryObserver` and reports its
-batch from `onSuccess`/`onError` — once per batch, with no effect, and a
-failed job fails the batch. Connecting invalidates `accounts` and the session;
-disconnecting, `accounts`, `games` and `game`.
+Syncs run in the background and the client never waits on one. `useSyncGames`
+is a mutation that only asks: `POST /accounts/:id/sync` per account in
+parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
+when the requests settle so the server's `syncStatus` / `activeSyncId` drive
+the "Syncing…" state on every screen and after a reload. Landing is announced,
+not polled: `games/import/sync-events.ts` keeps the session's one
+`GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
+and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
+`games` and `accounts` — the payload is never read. The stream is a signal,
+not a record, so every reconnection after the first repairs the gap with the
+same invalidation; a failed attempt invalidates nothing, and a `401` ends the
+session the usual way. No completion toast: the list refreshing is the
+answer. Connecting invalidates `accounts` and the session; disconnecting,
+`accounts`, `games` and `game`.
 
 ## Tables
 
