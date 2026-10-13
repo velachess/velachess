@@ -22,6 +22,10 @@ export const QUEUES = {
  * is a fresh enqueue (or pg-boss redrive), which stately permits once
  * nothing is queued or active.
  *
+ * `retryDelay` is a floor of one minute because Lichess asks for a full
+ * minute after a 429 and pg-boss has no per-failure delay: every sync
+ * retry waits at least that long.
+ *
  * `heartbeatSeconds` lets pg-boss's monitor fail-and-retry a job whose
  * worker died mid-run. `boss.work()` refreshes heartbeats for active jobs
  * on its own — no handler cooperation needed.
@@ -34,7 +38,7 @@ const POLICY = {
   sync: {
     policy: "stately",
     retryLimit: 2,
-    retryDelay: 5,
+    retryDelay: 60,
     retryBackoff: true,
     deadLetter: QUEUES.syncDlq,
     expireInSeconds: 300,
@@ -47,6 +51,10 @@ const POLICY = {
 export async function ensureQueues(boss: PgBoss): Promise<void> {
   await boss.createQueue(QUEUES.syncDlq);
   await boss.createQueue(QUEUES.sync, POLICY.sync);
+  // createQueue does nothing for a queue that already exists, and the policy
+  // (which updateQueue cannot change) is fixed at creation.
+  const { policy: _policy, ...current } = POLICY.sync;
+  await boss.updateQueue(QUEUES.sync, current);
 
   // Warm pg-boss's send path per queue. Without this, the FIRST send does
   // an own-connection queue lookup — which deadlocks on single-connection

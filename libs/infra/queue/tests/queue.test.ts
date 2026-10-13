@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "@velachess/infra-db";
 import {
+  ensureQueues,
   makeSyncQueue,
   QUEUES,
   type PgBoss,
@@ -99,6 +100,32 @@ describe("sync queue port", () => {
       )
     ).rows;
     expect(row?.group_id).toBe("provider:lichess");
+  });
+
+  it("waits at least a minute before retrying a failed delivery", async () => {
+    // Lichess asks for a full minute after a 429, and pg-boss has one retry
+    // delay per queue, so every sync retry honours it.
+    const queue = makeSyncQueue(boss);
+    const id = randomUUID();
+    await queue.enqueue(db, syncJob(id));
+    await boss.fail(QUEUES.sync, await deliverSyncJob(boss, id));
+
+    const [row] = (
+      await pglite.query<{ state: string; wait_seconds: number }>(
+        "select state, extract(epoch from start_after - now())::int as wait_seconds from pgboss.job where name = $1 and id = $2",
+        [QUEUES.sync, id],
+      )
+    ).rows;
+    expect(row?.state).toBe("retry");
+    expect(row?.wait_seconds).toBeGreaterThanOrEqual(59);
+  });
+
+  it("brings a queue created under an older policy up to date on boot", async () => {
+    await boss.updateQueue(QUEUES.sync, { retryDelay: 5 });
+
+    await ensureQueues(boss);
+
+    expect((await boss.getQueue(QUEUES.sync))?.retryDelay).toBe(60);
   });
 
   it("a delivery pg-boss ended is no longer live", async () => {
