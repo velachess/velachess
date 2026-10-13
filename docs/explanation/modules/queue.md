@@ -33,6 +33,9 @@ with the topology rather than with the worker, because the producer creates
 these queues too and a policy that depends on which process booted first is
 a race. The numbers are documented in `queues.ts` as what they are: the
 consumer's constraints, written down where both sides can honour them.
+`createQueue` ignores a queue that already exists, so `ensureQueues` also
+re-applies every option except the policy (fixed at creation) with
+`updateQueue`: a changed number reaches existing deployments on the next boot.
 
 Two architecture tests hold the line — `apps/server` and `apps/worker` may
 never import each other (tests included), and `boss.work` may not appear

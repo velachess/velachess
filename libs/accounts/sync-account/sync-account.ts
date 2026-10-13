@@ -141,9 +141,9 @@ export async function syncAccount(
 
   // Games, cursor and outcome commit together. The job row is locked
   // first, then the account through the games' FK: the order disconnecting
-  // takes them in. A partial pass keeps its games but not its cursor, so
-  // the retry starts from the same place and the unique constraints absorb
-  // the repeats.
+  // takes them in. A partial pass keeps its games; its cursor stays at the
+  // last checkpoint (or where it started, for Lichess), and the unique
+  // constraints absorb the repeats on retry.
   await deps.withTransaction(async (tx) => {
     // A newer attempt re-stamped `started_at` — this one is obsolete.
     if (!(await deps.claimSyncAttempt(tx, attempt))) return;

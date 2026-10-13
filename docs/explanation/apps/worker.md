@@ -12,9 +12,11 @@ settlement either.
 - **sync** → `syncAccount` (`@velachess/accounts`), handed the pg-boss job
   as fetched: its id is the `sync_jobs` id and it carries no payload. The
   slice marks the row running — stamping `started_at` as this attempt's
-  claim — pulls what's new, then persists games, cursor and outcome in one
-  transaction whose writes are conditional on that stamp, so a delivery a
-  retry replaced writes nothing. An incomplete pass keeps its games and
+  claim — pulls what's new, checkpointing each completed Chess.com month,
+  then persists the rest of the games and the outcome; every write is
+  conditional on that stamp, so a delivery a retry replaced writes nothing.
+  Sync jobs are grouped by provider and consumed with `groupConcurrency: 1`,
+  one job per provider across every node. An incomplete pass keeps its games and
   throws so pg-boss retries; a handle gone from the provider records
   `failed` and returns, so pg-boss completes the delivery; a job whose row
   is gone (its account was disconnected) returns the same way. Retry
