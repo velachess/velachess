@@ -35,7 +35,7 @@ services:
   # `docker compose -f docker/docker-compose.dev.yml up redis-insight`, then
   # open http://localhost:5540 and connect to redis:6379.
   redis-insight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:3.8.0
     restart: unless-stopped
     ports:
       - "127.0.0.1:5540:5540"
