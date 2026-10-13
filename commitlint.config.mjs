@@ -24,6 +24,7 @@ const scopes = [
   "ingest",
   "logger",
   "queue",
+  "rate-limit",
   "storage",
   "test-utils",
   "ui",

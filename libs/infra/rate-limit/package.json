@@ -1,0 +1,19 @@
+{
+  "name": "@velachess/infra-rate-limit",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@velachess/infra-logger": "workspace:*",
+    "ioredis": "^6.0.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  }
+}
