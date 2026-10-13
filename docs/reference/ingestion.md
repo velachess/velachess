@@ -59,12 +59,25 @@ after the account's newest job.
   `gamesInserted` the rows actually inserted; the difference is
   deduplication. `unitsDone` / `unitsTotal` are `null` until sync works in
   units.
-- Games, cursor and outcome commit in one transaction, conditional on the
-  `started_at` stamp the delivery took when it marked the job running: a
-  retry re-stamps, so a delivery pg-boss timed out or handed to a retry, or
-  one whose account was deleted, writes nothing. The cursor and
-  `lastSyncedAt` advance only on a complete pass; a partial one keeps its
+- Every write is conditional on the `started_at` stamp the delivery took
+  when it marked the job running: a retry re-stamps, so a delivery pg-boss
+  timed out or handed to a retry, or one whose account was deleted, writes
+  nothing.
+- Chess.com checkpoints: each archive month that normalizes without a
+  failure commits its games and the cursor past it in its own short
+  transaction, so a retry or a crashed worker resumes after the last
+  checkpointed month instead of re-walking the archive. Once a month fails,
+  no later month checkpoints in that pass.
+- The final transaction commits the remaining games and the outcome. The
+  cursor's final position and `lastSyncedAt` advance only on a complete
+  pass; Lichess has no checkpoints, so a partial Lichess pass keeps its
   games and retries from the same cursor.
+- Provider rate limits: both providers ask for one request at a time, so
+  sync jobs are grouped by provider and the worker runs one job per
+  provider across every node (pg-boss `groupConcurrency: 1`); a job calls
+  its provider sequentially. A `429` is a retryable `rate-limited` failure
+  carrying `Retry-After` in its detail, and the queue waits at least a
+  minute before any retry, as Lichess asks after a `429`.
 - The worker never writes a retryable `failed`: pg-boss owns the retry
   schedule and its exhaustion. A job left active after pg-boss ended its
   delivery (retries spent, or a worker crash) is closed as `failed` by the
@@ -88,9 +101,10 @@ normalize them through the shared PGN path. Provider response shapes do not
 escape that library.
 
 A pass may persist successfully normalized games even when another page, month,
-or game fails. It advances the stored cursor and `lastSyncedAt` only when the
-whole pass completes. Retrying from the previous cursor is safe because the
-database constraints make persistence idempotent.
+or game fails. `lastSyncedAt` advances only when the whole pass completes; the
+cursor advances on a complete pass and, for Chess.com, at each checkpointed
+month. Retrying from a stored cursor is safe because the database constraints
+make persistence idempotent.
 
 Empty success, not found, rate limiting, invalid response, unsupported variant,
 and partial failure are distinct outcomes. Unsupported variants are reported;
@@ -106,6 +120,8 @@ White/Black so one file may mix colors.
 Chess.com starts from the provider's archive index, processes archive months
 sequentially, and records the last fully processed month position. The initial
 bootstrap window is defined by the provider client, not this document.
+
+Each fully processed month is a checkpoint (see "Sync jobs").
 
 Lichess requests PGN ordered from its timestamp boundary. A successful empty
 response is a complete pass with no new games. The next timestamp derives from

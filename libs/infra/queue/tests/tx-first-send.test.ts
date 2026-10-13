@@ -29,7 +29,7 @@ it("first enqueue ever, inside a transaction, completes", async () => {
   const queue = makeSyncQueue(boss);
   const id = randomUUID();
   await db.transaction(async (tx) => {
-    await queue.enqueue(tx, { id, accountId: "first-in-tx" });
+    await queue.enqueue(tx, { id, accountId: "first-in-tx", platform: "chess_com" });
   });
   expect(await queue.isLive(db, id)).toBe(true);
 }, 20_000);

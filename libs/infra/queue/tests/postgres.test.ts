@@ -39,14 +39,20 @@ describe.skipIf(!url)("sync settle on Postgres", () => {
     const rolledBack = randomUUID();
     await expect(
       db.transaction(async (tx) => {
-        await queue.enqueue(tx, { id: rolledBack, accountId: `account-${rolledBack}` });
+        await queue.enqueue(tx, {
+          id: rolledBack,
+          accountId: `account-${rolledBack}`,
+          platform: "chess_com",
+        });
         throw new Error("job row failed");
       }),
     ).rejects.toThrow("job row failed");
     expect(await queue.isLive(db, rolledBack)).toBe(false);
 
     const id = randomUUID();
-    await db.transaction((tx) => queue.enqueue(tx, { id, accountId: `account-${id}` }));
+    await db.transaction((tx) =>
+      queue.enqueue(tx, { id, accountId: `account-${id}`, platform: "chess_com" }),
+    );
     expect(await queue.isLive(db, id)).toBe(true);
 
     const delivery = await deliverSyncJob(boss, id);

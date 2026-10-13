@@ -11,7 +11,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { NormalizedGame } from "@velachess/infra-platforms";
+import type { AccountPlatform, NormalizedGame } from "@velachess/infra-platforms";
 
 import type { Database } from "@velachess/infra-db";
 import type { GameFilters, GamePage } from "@velachess/infra-db";
@@ -108,7 +108,7 @@ async function runSync(syncJobId: string, fetch?: SyncDeps["fetch"]) {
 
 /** A manual sync of an account: its job, the worker's run of it, the result. */
 async function syncNow(
-  account: { id: string; userId: string },
+  account: { id: string; userId: string; platform: AccountPlatform },
   fetch: typeof globalThis.fetch,
 ) {
   const job = await h.db.transaction(async (tx) => {
@@ -117,7 +117,11 @@ async function syncNow(
       accountId: account.id,
       trigger: "manual",
     }))!;
-    await h.syncQueue.enqueue(tx, { id: created.id, accountId: account.id });
+    await h.syncQueue.enqueue(tx, {
+      id: created.id,
+      accountId: account.id,
+      platform: account.platform,
+    });
     return created;
   });
   await runSync(job.id, fetch);

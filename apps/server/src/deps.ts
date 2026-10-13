@@ -11,6 +11,8 @@ import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type { SyncQueue } from "@velachess/infra-queue";
 import type { FileStore } from "@velachess/infra-storage";
 
+import type { Redis } from "./redis.ts";
+
 /**
  * What the sign-in screen may render. Capability flags, nothing more: the
  * screen has to know which methods exist *before* it has a session, and a
@@ -33,6 +35,9 @@ export interface ApiDeps {
   /** Served publicly at GET /config — see SignInMethods. */
   signInMethods: SignInMethods;
   syncQueue: SyncQueue;
+  /** Backs the inbound rate limiter — shared across every API instance,
+   * the same reason the Postgres limiter it replaced had to be. */
+  redis: Redis;
   /** First-user bootstrap's own race guard; the API runs no engine and
    * acquires no other advisory lock. */
   lock: ExecutionLock;

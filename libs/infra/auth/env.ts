@@ -1,7 +1,7 @@
 /**
  * [AUTH ENV] — turns ambient env vars into a validated auth config, or
  * throws a message naming the variable and requirement to fix. Pure
- * (`resolveAuthEnv(env)` takes env as a value) so main.ts stays wiring.
+ * (`resolveAuthEnv(env)` takes env as a value) so the API composition root stays wiring.
  * Never echoes `VELACHESS_AUTH_SECRET`'s value in any error or log.
  *
  * `production` is computed independently of envalid's own isProduction,

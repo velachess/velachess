@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { hc } from "hono/client";
+import { Redis } from "ioredis";
 
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
@@ -29,6 +30,7 @@ import {
 } from "@velachess/test-utils";
 
 import { createApp } from "../src/server.ts";
+import { createRedisClient } from "../src/redis.ts";
 import type { ApiDeps } from "../src/deps.ts";
 import type { AppType } from "../src/server.ts";
 
@@ -69,6 +71,25 @@ export interface ApiHarness extends LoopHarness {
  * one origin its CSRF check trusts. */
 export const ORIGIN = "http://localhost";
 
+/** Redis for the harness: the real one when `REDIS_URL` is set, otherwise a
+ * port nothing answers on, so every limiter check fails open at once. */
+function harnessRedis(): Redis {
+  const url = process.env["REDIS_URL"];
+  if (url) return createRedisClient(url);
+  return unreachableRedis();
+}
+
+/** No reconnects: each command fails immediately instead of waiting out a
+ * retry against a host that will never answer. */
+export function unreachableRedis(): Redis {
+  const redis = new Redis("redis://127.0.0.1:1", {
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+  });
+  redis.on("error", () => {});
+  return redis;
+}
+
 export async function createApiHarness(
   /** The archive GET /games reads through to. Defaults to the looper one. */
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
@@ -91,6 +112,8 @@ export async function createApiHarness(
 
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
 
+  const redis = harnessRedis();
+
   const deps: ApiDeps = {
     db: harness.db,
     auth,
@@ -111,6 +134,7 @@ export async function createApiHarness(
     files: createFileStore(filesRoot),
     // GET /games fills read-through; the suite must not reach the network.
     sync,
+    redis,
   };
 
   // The worker's own composition (apps/worker/src/composition/accounts.ts)
@@ -203,6 +227,7 @@ export async function createApiHarness(
     close: async () => {
       await deps.syncNotifications.close();
       await harness.close();
+      redis.disconnect();
       await rm(filesRoot, { recursive: true, force: true });
     },
   };

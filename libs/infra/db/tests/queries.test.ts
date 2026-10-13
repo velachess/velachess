@@ -139,6 +139,27 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(second.inserted).toBe(0);
   });
 
+  it("listGamesPage's total matches the real row count on a full page, a partial last page, and a past-the-end page", async () => {
+    await saveGames(db, manyGames(30), { userId: ownerId });
+
+    const full = await listGamesPage(db, ownerId, {}, { page: 1, pageSize: 25 });
+    expect(full.rows).toHaveLength(25);
+    expect(full.total).toBe(30);
+
+    const tail = await listGamesPage(db, ownerId, {}, { page: 2, pageSize: 25 });
+    expect(tail.rows).toHaveLength(5);
+    expect(tail.total).toBe(30);
+
+    // Past the last page: no rows, and the total still counts every match.
+    const pastEnd = await listGamesPage(db, ownerId, {}, { page: 5, pageSize: 25 });
+    expect(pastEnd.rows).toHaveLength(0);
+    expect(pastEnd.total).toBe(30);
+
+    const noMatches = await listGamesPage(db, ownerId, { color: "white" });
+    expect(noMatches.rows).toHaveLength(0);
+    expect(noMatches.total).toBe(0);
+  });
+
   it("two users importing the same pasted PGN each keep their own copy", async () => {
     // Ownership is per user: movetext dedup must not leak one user's
     // paste into another's library as an invisible skip.

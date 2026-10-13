@@ -41,7 +41,12 @@ export function makeSyncQueue(boss: PgBoss): SyncQueue {
       const sent = await boss.send(
         QUEUES.sync,
         {},
-        { id: job.id, singletonKey: job.accountId, db: asBossDb(dbOrTx) },
+        {
+          id: job.id,
+          singletonKey: job.accountId,
+          group: { id: `provider:${job.platform}` },
+          db: asBossDb(dbOrTx),
+        },
       );
       if (!sent) throw new Error(`sync job ${job.id} was not enqueued`);
     },

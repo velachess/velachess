@@ -31,7 +31,12 @@ afterAll(async () => {
  * that care about the budget reuse one id; callers that don't, don't. */
 const sync = (accountId: string = randomUUID()) => `/accounts/${accountId}/sync`;
 
-describe("rate limiting", () => {
+// The store is real Redis, not PGlite: unlike the Postgres limiter this
+// replaced, there is no embedded fallback, so these specific assertions
+// need `REDIS_URL` set — CI's Redis job runs them; a local `pnpm test`
+// without Redis running skips just this block (the store fails open, so
+// the rest of the suite is unaffected either way, see harness.ts).
+describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
   it("refuses past the policy's budget, and says when to come back", async () => {
     const limited = await harness.signUp("throttled@velachess.local");
     const accountId = randomUUID();
@@ -72,8 +77,8 @@ describe("rate limiting", () => {
     expect(response.status).not.toBe(429);
   });
 
-  it("holds across processes, because it lives in Postgres", async () => {
-    // A second app over the same database stands in for a second API
+  it("holds across processes, because it lives in Redis", async () => {
+    // A second app over the same Redis stands in for a second API
     // instance behind the load balancer. An in-memory counter would give
     // this user a fresh budget here; a shared one does not.
     const second = createApp(harness.deps);

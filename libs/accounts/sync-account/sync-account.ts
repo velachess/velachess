@@ -32,6 +32,10 @@ type Tx = Database;
 type Cursor = ChessComCursor | LichessCursor;
 /** This delivery's claim on the row: the `started_at` its `markSyncRunning` wrote. */
 type Attempt = { id: string; startedAt: Date };
+/** How much of this delivery's fetch a checkpoint already committed: a
+ * prefix count of `fetched.games` to skip in the final save, and the real
+ * insert count so the job's total isn't undercounted. */
+type Progress = { gameCount: number; inserted: number };
 type Outcome = {
   status: "succeeded" | "retrying" | "failed";
   errorCode: "not-found" | "incomplete" | "internal" | null;
@@ -112,9 +116,10 @@ export async function syncAccount(
   // Disconnected meanwhile; the job row went with it.
   if (!account) return;
 
+  const progress: Progress = { gameCount: 0, inserted: 0 };
   let fetched: SyncResult & { cursor: Cursor | null };
   try {
-    fetched = await fetchGameHistory(deps, account, job.signal);
+    fetched = await fetchGameHistory(deps, account, attempt, job.signal, progress);
     // Cancelled after the last response: skip the work below, pg-boss
     // already decided what follows.
     job.signal.throwIfAborted();
@@ -136,16 +141,22 @@ export async function syncAccount(
 
   // Games, cursor and outcome commit together. The job row is locked
   // first, then the account through the games' FK: the order disconnecting
-  // takes them in. A partial pass keeps its games but not its cursor, so
-  // the retry starts from the same place and the unique constraints absorb
-  // the repeats.
+  // takes them in. A partial pass keeps its games; its cursor stays at the
+  // last checkpoint (or where it started, for Lichess), and the unique
+  // constraints absorb the repeats on retry.
   await deps.withTransaction(async (tx) => {
     // A newer attempt re-stamped `started_at` — this one is obsolete.
     if (!(await deps.claimSyncAttempt(tx, attempt))) return;
-    const { inserted } = await deps.saveGames(tx, fetched.games, {
-      userId: account.userId,
-      accountId: account.id,
-    });
+    // Everything up to `progress.gameCount` already landed via a checkpoint
+    // this same delivery (chess.com only); only the remainder needs saving.
+    const { inserted } = await deps.saveGames(
+      tx,
+      fetched.games.slice(progress.gameCount),
+      {
+        userId: account.userId,
+        accountId: account.id,
+      },
+    );
     if (fetched.complete) {
       // An empty archive completes and yields no cursor — it still synced.
       if (fetched.cursor)
@@ -156,7 +167,7 @@ export async function syncAccount(
       status: fetched.complete ? "succeeded" : "retrying",
       errorCode: fetched.complete ? null : "incomplete",
       gamesFetched: fetched.games.length,
-      gamesInserted: inserted,
+      gamesInserted: progress.inserted + inserted,
     });
   });
   if (!fetched.complete) {
@@ -187,7 +198,9 @@ export async function syncAccount(
 function fetchGameHistory(
   deps: SyncAccountDeps,
   account: TrackedAccount,
+  attempt: Attempt,
   signal: AbortSignal,
+  progress: Progress,
 ): Promise<SyncResult & { cursor: Cursor | null }> {
   const stored = account.syncCursor ?? null;
   const reportUnreadable = () =>
@@ -200,7 +213,11 @@ function fetchGameHistory(
     case "chess_com": {
       const parsed = chessComCursorSchema.safeParse(stored);
       if (stored !== null && !parsed.success) reportUnreadable();
-      return fetchChessCom(account.username, parsed.success ? parsed.data : null, opts);
+      return fetchChessCom(account.username, parsed.success ? parsed.data : null, {
+        ...opts,
+        onCheckpoint: (cursor, monthGames) =>
+          commitCheckpoint(deps, attempt, account, cursor, monthGames, progress),
+      });
     }
     case "lichess": {
       const parsed = lichessCursorSchema.safeParse(stored);
@@ -208,4 +225,31 @@ function fetchGameHistory(
       return fetchLichess(account.username, parsed.success ? parsed.data : null, opts);
     }
   }
+}
+
+/**
+ * Persists one Chess.com archive month as its own short transaction, so a
+ * crash doesn't lose every month already walked this pass — just the one
+ * in flight. Re-validated by `claimSyncAttempt` exactly like the final
+ * commit: a delivery that lost the job to a retry writes nothing here
+ * either.
+ */
+async function commitCheckpoint(
+  deps: SyncAccountDeps,
+  attempt: Attempt,
+  account: TrackedAccount,
+  cursor: Cursor,
+  monthGames: NormalizedGame[],
+  progress: Progress,
+): Promise<void> {
+  await deps.withTransaction(async (tx) => {
+    if (!(await deps.claimSyncAttempt(tx, attempt))) return;
+    const { inserted } = await deps.saveGames(tx, monthGames, {
+      userId: account.userId,
+      accountId: account.id,
+    });
+    await deps.updateTrackedAccountCursor(tx, account.id, cursor);
+    progress.gameCount += monthGames.length;
+    progress.inserted += inserted;
+  });
 }

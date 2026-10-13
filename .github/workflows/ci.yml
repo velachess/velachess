@@ -107,3 +107,27 @@ jobs:
 
       - name: Sync settle on the postgres-js driver
         run: pnpm --filter @velachess/infra-queue exec vitest run tests/postgres.test.ts
+
+  # The API rate limiter has no embedded Redis fallback: `pnpm test` skips
+  # its suites without `REDIS_URL`, so this is where they run.
+  redis:
+    name: Redis integration
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: API rate limiter over the real store
+        run: pnpm --filter @velachess/server test

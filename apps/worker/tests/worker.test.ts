@@ -57,7 +57,7 @@ async function newSyncJob(username: string = LOOPER_USERNAME) {
       accountId: account.id,
       trigger: "manual",
     }))!;
-    await h.syncQueue.enqueue(tx, job);
+    await h.syncQueue.enqueue(tx, { ...job, platform: account.platform });
     return job;
   });
 }
@@ -82,6 +82,57 @@ const brokenMonth: typeof fetch = async (input) =>
   String(input).endsWith("/2026/08")
     ? new Response("unavailable", { status: 503 })
     : chessComFixtureFetch()(input);
+
+/** Three archive months, two games apiece, each tracked by its own call
+ * count — so a test can assert a checkpointed month is never re-fetched.
+ * Each month plays different moves: dedup keys on the movetext hash, and
+ * `LOOPER_LOSS_PGN`/`LOOPER_WIN_PGN` repeated verbatim across months would
+ * collide as "the same game" instead of landing as six distinct rows. */
+const MULTI_MONTH_ARCHIVES = ["2026/06", "2026/07", "2026/08"];
+const MULTI_MONTH_OPENINGS = [
+  "1. e4 e6 2. g4 d5",
+  "1. d4 d5 2. c4 e6",
+  "1. Nf3 Nf6 2. c4 g6",
+];
+function multiMonthFetch(opts: { failMonth?: string } = {}) {
+  const calls = new Map(MULTI_MONTH_ARCHIVES.map((month) => [month, 0]));
+  const fetchFn = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (/\/pub\/player\/[^/]+$/.test(url)) return Response.json({});
+    if (url.endsWith("/archives")) {
+      return Response.json({
+        archives: MULTI_MONTH_ARCHIVES.map(
+          (month) => `https://api.chess.com/pub/player/${LOOPER_USERNAME}/games/${month}`,
+        ),
+      });
+    }
+    const monthIndex = MULTI_MONTH_ARCHIVES.findIndex((candidate) =>
+      url.endsWith(candidate),
+    );
+    if (monthIndex === -1) return new Response("not found", { status: 404 });
+    const month = MULTI_MONTH_ARCHIVES[monthIndex]!;
+    calls.set(month, (calls.get(month) ?? 0) + 1);
+    if (month === opts.failMonth) return new Response("unavailable", { status: 503 });
+    const opening = MULTI_MONTH_OPENINGS[monthIndex]!;
+    return Response.json({
+      games: [
+        {
+          url: `https://www.chess.com/game/live/${month}-1`,
+          pgn: `[Event "Live Chess"]\n[White "looper"]\n[Black "rival"]\n[Result "0-1"]\n\n${opening} 0-1\n`,
+          rules: "chess",
+          end_time: 1,
+        },
+        {
+          url: `https://www.chess.com/game/live/${month}-2`,
+          pgn: `[Event "Live Chess"]\n[White "looper"]\n[Black "rival"]\n[Result "1-0"]\n\n${opening} 1-0\n`,
+          rules: "chess",
+          end_time: 2,
+        },
+      ],
+    });
+  }) as typeof fetch;
+  return { fetch: fetchFn, calls };
+}
 
 const jobOf = (job: { id: string; userId: string }) =>
   getSyncJobForUser(h.db, job.userId, job.id);
@@ -152,7 +203,7 @@ describe("worker", () => {
       log: testLogger,
     }).start();
     const job = await createSyncJob(h.db, { userId, accountId, trigger: "manual" });
-    await h.syncQueue.enqueue(h.db, job!);
+    await h.syncQueue.enqueue(h.db, { ...job!, platform: "chess_com" });
 
     await poll(async () => {
       const rows = (await gamesWithStatus(userId, accountId))!;
@@ -269,9 +320,11 @@ describe("sync deliveries", () => {
     expect(await getTrackedAccount(h.db, job.accountId)).not.toBeNull();
   });
 
-  it("a delivery cancelled after its last response records the failure and saves nothing", async () => {
+  it("a delivery cancelled after its last response keeps the month it already checkpointed", async () => {
     // pg-boss aborts the signal on expiry or a lost claim. The fetch has
-    // already answered, so the slice itself has to stop.
+    // already answered, so the slice itself has to stop — but the fixture's
+    // one archive month committed as a checkpoint before that cancellation
+    // was even observed, so it survives the retry this records.
     const job = await newSyncJob();
     const deadline = new AbortController();
     const lateFetch = (async (input: RequestInfo | URL) => {
@@ -285,7 +338,8 @@ describe("sync deliveries", () => {
     ).rejects.toThrow(/expired/);
 
     expect(await jobOf(job)).toMatchObject({ status: "retrying", errorCode: "internal" });
-    expect(await gamesWithStatus(job.userId, job.accountId)).toEqual([]);
+    expect(await gamesWithStatus(job.userId, job.accountId)).toHaveLength(2);
+    expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).not.toBeNull();
   });
 
   it("a delivery cancelled mid-fetch stops at the provider", async () => {
@@ -425,5 +479,49 @@ describe("sync deliveries", () => {
     expect(await jobOf(job)).toBeNull();
     // Not even an orphan with its account nulled.
     expect((await listGamesPage(h.db, job.userId)).total).toBe(0);
+  });
+
+  it("resumes from its checkpoint: a month already synced is never re-fetched", async () => {
+    const job = await newSyncJob();
+    const crashing = multiMonthFetch({ failMonth: "2026/08" });
+
+    // Months 06 and 07 each checkpoint in turn; 08 fails, so the pass is
+    // incomplete — but the cursor already sits past 07, not at the start.
+    const firstDelivery = await deliver(job);
+    await expect(sync({ fetch: crashing.fetch }, firstDelivery)).rejects.toThrow(
+      /incomplete/,
+    );
+    expect(await jobOf(job)).toMatchObject({
+      status: "retrying",
+      errorCode: "incomplete",
+    });
+    expect(await gamesWithStatus(job.userId, job.accountId)).toHaveLength(4);
+    expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toMatchObject({
+      month: "2026/07",
+    });
+    expect(crashing.calls.get("2026/06")).toBe(1);
+    expect(crashing.calls.get("2026/07")).toBe(1);
+    await h.boss.fail(QUEUES.sync, firstDelivery);
+
+    // The retry resumes from the cursor: 06 is never touched again. (07 is
+    // re-walked — the boundary month an archive can still append to — 08
+    // finally succeeds.)
+    const recovered = multiMonthFetch();
+    await expect(
+      sync({ fetch: recovered.fetch }, await deliver(job)),
+    ).resolves.toBeUndefined();
+
+    expect(await jobOf(job)).toMatchObject({
+      status: "succeeded",
+      errorCode: null,
+      gamesInserted: 6,
+    });
+    expect(await gamesWithStatus(job.userId, job.accountId)).toHaveLength(6);
+    expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toMatchObject({
+      month: "2026/08",
+    });
+    expect(recovered.calls.get("2026/06")).toBe(0);
+    expect(recovered.calls.get("2026/07")).toBe(1);
+    expect(recovered.calls.get("2026/08")).toBe(1);
   });
 });

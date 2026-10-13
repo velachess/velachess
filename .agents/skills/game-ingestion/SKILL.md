@@ -11,9 +11,10 @@ data; the authenticated session owns the tracked account.
 
 Sync is a background job: HTTP records a `sync_jobs` row and enqueues it in
 one transaction, never fetching an archive; the worker fetches, then commits
-games, cursor and outcome in the transaction that settles its pg-boss
-delivery, which pg-boss fences to the delivery's attempt. Keep every worker
-write inside that transaction.
+games, cursor and outcome. Chess.com checkpoints each completed archive month
+in its own short transaction; the final one commits the rest with the outcome.
+Every worker write is fenced to the delivery's attempt by `claimSyncAttempt`;
+keep new writes behind that fence.
 
 At each boundary, ask whether ownership, identity, completeness, and retry
 position remain explicit. Normalize provider shapes once, preserve successful

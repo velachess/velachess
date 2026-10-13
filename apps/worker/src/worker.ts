@@ -49,7 +49,10 @@ export class Worker {
     // *retrying* it there, which keeps its id — the sync job's id — while
     // a redrive of the DLQ copy mints a new id the slice cannot resolve.
 
-    await boss.work(QUEUES.sync, async (jobs) => {
+    // Both providers ask for one request at a time. A job calls its provider
+    // sequentially, so one job per provider group across every node is one
+    // request in flight per provider.
+    await boss.work(QUEUES.sync, { groupConcurrency: 1 }, async (jobs) => {
       for (const job of jobs) {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");

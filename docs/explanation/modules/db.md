@@ -8,7 +8,7 @@ never persisted (`docs/reference/analysis.md`).
 
 ## Schema
 
-Ten tables across three domains — identity (who signs in), sync (what
+Nine tables across three domains — identity (who signs in), sync (what
 platforms produce, and `sync_jobs`: each request to bring an account up to
 date, with its status and progress), games (what the user reviews). A
 partial unique index keeps one active sync job per account. `started_at` is
@@ -34,10 +34,13 @@ users ── sessions         cascade   Better Auth session, one row per browser
 users ── auth_accounts    cascade   password hash or external identity link
 verifications                       short-lived proofs, keyed by identifier
 auth_rate_limits                    Better Auth's rate-limit store, keyed by key
-rate_limits                         the API's rate limiter, one row per key
 provider_profiles                   avatar + flair per (platform, username),
                                     no owner
 ```
+
+The API's own rate limiter is Redis-backed
+(`apps/server/src/middleware/rate-limit.ts`, see `docs/explanation/apps/api.md`),
+not a table here — only Better Auth's (`auth_rate_limits`) lives in Postgres.
 
 Enums are derived from
 `libs/infra/platforms`'s own zod schemas (`gameSourceSchema.options`,
@@ -201,14 +204,13 @@ from `./migrations` first, so the schema under test is the schema that
 ships, and no environment skips the suite. The tests cover game dedup and
 cascades (`queries.test.ts`), the analysis cache (`analysis-flow.test.ts`),
 in-flight progress (`analysis-progress.test.ts`), perspective derivation
-(`game-perspective.test.ts`), the game list (`status-flow.test.ts`) and the
-API rate limiter (`rate-limit.test.ts`).
+(`game-perspective.test.ts`), and the game list (`status-flow.test.ts`).
 
 ## Layout
 
 ```
 schema.ts                    users, sessions, auth_accounts, verifications,
-                             auth_rate_limits, rate_limits, tracked_accounts,
+                             auth_rate_limits, tracked_accounts,
                              provider_profiles, games, sync_jobs — enums,
                              indexes, inferred types
 client.ts                    module-scope singleton + exported schema
@@ -223,7 +225,6 @@ queries/
   perspective.ts             perspectiveSql — which side was you
   users.ts                   countUsers, markEmailVerified, writeAvatarState, createUser, ensureUser
   provider-profiles.ts       isProfileFresh, findProviderProfiles, upsertProviderProfile
-  rate-limit.ts              consumeRateLimit
 drizzle.config.ts            schema/out paths, dbCredentials from DATABASE_URL
 migrations/                  NNNN_name.sql
 tests/
