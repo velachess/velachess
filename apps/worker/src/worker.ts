@@ -49,7 +49,12 @@ export class Worker {
     // *retrying* it there, which keeps its id — the sync job's id — while
     // a redrive of the DLQ copy mints a new id the slice cannot resolve.
 
-    await boss.work(QUEUES.sync, async (jobs) => {
+    // groupConcurrency caps concurrent jobs per group (the provider, see
+    // SyncQueue.enqueue) globally across every worker node — Postgres
+    // tracking, no Redis lock needed for "at most one call in flight per
+    // provider". Each job already calls its provider sequentially inside
+    // itself, so one job per provider at a time is one HTTP call at a time.
+    await boss.work(QUEUES.sync, { groupConcurrency: 1 }, async (jobs) => {
       for (const job of jobs) {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");

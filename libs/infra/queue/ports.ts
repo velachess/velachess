@@ -10,8 +10,13 @@ import type { Database } from "@velachess/infra-db";
 export interface SyncQueue {
   /** Sends the sync job under its own id, joining the caller's transaction.
    * Throws when pg-boss accepts nothing, so a job row never commits without
-   * its delivery. */
-  enqueue(dbOrTx: Database, job: { id: string; accountId: string }): Promise<void>;
+   * its delivery. `platform` becomes the job's pg-boss group, so
+   * `groupConcurrency` can cap concurrent provider calls globally without
+   * a hand-rolled lock — see apps/worker/src/worker.ts. */
+  enqueue(
+    dbOrTx: Database,
+    job: { id: string; accountId: string; platform: string },
+  ): Promise<void>;
   /** Whether pg-boss may still deliver this job. False once its delivery
    * reached a terminal state, which only an operator's retry or redrive
    * revives. */

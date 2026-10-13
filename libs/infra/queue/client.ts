@@ -10,9 +10,12 @@ export function createBoss(databaseUrl: string): PgBoss {
   return new PgBoss(databaseUrl);
 }
 
-/** In-process boss for the zero-service test suite. */
+/** In-process boss for the zero-service test suite. `backend: "pglite"`
+ * is pg-boss's own named compatibility profile for this exact adapter —
+ * without it, pg-boss assumes standard Postgres and some of its schema
+ * (the `job_common` table a grouped `send` needs) never gets created. */
 export function createTestBoss(pglite: PGlite): PgBoss {
-  return new PgBoss({ db: fromPglite(pglite) });
+  return new PgBoss({ db: fromPglite(pglite), backend: "pglite" });
 }
 
 export type { Job, PgBoss };

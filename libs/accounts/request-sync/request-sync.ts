@@ -16,7 +16,7 @@ type Trigger = "connect" | "manual";
 type GetTrackedAccountForUser = (
   userId: string,
   accountId: string,
-) => Promise<{ id: string } | null>;
+) => Promise<{ id: string; platform: string } | null>;
 type WithTransaction = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
 type LockLatestSyncJob = (tx: Tx, accountId: string) => Promise<SyncJob | null>;
 type IsSyncDeliveryLive = (tx: Tx, jobId: string) => Promise<boolean>;
@@ -25,7 +25,10 @@ type CreateSyncJob = (
   tx: Tx,
   job: { userId: string; accountId: string; trigger: Trigger },
 ) => Promise<SyncJob | null>;
-type EnqueueSync = (tx: Tx, job: { id: string; accountId: string }) => Promise<void>;
+type EnqueueSync = (
+  tx: Tx,
+  job: { id: string; accountId: string; platform: string },
+) => Promise<void>;
 
 export interface RequestSyncDeps {
   getTrackedAccountForUser: GetTrackedAccountForUser;
@@ -79,7 +82,7 @@ export async function requestSync(
 
     const job = await deps.createSyncJob(tx, { userId, accountId, trigger: "manual" });
     if (job) {
-      await deps.enqueueSync(tx, { id: job.id, accountId });
+      await deps.enqueueSync(tx, { id: job.id, accountId, platform: account.platform });
       return { status: "accepted", job };
     }
     // A concurrent request won the insert: share its job. The insert waited

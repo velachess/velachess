@@ -9,6 +9,7 @@
 import { z } from "zod";
 
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
+import { USER_AGENT } from "./chess-com.ts";
 import { splitPgnGames } from "../split.ts";
 import type { FetchFn, SyncFailure, SyncResult } from "../schema.ts";
 
@@ -49,7 +50,7 @@ export async function fetchLichess(
   });
   if (cursor) params.set("since", String(cursor.sinceMs));
 
-  const headers = { Accept: "application/x-chess-pgn" };
+  const headers = { Accept: "application/x-chess-pgn", "User-Agent": USER_AGENT };
   const res = await doFetch(
     `https://lichess.org/api/games/user/${username}?${params}`,
     opts.signal ? { headers, signal: opts.signal } : { headers },
@@ -73,6 +74,7 @@ export async function fetchLichess(
   }
   if (!res.ok) {
     const reason = res.status === 429 ? "rate-limited" : "http-error";
+    const retryAfter = res.headers.get("Retry-After");
     return {
       games: [],
       failures: [
@@ -81,7 +83,7 @@ export async function fetchLichess(
           ref: String(cursor?.sinceMs ?? "initial"),
           reason,
           retryable: true,
-          detail: `HTTP ${res.status}`,
+          detail: `HTTP ${res.status}${retryAfter ? ` (retry-after ${retryAfter}s)` : ""}`,
         },
       ],
       cursor,

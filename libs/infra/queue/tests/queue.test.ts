@@ -23,7 +23,11 @@ afterAll(async () => {
   await closeDb();
 });
 
-const syncJob = (id: string, accountId = `account-${id}`) => ({ id, accountId });
+const syncJob = (id: string, accountId = `account-${id}`) => ({
+  id,
+  accountId,
+  platform: "chess_com",
+});
 
 const jobState = async (id: string) =>
   (
@@ -73,6 +77,20 @@ describe("sync queue port", () => {
       [QUEUES.syncDlq],
     );
     expect(dead.rows.map((row) => row.source_id)).toContain(last);
+  });
+
+  it("groups the job by provider, for groupConcurrency to key on", async () => {
+    const queue = makeSyncQueue(boss);
+    const id = randomUUID();
+    await queue.enqueue(db, { id, accountId: `account-${id}`, platform: "lichess" });
+
+    const [row] = (
+      await pglite.query<{ group_id: string | null }>(
+        "select group_id from pgboss.job where name = $1 and id = $2",
+        [QUEUES.sync, id],
+      )
+    ).rows;
+    expect(row?.group_id).toBe("provider:lichess");
   });
 
   it("a delivery pg-boss ended is no longer live", async () => {

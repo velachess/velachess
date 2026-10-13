@@ -58,7 +58,10 @@ type CreateSyncJob = (
   tx: Tx,
   job: { userId: string; accountId: string; trigger: "connect" },
 ) => Promise<SyncJob | null>;
-type EnqueueSync = (tx: Tx, job: { id: string; accountId: string }) => Promise<void>;
+type EnqueueSync = (
+  tx: Tx,
+  job: { id: string; accountId: string; platform: string },
+) => Promise<void>;
 /** Connecting is how onboarding ends, so the first one that works says
  * so. Idempotent by contract: this runs on every connect. */
 type MarkOnboarded = (userId: string) => Promise<void>;
@@ -128,7 +131,7 @@ export async function importAccount(
     if (!job) {
       throw new Error(`sync job for new account ${account.id} conflicted`);
     }
-    await deps.enqueueSync(tx, { id: job.id, accountId: account.id });
+    await deps.enqueueSync(tx, { id: job.id, accountId: account.id, platform });
     return { account, syncId: job.id };
   });
   // A concurrent connect created the account after the check above.
