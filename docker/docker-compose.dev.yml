@@ -33,6 +33,18 @@ services:
       timeout: 3s
       retries: 10
 
+  # Optional, local-only GUI for poking at the `redis` service above —
+  # rate-limit and provider-throttle keys. Not depended on by anything;
+  # `docker compose -f docker/docker-compose.dev.yml up redis-insight` to
+  # opt in. http://localhost:5540, add a connection to redis:6379.
+  redis-insight:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5540:5540"
+    volumes:
+      - velachess_dev_redisinsight:/data
+
   app:
     build:
       context: ..
@@ -56,3 +68,4 @@ services:
 volumes:
   velachess_dev_pgdata:
   velachess_dev_node_modules:
+  velachess_dev_redisinsight:
