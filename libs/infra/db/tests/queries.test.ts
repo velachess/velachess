@@ -142,27 +142,19 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   it("listGamesPage's total matches the real row count on a full page, a partial last page, and a past-the-end page", async () => {
     await saveGames(db, manyGames(30), { userId: ownerId });
 
-    expect(await listGamesPage(db, ownerId, {}, { page: 1, pageSize: 25 })).toMatchObject(
-      {
-        total: 30,
-        rows: expect.arrayContaining([expect.anything()]),
-      },
-    );
     const full = await listGamesPage(db, ownerId, {}, { page: 1, pageSize: 25 });
     expect(full.rows).toHaveLength(25);
+    expect(full.total).toBe(30);
 
-    // A non-empty tail page: the window function still rides the page query.
     const tail = await listGamesPage(db, ownerId, {}, { page: 2, pageSize: 25 });
     expect(tail.rows).toHaveLength(5);
     expect(tail.total).toBe(30);
 
-    // Past the last page: zero rows, nothing for `count(*) over()` to
-    // attach to — the standalone fallback count must still answer 30.
+    // Past the last page: no rows, and the total still counts every match.
     const pastEnd = await listGamesPage(db, ownerId, {}, { page: 5, pageSize: 25 });
     expect(pastEnd.rows).toHaveLength(0);
     expect(pastEnd.total).toBe(30);
 
-    // No matches at all: the same fallback path, answering 0.
     const noMatches = await listGamesPage(db, ownerId, { color: "white" });
     expect(noMatches.rows).toHaveLength(0);
     expect(noMatches.total).toBe(0);

@@ -84,22 +84,6 @@ function gameFilterConditions(userId: string, filters: GameFilters): SQL[] {
   return conditions;
 }
 
-const gameRowColumns = {
-  id: games.id,
-  whiteName: games.whiteName,
-  whiteRating: games.whiteRating,
-  blackName: games.blackName,
-  blackRating: games.blackRating,
-  result: games.result,
-  playedAt: games.playedAt,
-  perspective: perspectiveSql,
-  source: games.source,
-  externalUrl: games.externalUrl,
-  timeControlInitialSeconds: games.timeControlInitialSeconds,
-  timeControlIncrementSeconds: games.timeControlIncrementSeconds,
-  openingName: games.openingName,
-};
-
 /**
  * One page of the user's unified library — synced accounts and manually
  * imported PGNs together, filtered, with everything the list renders.
@@ -114,15 +98,21 @@ export async function listGamesPage(
 ) {
   const where = and(...gameFilterConditions(userId, filters))!;
 
-  // `count(*) over()` rides along with the page query instead of a second
-  // round trip through the same join/filters — the pagination total for
-  // the overwhelmingly common case of a non-empty page. It has nothing to
-  // attach to on a zero-row page (no matches, or past the last page), so
-  // that case alone falls back to the standalone count below.
   const page$ = db
     .select({
-      ...gameRowColumns,
-      total: sql<number>`count(*) over()`.mapWith(Number),
+      id: games.id,
+      whiteName: games.whiteName,
+      whiteRating: games.whiteRating,
+      blackName: games.blackName,
+      blackRating: games.blackRating,
+      result: games.result,
+      playedAt: games.playedAt,
+      perspective: perspectiveSql,
+      source: games.source,
+      externalUrl: games.externalUrl,
+      timeControlInitialSeconds: games.timeControlInitialSeconds,
+      timeControlIncrementSeconds: games.timeControlIncrementSeconds,
+      openingName: games.openingName,
     })
     .from(games)
     // Provenance, not ownership — perspective derivation input for the
@@ -133,25 +123,25 @@ export async function listGamesPage(
 
   // Newest first, id as the tiebreak: `played_at` is nullable and repeats
   // within a minute, and a partial order lets a row show up on two pages.
-  const rowsWithTotal = await withPagination(
-    page$,
-    sql`${games.playedAt} desc nulls last, ${games.id} desc`,
-    page,
-    pageSize,
-  );
-
-  const rows = rowsWithTotal.map(({ total: _total, ...row }) => row);
-  let total = rowsWithTotal[0]?.total;
-  if (total === undefined) {
-    const [totals] = await db
+  // The count shares the page's joins — the filters speak the same
+  // perspective rule, which references the provenance account.
+  const [rows, [totals]] = await Promise.all([
+    withPagination(
+      page$,
+      sql`${games.playedAt} desc nulls last, ${games.id} desc`,
+      page,
+      pageSize,
+    ),
+    db
       .select({ total: count() })
       .from(games)
       .leftJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
-      .where(where);
-    total = totals?.total ?? 0;
-  }
+      .where(where),
+  ]);
 
-  return { rows, total, page, pageSize } satisfies Paginated<(typeof rows)[number]>;
+  return { rows, total: totals?.total ?? 0, page, pageSize } satisfies Paginated<
+    (typeof rows)[number]
+  >;
 }
 
 export type GameRow = Awaited<ReturnType<typeof listGamesPage>>["rows"][number];
