@@ -220,24 +220,6 @@ export const authRateLimits = pgTable("auth_rate_limits", {
 });
 
 /**
- * The API's own rate limiter — separate from Better Auth's on purpose.
- *
- * Better Auth owns `/auth/*` and throttles it with its own table above;
- * this one covers the authenticated application routes, keyed by user.
- * Same storage shape deliberately: one row per key, updated in place, so
- * the row count is bounded by users rather than by elapsed time and there
- * is nothing to prune.
- *
- * `lastRequest` here IS a timestamp, unlike Better Auth's — this table is
- * ours, and Postgres comparing intervals beats comparing epoch integers.
- */
-export const rateLimits = pgTable("rate_limits", {
-  key: text("key").primaryKey(),
-  count: integer("count").notNull(),
-  lastRequest: timestamp("last_request", { withTimezone: true }).notNull(),
-});
-
-/**
  * A chess.com or Lichess handle this user follows.
  *
  * `user_id` is part of the unique key and NOT NULL, which is the whole
