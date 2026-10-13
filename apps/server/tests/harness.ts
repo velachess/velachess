@@ -82,10 +82,12 @@ function harnessRedis(): Redis {
 /** No reconnects: each command fails immediately instead of waiting out a
  * retry against a host that will never answer. */
 export function unreachableRedis(): Redis {
-  return new Redis("redis://127.0.0.1:1", {
+  const redis = new Redis("redis://127.0.0.1:1", {
     maxRetriesPerRequest: 1,
     retryStrategy: () => null,
   });
+  redis.on("error", () => {});
+  return redis;
 }
 
 export async function createApiHarness(
