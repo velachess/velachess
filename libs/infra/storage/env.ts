@@ -1,7 +1,7 @@
 /**
  * [STORAGE ENV] — turns ambient env vars into a validated storage root, or
  * throws a message naming the variable and requirement to fix. Pure
- * (`resolveStorageEnv(env)` takes env as a value) so main.ts stays wiring.
+ * (`resolveStorageEnv(env)` takes env as a value) so the API composition root stays wiring.
  *
  * `production` is computed independently of envalid's own isProduction,
  * which treats an unset NODE_ENV as production — this repo's opposite.

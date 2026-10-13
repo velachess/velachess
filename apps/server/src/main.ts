@@ -6,9 +6,9 @@
 import { serve } from "@hono/node-server";
 import postgres from "postgres";
 
-import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
-import { createFileStore, resolveStorageEnv } from "@velachess/infra-storage";
-import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
+import { createAuth } from "@velachess/infra-auth";
+import { createFileStore } from "@velachess/infra-storage";
+import { bootstrapUser } from "@velachess/user";
 import {
   createDb,
   createSyncNotifications,
@@ -18,18 +18,20 @@ import { logger } from "@velachess/infra-logger";
 import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
 
 import { createApp } from "./server.ts";
+import { resolveApiEnv } from "./env.ts";
 import { createRedisClient } from "./redis.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
-const databaseUrl = process.env["DATABASE_URL"];
-if (!databaseUrl) throw new Error("DATABASE_URL is required");
-const redisUrl = process.env["REDIS_URL"];
-if (!redisUrl) throw new Error("REDIS_URL is required");
+// Every variable is validated before anything below opens a connection; a
+// bad environment refuses to boot with a message naming the variable and
+// never its value. Rules live in env.ts and the resolvers it delegates to.
+const env = resolveApiEnv(process.env);
+const { databaseUrl, auth: authEnv } = env;
 
 const db = createDb(databaseUrl);
-const redis = createRedisClient(redisUrl);
+const redis = createRedisClient(env.redis.url);
 redis.on("error", (error: Error) => apiLogger.error({ error }, "redis error"));
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => apiLogger.error({ error }, "pg-boss error"));
@@ -48,12 +50,6 @@ const syncNotifications = createSyncNotifications(async (channel, onNotify, onLi
 });
 await syncNotifications.ready;
 
-// Validated up front — a bad auth environment refuses to boot with a
-// message naming the variable, and the secret's value appears nowhere
-// (not in errors, not in this log). All rules live and are unit-tested
-// in libs/infra/auth/env.ts; this file only wires the result.
-const authEnv = resolveAuthEnv(process.env);
-const storageEnv = resolveStorageEnv(process.env);
 if (authEnv.insecureProductionTransport) {
   apiLogger.warn(
     { baseUrl: authEnv.baseUrl },
@@ -91,7 +87,7 @@ const auth = createAuth(authConfig);
 const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 const bootstrap = await bootstrapUser(
   buildBootstrapUserDeps(db, bootstrapAuth, lock),
-  bootstrapCredentialsFromEnv(process.env),
+  env.bootstrapCredentials,
 );
 // The outcome carries only status/userId/reason by construction —
 // never credentials — which is what makes this log safe.
@@ -108,12 +104,11 @@ const app = createApp({
   syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,
-  files: createFileStore(storageEnv.root),
+  files: createFileStore(env.storage.root),
   redis,
 });
 
-const port = Number(process.env["PORT"] ?? 3000);
-serve({ fetch: app.fetch, port }, (info) => {
+serve({ fetch: app.fetch, port: env.port }, (info) => {
   apiLogger.info({ port: info.port }, "api listening");
 });
 
