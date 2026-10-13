@@ -43,6 +43,24 @@ approve, or post comments unless the user separately authorizes that action.
 6. Report only actionable findings. Ignore style-only preferences, generic
    clean-code advice, speculative abstractions, and unrequested redesigns.
 
+### Comment review
+
+Inspect every comment added or substantially changed in the diff.
+
+For each comment, verify that it preserves non-obvious information about
+correctness, a constraint, a workaround, or an important business
+invariant.
+
+Flag comments that merely narrate code, repeat types or names, explain
+ordinary implementation choices, or duplicate existing documentation.
+Recommend deletion rather than rewriting the same explanation more
+elegantly.
+
+Do not flag a comment solely because it is short or stylistically
+different. Do not modify existing comments unrelated to the change.
+
+If all comments are justified, report no comment-related findings.
+
 Order findings by severity. Each finding names a precise location, observable
 impact, evidence, and the smallest credible correction direction. If there are
 no findings, say so and state any residual risk or verification unavailable.

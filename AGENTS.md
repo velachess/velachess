@@ -170,6 +170,48 @@ from business modules at the import site, including from the business
   surviving Oxlint suppression is one line, one rule, and a `-- reason` that
   names the constraint, not the rule.
 
+### Code comments
+
+Default to writing no comments. Write self-explanatory code through precise
+names, types, structure, and tests.
+
+Add a comment only when it preserves important information that cannot
+reasonably be expressed in code or existing documentation.
+
+Valid reasons include:
+
+- A non-obvious business invariant or correctness constraint.
+- A workaround for a documented library or platform limitation.
+- A subtle concurrency, security, or consistency requirement.
+- An intentional behavior whose rationale would otherwise be lost.
+
+Do not:
+
+- Narrate what a function, statement, conditional, loop, or algorithm does.
+- Explain obvious implementation choices or restate type information.
+- Add comments to announce changes, describe refactors, or justify ordinary
+  code.
+- Add file headers, section banners, or explanatory paragraphs by default.
+- Expand every edge case into an inline explanation when names, types,
+  tests, or existing docs already establish the behavior.
+
+Before adding a comment, ask: would removing it make an experienced
+TypeScript engineer misunderstand a correctness requirement or make a
+future bug likely? If not, omit it.
+
+Prefer a short, specific comment over a paragraph. Keep architectural
+rationale in canonical documentation and observable behavior in tests. Do
+not duplicate either in source comments.
+
+Do not add comments simply to make code appear more thoroughly documented.
+Preserve existing comments unless they become incorrect or the task
+explicitly includes comment cleanup.
+
+`eslint/no-inline-comments`, `eslint/no-warning-comments`, and unused
+disable directives are Oxlint errors, enforcing the mechanical half of
+this; the semantic half — is a comment narration or rationale — is a
+review call, not a lint rule's.
+
 ## Critical invariants
 
 - The engine has one product trigger: opening a game. Importing and refreshing
