@@ -5,7 +5,7 @@
  * delivers.
  */
 
-import type { Database } from "@velachess/infra-db";
+import type { Database, TrackedAccount } from "@velachess/infra-db";
 
 export interface SyncQueue {
   /** Sends the sync job under its own id, joining the caller's transaction.
@@ -14,7 +14,7 @@ export interface SyncQueue {
    * worker's `groupConcurrency` keys on. */
   enqueue(
     dbOrTx: Database,
-    job: { id: string; accountId: string; platform: string },
+    job: { id: string; accountId: string; platform: TrackedAccount["platform"] },
   ): Promise<void>;
   /** Whether pg-boss may still deliver this job. False once its delivery
    * reached a terminal state, which only an operator's retry or redrive

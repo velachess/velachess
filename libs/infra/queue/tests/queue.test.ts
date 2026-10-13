@@ -5,7 +5,12 @@ import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "@velachess/infra-db";
-import { makeSyncQueue, QUEUES, type PgBoss } from "@velachess/infra-queue";
+import {
+  makeSyncQueue,
+  QUEUES,
+  type PgBoss,
+  type SyncQueue,
+} from "@velachess/infra-queue";
 import { createTestDb, deliverSyncJob, startBoss } from "@velachess/test-utils";
 
 let pglite: PGlite;
@@ -23,7 +28,10 @@ afterAll(async () => {
   await closeDb();
 });
 
-const syncJob = (id: string, accountId = `account-${id}`) => ({
+const syncJob = (
+  id: string,
+  accountId = `account-${id}`,
+): Parameters<SyncQueue["enqueue"]>[1] => ({
   id,
   accountId,
   platform: "chess_com",

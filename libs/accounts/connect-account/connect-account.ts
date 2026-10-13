@@ -60,7 +60,7 @@ type CreateSyncJob = (
 ) => Promise<SyncJob | null>;
 type EnqueueSync = (
   tx: Tx,
-  job: { id: string; accountId: string; platform: string },
+  job: { id: string; accountId: string; platform: AccountPlatform },
 ) => Promise<void>;
 /** Connecting is how onboarding ends, so the first one that works says
  * so. Idempotent by contract: this runs on every connect. */
