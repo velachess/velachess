@@ -107,3 +107,32 @@ jobs:
 
       - name: Sync settle on the postgres-js driver
         run: pnpm --filter @velachess/infra-queue exec vitest run tests/postgres.test.ts
+
+  # The rate limiter and the provider throttle are both Redis-backed, with
+  # no PGlite-equivalent embedded fallback — `pnpm test` skips the suites
+  # below when `REDIS_URL` is absent (see docs/how-to/run-locally.md), so
+  # this is where they actually run.
+  redis:
+    name: Redis integration
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Provider throttle (spacing, expiry, fail-open)
+        run: pnpm --filter @velachess/infra-rate-limit test
+
+      - name: API rate limiter over the real store
+        run: pnpm --filter @velachess/server test

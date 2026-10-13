@@ -115,6 +115,9 @@ importers:
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
+      '@velachess/infra-rate-limit':
+        specifier: workspace:*
+        version: link:../../libs/infra/rate-limit
       '@velachess/infra-storage':
         specifier: workspace:*
         version: link:../../libs/infra/storage
@@ -124,6 +127,9 @@ importers:
       hono:
         specifier: ^4.13.13
         version: 4.13.13
+      hono-rate-limiter:
+        specifier: ^0.5.4
+        version: 0.5.4(hono@4.13.13)
       postgres:
         specifier: ^3.4.0
         version: 3.4.9
@@ -340,9 +346,15 @@ importers:
       '@velachess/infra-logger':
         specifier: workspace:*
         version: link:../../libs/infra/logger
+      '@velachess/infra-platforms':
+        specifier: workspace:*
+        version: link:../../libs/infra/platforms
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
+      '@velachess/infra-rate-limit':
+        specifier: workspace:*
+        version: link:../../libs/infra/rate-limit
 
   libs/accounts:
     dependencies:
@@ -352,6 +364,9 @@ importers:
       '@velachess/infra-platforms':
         specifier: workspace:*
         version: link:../infra/platforms
+      '@velachess/infra-rate-limit':
+        specifier: workspace:*
+        version: link:../infra/rate-limit
 
   libs/analysis:
     dependencies:
@@ -473,6 +488,15 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
+
+  libs/infra/rate-limit:
+    dependencies:
+      '@velachess/infra-logger':
+        specifier: workspace:*
+        version: link:../logger
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0
 
   libs/infra/storage:
     dependencies:
@@ -1769,6 +1793,9 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  '@ioredis/commands@2.0.0':
+    resolution: {integrity: sha512-vrx0AE/T0h7cRZwfo1M39Cr+ZhZrkf0V8mQN75wucKCxCLD9l/VX6no3gFvrLqD1IlG/1LtzWovqEw3t0Vr9zg==}
 
   '@jest/schemas@29.6.3':
     resolution: {integrity: sha512-mo5j5X+jIZmJQveBKeS/clAueipV7KgiX1vMgCxam1RNYiqE1w62n0/tJJnHtjW8ZHcQco5gY85jA3mi0L+nSA==}
@@ -3900,6 +3927,10 @@ packages:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
 
+  cluster-key-slot@1.1.1:
+    resolution: {integrity: sha512-rwHwUfXL40Chm1r08yrhU3qpUvdVlgkKNeyeGPOxnW8/SyVDvgRaed/Uz54AqWNaTCAThlj6QAs3TZcKI0xDEw==}
+    engines: {node: '>=0.10.0'}
+
   cn@0.2.6:
     resolution: {integrity: sha512-+i4L0zUGgRcEnhsxueVrP7iBGxBx5iD0WOTYg1MwFEu2ZyCmH5Ov2V1cul2Ht5UchRQQgftCf4be/RxspuW6QQ==}
     engines: {node: '>=20'}
@@ -4172,6 +4203,10 @@ packages:
     engines: {node: '>= 20'}
     peerDependencies:
       quickjs-wasi: ^2.2.0
+
+  denque@2.1.0:
+    resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
+    engines: {node: '>=0.10'}
 
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
@@ -4697,6 +4732,15 @@ packages:
   headers-polyfill@5.0.1:
     resolution: {integrity: sha512-1TJ6Fih/b8h5TIcv+1+Hw0PDQWJTKDKzFZzcKOiW1wJza3XoAQlkCuXLbymPYB8+ZQyw8mHvdw560e8zVFIWyA==}
 
+  hono-rate-limiter@0.5.4:
+    resolution: {integrity: sha512-P3/cscAmz1hA+MuM+Hn9gP/EyO2zWv2aXIFkVYuLZkPzrPa4oaWdVCS94vyDlsNBgeMnE/Hr2+LznIKQxrF0ng==}
+    peerDependencies:
+      hono: ^4.10.8
+      unstorage: ^1.17.3
+    peerDependenciesMeta:
+      unstorage:
+        optional: true
+
   hono@4.13.13:
     resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
     engines: {node: '>=16.9.0'}
@@ -4795,6 +4839,10 @@ packages:
 
   intl-messageformat@10.7.18:
     resolution: {integrity: sha512-m3Ofv/X/tV8Y3tHXLohcuVuhWKo7BBq62cqY15etqmLxg2DZ34AGGgQDeR+SCta2+zICb1NX83af0GJmbQ1++g==}
+
+  ioredis@6.0.0:
+    resolution: {integrity: sha512-f+Dtubxfpf6KYFq7WVXJoOLn0bk4TJrMrN9SzeE+jrWrCWj7XX3fA6vkryafhADX+GMymRxgDJDOI33COkJc0w==}
+    engines: {node: '>=20.0.0'}
 
   ip-address@10.5.0:
     resolution: {integrity: sha512-R5SnVLJmgYYvf2F2ZgwSBnelz5G4q5AxIC277GDfUaNbrZKNANcBC7RHqYYePlszf4kBolVkJauG0ZjHHFh55g==}
@@ -6003,6 +6051,10 @@ packages:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
 
+  redis-errors@1.2.0:
+    resolution: {integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==}
+    engines: {node: '>=4'}
+
   redux-thunk@3.1.0:
     resolution: {integrity: sha512-NW2r5T6ksUKXCabzhL9z+h206HQw/NJkcLm1GPImRQ8IzfXwRGqjVhKJGauHirT0DAuyy6hjdnMZaRoAcy0Klw==}
     peerDependencies:
@@ -6282,6 +6334,9 @@ packages:
     resolution: {integrity: sha512-KvSKRpgPG/oaq3cyT614OQ2bAa7DynuGamivCZeoZzIUULOdbQz6wUtnnVuC4+DCx2Zglzo8v5gBYmWIWYhDxA==}
     engines: {node: '>=20.16.0'}
     hasBin: true
+
+  standard-as-callback@2.1.0:
+    resolution: {integrity: sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A==}
 
   statuses@2.0.2:
     resolution: {integrity: sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==}
@@ -8071,6 +8126,8 @@ snapshots:
   '@inquirer/type@4.0.7(@types/node@26.6.4)':
     optionalDependencies:
       '@types/node': 26.6.4
+
+  '@ioredis/commands@2.0.0': {}
 
   '@jest/schemas@29.6.3':
     dependencies:
@@ -9913,6 +9970,8 @@ snapshots:
 
   clsx@2.1.1: {}
 
+  cluster-key-slot@1.1.1: {}
+
   cn@0.2.6: {}
 
   code-block-writer@13.0.3: {}
@@ -10143,6 +10202,8 @@ snapshots:
       escodegen: 2.1.0
       esprima: 4.0.1
       quickjs-wasi: 2.2.0
+
+  denque@2.1.0: {}
 
   depd@2.0.0: {}
 
@@ -10711,6 +10772,10 @@ snapshots:
       '@types/set-cookie-parser': 2.4.10
       set-cookie-parser: 3.1.2
 
+  hono-rate-limiter@0.5.4(hono@4.13.13):
+    dependencies:
+      hono: 4.13.13
+
   hono@4.13.13: {}
 
   html-encoding-sniffer@7.0.0(@noble/hashes@2.4.0):
@@ -10815,6 +10880,17 @@ snapshots:
       '@formatjs/fast-memoize': 2.2.7
       '@formatjs/icu-messageformat-parser': 2.11.4
       tslib: 2.8.1
+
+  ioredis@6.0.0:
+    dependencies:
+      '@ioredis/commands': 2.0.0
+      cluster-key-slot: 1.1.1
+      debug: 4.4.3
+      denque: 2.1.0
+      redis-errors: 1.2.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
 
   ip-address@10.5.0: {}
 
@@ -11989,6 +12065,8 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
+  redis-errors@1.2.0: {}
+
   redux-thunk@3.1.0(redux@5.0.1):
     dependencies:
       redux: 5.0.1
@@ -12380,6 +12458,8 @@ snapshots:
   sprintf-js@1.0.3: {}
 
   srvx@1.0.5: {}
+
+  standard-as-callback@2.1.0: {}
 
   statuses@2.0.2: {}
 

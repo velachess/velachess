@@ -11,7 +11,7 @@
   },
   "scripts": {
     "prepare": "lefthook install || echo 'lefthook: skipped (no git directory)'",
-    "infra:dev:up": "docker compose -f docker/docker-compose.dev.yml up -d --wait postgres",
+    "infra:dev:up": "docker compose -f docker/docker-compose.dev.yml up -d --wait postgres redis",
     "infra:dev:down": "docker compose -f docker/docker-compose.dev.yml down",
     "infra:dev:prune": "docker compose -f docker/docker-compose.dev.yml down -v",
     "queue:dashboard": "HOST=127.0.0.1 PORT=3002 node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/@pg-boss/dashboard/bin/cli.js",

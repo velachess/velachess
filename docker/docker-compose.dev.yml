@@ -1,5 +1,5 @@
 # Local dev infra + the Dev Container's own service — not the release
-# stack (docker-compose.yml). No redis: not used anywhere in this repo.
+# stack (docker-compose.yml).
 name: velachess-dev
 
 services:
@@ -15,6 +15,20 @@ services:
       - velachess_dev_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U velachess"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Backs the API's own rate limiter and the worker's per-provider
+  # throttle (@velachess/infra-rate-limit). Not set DATABASE_URL-style
+  # container-wide for the same reason that one isn't either: most test
+  # suites fail open without it and don't need it running.
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
