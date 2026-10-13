@@ -32,6 +32,13 @@ does not restate it.
   `@tanstack/react-query` directly.
 - `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
+- API responses are typed through `AppType` and `InferResponseType`. Do not
+  re-parse one with Zod — the RPC link is the contract, and a second schema
+  duplicates it rather than tightening it. Zod here is for URL search params and
+  forms. Where a shape must still be re-declared (this app does not depend on
+  `@velachess/infra-platforms`, and should not — it carries provider HTTP
+  clients), tie the mirror back to `InferResponseType` so drift fails typecheck.
+  See `docs/explanation/data-boundaries.md`.
 - Two vocabularies, one boundary. Data keeps the domain's name (a
   `winChanceLoss` stays `winChanceLoss`); screens, routes and folders are
   named after the user's job — `games`, `import`, `settings`. A module usually spans several endpoints, so it

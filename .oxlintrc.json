@@ -3,7 +3,7 @@
   "plugins": ["typescript", "unicorn", "oxc", "import"],
   "categories": {
     "correctness": "error",
-    "suspicious": "warn",
+    "suspicious": "error",
     "perf": "warn"
   },
   "rules": {
@@ -14,7 +14,26 @@
       {
         "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
       }
+    ],
+    "eslint/no-inline-comments": "error",
+    "eslint/no-warning-comments": [
+      "error",
+      { "terms": ["todo", "fixme", "hack", "xxx"], "location": "anywhere" }
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": ["warn", { "assertionStyle": "never" }],
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-expect-error": "allow-with-description",
+        "ts-ignore": true,
+        "ts-nocheck": true,
+        "ts-check": false
+      }
     ]
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "error"
   },
   "ignorePatterns": [
     "**/.next/**",
@@ -154,30 +173,6 @@
               {
                 "group": ["@velachess/site", "@velachess/site/**"],
                 "message": "Architecture: libs must not import apps. apps/site is a composition root; it depends on libs, never the reverse."
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": ["packages/**/*.{ts,tsx}"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": [
-              {
-                "group": ["@velachess/server", "@velachess/server/**"],
-                "message": "Architecture: libs must not import apps. apps/server is a composition root; it depends on libs, never the reverse."
-              },
-              {
-                "group": ["@velachess/worker", "@velachess/worker/**"],
-                "message": "Architecture: libs must not import apps. apps/worker is a composition root; it depends on libs, never the reverse."
-              },
-              {
-                "group": ["@velachess/web", "@velachess/web/**"],
-                "message": "Architecture: libs must not import apps. apps/web is a composition root; it depends on libs, never the reverse."
               }
             ]
           }

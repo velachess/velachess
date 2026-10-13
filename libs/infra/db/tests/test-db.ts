@@ -21,6 +21,13 @@ const migrationsFolder = new URL("../migrations", import.meta.url).pathname;
 
 export async function createTestDb(): Promise<{
   db: Database;
+  /** LISTEN on a channel, as the API does: postgres.js opens a connection
+   * of its own for it, PGlite listens on its one session. Resolves to the
+   * unlisten. */
+  listen: (
+    channel: string,
+    onNotify: (payload: string) => void,
+  ) => Promise<() => Promise<void>>;
   close: () => Promise<void>;
 }> {
   const url = process.env["DATABASE_URL"];
@@ -29,14 +36,23 @@ export async function createTestDb(): Promise<{
     const client = postgres(url, { max: 1 });
     const db = drizzlePostgres(client, { schema });
     await migratePostgres(db, { migrationsFolder });
-    return { db, close: () => client.end() };
+    return {
+      db,
+      listen: async (channel, onNotify) =>
+        (await client.listen(channel, onNotify)).unlisten,
+      close: () => client.end(),
+    };
   }
 
   const pglite = new PGlite();
   const pgliteDb = drizzlePglite(pglite, { schema });
   await migratePglite(pgliteDb, { migrationsFolder });
   const db: Database = pgliteDb;
-  return { db, close: () => pglite.close() };
+  return {
+    db,
+    listen: (channel, onNotify) => pglite.listen(channel, onNotify),
+    close: () => pglite.close(),
+  };
 }
 
 /**

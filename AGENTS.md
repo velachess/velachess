@@ -23,9 +23,9 @@ apps/worker       pg-boss consumer composition root
 apps/web          TanStack Start product SPA
 apps/site         Next.js static public site
 
-libs/accounts     tracked-account lifecycle: connect, list, refresh
+libs/accounts     tracked-account lifecycle: connect, list, sync, disconnect
 libs/games        the game record: read, list and import PGN
-libs/analysis     the Stockfish job lifecycle: request, watch, process, get
+libs/analysis     pure Stockfish score/classification policy, run browser-side
 libs/user         the person: first-user bootstrap and profile avatar
 libs/infra        db, queue, engine, logger, platforms, storage, and auth
 libs/chess        chess rules and notation
@@ -64,13 +64,14 @@ fix whichever is wrong.
   Declares its own narrow dependency function types, in its own
   vocabulary, for everything external: DB reads/writes, queue enqueue,
   provider HTTP, and any other slice's behavior. A slice never imports or
-  receives a `Database`, `AnalysisQueue`, `SyncQueue`, or
+  receives a `Database`, `SyncQueue`, or
   another slice's handler directly.
 - **Module** — a package under `libs/<module>` grouping slices that change
-  together (e.g. `analysis` owns `request-analysis`,
-  `process-analysis`, `watch-analysis`). May hold shared **pure** policies/calculators at the
+  together (e.g. `accounts` owns `connect-account`, `sync-account`,
+  `disconnect-account`). May hold shared **pure** policies/calculators at the
   module root (no DB/queue/provider dependency of their own — e.g.
-  `libs/analysis/accuracy.ts`).
+  `libs/analysis`, which has no slices left, only its pure root: see
+  `libs/analysis/AGENTS.md`).
 - **Module API (`index.ts`)** — what the module offers the rest of the
   system. The only file reachable from outside the module, structurally
   (package `exports`, non-wildcard `tsconfig.json` paths) and by
@@ -134,6 +135,17 @@ from business modules at the import site, including from the business
 - Domain decisions are pure; effects belong at application/infra boundaries.
   Do not duplicate server state or derive the same fact through competing
   expressions.
+- A value changes shape at one named place, owned by the module that owns the
+  concept. Drizzle's `$type<>()` and a `sql<T>` literal are compile-time
+  claims, not runtime guards. Validate what crosses an untrusted boundary,
+  derive the type from the schema when the owning module already has zod, and
+  where the dependency rules forbid sharing a declaration, mirror it and make
+  the drift fail the build. See `docs/explanation/data-boundaries.md`; do not
+  add validation to a response the RPC contract already types.
+- A repeated domain literal gets one source only when nothing already types
+  its uses together; a union plus a constant object for the same values is two
+  definitions, and a literal used once stays inline. A coordination key two
+  processes must spell identically is always shared.
 - Preserve user isolation in every read and write. A public chess handle is a
   data source, not identity or proof of ownership.
 - Tests assert observable behavior through the repository's supported seams.
@@ -143,18 +155,81 @@ from business modules at the import site, including from the business
   messages, and user-facing source copy. Conversations may use any language.
 - Comments carry a decision, external constraint, or prevented bug that code
   cannot express. Put maintained reasoning in `docs/` rather than expanding an
-  inline explanation into a second specification.
+  inline explanation into a second specification. Comments are exceptional:
+  never narrate what the next line already says, explain ordinary syntax, or
+  restate a guarantee types or a test already enforce — encode the guarantee
+  instead of describing it. No JSDoc by default; add it only where a public
+  signature needs non-obvious parameter, return, or lifecycle semantics.
+  `eslint/no-inline-comments`, `eslint/no-warning-comments`, and unused
+  disable directives are Oxlint errors, enforcing the mechanical half of
+  this; the semantic half — is a comment narration or rationale — is a
+  review call, not a lint rule's.
+- Every cast and non-null assertion needs a concrete reason — a verified
+  third-party type limitation, never a convenient way past a type error.
+  Prefer narrowing, a schema, or the library's own exposed type first. A
+  surviving Oxlint suppression is one line, one rule, and a `-- reason` that
+  names the constraint, not the rule.
+
+### Code comments
+
+Default to writing no comments. Write self-explanatory code through precise
+names, types, structure, and tests.
+
+Add a comment only when it preserves important information that cannot
+reasonably be expressed in code or existing documentation.
+
+Valid reasons include:
+
+- A non-obvious business invariant or correctness constraint.
+- A workaround for a documented library or platform limitation.
+- A subtle concurrency, security, or consistency requirement.
+- An intentional behavior whose rationale would otherwise be lost.
+
+Do not:
+
+- Narrate what a function, statement, conditional, loop, or algorithm does.
+- Explain obvious implementation choices or restate type information.
+- Add comments to announce changes, describe refactors, or justify ordinary
+  code.
+- Add file headers, section banners, or explanatory paragraphs by default.
+- Expand every edge case into an inline explanation when names, types,
+  tests, or existing docs already establish the behavior.
+
+Before adding a comment, ask: would removing it make an experienced
+TypeScript engineer misunderstand a correctness requirement or make a
+future bug likely? If not, omit it.
+
+Prefer a short, specific comment over a paragraph. Keep architectural
+rationale in canonical documentation and observable behavior in tests. Do
+not duplicate either in source comments.
+
+Do not add comments simply to make code appear more thoroughly documented.
+Preserve existing comments unless they become incorrect or the task
+explicitly includes comment cleanup.
+
+`eslint/no-inline-comments`, `eslint/no-warning-comments`, and unused
+disable directives are Oxlint errors, enforcing the mechanical half of
+this; the semantic half — is a comment narration or rationale — is a
+review call, not a lint rule's.
 
 ## Critical invariants
 
 - The engine has one product trigger: opening a game. Importing and refreshing
-  fetch and persist; they do not fan Stockfish analysis across an archive.
-- An analysis report commits in one transaction.
+  fetch and persist; they never run Stockfish. Analysis runs entirely in the
+  browser (Stockfish WASM) with no server or worker leg and no persisted
+  report — see `docs/reference/analysis.md`.
 - pg-boss owns delivery, retry, backoff, concurrency, heartbeat, and dead
-  letters. The database session advisory lock owns analysis execution across
-  HTTP and worker callers.
+  letters for the `sync` queue, its only queue. The database session advisory
+  lock's only remaining caller is first-user bootstrap.
 - Derived game perspective, result, and time class use one semantic rule across
-  filters, lists, and analysis.
+  filters, lists, and analysis. That rule is written once in `libs/chess`,
+  which every app and module may import; evaluation policies belong to
+  `libs/analysis`'s module root; workflows stay in the vertical slices.
+  A screen maps a rule's answer onto copy and badges, it does not derive it
+  again, and a SQL predicate that cannot call the rule says which rule it
+  expresses and is held to it by a route test. A derivation that is
+  provider-specific rather than shared — PGN normalization, the movetext
+  dedup hash — stays in `libs/infra/platforms` by intent, not by omission.
 - Public and authenticated behavior must remain valid behind local, self-hosted,
   and hosted origins. Never weaken cookies, redirects, authorization, or tenant
   scoping for one deployment mode.
@@ -173,7 +248,9 @@ pnpm build       # deployable apps
 Read `docs/how-to/verify-a-change.md` before claiming a change is complete and
 `docs/how-to/write-a-test.md` before adding tests. Read
 `docs/how-to/turborepo.md` before changing task orchestration, caching, filters,
-or affected-package behavior.
+or affected-package behavior, and `docs/explanation/data-boundaries.md` before
+adding, moving or duplicating a conversion between persistence, application and
+API shapes.
 
 ## Guidance routing
 
@@ -195,7 +272,7 @@ Task-dependent procedures live under `.agents/skills/`:
   `architecture-review`.
 - Chess rules or representation: `chess-domain`.
 - Import, sync, providers, identity, or deduplication: `game-ingestion`.
-- Stockfish, evaluations, classification, or analysis persistence:
+- Stockfish, evaluations, or classification (browser-side):
   `engine-analysis`.
 - Cross-boundary inconsistent data: `debug-pipeline`.
 - Change review: `code-review`, which routes to the relevant domain skills.

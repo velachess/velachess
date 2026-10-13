@@ -10,6 +10,27 @@ import { z } from "zod";
 export const gameSourceSchema = z.enum(["chess_com", "lichess", "pgn"]);
 export type GameSource = z.infer<typeof gameSourceSchema>;
 
+/**
+ * A provider you can connect an account to — `gameSourceSchema` minus
+ * `"pgn"`, because a paste has no archive to walk and no profile to ask
+ * about.
+ *
+ * Canonical: `tracked_accounts.platform` and `provider_profiles.platform`
+ * are built from `.options`, and every module that names the concept
+ * imports this instead of writing the union again. `GameSource` answers
+ * "where did this game come from"; this answers "whose archive can we
+ * walk". Two different questions, which is why both exist.
+ */
+export const accountPlatformSchema = z.enum(["chess_com", "lichess"]);
+export type AccountPlatform = z.infer<typeof accountPlatformSchema>;
+
+/** Both providers fold case on a handle, so every write and every lookup
+ * key on this instead of the username as typed. One function so a write
+ * path and a read path can never normalize it differently. */
+export function normalizeUsername(username: string): string {
+  return username.toLowerCase();
+}
+
 export const perspectiveSchema = z.enum(["white", "black"]);
 export type Perspective = z.infer<typeof perspectiveSchema>;
 
@@ -60,6 +81,7 @@ export const syncFailureSchema = z.object({
     "invalid-response",
     "unsupported-variant",
     "network",
+    "not-found",
   ]),
   retryable: z.boolean(),
   detail: z.string(),

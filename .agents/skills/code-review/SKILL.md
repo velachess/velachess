@@ -16,6 +16,9 @@ approve, or post comments unless the user separately authorizes that action.
    unstaged, and untracked files.
 3. Classify each changed behavior and load only the relevant skills:
    - ownership, boundaries, or slice placement -> `architecture-review`
+   - a conversion between persistence, application and API shapes, a cast past
+     a `$type<>()`/`sql<T>` claim, a duplicated schema or enum ->
+     `docs/explanation/data-boundaries.md`
    - PGN/FEN/moves/perspective -> `chess-domain`
    - import/provider/cursor/dedup -> `game-ingestion`
    - Stockfish/evaluation/classification -> `engine-analysis`
@@ -29,11 +32,34 @@ approve, or post comments unless the user separately authorizes that action.
    - malformed or absent data and consistent transport contracts;
    - query-level user isolation, uniqueness, cascades, and transactional pairs;
    - stored and derived values using the same semantic rule;
+   - a value converted in exactly one place, owned by the module that owns the
+     concept: validated rather than asserted where it crosses from a provider,
+     a queue, or a column with no constraint behind it; absent distinguishable
+     from invalid; a mandated mirror carrying a drift guard that fails the
+     build, and an unmandated one removed;
    - thin composition roots, dependency direction, and native mechanism
      ownership;
    - tests whose oracle can disagree with the implementation.
 6. Report only actionable findings. Ignore style-only preferences, generic
    clean-code advice, speculative abstractions, and unrequested redesigns.
+
+### Comment review
+
+Inspect every comment added or substantially changed in the diff.
+
+For each comment, verify that it preserves non-obvious information about
+correctness, a constraint, a workaround, or an important business
+invariant.
+
+Flag comments that merely narrate code, repeat types or names, explain
+ordinary implementation choices, or duplicate existing documentation.
+Recommend deletion rather than rewriting the same explanation more
+elegantly.
+
+Do not flag a comment solely because it is short or stylistically
+different. Do not modify existing comments unrelated to the change.
+
+If all comments are justified, report no comment-related findings.
 
 Order findings by severity. Each finding names a precise location, observable
 impact, evidence, and the smallest credible correction direction. If there are

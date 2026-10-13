@@ -150,7 +150,9 @@ export function squaresOfSan(pos: Position, san: string): MoveSquares | null {
 
   const side = castlingSide(pos, move);
   if (side) {
-    const kingFile = side === "h" ? 6 : 2; // g-file or c-file, zero-based
+    const G_FILE = 6;
+    const C_FILE = 2;
+    const kingFile = side === "h" ? G_FILE : C_FILE;
     return {
       from: makeSquare(move.from),
       to: makeSquare(kingFile + 8 * (move.to >> 3)),

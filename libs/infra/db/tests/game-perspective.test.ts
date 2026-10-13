@@ -15,10 +15,10 @@ import {
   createUser,
   games,
   getGameForUser,
-  listGames,
+  listGamesWithStatusForAccount,
   saveGames,
   trackedAccounts,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -59,12 +59,12 @@ function syncedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
 
 /** `saveGames` answers with a count, so the id comes back off the table. */
 async function onlyGameId() {
-  const [row] = await listGames(db, { userId: ownerId });
+  const [row] = await db.select({ id: games.id }).from(games);
   return row!.id;
 }
 
 async function openOnlyGame(username: string, game: NormalizedGame) {
-  const account = await upsertTrackedAccount(db, ownerId, "chess_com", username);
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", username))!;
   await saveGames(db, [game], { userId: ownerId, accountId: account.id });
   return getGameForUser(db, ownerId, await onlyGameId());
 }
@@ -141,10 +141,35 @@ it("answers null when nothing attributes the game", async () => {
 it("still refuses a game that belongs to someone else", async () => {
   // The account join is provenance only. Ownership is the row's own
   // user_id, and adding the join must not widen it.
-  const account = await upsertTrackedAccount(db, ownerId, "chess_com", "yurimutti");
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", "yurimutti"))!;
   await saveGames(db, [syncedGame()], { userId: ownerId, accountId: account.id });
   const gameId = await onlyGameId();
   const stranger = (await createUser(db)).id;
 
   expect(await getGameForUser(db, stranger, gameId)).toBeNull();
+});
+
+it("the account-scoped list resolves the seat too, not just the single read", async () => {
+  // Same rule, second reader: this list served the raw column, so every
+  // synced game in it answered "unknown" while `getGameForUser` answered
+  // correctly for the very same row.
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", "yurimutti"))!;
+  await saveGames(db, [syncedGame()], { userId: ownerId, accountId: account.id });
+
+  const [row] = await listGamesWithStatusForAccount(db, account.id);
+
+  expect(row?.perspective).toBe("black");
+});
+
+it("the account-scoped list keeps a seat the stored column already holds", async () => {
+  const account = (await insertTrackedAccount(db, ownerId, "chess_com", "nobody-here"))!;
+  await saveGames(
+    db,
+    [syncedGame({ perspective: "white", movetextHash: "perspective-hash-stored" })],
+    { userId: ownerId, accountId: account.id },
+  );
+
+  const [row] = await listGamesWithStatusForAccount(db, account.id);
+
+  expect(row?.perspective).toBe("white");
 });

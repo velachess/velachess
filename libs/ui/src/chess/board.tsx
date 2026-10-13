@@ -73,7 +73,6 @@ export interface BoardArrow {
 }
 
 export interface BoardProps {
-  /** Position to render, in FEN. */
   fen: string;
   /** Which side sits at the bottom. Defaults to white. */
   orientation?: BoardSide;

@@ -1,9 +1,11 @@
+import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import type * as React from "react";
 import { useMemo } from "react";
 
+import { timeClassOf, type TimeClass } from "@velachess/chess";
 import { buttonVariants } from "@velachess/ui/components/button";
 import { DataTable, DataTablePagination } from "@velachess/ui/components/data-table";
 import { PageHeader } from "@velachess/ui/layout/page-header";
@@ -34,20 +36,20 @@ const GAMES_COPY = {
 
 const route = getRouteApi("/_app/games/");
 
-/** Lichess's rule (chess.com's classes line up closely): bucket by estimated duration, not clock alone. Mirrors server's `timeClassOf`. */
-const ESTIMATED_MOVES = 40;
-const TIME_CLASS_CEILINGS = { bullet: 180, blitz: 480, rapid: 1500 } as const;
+/** The class is the shared rule's answer; this screen only names it. */
+const TIME_CLASS_COPY: Record<TimeClass, MessageDescriptor> = {
+  bullet: GAMES_COPY.bullet,
+  blitz: GAMES_COPY.blitz,
+  rapid: GAMES_COPY.rapid,
+  classical: GAMES_COPY.classical,
+};
 
 function timeClassCopy(game: Game) {
-  if (game.timeControlInitialSeconds === null) return null;
-
-  const seconds =
-    game.timeControlInitialSeconds +
-    ESTIMATED_MOVES * (game.timeControlIncrementSeconds ?? 0);
-  if (seconds < TIME_CLASS_CEILINGS.bullet) return GAMES_COPY.bullet;
-  if (seconds < TIME_CLASS_CEILINGS.blitz) return GAMES_COPY.blitz;
-  if (seconds < TIME_CLASS_CEILINGS.rapid) return GAMES_COPY.rapid;
-  return GAMES_COPY.classical;
+  const timeClass = timeClassOf(
+    game.timeControlInitialSeconds,
+    game.timeControlIncrementSeconds,
+  );
+  return timeClass ? TIME_CLASS_COPY[timeClass] : null;
 }
 
 export function GamesList() {

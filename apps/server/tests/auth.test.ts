@@ -6,6 +6,7 @@
  * Better Auth sign-up, a real session cookie, and the same middleware
  * production runs. No bypass exists to test around, which is the point.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { bootstrapUser } from "@velachess/user";
@@ -45,7 +46,7 @@ describe("bootstrap", () => {
     expect(first.status).toBe("created");
     // The created outcome exposes status and userId — nothing else, by
     // construction, which is what makes main.ts's log of it safe.
-    expect(Object.keys(first).sort()).toEqual(["status", "userId"]);
+    expect(Object.keys(first).toSorted()).toEqual(["status", "userId"]);
     expect(JSON.stringify(first)).not.toContain("dev-password");
 
     // A second startup with the same env does nothing — the guard is
@@ -160,7 +161,7 @@ describe("bootstrap under concurrent startup", () => {
       ),
     ]);
 
-    const statuses = outcomes.map((o) => o.status).sort();
+    const statuses = outcomes.map((o) => o.status).toSorted();
     expect(statuses).toEqual(["created", "skipped", "skipped"]);
     for (const skipped of outcomes.filter((o) => o.status === "skipped")) {
       expect(skipped).toEqual({ status: "skipped", reason: "concurrent-startup" });
@@ -243,7 +244,6 @@ describe("the closed surfaces", () => {
     // Bootstrap is env-var provisioning at startup; nothing on the wire
     // can trigger it. These paths answer like any other unknown route.
     for (const path of ["/bootstrap", "/setup", "/auth/bootstrap", "/auth/setup"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path, { method: "POST" });
       expect([401, 404], path).toContain(response.status);
       expect(response.headers.get("set-cookie"), path).toBeNull();
@@ -330,7 +330,6 @@ describe("secure cookies behind TLS", () => {
 describe("the session gate", () => {
   it("rejects an unauthenticated request with 401, uniformly", async () => {
     for (const path of ["/games", "/accounts"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);
     }
@@ -392,35 +391,29 @@ describe("ownership isolation", () => {
     // Usernames are public — a handle is nobody's property. Each user gets
     // their own connection row; before this, the second import silently
     // transferred the first user's entire archive.
-    const aliceImport = await alice.request(
-      "/accounts",
-      json({ platform: "chess_com", username: "looper" }),
+    const aliceAccount = await parseResponse(
+      alice.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
     );
-    expect(aliceImport.status).toBe(201);
-    const aliceAccount = (await aliceImport.json()) as { id: string };
+    if (!aliceAccount.syncId) throw new Error("expected a first sync on a fresh connect");
+    await harness.runSync(aliceAccount.syncId);
 
-    const bobImport = await bob.request(
-      "/accounts",
-      json({ platform: "chess_com", username: "looper" }),
+    const bobAccount = await parseResponse(
+      bob.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
     );
-    expect(bobImport.status).toBe(201);
-    const bobAccount = (await bobImport.json()) as { id: string };
+    if (!bobAccount.syncId) throw new Error("expected a first sync on a fresh connect");
+    await harness.runSync(bobAccount.syncId);
 
     expect(bobAccount.id).not.toBe(aliceAccount.id);
 
     // Both still own theirs — nothing transferred.
-    const aliceList = (await (await alice.request("/accounts")).json()) as {
-      id: string;
-    }[];
-    const bobList = (await (await bob.request("/accounts")).json()) as { id: string }[];
+    const aliceList = await parseResponse(alice.api.accounts.$get());
+    const bobList = await parseResponse(bob.api.accounts.$get());
     expect(aliceList.map((a) => a.id)).toContain(aliceAccount.id);
     expect(bobList.map((a) => a.id)).toContain(bobAccount.id);
   });
 
   it("a stranger's account id answers 404, for reads and for sync", async () => {
-    const [aliceAccount] = (await (await alice.request("/accounts")).json()) as {
-      id: string;
-    }[];
+    const [aliceAccount] = await parseResponse(alice.api.accounts.$get());
 
     expect((await bob.request(`/accounts/${aliceAccount!.id}/games`)).status).toBe(404);
     expect(
@@ -430,9 +423,7 @@ describe("ownership isolation", () => {
   });
 
   it("a stranger's game is unreadable, unanalyzable and unwatchable", async () => {
-    const library = (await (await alice.request("/games")).json()) as {
-      games: { id: string }[];
-    };
+    const library = await parseResponse(alice.api.games.$get({ query: {} }));
     const gameId = library.games[0]!.id;
 
     // The owner reads it fine; the stranger gets the same 404 a missing

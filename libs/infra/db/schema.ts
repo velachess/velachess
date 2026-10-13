@@ -10,6 +10,7 @@
 import type { ChessComCursor } from "@velachess/infra-platforms/providers/chess-com";
 import type { LichessCursor } from "@velachess/infra-platforms/providers/lichess";
 import {
+  accountPlatformSchema,
   gameSourceSchema,
   perspectiveSchema,
   resultSchema,
@@ -17,8 +18,8 @@ import {
 import { sql } from "drizzle-orm";
 import {
   bigint,
-  bigserial,
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -37,8 +38,11 @@ import {
  * type the columns as the union, so a bad value fails to compile here
  * rather than at runtime in Postgres.
  */
-const enumValues = <T extends string>(values: readonly T[]) =>
-  values as unknown as [T, ...T[]];
+function enumValues<T extends string>(values: readonly T[]): [T, ...T[]] {
+  const [first, ...rest] = values;
+  if (first === undefined) throw new Error("pgEnum needs at least one value");
+  return [first, ...rest];
+}
 
 export const gameSourceEnum = pgEnum("game_source", enumValues(gameSourceSchema.options));
 export const perspectiveEnum = pgEnum(
@@ -46,8 +50,10 @@ export const perspectiveEnum = pgEnum(
   enumValues(perspectiveSchema.options),
 );
 export const resultEnum = pgEnum("game_result", enumValues(resultSchema.options));
-/** "pgn" excluded — a paste has no account to sync from. */
-export const platformEnum = pgEnum("platform", ["chess_com", "lichess"]);
+/** "pgn" excluded — a paste has no account to sync from. The exclusion
+ * lives in `accountPlatformSchema`, so this derives like the three above
+ * instead of restating the list. */
+export const platformEnum = pgEnum("platform", enumValues(accountPlatformSchema.options));
 
 /**
  * A person, and the anchor every owned row hangs from.
@@ -61,45 +67,52 @@ export const platformEnum = pgEnum("platform", ["chess_com", "lichess"]);
  * A VelaChess user is NOT a chess.com or Lichess account. Those are
  * `tracked_accounts`, and one user may hold several.
  */
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Better Auth's `name`. Not null because Better Auth requires it. */
-  displayName: text("display_name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  /**
-   * The effective avatar URL, whatever its origin. Better Auth writes the
-   * OAuth profile picture here when it creates the user, and never again —
-   * both of its overwrite paths (`overrideUserInfoOnSignIn`,
-   * `accountLinking.updateUserInfoOnLink`) are opt-in and unset. The
-   * application owns the column after that.
-   */
-  image: text("image"),
-  /**
-   * Who last set `image`, written only by VelaChess: `custom` for an
-   * upload, `none` for a deliberate removal. `null` means untouched by us,
-   * so OAuth-initialized is `image != null AND avatar_source IS NULL`.
-   *
-   * Exists because `image IS NULL` alone cannot tell "never had a picture"
-   * from "deleted theirs", and only the second must stay empty.
-   */
-  avatarSource: text("avatar_source"),
-  /**
-   * When this person finished onboarding — stamped on their first
-   * successful connection, and never again.
-   *
-   * A column rather than a derived fact: onboarding used to be inferred
-   * from "no games and no accounts", which made it reappear every time
-   * someone disconnected everything. Theirs to keep, so it outlives both
-   * the connection and the browser.
-   */
-  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Better Auth's `name`. Not null because Better Auth requires it. */
+    displayName: text("display_name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    /**
+     * The effective avatar URL, whatever its origin. Better Auth writes the
+     * OAuth profile picture here when it creates the user, and never again —
+     * both of its overwrite paths (`overrideUserInfoOnSignIn`,
+     * `accountLinking.updateUserInfoOnLink`) are opt-in and unset. The
+     * application owns the column after that.
+     */
+    image: text("image"),
+    /**
+     * Who last set `image`, written only by VelaChess: `custom` for an
+     * upload, `none` for a deliberate removal. `null` means untouched by us,
+     * so OAuth-initialized is `image != null AND avatar_source IS NULL`.
+     *
+     * Exists because `image IS NULL` alone cannot tell "never had a picture"
+     * from "deleted theirs", and only the second must stay empty. The check
+     * constraint below is the runtime guard `$type<>()` cannot be.
+     */
+    avatarSource: text("avatar_source").$type<"custom" | "none">(),
+    /**
+     * When this person finished onboarding — stamped on their first
+     * successful connection, and never again.
+     *
+     * A column rather than a derived fact: onboarding used to be inferred
+     * from "no games and no accounts", which made it reappear every time
+     * someone disconnected everything. Theirs to keep, so it outlives both
+     * the connection and the browser.
+     */
+    onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check("users_avatar_source_check", sql`${table.avatarSource} IN ('custom', 'none')`),
+  ],
+);
 
 /**
  * A logged-in browser. Better Auth's `session`, database-backed on
@@ -207,24 +220,6 @@ export const authRateLimits = pgTable("auth_rate_limits", {
 });
 
 /**
- * The API's own rate limiter — separate from Better Auth's on purpose.
- *
- * Better Auth owns `/auth/*` and throttles it with its own table above;
- * this one covers the authenticated application routes, keyed by user.
- * Same storage shape deliberately: one row per key, updated in place, so
- * the row count is bounded by users rather than by elapsed time and there
- * is nothing to prune.
- *
- * `lastRequest` here IS a timestamp, unlike Better Auth's — this table is
- * ours, and Postgres comparing intervals beats comparing epoch integers.
- */
-export const rateLimits = pgTable("rate_limits", {
-  key: text("key").primaryKey(),
-  count: integer("count").notNull(),
-  lastRequest: timestamp("last_request", { withTimezone: true }).notNull(),
-});
-
-/**
  * A chess.com or Lichess handle this user follows.
  *
  * `user_id` is part of the unique key and NOT NULL, which is the whole
@@ -264,6 +259,55 @@ export const trackedAccounts = pgTable(
   (table) => [
     uniqueIndex("tracked_accounts_user_platform").on(table.userId, table.platform),
     index("tracked_accounts_user_id").on(table.userId),
+  ],
+);
+
+export const syncJobTriggerEnum = pgEnum("sync_job_trigger", ["connect", "manual"]);
+export const syncJobStatusEnum = pgEnum("sync_job_status", [
+  "queued",
+  "running",
+  "retrying",
+  "succeeded",
+  "failed",
+]);
+export const syncJobErrorEnum = pgEnum("sync_job_error", [
+  "not-found",
+  "incomplete",
+  "internal",
+]);
+
+/**
+ * One request to bring an account's archive up to date — the durable record
+ * of its status and progress. pg-boss delivers it (the queue job shares this
+ * row's id); it does not own its outcome. `started_at` is the delivering
+ * attempt's stamp: a newer delivery re-stamps it, and an older one's writes
+ * are conditional on the stamp they took.
+ */
+export const syncJobs = pgTable(
+  "sync_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => trackedAccounts.id, { onDelete: "cascade" }),
+    trigger: syncJobTriggerEnum("trigger").notNull(),
+    status: syncJobStatusEnum("status").notNull().default("queued"),
+    gamesFetched: integer("games_fetched"),
+    gamesInserted: integer("games_inserted"),
+    errorCode: syncJobErrorEnum("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (table) => [
+    // One active job per account: the arbiter concurrent triggers converge on.
+    uniqueIndex("sync_jobs_one_active_per_account")
+      .on(table.accountId)
+      .where(sql`${table.status} in ('queued', 'running', 'retrying')`),
+    index("sync_jobs_account_created").on(table.accountId, table.createdAt.desc()),
   ],
 );
 
@@ -373,7 +417,9 @@ export const games = pgTable(
  * libs/analysis/process-analysis/tests/analyze-game.test.ts: analysis
  * already depends on this package, so the guard runs with the package
  * graph instead of against it. Asserting it here would need
- * @velachess/analysis as a devDependency, and that edge is a cycle. */
+ * @velachess/analysis as a devDependency, and that edge is a cycle.
+ * No longer backs a column — analysis is browser-only and persists
+ * nothing server-side — kept only for that typecheck-time guard. */
 export interface StoredGradedPly {
   ply: number;
   fen: string;
@@ -385,66 +431,9 @@ export interface StoredGradedPly {
   winChanceLoss: number;
 }
 
-/** One row per analyzed game. Row existence = analyzed; the row is also
- * the whole-report cache — re-requesting an analyzed game reads it back. */
-export const gameAnalyses = pgTable(
-  "game_analyses",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    engineVersion: text("engine_version").notNull(),
-    depth: integer("depth").notNull(),
-    positions: jsonb("positions").$type<StoredGradedPly[]>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [uniqueIndex("game_analyses_game_id").on(table.gameId)],
-);
-
-/**
- * A run's graded positions, as they land. Deliberately NOT part of the
- * report.
- *
- * `game_analyses` is the durable record and commits in one transaction. Progress cannot live in that
- * transaction — an uncommitted row is invisible to the connection
- * streaming it — so it is written and committed one position at a time,
- * and deleted once the report lands. Losing these rows costs nothing.
- *
- * `run_id` is why a crashed run cannot poison the next one: a stale
- * writer appends under its own id and readers only ever follow the
- * newest.
- */
-export const analysisProgress = pgTable(
-  "analysis_progress",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    /**
-     * Insertion order, and the only reliable way to tell which run is the
-     * newer one. `created_at` is not: several rows written inside the same
-     * clock tick tie, and a tie here means reading a dead run's progress.
-     */
-    seq: bigserial("seq", { mode: "number" }).notNull(),
-    runId: uuid("run_id").notNull(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    /** 0-based, matching the analysis event. Not the position's ply. */
-    index: integer("index").notNull(),
-    total: integer("total").notNull(),
-    position: jsonb("position").$type<StoredGradedPly>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    // A retried job replaying the same index is a no-op, not a duplicate.
-    uniqueIndex("analysis_progress_run_index").on(table.runId, table.index),
-    index("analysis_progress_game_seq").on(table.gameId, table.seq.desc()),
-  ],
-);
-
-export type GameAnalysisRow = typeof gameAnalyses.$inferSelect;
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
+export type SyncJob = typeof syncJobs.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
 export type User = typeof users.$inferSelect;

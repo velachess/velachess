@@ -3,6 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Link } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 
+import { gameOutcomeFor, type GameOutcome } from "@velachess/chess";
 import { Badge } from "@velachess/ui/components/badge";
 import type { DataTableFeatures } from "@velachess/ui/components/data-table";
 import { ChessComIcon, LichessIcon, FileText } from "@velachess/ui/icons";
@@ -47,16 +48,11 @@ export function opponentOf(game: Game) {
   };
 }
 
-export type Outcome = "win" | "loss" | "draw" | "unfinished";
+export type Outcome = GameOutcome;
 
 /** The scoresheet says "1-0"; whether that's a win depends on your side. */
 export function outcomeOf(game: Game): Outcome {
-  if (game.result === "1/2-1/2") return "draw";
-  if (game.result === "*" || game.perspective === null) return "unfinished";
-
-  const won =
-    game.perspective === "white" ? game.result === "1-0" : game.result === "0-1";
-  return won ? "win" : "loss";
+  return gameOutcomeFor(game.result, game.perspective);
 }
 
 const OUTCOME_LABELS: Record<Outcome, MessageDescriptor> = {

@@ -26,7 +26,8 @@ describe("legalMoves", () => {
   it("scopes to one square when given", () => {
     const pos = positionFromFen(STARTING_POSITION).unwrap();
     const moves = legalMoves(pos, parseSquare("e2"));
-    expect(moves).toHaveLength(2); // e3, e4
+    // e3, e4.
+    expect(moves).toHaveLength(2);
   });
 
   it("expands a promoting pawn into one move per promotion role", () => {
@@ -54,7 +55,8 @@ describe("legalMoves", () => {
     const moves = legalMoves(pos, parseSquare("e1"));
     const destinations = moves.filter(isNormal).map((m) => m.to);
 
-    expect(destinations).toContain(parseSquare("h1")); // kingside (O-O)
-    expect(destinations).toContain(parseSquare("a1")); // queenside (O-O-O)
+    // Kingside (O-O) and queenside (O-O-O).
+    expect(destinations).toContain(parseSquare("h1"));
+    expect(destinations).toContain(parseSquare("a1"));
   });
 });

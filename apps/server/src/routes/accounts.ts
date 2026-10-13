@@ -5,31 +5,40 @@ import {
   importAccount,
   listAccounts,
   listGamesWithStatus,
-  refreshAccount,
+  requestSync,
+  syncAllAccounts,
 } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
-  SyncAccountDeps,
+  RequestSyncDeps,
+  SyncAllAccountsDeps,
 } from "@velachess/accounts";
 
 import type { ApiEnv } from "../server.ts";
-import { defaultHook, errorResponseSchema, idParamSchema } from "../validation.ts";
+import {
+  defaultHook,
+  errorResponseSchema,
+  idParamSchema,
+  wireDateOrNull,
+} from "../validation.ts";
 
 /** `@velachess/accounts`' `ConnectOutcome.status` vocabulary. */
 const ACCOUNT_CONNECT_STATUS = {
   CONNECTED: "connected",
   PROVIDER_CONNECTED: "provider-connected",
+  NOT_FOUND: "not-found",
+  UNAVAILABLE: "unavailable",
 } as const;
 
-/** `@velachess/accounts`' `RefreshOutcome.status` vocabulary — local to
+/** `@velachess/accounts`' `RequestSyncOutcome.status` vocabulary — local to
  * this file, the only one that branches on it. */
 const ACCOUNT_SYNC_STATUS = {
   NOT_FOUND: "not-found",
   TOO_SOON: "too-soon",
-  REFRESHED: "refreshed",
+  ACCEPTED: "accepted",
 } as const;
 
 /** `@velachess/accounts`' `DisconnectOutcome.status` vocabulary. */
@@ -41,8 +50,17 @@ const ACCOUNT_DISCONNECT_STATUS = {
 /** Repeated across both this file's 404s — one place to change the wording. */
 const ACCOUNT_NOT_FOUND_ERROR = "account not found";
 
+/** Mirrors `@velachess/infra-platforms`' `accountPlatformSchema` —
+ * `routes-no-direct-infra` forbids importing it, so this is a hand-kept
+ * copy, one per file instead of one per field; guarded by
+ * `apps/server/tests/contracts.test.ts`. */
+export const ACCOUNT_PLATFORM = ["chess_com", "lichess"] as const;
+/** Mirrors `@velachess/accounts`' job-error vocabulary; guarded alongside
+ * `ACCOUNT_PLATFORM`. */
+export const SYNC_JOB_ERROR = ["not-found", "incomplete", "internal"] as const;
+
 const createAccountSchema = z.object({
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string().min(1),
 });
 
@@ -54,15 +72,20 @@ const createAccountSchema = z.object({
  * RPC typecheck gate, fixed here). */
 const accountSchema = z.object({
   id: z.string().uuid(),
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
+  syncId: z
+    .string()
+    .uuid()
+    .nullable()
+    .describe("The first sync job; null when the handle was already tracked"),
 });
 
 /** A different handle on a platform the caller already tracks — one
  * account per provider, so this refuses instead of overwriting. Carries
  * the existing connection's identity so the client can point at it. */
 const providerConflictSchema = errorResponseSchema.extend({
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
   accountId: z.string().uuid(),
 });
@@ -72,7 +95,7 @@ const createAccountRoute = createRoute({
   path: "/",
   summary: "Track a chess.com or Lichess account",
   description:
-    "At most one account per provider per user. Reconnecting the same handle is an idempotent no-op; a different handle on a platform already tracked answers 409 with the existing connection's identity.",
+    "Confirms the handle with one provider request, then creates the account and schedules its first sync together; the archive is fetched in the background. At most one account per provider per user. Reconnecting the same handle is an idempotent no-op; a different handle on a platform already tracked answers 409 with the existing connection's identity.",
   request: {
     body: {
       content: { "application/json": { schema: createAccountSchema } },
@@ -80,26 +103,46 @@ const createAccountRoute = createRoute({
   },
   responses: {
     201: {
-      description: "Account tracked (idempotent upsert)",
+      description: "Account tracked, first sync scheduled",
       content: { "application/json": { schema: accountSchema } },
+    },
+    404: {
+      description: "The provider has no such handle; no account was created",
+      content: { "application/json": { schema: errorResponseSchema } },
     },
     409: {
       description: "This provider is already connected to a different handle",
       content: { "application/json": { schema: providerConflictSchema } },
     },
+    503: {
+      description: "The provider could not confirm the handle; no account was created",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });
 
-/** Mirrors `@velachess/accounts`' `TrackedAccountSummary & { syncState }` —
- * `lastSyncedAt` travels as ISO text on the wire, not a `Date`. */
+/** Mirrors `@velachess/accounts`' `listAccounts` result — `lastSyncedAt`
+ * travels as ISO text on the wire, not a `Date`. */
 const trackedAccountSchema = z.object({
   id: z.string().uuid(),
-  platform: z.enum(["chess_com", "lichess"]),
+  platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
   lastSyncedAt: z.string().nullable(),
-  syncState: z
-    .enum(["queued", "active", "failed", "none"])
-    .describe("Delivery state of the newest non-completed sync job"),
+  syncStatus: z
+    .enum(["queued", "running", "retrying", "idle"])
+    .describe("The active sync job's status, or idle when none is active"),
+  activeSyncId: z.string().uuid().nullable(),
+  lastSyncError: z
+    .enum(SYNC_JOB_ERROR)
+    .nullable()
+    .describe("Why the newest job failed; cleared by the next success"),
+});
+
+/** Serializers, built from the documented schemas with `.extend()`: only
+ * the timestamp is restated, so the rest cannot drift. See `wireDate` for
+ * why the schema performs the conversion instead of the handler. */
+const trackedAccountWire = trackedAccountSchema.extend({
+  lastSyncedAt: wireDateOrNull,
 });
 
 const listAccountsRoute = createRoute({
@@ -114,25 +157,44 @@ const listAccountsRoute = createRoute({
   },
 });
 
-const syncOutcomeSchema = z.object({
-  saved: z.number().int().describe("Games new to the archive"),
+const syncAcceptedSchema = z.object({
+  syncId: z.string().uuid(),
+  status: z.enum(["queued", "running", "retrying", "succeeded", "failed"]),
 });
 
 const rateLimitedSchema = errorResponseSchema.extend({
   retryAfterSeconds: z.number().int(),
 });
 
+const syncAllAcceptedSchema = z.object({
+  syncIds: z.array(z.string().uuid()),
+});
+
+const syncAllAccountsRoute = createRoute({
+  method: "post",
+  path: "/sync",
+  summary: "Schedule a sync of every account this user tracks",
+  description:
+    "One request for every tracked account: a cooldown or an already-active job on one of them is folded in silently, so this answers only the jobs actually now in flight. An empty list is a valid answer — there is nothing new to watch. Follow each id with GET /syncs/{id} or the SSE stream.",
+  responses: {
+    202: {
+      description: "Every job now in flight for this user, new or already running",
+      content: { "application/json": { schema: syncAllAcceptedSchema } },
+    },
+  },
+});
+
 const syncAccountRoute = createRoute({
   method: "post",
   path: "/{id}/sync",
-  summary: "Pull what's new for this account",
+  summary: "Schedule a sync of this account",
   description:
-    "Interactive and synchronous: fetch, persist and report what changed. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
+    "Records a sync job and queues it; the worker fetches and persists the archive. A request while a job is active returns that job. Follow it with GET /syncs/{id}. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
   request: { params: idParamSchema },
   responses: {
-    200: {
-      description: "What the refresh changed",
-      content: { "application/json": { schema: syncOutcomeSchema } },
+    202: {
+      description: "Sync scheduled, or the one already active",
+      content: { "application/json": { schema: syncAcceptedSchema } },
     },
     404: {
       description: "Unknown account",
@@ -155,8 +217,9 @@ const accountGameSchema = z.object({
   playedAt: z.string().nullable(),
   perspective: z.string().nullable(),
   openingName: z.string().nullable(),
-  analyzed: z.boolean(),
 });
+
+const accountGameWire = accountGameSchema.extend({ playedAt: wireDateOrNull });
 
 const accountGamesRoute = createRoute({
   method: "get",
@@ -197,7 +260,8 @@ export interface AccountsRouteDeps {
   list: ListAccountsDeps;
   games: ListAccountGamesDeps;
   connect: ConnectAccountDeps;
-  sync: SyncAccountDeps;
+  sync: RequestSyncDeps;
+  syncAll: SyncAllAccountsDeps;
   disconnect: DisconnectAccountDeps;
 }
 
@@ -207,8 +271,8 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
       // Importing is a POST, and the only place a connection is created.
       // Reads stopped writing ownership: the old flow let GET /games
       // upsert the account and seize it, which is how one user's archive
-      // transferred to another. First contact also fills the archive, so
-      // a bad username fails here, in front of the person who typed it.
+      // transferred to another. The handle is confirmed here, so a bad
+      // username fails in front of the person who typed it.
       .openapi(createAccountRoute, async (c) => {
         const { platform, username } = c.req.valid("json");
         const outcome = await importAccount(
@@ -229,35 +293,37 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
             409,
           );
         }
+        if (outcome.status === ACCOUNT_CONNECT_STATUS.NOT_FOUND)
+          return c.json({ error: "handle not found at the provider" }, 404);
+        if (outcome.status === ACCOUNT_CONNECT_STATUS.UNAVAILABLE)
+          return c.json({ error: "provider unavailable, try again" }, 503);
 
         return c.json(
           {
             id: outcome.account.id,
             platform: outcome.account.platform,
             username: outcome.account.username,
+            syncId: outcome.syncId,
           },
           201,
         );
       })
-      // Delivery state travels with each account: `lastSyncedAt` says a pass
-      // finished, `syncState` says whether one is still coming. A client that
+      // Sync state travels with each account: `lastSyncedAt` says a pass
+      // finished, `syncStatus` says whether one is still coming. A client that
       // saw only the timestamp couldn't tell "syncing" from "gave up".
       .openapi(listAccountsRoute, async (c) => {
         const accounts = await listAccounts(deps.list, c.get("userId"));
         return c.json(
-          accounts.map((account) =>
-            Object.assign({}, account, {
-              lastSyncedAt: account.lastSyncedAt?.toISOString() ?? null,
-            }),
-          ),
+          accounts.map((account) => trackedAccountWire.parse(account)),
           200,
         );
       })
-      // Interactive and synchronous, like importing: someone waiting on a
-      // button needs an answer, and "nothing new" is an answer. The queue
-      // stays for refreshes nobody is watching.
+      .openapi(syncAllAccountsRoute, async (c) => {
+        const { syncIds } = await syncAllAccounts(deps.syncAll, c.get("userId"));
+        return c.json({ syncIds }, 202);
+      })
       .openapi(syncAccountRoute, async (c) => {
-        const outcome = await refreshAccount(
+        const outcome = await requestSync(
           deps.sync,
           c.get("userId"),
           c.req.valid("param").id,
@@ -278,7 +344,7 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
           );
         }
 
-        return c.json({ saved: outcome.saved }, 200);
+        return c.json({ syncId: outcome.job.id, status: outcome.job.status }, 202);
       })
       .openapi(accountGamesRoute, async (c) => {
         // Scoped lookup lives in the slice now: someone else's account id
@@ -291,9 +357,7 @@ export function accountsRoutes(deps: AccountsRouteDeps) {
         );
         if (!games) return c.json({ error: ACCOUNT_NOT_FOUND_ERROR }, 404);
         return c.json(
-          games.map((game) =>
-            Object.assign({}, game, { playedAt: game.playedAt?.toISOString() ?? null }),
-          ),
+          games.map((game) => accountGameWire.parse(game)),
           200,
         );
       })

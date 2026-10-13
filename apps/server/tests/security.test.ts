@@ -31,28 +31,34 @@ afterAll(async () => {
  * that care about the budget reuse one id; callers that don't, don't. */
 const sync = (accountId: string = randomUUID()) => `/accounts/${accountId}/sync`;
 
-describe("rate limiting", () => {
+// The store is real Redis, not PGlite: unlike the Postgres limiter this
+// replaced, there is no embedded fallback, so these specific assertions
+// need `REDIS_URL` set — CI's Redis job runs them; a local `pnpm test`
+// without Redis running skips just this block (the store fails open, so
+// the rest of the suite is unaffected either way, see harness.ts).
+describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
   it("refuses past the policy's budget, and says when to come back", async () => {
     const limited = await harness.signUp("throttled@velachess.local");
     const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
-      const response = await limited.app.request(sync(accountId), { method: "POST" });
+      const response = await limited.app.api.accounts[":id"].sync.$post({
+        param: { id: accountId },
+      });
       expect(response.status, `request ${i + 1}`).not.toBe(429);
     }
 
-    const refused = await limited.app.request(sync(accountId), { method: "POST" });
+    const refused = await limited.app.api.accounts[":id"].sync.$post({
+      param: { id: accountId },
+    });
     expect(refused.status).toBe(429);
+    if (refused.status !== 429) throw new Error("unreachable");
 
     // The wait lives in the body as well as the header, because the SPA's
     // client can only read the body of a rejection — same contract as the
     // sync cooldown. Never 0: a client told to wait zero seconds retries
     // immediately, which is the behaviour the refusal exists to prevent.
-    const body = (await refused.json()) as {
-      error: string;
-      retryAfterSeconds: number;
-    };
+    const body = await refused.json();
     expect(body.error).toBe("too many requests");
     expect(body.retryAfterSeconds).toBeGreaterThan(0);
     expect(body.retryAfterSeconds).toBeLessThanOrEqual(POLICIES.import.windowSeconds);
@@ -71,8 +77,8 @@ describe("rate limiting", () => {
     expect(response.status).not.toBe(429);
   });
 
-  it("holds across processes, because it lives in Postgres", async () => {
-    // A second app over the same database stands in for a second API
+  it("holds across processes, because it lives in Redis", async () => {
+    // A second app over the same Redis stands in for a second API
     // instance behind the load balancer. An in-memory counter would give
     // this user a fresh budget here; a shared one does not.
     const second = createApp(harness.deps);
@@ -80,7 +86,6 @@ describe("rate limiting", () => {
     const accountId = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await spender.app.request(sync(accountId), { method: "POST" });
     }
 
@@ -99,7 +104,6 @@ describe("rate limiting", () => {
     const first = randomUUID();
 
     for (let i = 0; i < POLICIES.import.max; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       await owner.app.request(sync(first), { method: "POST" });
     }
     const firstExhausted = await owner.app.request(sync(first), { method: "POST" });
@@ -113,7 +117,6 @@ describe("rate limiting", () => {
     // /health sits above the gate and outside every policy on purpose: a
     // probe that can be throttled is a probe that lies during an incident.
     for (let i = 0; i < POLICIES.import.max + 5; i++) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request("/health");
       expect(response.status).toBe(200);
     }
@@ -178,7 +181,6 @@ describe("the request edge", () => {
 
   it("sends the baseline security headers on every answer", async () => {
     for (const path of ["/health", "/games"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path, {
         headers: { cookie: user.cookie },
       });
@@ -234,7 +236,6 @@ describe("what sits above the session gate", () => {
     // Anything else answering without a cookie would be a route mounted
     // above the gate by accident — the failure this test exists to catch.
     for (const path of ["/health", "/config", "/openapi.json"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(200);
     }
@@ -251,7 +252,6 @@ describe("what sits above the session gate", () => {
     expect(await session.json()).toBeNull();
 
     for (const path of ["/games", "/accounts"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(401);
     }

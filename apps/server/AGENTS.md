@@ -9,6 +9,16 @@ the only place transport concerns belong.
 - HTTP-shape Zod stays in the route so the exported `AppType` client remains
   typed. Error responses follow `apps/server/src/validation.ts`'s `{ error,
   details? }` contract.
+- `@hono/zod-openapi` validates **requests** only — `defaultHook` fires on
+  `param`, `json` and `query`. A response schema is documentation, so a handler
+  that hand-writes the conversion its schema describes can disagree with it and
+  still typecheck (`Object.assign` widens). When a response schema states a
+  conversion, such as `Date` to ISO text, make the schema perform it and let the
+  handler call it: one declaration, read and write in agreement.
+- A route's duplicated `z.enum` is mandated, not sloppy: `routes-no-direct-infra`
+  forbids importing `libs/infra/*` here, with no type-only exemption. Give the
+  mirror a drift guard in `apps/server/tests/` (which may import infra) instead
+  of forcing the import. See `docs/explanation/data-boundaries.md`.
 - Every route is declared with `@hono/zod-openapi`'s `createRoute` and mounted
   via `app.openapi(route, handler)`, never a plain `.get`/`.post`/`.delete` —
   `GET /openapi.json` is generated from those declarations, not hand-written.
@@ -19,23 +29,22 @@ the only place transport concerns belong.
 - Composition reads environment and constructs dependencies. Libraries receive
   validated injected configuration rather than reading ambient environment.
 - Read `docs/explanation/apps/api.md` before changing the HTTP surface, auth
-  order, analysis endpoints, or stream behavior.
+  order, or stream behavior. There is no analysis endpoint — analysis runs
+  entirely in the browser.
 
 ## Composition root files
 
 `src/composition/<module>.ts` — one file per business module that needs
-wiring (currently `accounts`, `analysis`, `games`, `user`). Each exports one
+wiring (currently `accounts`, `games`, `user`). Each exports one
 `build<Module>Deps(...)` function per route handler that adapts real infra
-(`deps.db`, `deps.analysisQueue`, `deps.syncQueue`, ...) and other modules'
+(`deps.db`, `deps.syncQueue`, ...) and other modules'
 `index.ts` capabilities into the exact narrow dependency shape that
 module's slice declared — this is the composition root, in the sense
 root `AGENTS.md`'s "Modules and slices" section defines it. `server.ts`
 calls the builder inline at the route-mount line
 (`.route("/accounts", accountsRoutes({ list: buildListAccountsDeps(...), ... }))`) — a
 route file receives only the narrow composed object, never `deps` (the
-whole `ApiDeps` bag) itself. Read `src/composition/analysis.ts` for the
-richest example: it composes the request, watch and get slices, which
-reach each other only through declared dependencies.
+whole `ApiDeps` bag) itself.
 
 When a module needs something from another module, its composition
 builder imports that module's `index.ts` (never a deep path) and adapts
@@ -54,9 +63,8 @@ business module's internals (`routes-no-module-internals`) — a module's
 `exports` and by `tsconfig.json`'s non-wildcard `paths` entry, so there is
 no `"./*"` escape hatch to review around.
 
-- A module may deliberately expose more than one entry point (e.g.
-  `analysis`'s `getAnalysisReport` alongside `requestAnalysisForUser`) — a
-  route composing both is normal, not a violation.
+- A module may deliberately expose more than one entry point — a route
+  composing several is normal, not a violation.
 - If a route needs something not currently exported, that's a module-design
   decision, not a route workaround: the module's `index.ts` grows an
   explicit new export, or the behavior belongs somewhere else entirely. See

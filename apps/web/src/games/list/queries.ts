@@ -27,9 +27,13 @@ export type Game = Pick<
  * Search lives in the cache key so changing a filter avoids a flash of
  * stale rows.
  */
+/** The prefix every library page shares — what a sync landing or an
+ * account leaving invalidates, so one spelling for all of them. */
+export const gamesQueryKey = ["games"] as const;
+
 export function libraryQuery(search: GamesSearch) {
   return queryOptions({
-    queryKey: ["games", search],
+    queryKey: [...gamesQueryKey, search],
     queryFn: () =>
       parseResponse(
         api.games.$get({

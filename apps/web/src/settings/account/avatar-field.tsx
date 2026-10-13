@@ -72,7 +72,7 @@ const buildFileSchema = (translate: (message: MessageDescriptor) => string) =>
   z
     .instanceof(File)
     .refine(
-      (file) => ACCEPTED.includes(file.type as (typeof ACCEPTED)[number]),
+      (file) => ACCEPTED.some((type) => type === file.type),
       translate(AVATAR_COPY.wrongType),
     )
     .refine((file) => file.size <= MAX_SOURCE_BYTES, translate(AVATAR_COPY.tooLarge));

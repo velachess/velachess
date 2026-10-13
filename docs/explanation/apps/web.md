@@ -26,7 +26,7 @@ src/
     import-pgn/     paste or upload a PGN
     list/           filter and page owned games
     open-game/      load the playable game record and review it on the board
-    request-analysis/ view-analysis/ watch-analysis/
+    browser-analysis/ request-analysis/ view-analysis/
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -122,6 +122,21 @@ Three facts stay separate:
 React Query owns session and account data. A 401 clears the cached session and
 returns the browser to login; local storage does not claim identity. Account
 authorization remains server-side and user-scoped in database queries.
+
+Syncs run in the background and the client never waits on one. `useSyncGames`
+is a mutation that only asks: `POST /accounts/:id/sync` per account in
+parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
+when the requests settle so the server's `syncStatus` / `activeSyncId` drive
+the "Syncing…" state on every screen and after a reload. Landing is announced,
+not polled: `games/import/sync-events.ts` keeps the session's one
+`GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
+and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
+`games` and `accounts` — the payload is never read. The stream is a signal,
+not a record, so every reconnection after the first repairs the gap with the
+same invalidation; a failed attempt invalidates nothing, and a `401` ends the
+session the usual way. No completion toast: the list refreshing is the
+answer. Connecting invalidates `accounts` and the session; disconnecting,
+`accounts`, `games` and `game`.
 
 ## Tables
 

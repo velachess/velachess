@@ -145,10 +145,7 @@ async function cropToWebp(src: string, pixels: Area, maxBytes?: number): Promise
   let blob = await encode(canvas, 0.85);
   for (const quality of [0.7, 0.55, 0.4]) {
     if (maxBytes === undefined || blob.size <= maxBytes) break;
-    // Sequential on purpose: each encode runs only because the previous
-    // one was too big, so Promise.all would do all four every time and
-    // throw three away.
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- each encode runs only because the previous one was too big; Promise.all would run all four every time
     blob = await encode(canvas, quality);
   }
 

@@ -1,10 +1,20 @@
-import { api, parseResponse, type InferResponseType } from "../../api/index.ts";
-import { isRateLimitedError } from "../../api/index.ts";
+import {
+  api,
+  isRateLimitedError,
+  parseResponse,
+  type InferResponseType,
+} from "../../api/index.ts";
+import { sessionQueryKey } from "../../auth/session.ts";
 import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
+import { gamesQueryKey } from "../list/queries.ts";
 import { useMyAccounts, type RememberedAccount } from "./my-accounts.ts";
 import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
+
+/** Fallback wait when a 429 carries none — mirrors the server's own
+ * `SYNC_COOLDOWN_SECONDS`. */
+const FALLBACK_RETRY_SECONDS = 60;
 
 /** Lichess serves its flairs from one public asset directory keyed by the
  * id the API reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`),
@@ -57,62 +67,96 @@ export function importStatus(remembered: RememberedAccount[]): ImportStatus {
   return remembered.length > 0 ? "ready" : "empty";
 }
 
-/**
- * Summed over the device's accounts. `too-soon` wins: nothing was
- * pulled, and "0 new games" would be a different, wrong story.
- */
-export type SyncOutcome =
-  | { status: "refreshed"; saved: number }
-  | { status: "too-soon"; retryAfterSeconds: number };
+/** The statuses an account's sync can still leave. A settled one reads
+ * `idle` here: the stream (`sync-events.ts`) is what announces the change. */
+const ACTIVE_SYNC = new Set<TrackedAccount["syncStatus"]>([
+  "queued",
+  "running",
+  "retrying",
+]);
 
-/** Pulls fresh games for every account the server tracks. Server ids,
- * never the device's remembered ones: a browser can hold an id from a
- * database that no longer exists, and syncing it 404s forever. */
+export function isSyncActive(status: TrackedAccount["syncStatus"]) {
+  return ACTIVE_SYNC.has(status);
+}
+
+/** The spinner condition both sync buttons share: the request itself still
+ * in flight, or the server already holding an active job for any of the
+ * accounts this button covers. */
+export function isSyncInProgress(
+  isPending: boolean,
+  accounts: readonly Pick<TrackedAccount, "syncStatus">[],
+): boolean {
+  return isPending || accounts.some((account) => isSyncActive(account.syncStatus));
+}
+
+/** Syncs every tracked account in one request. Per-account cooldowns and
+ * already-active jobs are folded in silently by the backend; only this
+ * route's own rate limit surfaces as `onTooSoon`. */
 export function useSyncGames(handlers: {
-  onOutcome: (outcome: SyncOutcome) => void;
+  onTooSoon: (retryAfterSeconds: number) => void;
   onError: () => void;
 }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (accounts: readonly { id: string }[]): Promise<SyncOutcome> => {
-      let saved = 0;
-
-      for (const account of accounts) {
-        // Sequential: a 429 must stop the loop before the next account
-        // is requested, so these can't run in Promise.all.
-        // oxlint-disable-next-line eslint/no-await-in-loop
-        try {
-          // oxlint-disable-next-line eslint/no-await-in-loop
-          const result = await parseResponse(
-            api.accounts[":id"].sync.$post({
-              param: { id: account.id },
-            }),
-          );
-          saved += result.saved;
-        } catch (error) {
-          // Either throttle — the domain cooldown or the API rate limit —
-          // arrives as the same class with the same wait, so "come back in
-          // a moment" is one outcome, not two. A 429 that somehow carried
-          // no wait falls back to the cooldown's own window.
-          if (isRateLimitedError(error)) {
-            return {
-              status: "too-soon",
-              retryAfterSeconds: error.retryAfterSeconds ?? 60,
-            };
-          }
-          throw error;
-        }
+    mutationFn: async () => {
+      try {
+        return await parseResponse(api.accounts.sync.$post());
+      } catch (error) {
+        if (isRateLimitedError(error))
+          return {
+            syncIds: [],
+            retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS,
+          };
+        throw error;
       }
-
-      return { status: "refreshed", saved };
     },
-    onSuccess: (outcome) => {
-      handlers.onOutcome(outcome);
-      return queryClient.invalidateQueries();
+    onSuccess: (answer) => {
+      if ("retryAfterSeconds" in answer) handlers.onTooSoon(answer.retryAfterSeconds);
     },
     onError: handlers.onError,
+    // Whatever's now in flight is a job the accounts list as active.
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
   });
+}
+
+/**
+ * Asks the server to sync one account. Server ids, never the device's
+ * remembered ones: a browser can hold an id from a database that no longer
+ * exists, and syncing it 404s forever.
+ */
+export function useSyncAccount(handlers: {
+  onTooSoon: (retryAfterSeconds: number) => void;
+  onError: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (accountId: string) => requestSync(accountId),
+    onSuccess: (answer) => {
+      if ("retryAfterSeconds" in answer) handlers.onTooSoon(answer.retryAfterSeconds);
+    },
+    onError: handlers.onError,
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
+  });
+}
+
+/** A sync request: the job it started, or how long the cooldown has left. */
+async function requestSync(accountId: string) {
+  try {
+    return await parseResponse(
+      api.accounts[":id"].sync.$post({ param: { id: accountId } }),
+    );
+  } catch (error) {
+    // Either throttle — the domain cooldown or the API rate limit —
+    // arrives as the same class with the same wait. A 429 that somehow
+    // carried no wait falls back to the cooldown's own window.
+    if (isRateLimitedError(error))
+      return { retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS };
+    throw error;
+  }
 }
 
 /** Named so a caller that owns the surrounding frame — the onboarding
@@ -126,16 +170,19 @@ export function useImportGames() {
   return useMutation({
     mutationKey: IMPORT_MUTATION_KEY,
     mutationFn: importArchive,
-    // Awaited before mutateAsync resolves, so the screen navigates into
-    // a warm cache and past a guard that already knows the account.
-    onSuccess: () => queryClient.invalidateQueries(),
+    // Connecting adds an account, schedules its first sync and ends
+    // onboarding. Awaited before mutateAsync resolves, so the screen
+    // navigates into a warm cache and past a guard that already knows both.
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
+        queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
+      ]),
   });
 }
 
-/** Stops tracking an account. The server deletes the games it imported
- * along with it, so the blanket invalidation below is load-bearing: the
- * library and every per-account read go stale at the same moment the
- * connection does. */
+/** Stops tracking an account. The server deletes the games it imported,
+ * and their analyses with them, so those reads go stale with the account. */
 export function useDisconnectAccount() {
   const queryClient = useQueryClient();
 
@@ -144,7 +191,11 @@ export function useDisconnectAccount() {
       parseResponse(api.accounts[":id"].$delete({ param: { id: accountId } })),
     onSuccess: (_, accountId) => {
       useMyAccounts.getState().forget(accountId);
-      return queryClient.invalidateQueries();
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
+        queryClient.invalidateQueries({ queryKey: gamesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["game"] }),
+      ]);
     },
   });
 }

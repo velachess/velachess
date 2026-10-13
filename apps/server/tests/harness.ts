@@ -5,31 +5,44 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { hc } from "hono/client";
+import { Redis } from "ioredis";
+
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
-import { createWatchers, type AnalyzeDeps } from "@velachess/analysis";
+import { syncAccount } from "@velachess/accounts";
 import {
-  appendProgress,
-  clearProgress,
-  getAnalysis,
-  getGame,
-  saveAnalysis,
+  claimSyncAttempt,
+  createSyncNotifications,
+  finishSyncJob,
+  getTrackedAccount,
+  markSyncRunning,
+  markTrackedAccountSynced,
+  saveGames,
+  updateTrackedAccountCursor,
 } from "@velachess/infra-db";
+import { QUEUES } from "@velachess/infra-queue";
 import {
   chessComFixtureFetch,
   createLoopHarness,
-  makeStockfishSession,
+  deliverSyncJob,
   type LoopHarness,
 } from "@velachess/test-utils";
 
-/** What a signed-in browser sees — the harness app with a cookie attached. */
+import { createApp } from "../src/server.ts";
+import { createRedisClient } from "../src/redis.ts";
+import type { ApiDeps } from "../src/deps.ts";
+import type { AppType } from "../src/server.ts";
+
+/** What a signed-in browser sees — the harness app with a cookie attached.
+ * `api` is the same `hc<AppType>` RPC client `apps/web` builds from this
+ * package's own `AppType`, so a test gets the route's real response type
+ * instead of hand-casting the body; `request` stays for SSE, the
+ * `/openapi.json` meta route, and anything else outside the RPC surface. */
 export interface AuthedApp {
   request: (input: string, init?: RequestInit) => Promise<Response>;
+  api: ReturnType<typeof hc<AppType>>;
 }
-
-import { createApp } from "../src/server.ts";
-import { buildWatcherDeps } from "../src/composition/analysis.ts";
-import type { ApiDeps } from "../src/deps.ts";
 
 export interface ApiHarness extends LoopHarness {
   app: ReturnType<typeof createApp>;
@@ -39,8 +52,12 @@ export interface ApiHarness extends LoopHarness {
    * never mounted on HTTP. `bootstrapUser` and `signUp` go through it;
    * the mounted `auth` keeps its sign-up surface closed, like prod. */
   bootstrapAuth: Auth;
-  /** The worker's dependencies. Not the API's — it runs no engine. */
-  analyze: AnalyzeDeps;
+  /** The worker's part of a sync the API scheduled, run inline as its
+   * first delivery — the API never fetches an archive itself. A second
+   * argument overrides the harness's own fetch for this one delivery only
+   * (e.g. a held fetch, to pause a test mid-sync without also pausing
+   * whatever fetch call connecting the account made). */
+  runSync: (syncId: string, fetchOverride?: typeof fetch) => Promise<void>;
   /** Sign this email in and return the Cookie header for later requests. */
   signIn: (email: string, password: string) => Promise<string>;
   /** Sign a fresh user up and hand back their id + a ready Cookie header. */
@@ -53,6 +70,25 @@ export interface ApiHarness extends LoopHarness {
 /** The origin the harness app is served on — its own baseUrl, and so the
  * one origin its CSRF check trusts. */
 export const ORIGIN = "http://localhost";
+
+/** Redis for the harness: the real one when `REDIS_URL` is set, otherwise a
+ * port nothing answers on, so every limiter check fails open at once. */
+function harnessRedis(): Redis {
+  const url = process.env["REDIS_URL"];
+  if (url) return createRedisClient(url);
+  return unreachableRedis();
+}
+
+/** No reconnects: each command fails immediately instead of waiting out a
+ * retry against a host that will never answer. */
+export function unreachableRedis(): Redis {
+  const redis = new Redis("redis://127.0.0.1:1", {
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+  });
+  redis.on("error", () => {});
+  return redis;
+}
 
 export async function createApiHarness(
   /** The archive GET /games reads through to. Defaults to the looper one. */
@@ -76,6 +112,8 @@ export async function createApiHarness(
 
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
 
+  const redis = harnessRedis();
+
   const deps: ApiDeps = {
     db: harness.db,
     auth,
@@ -84,9 +122,11 @@ export async function createApiHarness(
     // reported honestly, and auth.test.ts builds its own configured instance
     // where the provider matters.
     signInMethods: { password: true, google: false },
-    analysisQueue: harness.analysisQueue,
-    // A short interval: the suite should not wait out a production poll.
-    watchers: createWatchers(buildWatcherDeps(harness.db, harness.analysisQueue, 50)),
+    // PGlite listens on its one session — the same session the worker's
+    // twin below commits on, which is exactly the delivery a LISTEN sees.
+    syncNotifications: createSyncNotifications((channel, onNotify) =>
+      harness.pglite.listen(channel, onNotify),
+    ),
     syncQueue: harness.syncQueue,
     lock: harness.lock,
     // A real store over a temp dir, like every other dependency here:
@@ -94,23 +134,30 @@ export async function createApiHarness(
     files: createFileStore(filesRoot),
     // GET /games fills read-through; the suite must not reach the network.
     sync,
+    redis,
   };
 
-  // The worker's own composition (apps/worker/src/composition/analysis.ts)
+  // The worker's own composition (apps/worker/src/composition/accounts.ts)
   // builds the equivalent for production — apps never share a composition
-  // helper, so this restates the same DB wiring independently, the way
-  // apps/worker/src/composition/accounts.ts duplicates apps/server's own
-  // buildSyncAccountDeps.
-  const analyze: AnalyzeDeps = {
-    makeSession: makeStockfishSession,
-    tryAcquireLock: (key) => harness.lock.tryAcquire(key),
-    getGame: (gameId) => getGame(harness.db, gameId),
-    getAnalysis: (gameId) => getAnalysis(harness.db, gameId),
-    withTransaction: (fn) => harness.db.transaction(fn),
-    saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    appendProgress: (entry) => appendProgress(harness.db, entry),
-    clearProgress: (gameId) => clearProgress(harness.db, gameId),
-    depth: 8,
+  // helper, so this restates the same DB wiring independently.
+  const runSync = async (syncId: string, fetchOverride?: typeof fetch) => {
+    const job = await deliverSyncJob(harness.boss, syncId);
+    const deliveryFetch = fetchOverride ?? sync?.fetch;
+    await syncAccount(
+      {
+        markSyncRunning: (id) => markSyncRunning(harness.db, id),
+        getTrackedAccount: (accountId) => getTrackedAccount(harness.db, accountId),
+        withTransaction: (fn) => harness.db.transaction(fn),
+        claimSyncAttempt,
+        finishSyncJob,
+        saveGames,
+        updateTrackedAccountCursor,
+        markTrackedAccountSynced,
+        ...(deliveryFetch ? { fetch: deliveryFetch } : {}),
+      },
+      job,
+    );
+    await harness.boss.complete(QUEUES.sync, job);
   };
 
   const app = createApp(deps);
@@ -145,13 +192,20 @@ export async function createApiHarness(
   };
 
   /** The app as seen by a signed-in browser: same routes, cookie attached. */
-  const asUser = (cookie: string) => ({
-    request: async (input: string, init?: RequestInit) =>
-      app.request(input, {
-        ...init,
-        headers: { ...(init?.headers as Record<string, string>), cookie },
-      }),
-  });
+  const asUser = (cookie: string): AuthedApp => {
+    const authedFetch: typeof fetch = async (input, init) => {
+      // `new Headers(...)` normalizes whatever shape the caller passed
+      // (plain object, array, or a `Headers` instance — hc's own client
+      // builds one of these) instead of losing it to an object spread.
+      const headers = new Headers(init?.headers);
+      headers.set("cookie", cookie);
+      return app.request(input, { ...init, headers });
+    };
+    return {
+      request: authedFetch,
+      api: hc<AppType>(ORIGIN, { fetch: authedFetch }),
+    };
+  };
 
   const signUp = async (email: string, password = "test-password-123") => {
     const created = await bootstrapAuth.api.signUpEmail({
@@ -167,14 +221,13 @@ export async function createApiHarness(
     deps,
     auth,
     bootstrapAuth,
+    runSync,
     signIn,
     signUp,
-    analyze,
-    // Wrap the loop harness's close so the shared watch loops stop with
-    // it — one outliving the database is an unhandled rejection.
     close: async () => {
-      deps.watchers.close();
+      await deps.syncNotifications.close();
       await harness.close();
+      redis.disconnect();
       await rm(filesRoot, { recursive: true, force: true });
     },
   };

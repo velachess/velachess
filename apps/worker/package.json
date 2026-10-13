@@ -11,14 +11,9 @@
   },
   "dependencies": {
     "@velachess/accounts": "workspace:*",
-    "@velachess/analysis": "workspace:*",
     "@velachess/infra-db": "workspace:*",
-    "@velachess/infra-engine": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
-    "@velachess/infra-platforms": "workspace:*",
-    "@velachess/infra-queue": "workspace:*",
-    "postgres": "^3.4.0",
-    "stockfish": "^19.0.0"
+    "@velachess/infra-queue": "workspace:*"
   },
   "type": "module"
 }

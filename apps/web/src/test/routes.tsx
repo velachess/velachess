@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { useEffect } from "react";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -19,8 +20,9 @@ import { LanguageRegionScreen } from "../settings/language-region/language-regio
 import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { gamesSearchSchema } from "../games/list/filters.ts";
+import { startSyncEvents } from "../games/import/sync-events.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
-import type { QueryClientType } from "../libs/react-query.ts";
+import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
 /**
  * The app's routes, by hand: `routeTree.gen.ts` is generated and
@@ -54,6 +56,10 @@ const appRoute = createRoute({
 });
 
 function TestAppLayout() {
+  const queryClient = useQueryClient();
+  // Mirrors `routes/_app.tsx`: the sync stream belongs to the wall.
+  useEffect(() => startSyncEvents(queryClient), [queryClient]);
+
   return (
     <AppShell>
       <Outlet />

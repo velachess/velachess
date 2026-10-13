@@ -2,7 +2,13 @@ import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { addGames } from "../../test/archive.ts";
+import {
+  addGames,
+  landSync,
+  latestSync,
+  scheduleSync,
+  stageIncomingGames,
+} from "../../test/archive.ts";
 import { aGame, ME } from "../../test/games.ts";
 import { accountIsTracked } from "../../test/handlers/accounts.ts";
 import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
@@ -63,12 +69,29 @@ describe("an account with no games", () => {
   });
 
   it("waits rather than asking again while a sync is in flight", async () => {
-    accountIsTracked({ username: "looper", syncState: "active" });
+    const account = accountIsTracked({ username: "looper" });
+    scheduleSync(account.id, "connect");
 
     await renderApp({ path: "/games", emptyLibrary: true });
 
     expect(await screen.findByText("Reading your games")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+  });
+
+  it("waits on an import already running when the page loads, and lets go once it lands", async () => {
+    // A reload mid-import: the accounts say a sync is on its way, and the
+    // stream — not memory, not a poll — says when it has landed.
+    const account = accountIsTracked({ username: "looper" });
+    stageIncomingGames(aGame({ whiteName: "looper", blackName: "magnuscarlsen" }));
+    const job = scheduleSync(account.id, "connect");
+
+    await renderApp({ path: "/games", emptyLibrary: true });
+    expect(await screen.findByText("Reading your games")).toBeInTheDocument();
+
+    landSync(job.id);
+
+    expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("releases the app once the games are in", async () => {
@@ -77,8 +100,12 @@ describe("an account with no games", () => {
     await user.click(screen.getByRole("button", { name: "Skip" }));
 
     await user.type(screen.getByRole("textbox"), ME);
-    addGames(aGame({ whiteName: ME, blackName: "magnuscarlsen" }));
+    stageIncomingGames(aGame({ whiteName: ME, blackName: "magnuscarlsen" }));
     await user.click(screen.getByRole("button", { name: "Import" }));
+
+    // Connecting schedules the first sync; the dialog waits on it.
+    expect(await screen.findByText("Reading your games")).toBeInTheDocument();
+    landSync(latestSync().id);
 
     // Nothing closes it — its reason to exist stops being true.
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

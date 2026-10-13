@@ -2,6 +2,12 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 
+import {
+  landSync,
+  latestSync,
+  refuseRefreshFor,
+  scheduleSync,
+} from "../../../test/archive.ts";
 import { renderApp } from "../../../test/render.tsx";
 import {
   accountIsTracked,
@@ -40,14 +46,55 @@ describe("connections", () => {
     expect(await screen.findByText("Not synced yet")).toBeInTheDocument();
   });
 
-  it("syncs a single account from its own row", async () => {
+  it("syncs a single account from its own row, and shows it running until the server says it landed", async () => {
     accountIsTracked({ platform: "chess_com", username: "magnus" });
 
     const { user } = await renderApp({ path: "/settings/connections" });
 
     await user.click(await screen.findByRole("button", { name: "Sync games" }));
+    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
 
-    expect(await screen.findByText("Already up to date")).toBeInTheDocument();
+    landSync(latestSync().id);
+
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
+  });
+
+  it("shows the domain cooldown as a calm toast, unlike the games page's folded one", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+    refuseRefreshFor(30);
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "Sync games" }));
+
+    expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
+    expect(screen.getByText("Try again in 30 seconds.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled();
+  });
+
+  it("tells the user once the sync it started finishes", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "Sync games" }));
+    await screen.findByRole("button", { name: "Syncing…" });
+
+    landSync(latestSync().id);
+
+    expect(await screen.findByText("Games synced")).toBeInTheDocument();
+  });
+
+  it("stays quiet when a sync nobody clicked this row for lands", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+    const job = scheduleSync("account-1", "connect");
+
+    await renderApp({ path: "/settings/connections" });
+    await screen.findByText("magnus");
+
+    landSync(job.id);
+
+    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
   });
 
   it("offers the existing connect form to add an account", async () => {

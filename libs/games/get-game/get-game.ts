@@ -10,7 +10,7 @@
  * one game are inherently bounded; imports never fan out here.
  */
 import type { Game, ProviderSeat } from "@velachess/infra-db";
-import type { FetchFn } from "@velachess/infra-platforms";
+import type { AccountPlatform, FetchFn } from "@velachess/infra-platforms";
 import {
   fetchChessComProfile,
   fetchLichessProfile,
@@ -25,7 +25,7 @@ export interface SeatIdentity {
 }
 
 interface CachedProfile {
-  platform: "chess_com" | "lichess";
+  platform: AccountPlatform;
   username: string;
   fetchedAt: Date;
   avatarUrl: string | null;

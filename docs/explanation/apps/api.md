@@ -23,6 +23,22 @@ The sign-in capability endpoint exposes booleans only. Better Auth owns its own
 routes and throttling; the general API limiter sits after session resolution so
 its key is the authenticated user.
 
+## Rate limiting
+
+`src/middleware/rate-limit.ts` applies one budget per policy and subject
+(`api` per user, `import` per user and account) with `hono-rate-limiter` and
+its `RedisStore`, so every API instance counts against the same Redis key.
+
+- **Fixed window.** A subject's first request opens a window of
+  `windowSeconds`; up to `max` requests pass inside it. Refused requests do not
+  extend the window, and the full budget returns when it ends. A client can
+  therefore spend up to `2 × max` across a window boundary.
+- **Refusal.** `429` with `{ error: "too many requests", retryAfterSeconds }`
+  and the same value in `Retry-After`, never `0`.
+- **Fail open.** When Redis is unreachable the request is allowed and a
+  warning is logged: an outage of the counter store must not take the API
+  down with it.
+
 ## Identity and authorization
 
 Better Auth resolves the session. Middleware passes only `userId` downstream;
@@ -72,11 +88,18 @@ application owns the column after that.
 
 ## Import and refresh
 
-`POST /accounts` creates/connects a tracked account and performs the initial
-import synchronously so provider errors reach the person who submitted the
-handle. `POST /accounts/:id/sync` performs an interactive refresh, enforces the
-per-account cooldown, and returns `Retry-After` when called too soon. The worker
-entry point remains available for refresh work no person is waiting on.
+No archive is fetched inside an HTTP request. `POST /accounts` confirms the
+handle with one profile request — `404` when the provider has no such handle,
+`503` when it cannot tell — then creates the account and its first sync job and
+enqueues that job in one transaction, so a new account always has a sync
+scheduled and a failed enqueue leaves no account; reconnecting the handle
+already tracked answers `201` with `syncId: null` and schedules nothing. `POST /accounts/:id/sync` answers `202
+{ syncId, status }`: the account's active job when it has one, otherwise a new
+job after the per-account cooldown (`429` with `Retry-After` inside it).
+`GET /syncs/:id` reports an owner's job — status, progress, error — and is what
+clients poll; `GET /accounts` carries each account's `syncStatus`,
+`activeSyncId` and `lastSyncError`. The worker does the fetching (see
+`docs/reference/ingestion.md`).
 
 `POST /games/import` is the manual source: PGN text uploaded without any
 connected account. It normalizes in-request, resolves the named player's seat
@@ -86,18 +109,23 @@ succeeds with counts) — never Stockfish.
 owns across all sources, ownership read straight off `games.user_id`.
 
 All import paths fetch or parse, normalize, and persist. None of them run
-Stockfish; analysis starts only when a person asks for it.
+Stockfish. Analysis has no endpoint here: it runs entirely in the browser
+(Stockfish WASM, `apps/web/src/games/browser-analysis/`), with no
+persistence and no server/worker leg — see `docs/reference/analysis.md`.
 
-## Analysis and progress
+## Sync events
 
-`POST /games/:id/analyze` is the explicit product trigger and requests pg-boss
-delivery. The worker owns Stockfish execution. GET endpoints expose current
-state and an EventSource-compatible stream over persisted progress/report
-state; the API does not become a second execution owner.
-
-SSE event names are namespaced and terminal frames close the connection.
-`Last-Event-ID` resumes after the last observed ply, keep-alives prevent idle
-proxy closure, and disconnect does not cancel analysis.
+`GET /syncs/events` is the session's one stream for syncs, with the same
+conventions: `sync.completed` / `sync.failed` frames carrying the sync id,
+keep-alives, no buffering. Unlike the analysis stream it is not derived from
+polling rows: the transaction that settles a `sync_jobs` row notifies the
+`sync_job_changed` Postgres channel with the job id, the api holds one `LISTEN`
+on it (a dedicated connection, awaited at boot), and `watch-syncs` resolves
+every id against the row before a user's stream sees it — the payload is
+never trusted for ownership. Notifications are not durable, so no frame is a
+record: a client that reconnects refreshes its accounts and games from the
+rows, and when the api's own listener reconnects every open stream ends so
+clients do the same. `GET /syncs/:id` stays for anything that prefers to ask.
 
 ## Validation and errors
 

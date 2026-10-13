@@ -4,6 +4,7 @@ import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
+import { resolveGamePerspective } from "@velachess/chess";
 import { BOARD_STAGE_WIDTH, BoardStage } from "@velachess/ui/chess/board-stage";
 import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/empty";
 import { Skeleton } from "@velachess/ui/components/skeleton";
@@ -18,7 +19,6 @@ import { gameQuery } from "../analysis-contract.ts";
 import {
   gradeAtPly,
   previewFor,
-  resolvedSeatOf,
   seatIdentityOf,
   seatOf,
   suggestedArrow,
@@ -142,7 +142,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
   // "You" is a claim, so it needs evidence. The board falls back to white
   // when nobody knows which seat is yours; the trail does not.
-  const mySeat = resolvedSeatOf(game, myUsernames);
+  const mySeat = resolveGamePerspective(game, myUsernames);
   const top = orientation === "white" ? black : white;
   const bottom = orientation === "white" ? white : black;
 

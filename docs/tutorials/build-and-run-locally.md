@@ -60,21 +60,22 @@ For this local tutorial, keep the supplied values. Deployment configuration has
 a different security lifecycle; follow [Self-host VelaChess](../how-to/self-host.md)
 when you need a persistent installation.
 
-## 4. Start PostgreSQL
+## 4. Start PostgreSQL and Redis
 
-Start the development PostgreSQL service:
+Start the development PostgreSQL and Redis services:
 
 ```bash
 pnpm infra:dev:up
 ```
 
-This command waits for PostgreSQL to become healthy. You can confirm its status:
+This command waits for both to become healthy. You can confirm their status:
 
 ```bash
-docker compose -f docker/docker-compose.dev.yml ps postgres
+docker compose -f docker/docker-compose.dev.yml ps postgres redis
 ```
 
-**Checkpoint:** The `postgres` service is running and reports a healthy status.
+**Checkpoint:** The `postgres` and `redis` services are running and report a
+healthy status.
 
 ## 5. Run the database migrations
 
