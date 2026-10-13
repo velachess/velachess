@@ -23,18 +23,24 @@ return {count, redis.call('PTTL', KEYS[1])}
 `;
 
 export class RedisRateLimitStore implements Store {
-  constructor(
-    private readonly redis: Redis,
-    private readonly windowMs: number,
-  ) {}
+  // Plain fields, not constructor parameter properties: apps/server runs
+  // under Node's --experimental-strip-types, which strips types only and
+  // rejects that TypeScript-only shorthand (see apps/worker/src/worker.ts).
+  readonly #redis: Redis;
+  readonly #windowMs: number;
+
+  constructor(redis: Redis, windowMs: number) {
+    this.#redis = redis;
+    this.#windowMs = windowMs;
+  }
 
   async increment(key: string): Promise<ClientRateLimitInfo> {
     try {
-      const [totalHits, ttlMs] = (await this.redis.eval(
+      const [totalHits, ttlMs] = (await this.#redis.eval(
         INCREMENT_SCRIPT,
         1,
         key,
-        this.windowMs,
+        this.#windowMs,
       )) as [number, number];
       // `exactOptionalPropertyTypes`: omit the key entirely rather than
       // set it to `undefined` when there is no reset time to report.
@@ -55,10 +61,10 @@ export class RedisRateLimitStore implements Store {
   }
 
   async decrement(key: string): Promise<void> {
-    await this.redis.decr(key).catch(() => undefined);
+    await this.#redis.decr(key).catch(() => undefined);
   }
 
   async resetKey(key: string): Promise<void> {
-    await this.redis.del(key).catch(() => undefined);
+    await this.#redis.del(key).catch(() => undefined);
   }
 }
