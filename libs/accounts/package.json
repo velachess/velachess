@@ -10,8 +10,7 @@
   "types": "./index.ts",
   "dependencies": {
     "@velachess/infra-db": "workspace:*",
-    "@velachess/infra-platforms": "workspace:*",
-    "@velachess/infra-rate-limit": "workspace:*"
+    "@velachess/infra-platforms": "workspace:*"
   },
   "exports": {
     ".": "./index.ts"

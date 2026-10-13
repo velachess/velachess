@@ -524,28 +524,4 @@ describe("sync deliveries", () => {
     expect(recovered.calls.get("2026/07")).toBe(1);
     expect(recovered.calls.get("2026/08")).toBe(1);
   });
-
-  it("a throttled provider ends the pass without reaching the network", async () => {
-    const job = await newSyncJob();
-    let fetchCalls = 0;
-    const countingFetch = (async (...args: Parameters<typeof fetch>) => {
-      fetchCalls += 1;
-      return fixture.fetch(...args);
-    }) as typeof fetch;
-
-    await expect(
-      sync(
-        {
-          fetch: countingFetch,
-          consumeProviderRateLimit: () =>
-            Promise.resolve({ allowed: false, retryAfterSeconds: 1 }),
-        },
-        await deliver(job),
-      ),
-    ).rejects.toThrow(/throttled/);
-
-    expect(fetchCalls).toBe(0);
-    expect(await jobOf(job)).toMatchObject({ status: "retrying", errorCode: "internal" });
-    expect(await gamesWithStatus(job.userId, job.accountId)).toEqual([]);
-  });
 });

@@ -13,9 +13,7 @@
     "@velachess/accounts": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
-    "@velachess/infra-platforms": "workspace:*",
-    "@velachess/infra-queue": "workspace:*",
-    "@velachess/infra-rate-limit": "workspace:*"
+    "@velachess/infra-queue": "workspace:*"
   },
   "type": "module"
 }

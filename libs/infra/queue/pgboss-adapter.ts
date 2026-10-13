@@ -38,9 +38,6 @@ export function makeSyncQueue(boss: PgBoss): SyncQueue {
     async enqueue(dbOrTx, job) {
       // No payload: the job id is the sync job's id, the account is its
       // singleton key, and the worker reads everything else from the row.
-      // The group is the provider: `groupConcurrency` on `boss.work` caps
-      // concurrent calls to one provider across every worker node, in
-      // Postgres, with no Redis lock needed for that part.
       const sent = await boss.send(
         QUEUES.sync,
         {},

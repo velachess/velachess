@@ -22,9 +22,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # Backs the API's own rate limiter and the worker's per-provider
-  # throttle (@velachess/infra-rate-limit) — shared across every api/worker
-  # replica, same reason postgres above is shared rather than per-process.
+  # The API's rate-limit counters, shared across api replicas.
   redis:
     image: redis:8-alpine
     restart: unless-stopped
@@ -107,14 +105,11 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
-      REDIS_URL: redis://redis:6379
       WORKER_ANALYSIS_CONCURRENCY: "4"
       ANALYSIS_DEPTH: "12"
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
 
 volumes:
   velachess_pgdata:
@@ -122,6 +117,6 @@ volumes:
   # every custom avatar to initials, which the UI handles, but the images
   # are gone.
   velachess_files:
-  # Rate-limit and provider-throttle counters only — nothing here needs a
-  # backup; losing it just resets every budget to empty.
+  # Rate-limit counters only — no backup needed; losing it resets every
+  # budget to empty.
   velachess_redisdata:

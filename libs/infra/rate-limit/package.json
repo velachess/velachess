@@ -4,11 +4,7 @@
   "private": true,
   "main": "./index.ts",
   "types": "./index.ts",
-  "scripts": {
-    "test": "vitest run"
-  },
   "dependencies": {
-    "@velachess/infra-logger": "workspace:*",
     "ioredis": "^6.0.0"
   },
   "type": "module",

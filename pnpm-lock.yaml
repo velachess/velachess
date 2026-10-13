@@ -346,15 +346,9 @@ importers:
       '@velachess/infra-logger':
         specifier: workspace:*
         version: link:../../libs/infra/logger
-      '@velachess/infra-platforms':
-        specifier: workspace:*
-        version: link:../../libs/infra/platforms
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
-      '@velachess/infra-rate-limit':
-        specifier: workspace:*
-        version: link:../../libs/infra/rate-limit
 
   libs/accounts:
     dependencies:
@@ -364,9 +358,6 @@ importers:
       '@velachess/infra-platforms':
         specifier: workspace:*
         version: link:../infra/platforms
-      '@velachess/infra-rate-limit':
-        specifier: workspace:*
-        version: link:../infra/rate-limit
 
   libs/analysis:
     dependencies:
@@ -491,9 +482,6 @@ importers:
 
   libs/infra/rate-limit:
     dependencies:
-      '@velachess/infra-logger':
-        specifier: workspace:*
-        version: link:../logger
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0

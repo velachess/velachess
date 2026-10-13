@@ -13,7 +13,6 @@
  * No engine runs here, by design: analysis has one trigger, opening a game.
  */
 import type {
-  AccountPlatform,
   ChessComCursor,
   FetchFn,
   LichessCursor,
@@ -27,7 +26,6 @@ import {
   lichessCursorSchema,
 } from "@velachess/infra-platforms";
 import type { Database, TrackedAccount } from "@velachess/infra-db";
-import type { ThrottleVerdict } from "@velachess/infra-rate-limit";
 
 /** Database and a Drizzle transaction share this type in this codebase. */
 type Tx = Database;
@@ -79,9 +77,6 @@ export interface SyncAccountDeps {
   /** Composed once, at wiring time — the fixture a test harness reads
    * through instead of the network. Never varies per call. */
   fetch?: FetchFn;
-  /** Cross-replica admission control for this provider's outbound calls.
-   * Absent in tests that don't exercise throttling. */
-  consumeProviderRateLimit?: (platform: AccountPlatform) => Promise<ThrottleVerdict>;
   /**
    * A stored cursor that did not parse as its account's platform shape.
    * Reported rather than swallowed: the pass starts over, which is a full
@@ -100,9 +95,6 @@ export interface SyncDeps {
   /** See `SyncAccountDeps.onUnreadableCursor` — the same sink, reached
    * through the bag a composition root already passes into sync. */
   onUnreadableCursor?: SyncAccountDeps["onUnreadableCursor"];
-  /** Worker-only: `@velachess/games`'s provider-profile fetch has no sync
-   * pass to throttle, so it never sets this. See `SyncAccountDeps`. */
-  consumeProviderRateLimit?: SyncAccountDeps["consumeProviderRateLimit"];
 }
 
 /** What pg-boss hands the worker — its job fits as it is. The id is the
@@ -213,16 +205,9 @@ function fetchGameHistory(
   const stored = account.syncCursor ?? null;
   const reportUnreadable = () =>
     deps.onUnreadableCursor?.({ accountId: account.id, platform: account.platform });
-  const fetchImpl = deps.consumeProviderRateLimit
-    ? throttled(
-        deps.fetch ?? globalThis.fetch,
-        account.platform,
-        deps.consumeProviderRateLimit,
-      )
-    : deps.fetch;
   // Spread per key: `exactOptionalPropertyTypes` treats an explicit
   // `undefined` as a value, which would erase the provider's default.
-  const opts = { signal, ...(fetchImpl ? { fetch: fetchImpl } : {}) };
+  const opts = { signal, ...(deps.fetch ? { fetch: deps.fetch } : {}) };
 
   switch (account.platform) {
     case "chess_com": {
@@ -240,26 +225,6 @@ function fetchGameHistory(
       return fetchLichess(account.username, parsed.success ? parsed.data : null, opts);
     }
   }
-}
-
-/** Gates every outbound call a provider client makes through the admission
- * check before it fires. A block throws, which rides the same
- * `retrying`/`internal` path as any other fetch failure — no new error
- * handling needed in `syncAccount`. */
-function throttled(
-  fetchFn: FetchFn,
-  platform: AccountPlatform,
-  consume: NonNullable<SyncAccountDeps["consumeProviderRateLimit"]>,
-): FetchFn {
-  return async (input, init) => {
-    const verdict = await consume(platform);
-    if (!verdict.allowed) {
-      throw new Error(
-        `provider ${platform} throttled; retry after ${verdict.retryAfterSeconds}s`,
-      );
-    }
-    return fetchFn(input, init);
-  };
 }
 
 /**

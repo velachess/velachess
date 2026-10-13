@@ -19,10 +19,8 @@ services:
       timeout: 3s
       retries: 10
 
-  # Backs the API's own rate limiter and the worker's per-provider
-  # throttle (@velachess/infra-rate-limit). Not set DATABASE_URL-style
-  # container-wide for the same reason that one isn't either: most test
-  # suites fail open without it and don't need it running.
+  # The API's rate limiter. Not set container-wide, like DATABASE_URL: test
+  # suites that need it gate on REDIS_URL.
   redis:
     image: redis:8-alpine
     ports:
@@ -33,10 +31,9 @@ services:
       timeout: 3s
       retries: 10
 
-  # Optional, local-only GUI for poking at the `redis` service above —
-  # rate-limit and provider-throttle keys. Not depended on by anything;
-  # `docker compose -f docker/docker-compose.dev.yml up redis-insight` to
-  # opt in. http://localhost:5540, add a connection to redis:6379.
+  # Optional GUI for the `redis` service above. Opt in with
+  # `docker compose -f docker/docker-compose.dev.yml up redis-insight`, then
+  # open http://localhost:5540 and connect to redis:6379.
   redis-insight:
     image: redis/redisinsight:latest
     restart: unless-stopped
