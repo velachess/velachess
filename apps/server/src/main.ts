@@ -16,6 +16,7 @@ import {
 } from "@velachess/infra-db";
 import { logger } from "@velachess/infra-logger";
 import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
+import { createRedisClient } from "@velachess/infra-rate-limit";
 
 import { createApp } from "./server.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
@@ -24,8 +25,12 @@ const apiLogger = logger.child({ component: "api" });
 
 const databaseUrl = process.env["DATABASE_URL"];
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
+const redisUrl = process.env["REDIS_URL"];
+if (!redisUrl) throw new Error("REDIS_URL is required");
 
 const db = createDb(databaseUrl);
+const redis = createRedisClient(redisUrl);
+redis.on("error", (error: Error) => apiLogger.error({ error }, "redis error"));
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => apiLogger.error({ error }, "pg-boss error"));
 await boss.start();
@@ -104,6 +109,7 @@ const app = createApp({
   syncQueue: makeSyncQueue(boss),
   lock,
   files: createFileStore(storageEnv.root),
+  redis,
 });
 
 const port = Number(process.env["PORT"] ?? 3000);
@@ -116,6 +122,7 @@ async function shutdown() {
   await syncNotifications.close();
   await listenSql.end({ timeout: 5 });
   await closeLockSql();
+  redis.disconnect();
   process.exit(0);
 }
 

@@ -9,6 +9,7 @@ import type { SyncDeps } from "@velachess/accounts";
 import type { Auth } from "@velachess/infra-auth";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type { SyncQueue } from "@velachess/infra-queue";
+import type { Redis } from "@velachess/infra-rate-limit";
 import type { FileStore } from "@velachess/infra-storage";
 
 /**
@@ -33,6 +34,9 @@ export interface ApiDeps {
   /** Served publicly at GET /config — see SignInMethods. */
   signInMethods: SignInMethods;
   syncQueue: SyncQueue;
+  /** Backs the inbound rate limiter — shared across every API instance,
+   * the same reason the Postgres limiter it replaced had to be. */
+  redis: Redis;
   /** First-user bootstrap's own race guard; the API runs no engine and
    * acquires no other advisory lock. */
   lock: ExecutionLock;

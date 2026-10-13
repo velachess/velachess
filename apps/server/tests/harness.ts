@@ -21,6 +21,7 @@ import {
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import { QUEUES } from "@velachess/infra-queue";
+import { createRedisClient } from "@velachess/infra-rate-limit";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -91,6 +92,18 @@ export async function createApiHarness(
 
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
 
+  // `REDIS_URL` set (CI's Redis job): the "rate limiting" describe block in
+  // security.test.ts runs for real. Unset (every other local/CI run): port
+  // 1 is always unreachable, so every check fails open — rate limiting is
+  // a transparent no-op rather than a thing the rest of this suite must
+  // provision a service to avoid tripping over. `disableReconnect` keeps
+  // that one failure cheap: without it, every request in the suite pays
+  // its own `connectTimeout` while ioredis keeps retrying a host nothing
+  // is ever going to answer on.
+  const redis = process.env["REDIS_URL"]
+    ? createRedisClient(process.env["REDIS_URL"])
+    : createRedisClient("redis://127.0.0.1:1", { disableReconnect: true });
+
   const deps: ApiDeps = {
     db: harness.db,
     auth,
@@ -111,6 +124,7 @@ export async function createApiHarness(
     files: createFileStore(filesRoot),
     // GET /games fills read-through; the suite must not reach the network.
     sync,
+    redis,
   };
 
   // The worker's own composition (apps/worker/src/composition/accounts.ts)
@@ -203,6 +217,7 @@ export async function createApiHarness(
     close: async () => {
       await deps.syncNotifications.close();
       await harness.close();
+      redis.disconnect();
       await rm(filesRoot, { recursive: true, force: true });
     },
   };

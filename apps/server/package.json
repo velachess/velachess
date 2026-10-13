@@ -21,8 +21,10 @@
     "@velachess/infra-platforms": "workspace:*",
     "@velachess/user": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
+    "@velachess/infra-rate-limit": "workspace:*",
     "@velachess/infra-storage": "workspace:*",
     "hono": "^4.13.13",
+    "hono-rate-limiter": "^0.5.4",
     "postgres": "^3.4.0",
     "zod": "^4.4.3"
   },
