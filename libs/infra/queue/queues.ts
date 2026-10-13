@@ -11,6 +11,13 @@ export const QUEUES = {
   syncDlq: "sync-dlq",
 } as const;
 
+const DEFAULT_POLICY = "stately";
+const DEFAULT_RETRY_LIMIT = 2;
+const DEFAULT_RETRY_DELAY_SECONDS = 60;
+const DEFAULT_RETRY_BACKOFF = true;
+const DEFAULT_EXPIRE_IN_SECONDS = 300;
+const DEFAULT_HEARTBEAT_SECONDS = 30;
+
 /**
  * Policy "stately": at most one queued-or-active job per singleton key,
  * which is the delivery-level dedup.
@@ -36,13 +43,13 @@ export const QUEUES = {
  */
 const POLICY = {
   sync: {
-    policy: "stately",
-    retryLimit: 2,
-    retryDelay: 60,
-    retryBackoff: true,
+    policy: DEFAULT_POLICY,
+    retryLimit: DEFAULT_RETRY_LIMIT,
+    retryDelay: DEFAULT_RETRY_DELAY_SECONDS,
+    retryBackoff: DEFAULT_RETRY_BACKOFF,
     deadLetter: QUEUES.syncDlq,
-    expireInSeconds: 300,
-    heartbeatSeconds: 30,
+    expireInSeconds: DEFAULT_EXPIRE_IN_SECONDS,
+    heartbeatSeconds: DEFAULT_HEARTBEAT_SECONDS,
   },
 } as const;
 
