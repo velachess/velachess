@@ -232,6 +232,10 @@ describe("sync jobs", () => {
       const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
       const stale = await deliver(job);
       await finishSyncJob(db, stale, { status: "retrying", errorCode: "internal" });
+      // `started_at` is millisecond-resolution: without a gap, a fast local
+      // run can re-stamp within the same millisecond as `stale`, making the
+      // "obsolete" attempt indistinguishable from the fresh one by accident.
+      await settle();
       // Re-stamped: the old attempt is obsolete.
       await deliver(job);
 
