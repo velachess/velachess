@@ -23,6 +23,22 @@ The sign-in capability endpoint exposes booleans only. Better Auth owns its own
 routes and throttling; the general API limiter sits after session resolution so
 its key is the authenticated user.
 
+## Rate limiting
+
+`src/middleware/rate-limit.ts` applies one budget per policy and subject
+(`api` per user, `import` per user and account) with `hono-rate-limiter` and
+its `RedisStore`, so every API instance counts against the same Redis key.
+
+- **Fixed window.** A subject's first request opens a window of
+  `windowSeconds`; up to `max` requests pass inside it. Refused requests do not
+  extend the window, and the full budget returns when it ends. A client can
+  therefore spend up to `2 × max` across a window boundary.
+- **Refusal.** `429` with `{ error: "too many requests", retryAfterSeconds }`
+  and the same value in `Retry-After`, never `0`.
+- **Fail open.** When Redis is unreachable the request is allowed and a
+  warning is logged: an outage of the counter store must not take the API
+  down with it.
+
 ## Identity and authorization
 
 Better Auth resolves the session. Middleware passes only `userId` downstream;

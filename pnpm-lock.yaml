@@ -115,9 +115,6 @@ importers:
       '@velachess/infra-queue':
         specifier: workspace:*
         version: link:../../libs/infra/queue
-      '@velachess/infra-rate-limit':
-        specifier: workspace:*
-        version: link:../../libs/infra/rate-limit
       '@velachess/infra-storage':
         specifier: workspace:*
         version: link:../../libs/infra/storage
@@ -130,6 +127,9 @@ importers:
       hono-rate-limiter:
         specifier: ^0.5.4
         version: 0.5.4(hono@4.13.13)
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0
       postgres:
         specifier: ^3.4.0
         version: 3.4.9
@@ -479,12 +479,6 @@ importers:
       '@electric-sql/pglite':
         specifier: ^0.5.8
         version: 0.5.8
-
-  libs/infra/rate-limit:
-    dependencies:
-      ioredis:
-        specifier: ^6.0.0
-        version: 6.0.0
 
   libs/infra/storage:
     dependencies:

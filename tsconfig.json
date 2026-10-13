@@ -41,8 +41,6 @@
       "@velachess/infra-storage/*": ["./libs/infra/storage/*"],
       "@velachess/infra-queue": ["./libs/infra/queue/index.ts"],
       "@velachess/infra-queue/*": ["./libs/infra/queue/*"],
-      "@velachess/infra-rate-limit": ["./libs/infra/rate-limit/index.ts"],
-      "@velachess/infra-rate-limit/*": ["./libs/infra/rate-limit/*"],
       "@velachess/infra-auth": ["./libs/infra/auth/index.ts"],
       "@velachess/infra-auth/*": ["./libs/infra/auth/*"],
       "@velachess/accounts": ["./libs/accounts/index.ts"],

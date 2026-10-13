@@ -38,9 +38,9 @@ provider_profiles                   avatar + flair per (platform, username),
                                     no owner
 ```
 
-The API's own rate limiter is Redis-backed (`@velachess/infra-rate-limit`,
-`apps/server/src/middleware/rate-limit.ts`), not a table here — only Better
-Auth's (`auth_rate_limits`) still lives in Postgres, unrelated and untouched.
+The API's own rate limiter is Redis-backed
+(`apps/server/src/middleware/rate-limit.ts`, see `docs/explanation/apps/api.md`),
+not a table here — only Better Auth's (`auth_rate_limits`) lives in Postgres.
 
 Enums are derived from
 `libs/infra/platforms`'s own zod schemas (`gameSourceSchema.options`,

@@ -16,9 +16,9 @@ import {
 } from "@velachess/infra-db";
 import { logger } from "@velachess/infra-logger";
 import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
-import { createRedisClient } from "@velachess/infra-rate-limit";
 
 import { createApp } from "./server.ts";
+import { createRedisClient } from "./redis.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
 
 const apiLogger = logger.child({ component: "api" });

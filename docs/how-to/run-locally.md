@@ -104,9 +104,9 @@ the file supplying the value differs:
 **Tests read neither file.** `libs/infra/db/tests/test-db.ts` falls
 back to an isolated in-process PGlite per run when `DATABASE_URL` is absent
 from the environment, which is what every suite is written against. There
-is no PGlite-equivalent fallback for Redis: a suite that genuinely needs
-one (`libs/infra/rate-limit`'s own tests, `security.test.ts`'s "rate
-limiting" block) gates on `REDIS_URL` with `describe.skipIf` instead and
+is no PGlite-equivalent fallback for Redis: the suites that need one
+(`apps/server/tests/rate-limit.test.ts` and `security.test.ts`'s "rate
+limiting" block) gate on `REDIS_URL` with `describe.skipIf` instead and
 CI's Redis job sets it; every other suite's rate limiter fails open when
 Redis is unreachable, which is also why the Dev Container does not set
 either variable container-wide — only the specific scripts above opt into

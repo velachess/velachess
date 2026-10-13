@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { hc } from "hono/client";
+import { Redis } from "ioredis";
 
 import { createAuth, type Auth } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
@@ -21,7 +22,6 @@ import {
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import { QUEUES } from "@velachess/infra-queue";
-import { createRedisClient } from "@velachess/infra-rate-limit";
 import {
   chessComFixtureFetch,
   createLoopHarness,
@@ -30,6 +30,7 @@ import {
 } from "@velachess/test-utils";
 
 import { createApp } from "../src/server.ts";
+import { createRedisClient } from "../src/redis.ts";
 import type { ApiDeps } from "../src/deps.ts";
 import type { AppType } from "../src/server.ts";
 
@@ -70,6 +71,23 @@ export interface ApiHarness extends LoopHarness {
  * one origin its CSRF check trusts. */
 export const ORIGIN = "http://localhost";
 
+/** Redis for the harness: the real one when `REDIS_URL` is set, otherwise a
+ * port nothing answers on, so every limiter check fails open at once. */
+function harnessRedis(): Redis {
+  const url = process.env["REDIS_URL"];
+  if (url) return createRedisClient(url);
+  return unreachableRedis();
+}
+
+/** No reconnects: each command fails immediately instead of waiting out a
+ * retry against a host that will never answer. */
+export function unreachableRedis(): Redis {
+  return new Redis("redis://127.0.0.1:1", {
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+  });
+}
+
 export async function createApiHarness(
   /** The archive GET /games reads through to. Defaults to the looper one. */
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
@@ -92,17 +110,7 @@ export async function createApiHarness(
 
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
 
-  // `REDIS_URL` set (CI's Redis job): the "rate limiting" describe block in
-  // security.test.ts runs for real. Unset (every other local/CI run): port
-  // 1 is always unreachable, so every check fails open — rate limiting is
-  // a transparent no-op rather than a thing the rest of this suite must
-  // provision a service to avoid tripping over. `disableReconnect` keeps
-  // that one failure cheap: without it, every request in the suite pays
-  // its own `connectTimeout` while ioredis keeps retrying a host nothing
-  // is ever going to answer on.
-  const redis = process.env["REDIS_URL"]
-    ? createRedisClient(process.env["REDIS_URL"])
-    : createRedisClient("redis://127.0.0.1:1", { disableReconnect: true });
+  const redis = harnessRedis();
 
   const deps: ApiDeps = {
     db: harness.db,

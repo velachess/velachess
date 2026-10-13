@@ -9,8 +9,9 @@ import type { SyncDeps } from "@velachess/accounts";
 import type { Auth } from "@velachess/infra-auth";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type { SyncQueue } from "@velachess/infra-queue";
-import type { Redis } from "@velachess/infra-rate-limit";
 import type { FileStore } from "@velachess/infra-storage";
+
+import type { Redis } from "./redis.ts";
 
 /**
  * What the sign-in screen may render. Capability flags, nothing more: the

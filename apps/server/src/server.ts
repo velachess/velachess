@@ -12,6 +12,7 @@ import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
+import type { RateLimitInfo } from "hono-rate-limiter";
 
 import { logger } from "@velachess/infra-logger";
 
@@ -49,6 +50,7 @@ const apiLogger = logger.child({ component: "api" });
 export interface ApiEnv {
   Variables: {
     userId: string;
+    rateLimit: RateLimitInfo;
   };
 }
 
