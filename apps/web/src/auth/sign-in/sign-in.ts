@@ -3,7 +3,7 @@
  * messages never reach the user.
  */
 
-import { authClient, type SessionUser } from "../client.ts";
+import { authClient, toSessionUser, type SessionUser } from "../client.ts";
 import { NetworkError } from "../../api/index.ts";
 
 export interface Credentials {
@@ -54,14 +54,7 @@ export async function signIn(credentials: Credentials): Promise<SessionUser> {
     throw new SignInError(rejected ? "invalid-credentials" : "unavailable");
   }
 
-  const { id, email, name, image, onboardedAt } = result.data.user;
-  return {
-    id,
-    email,
-    name,
-    image: image ?? null,
-    onboardedAt: onboardedAt ? new Date(onboardedAt).toISOString() : null,
-  };
+  return toSessionUser(result.data.user);
 }
 
 export function signInFailureOf(error: unknown): SignInFailure {

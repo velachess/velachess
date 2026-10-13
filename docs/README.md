@@ -6,7 +6,7 @@ content, each answering a different question about the same subject.
 - **Reference** — "what is X, exactly?" Lookup-oriented, e.g.
   `reference/glossary.md` and `reference/analysis.md`.
 - **Explanation** — "why does this work this way?" Understanding-oriented,
-  e.g. `explanation/modules/chess.md`.
+  e.g. `explanation/modules/chess.md` and `explanation/data-boundaries.md`.
 - **How-to guides** — "how do I do X?" Task-oriented, e.g.
   `how-to/verify-a-change.md`.
 - **Tutorials** — learning by doing, start to finish. Not written yet.

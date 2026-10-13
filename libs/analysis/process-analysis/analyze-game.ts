@@ -10,7 +10,7 @@ import { replayMainline } from "@velachess/chess";
 import type { EngineSession, EngineUpdate } from "@velachess/infra-engine";
 
 import type { MoveCategory } from "../move-category.ts";
-import { classifyMove } from "./classify-move.ts";
+import { classifyMove } from "../classify-move.ts";
 import type { WhitePovScore } from "../score.ts";
 import { toWhitePov } from "../score.ts";
 import { uciOf } from "./uci.ts";
@@ -155,9 +155,7 @@ export async function* analyzeGame(
       if (isLast && replay.finalPosition.isEnd()) {
         next = { score: terminalScore(), bestMove: null };
       } else {
-        // Single engine session, evaluated move by move — each position
-        // depends on the previous one having been replayed.
-        // oxlint-disable-next-line eslint/no-await-in-loop
+        // oxlint-disable-next-line eslint/no-await-in-loop -- one engine session; each position depends on the last one having been replayed
         next = await evaluate(played.fenAfter);
       }
 

@@ -77,10 +77,12 @@ describe("WorkerTransport", () => {
     const { worker, transport } = makeTransport();
     const iterator = transport.lines()[Symbol.asyncIterator]();
 
-    worker.emit("first"); // queued, no one waiting yet
+    // Queued: no one is waiting on the iterator yet.
+    worker.emit("first");
     expect((await iterator.next()).value).toBe("first");
 
-    const pending = iterator.next(); // now waiting
+    // Now waiting on the iterator, before the second emit arrives.
+    const pending = iterator.next();
     worker.emit("second");
     expect(await pending).toEqual({ value: "second", done: false });
   });

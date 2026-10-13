@@ -9,6 +9,12 @@ Trace one tracked account from provider input through normalization, cursor
 advance, persistence, and user-scoped reads. A public handle identifies provider
 data; the authenticated session owns the tracked account.
 
+Sync is a background job: HTTP records a `sync_jobs` row and enqueues it in
+one transaction, never fetching an archive; the worker fetches, then commits
+games, cursor and outcome in the transaction that settles its pg-boss
+delivery, which pg-boss fences to the delivery's attempt. Keep every worker
+write inside that transaction.
+
 At each boundary, ask whether ownership, identity, completeness, and retry
 position remain explicit. Normalize provider shapes once, preserve successful
 rows from a partial pass without claiming completion, and rely on database

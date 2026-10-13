@@ -43,7 +43,8 @@ describe("fetchChessCom", () => {
     // the latest.
     expect(requested.some((u) => u.endsWith("/2023/12"))).toBe(true);
 
-    expect(result.games).toHaveLength(1); // 3 entries in fixture: 1 real, 1 in-progress (no pgn), 1 chess960
+    // 3 entries in the fixture: 1 real, 1 in-progress (no pgn), 1 chess960.
+    expect(result.games).toHaveLength(1);
     expect(result.games[0]?.source).toBe("chess_com");
     expect(result.failures).toEqual([
       {
@@ -54,7 +55,8 @@ describe("fetchChessCom", () => {
         detail: "chess960",
       },
     ]);
-    expect(result.complete).toBe(false); // the filtered variant counts as a failure
+    // The filtered variant counts as a failure, not a silent skip.
+    expect(result.complete).toBe(false);
     expect(result.cursor).toEqual({ month: "2024/01", lastEndTime: 1704133706 });
   });
 
@@ -98,7 +100,8 @@ describe("fetchChessCom", () => {
       },
     ]);
     expect(result.complete).toBe(false);
-    expect(result.cursor).toEqual(cursor); // did not advance past the failed month
+    // Did not advance past the failed month.
+    expect(result.cursor).toEqual(cursor);
   });
 
   it("a malformed month response becomes an invalid-response failure", async () => {
@@ -123,9 +126,20 @@ describe("fetchChessCom", () => {
     ]);
   });
 
-  it("throws if the archives index itself fails", async () => {
+  it("reports a handle with no archives index as not found, for good", async () => {
     const fetch = (async () =>
       new Response("not found", { status: 404 })) as typeof globalThis.fetch;
+    const result = await fetchChessCom("test-player", null, { fetch });
+
+    expect(result.complete).toBe(false);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ reason: "not-found", retryable: false }),
+    ]);
+  });
+
+  it("throws if the archives index fails any other way", async () => {
+    const fetch = (async () =>
+      new Response("unavailable", { status: 503 })) as typeof globalThis.fetch;
     await expect(fetchChessCom("test-player", null, { fetch })).rejects.toThrow(
       "Chess.com returned no archives",
     );

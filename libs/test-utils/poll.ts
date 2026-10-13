@@ -8,12 +8,11 @@ export async function poll<T>(
 ): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    // Polling is sequential by definition: check, wait, check again.
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- polling is sequential by definition: check, wait, check again
     const value = await fn();
     if (value !== null && value !== undefined) return value;
     if (Date.now() > deadline) throw new Error("poll timed out");
-    // oxlint-disable-next-line eslint/no-await-in-loop
+    // oxlint-disable-next-line eslint/no-await-in-loop -- the wait before the next check
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }

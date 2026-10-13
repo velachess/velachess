@@ -5,13 +5,16 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   createUser,
+  findTrackedAccountByPlatform,
   games,
-  getTrackedAccountCursor,
-  listGames,
+  getGame,
+  getTrackedAccount,
+  listGamesPage,
+  listGamesWithStatusForAccount,
   saveGames,
   trackedAccounts,
   updateTrackedAccountCursor,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -56,6 +59,12 @@ function pastedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
+/** Distinct games, as many as asked: a unique external id and movetext per row. */
+const manyGames = (count: number) =>
+  Array.from({ length: count }, (_, i) =>
+    chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
+  );
+
 describe("libs/infra/db (games + tracked accounts)", () => {
   let ownerId: string;
 
@@ -69,7 +78,12 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   afterAll(() => close());
 
   it("saveGames twice with the same Chess.com game inserts it once", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
     const first = await saveGames(db, [chessComGame()], {
       userId: ownerId,
       accountId: account.id,
@@ -89,8 +103,13 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     // real chess.com game. Each must get its own complete history —
     // dedup happens within an account, never across accounts.
     const other = (await createUser(db)).id;
-    const accountA = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    const accountB = await upsertTrackedAccount(db, other, "chess_com", "Test-Player");
+    const accountA = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
+    const accountB = (await insertTrackedAccount(db, other, "chess_com", "Test-Player"))!;
 
     const first = await saveGames(db, [chessComGame()], {
       userId: ownerId,
@@ -105,8 +124,8 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(second.inserted).toBe(1);
 
     const [rowsA, rowsB] = await Promise.all([
-      listGames(db, { accountId: accountA.id }),
-      listGames(db, { accountId: accountB.id }),
+      listGamesWithStatusForAccount(db, accountA.id),
+      listGamesWithStatusForAccount(db, accountB.id),
     ]);
     expect(rowsA).toHaveLength(1);
     expect(rowsB).toHaveLength(1);
@@ -129,8 +148,8 @@ describe("libs/infra/db (games + tracked accounts)", () => {
 
     expect(mine.inserted).toBe(1);
     expect(theirs.inserted).toBe(1);
-    expect(await listGames(db, { userId: ownerId })).toHaveLength(1);
-    expect(await listGames(db, { userId: other })).toHaveLength(1);
+    expect((await listGamesPage(db, ownerId)).rows).toHaveLength(1);
+    expect((await listGamesPage(db, other)).rows).toHaveLength(1);
   });
 
   it("a batch containing an intra-statement duplicate only inserts one row", async () => {
@@ -140,8 +159,43 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     expect(result.inserted).toBe(1);
   });
 
+  it("saveGames writes 10,000 games, and a re-run inserts none", async () => {
+    const opts = { userId: ownerId };
+
+    expect(await saveGames(db, manyGames(10_000), opts)).toEqual({ inserted: 10_000 });
+    expect(await saveGames(db, manyGames(10_000), opts)).toEqual({ inserted: 0 });
+    expect(await db.$count(games)).toBe(10_000);
+  });
+
+  it.each([499, 500, 501])(
+    "saveGames counts every row across a batch edge (%i games)",
+    async (count) => {
+      expect(await saveGames(db, manyGames(count), { userId: ownerId })).toEqual({
+        inserted: count,
+      });
+    },
+  );
+
+  it("a failing batch rejects and keeps the batches already written", async () => {
+    const bad = chessComGame({
+      externalId: "bad",
+      movetextHash: "hash-bad",
+      source: "bogus" as NormalizedGame["source"],
+    });
+
+    await expect(
+      saveGames(db, [...manyGames(500), bad], { userId: ownerId }),
+    ).rejects.toThrow();
+    expect(await db.$count(games)).toBe(500);
+  });
+
   it("deleting a tracked account leaves its games with account_id set to null", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "Test-Player",
+    ))!;
     await saveGames(db, [chessComGame()], {
       userId: ownerId,
       accountId: account.id,
@@ -149,31 +203,38 @@ describe("libs/infra/db (games + tracked accounts)", () => {
 
     await db.delete(trackedAccounts).where(eq(trackedAccounts.id, account.id));
 
-    const [row] = await listGames(db);
+    // `account_id` is `on delete set null`, so the game outlives its
+    // provenance. Read the full row — the list projections drop the column.
+    const [listed] = (await listGamesPage(db, ownerId)).rows;
+    const row = await getGame(db, listed!.id);
     expect(row?.accountId).toBeNull();
   });
 
-  it("upsertTrackedAccount is case-insensitive and returns one row", async () => {
-    const first = await upsertTrackedAccount(db, ownerId, "chess_com", "Test-Player");
-    const second = await upsertTrackedAccount(db, ownerId, "chess_com", "test-player");
+  it("insertTrackedAccount lowercases the handle and refuses a second row per provider", async () => {
+    const userId = (await createUser(db)).id;
+    const first = await insertTrackedAccount(db, userId, "chess_com", "Test-Player");
+    const second = await insertTrackedAccount(db, userId, "chess_com", "other-player");
 
-    expect(second.id).toBe(first.id);
-    expect(second.username).toBe("test-player");
+    expect(first?.username).toBe("test-player");
+    expect(second).toBeNull();
+    expect((await findTrackedAccountByPlatform(db, userId, "chess_com"))?.id).toBe(
+      first?.id,
+    );
   });
 
   it("round-trips a ChessComCursor and a LichessCursor through jsonb", async () => {
-    const chessComAccount = await upsertTrackedAccount(
+    const chessComAccount = (await insertTrackedAccount(
       db,
       ownerId,
       "chess_com",
       "test-player",
-    );
-    const lichessAccount = await upsertTrackedAccount(
+    ))!;
+    const lichessAccount = (await insertTrackedAccount(
       db,
       ownerId,
       "lichess",
       "drnykterstein",
-    );
+    ))!;
 
     await updateTrackedAccountCursor(db, chessComAccount.id, {
       month: "2024/01",
@@ -181,17 +242,24 @@ describe("libs/infra/db (games + tracked accounts)", () => {
     });
     await updateTrackedAccountCursor(db, lichessAccount.id, { sinceMs: 1704067200000 });
 
-    expect(await getTrackedAccountCursor(db, chessComAccount.id)).toEqual({
+    // Read back the way production does: the sync slice takes the whole
+    // row and validates `syncCursor` against its platform's schema.
+    expect((await getTrackedAccount(db, chessComAccount.id))?.syncCursor).toEqual({
       month: "2024/01",
       lastEndTime: 1704133706,
     });
-    expect(await getTrackedAccountCursor(db, lichessAccount.id)).toEqual({
+    expect((await getTrackedAccount(db, lichessAccount.id))?.syncCursor).toEqual({
       sinceMs: 1704067200000,
     });
   });
 
-  it("listGames filters by account and orders by played_at desc", async () => {
-    const account = await upsertTrackedAccount(db, ownerId, "chess_com", "test-player");
+  it("the account list filters by account and orders by played_at desc", async () => {
+    const account = (await insertTrackedAccount(
+      db,
+      ownerId,
+      "chess_com",
+      "test-player",
+    ))!;
     await saveGames(
       db,
       [
@@ -208,10 +276,12 @@ describe("libs/infra/db (games + tracked accounts)", () => {
       ],
       { userId: ownerId, accountId: account.id },
     );
-    await saveGames(db, [pastedGame()], { userId: ownerId }); // unrelated, no account
+    // Unrelated to the account above: no accountId, just the owner.
+    await saveGames(db, [pastedGame()], { userId: ownerId });
 
-    const rows = await listGames(db, { accountId: account.id });
+    const rows = await listGamesWithStatusForAccount(db, account.id);
     expect(rows).toHaveLength(2);
-    expect(rows[0]?.externalId).toBe("2");
+    // Newest first: the 2024-01-02 game, not the 2024-01-01 one.
+    expect(rows[0]?.playedAt).toEqual(new Date("2024-01-02T00:00:00Z"));
   });
 });

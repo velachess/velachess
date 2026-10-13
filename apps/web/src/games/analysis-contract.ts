@@ -1,35 +1,17 @@
 import { queryOptions } from "../libs/react-query.ts";
-import { z } from "../libs/zod.ts";
 
 import { parsePgn, replayMainline } from "@velachess/chess";
 
 import { api, parseResponse, type InferResponseType } from "../api/index.ts";
 
-const scoreSchema = z.object({
-  cp: z.number().optional(),
-  mate: z.number().optional(),
-});
-
-/** Mirrors the API's GradedPly. */
-const gradedPlySchema = z.object({
-  /** 1-indexed: the ply this move is. */
-  ply: z.number(),
-  /** Position before the move was played. */
-  fen: z.string(),
-  san: z.string(),
-  evalBefore: scoreSchema,
-  evalAfter: scoreSchema,
-  /** The engine's preference at `fen`, in UCI. */
-  bestMove: z.string(),
-  category: z.enum(["best", "good", "inaccuracy", "mistake", "blunder"]),
-  winChanceLoss: z.number(),
-});
-
-export type GradedPly = z.infer<typeof gradedPlySchema>;
-export type MoveCategory = GradedPly["category"];
-
-/** Severity order, best first — read off the schema so it can't drift from the API's list. */
-export const MOVE_CATEGORIES = gradedPlySchema.shape.category.options;
+/**
+ * The graded-move vocabulary comes from `@velachess/analysis`, the module
+ * that produces it — this app runs that same analysis in the browser, so
+ * there is nothing to mirror. A local zod copy of the shape used to live
+ * here and was never parsed; the tests bridged the two with a double cast.
+ */
+export { MOVE_CATEGORIES } from "@velachess/analysis";
+export type { GradedPly, MoveCategory } from "@velachess/analysis";
 
 type GameResponse = InferResponseType<(typeof api.games)[":id"]["$get"], 200>;
 

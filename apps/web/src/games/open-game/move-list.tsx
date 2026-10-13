@@ -4,7 +4,7 @@ import { ScrollArea } from "@velachess/ui/components/scroll-area";
 import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
 
 import { glyphOf, moveNumberOf, sideOfPly } from "../analysis-read.ts";
-import type { GradedPly, ReplayMove } from "../analysis-contract.ts";
+import type { GradedPly, MoveCategory, ReplayMove } from "../analysis-contract.ts";
 
 export interface MoveListProps {
   moves: ReplayMove[];
@@ -77,11 +77,11 @@ interface MoveCellProps {
   onSelectPly: (ply: number) => void;
 }
 
-const GRADE_TONE = {
+const GRADE_TONE: Partial<Record<MoveCategory, string>> = {
   blunder: "text-move-blunder",
   mistake: "text-move-mistake",
   inaccuracy: "text-move-inaccuracy",
-} as const;
+};
 
 function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
   // An unplayed half-move at the end of an odd-length game.
@@ -89,10 +89,7 @@ function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
 
   const category = graded[move.ply - 1]?.category;
   const glyph = glyphOf(category);
-  const tone =
-    category && category in GRADE_TONE
-      ? GRADE_TONE[category as keyof typeof GRADE_TONE]
-      : undefined;
+  const tone = category ? GRADE_TONE[category] : undefined;
 
   return (
     <button

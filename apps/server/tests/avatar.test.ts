@@ -3,11 +3,12 @@
  * migrations, a real file store over a temp directory. Nothing is mocked,
  * so a passing test has moved actual bytes.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AVATAR_MAX_BYTES } from "@velachess/user";
 
-import { createApiHarness, type ApiHarness } from "./harness.ts";
+import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
 let harness: ApiHarness;
 
@@ -41,9 +42,7 @@ const PNG = Buffer.from([
   0x00, 0x1f, 0x15, 0xc4, 0x89,
 ]);
 
-async function sessionImage(owner: {
-  request: (input: string, init?: RequestInit) => Promise<Response>;
-}) {
+async function sessionImage(owner: AuthedApp) {
   const response = await owner.request("/auth/get-session");
   const body = (await response.json()) as { user?: { image?: string | null } } | null;
   return body?.user?.image ?? null;
@@ -53,9 +52,10 @@ describe("setting an avatar", () => {
   it("stores it, reports the URL, and serves the same bytes back", async () => {
     const { app: owner } = await harness.signUp("avatar-roundtrip@test.local");
 
-    const saved = await owner.request("/me/avatar", json({ image: base64(WEBP) }));
+    const saved = await owner.api.me.avatar.$post({ json: { image: base64(WEBP) } });
     expect(saved.status).toBe(200);
-    const { image } = (await saved.json()) as { image: string };
+    if (saved.status !== 200) throw new Error("unreachable");
+    const { image } = await saved.json();
     expect(image).toMatch(/^\/api\/me\/avatar\?v=\d+$/);
 
     const served = await owner.request("/me/avatar");
@@ -74,8 +74,9 @@ describe("setting an avatar", () => {
 
     expect(await sessionImage(owner)).toBeNull();
 
-    const saved = await owner.request("/me/avatar", json({ image: base64(WEBP) }));
-    const { image } = (await saved.json()) as { image: string };
+    const { image } = await parseResponse(
+      owner.api.me.avatar.$post({ json: { image: base64(WEBP) } }),
+    );
 
     expect(await sessionImage(owner)).toBe(image);
   });
@@ -83,13 +84,15 @@ describe("setting an avatar", () => {
   it("replaces in place, and the new URL differs from the old", async () => {
     const { app: owner } = await harness.signUp("avatar-replace@test.local");
 
-    const first = await owner.request("/me/avatar", json({ image: base64(WEBP) }));
-    const { image: firstUrl } = (await first.json()) as { image: string };
+    const { image: firstUrl } = await parseResponse(
+      owner.api.me.avatar.$post({ json: { image: base64(WEBP) } }),
+    );
 
     // A different format, so the served content-type proves the replacement
     // happened rather than the read hitting a stale object.
-    const second = await owner.request("/me/avatar", json({ image: base64(PNG) }));
-    const { image: secondUrl } = (await second.json()) as { image: string };
+    const { image: secondUrl } = await parseResponse(
+      owner.api.me.avatar.$post({ json: { image: base64(PNG) } }),
+    );
 
     expect(secondUrl).not.toBe(firstUrl);
 

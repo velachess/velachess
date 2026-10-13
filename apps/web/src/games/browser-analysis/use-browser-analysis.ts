@@ -1,17 +1,7 @@
 /**
- * The hook `game-analysis.tsx` calls to drive the review screen's
- * analysis. Single execution path: Stockfish WASM in the browser — no
- * server fallback. An init or run failure surfaces as a recoverable
- * error state; it never calls the backend.
- *
- * React Query owns the run: `experimental_streamedQuery` appends each
- * streamed `GradedPly` into the query's cached array as it arrives,
- * `staleTime: Infinity` means a finished analysis is never re-run while
- * this query stays in the cache, and `retry: false` because a failed
- * engine run isn't worth re-attempting automatically.
- *
- * No explicit cancel-on-unmount: an in-flight run is left to finish in
- * the background rather than stopped when the screen is left early.
+ * Drives the review screen's analysis: Stockfish WASM in the browser only,
+ * no server fallback. No cancel-on-unmount — an in-flight run finishes in
+ * the background rather than stopping when the screen is left early.
  */
 import { gameQuery } from "../analysis-contract.ts";
 import type { GradedPly, ReplayableGame } from "../analysis-contract.ts";

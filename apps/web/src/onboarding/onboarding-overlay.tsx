@@ -11,12 +11,15 @@ export function OnboardingOverlay() {
   const accounts = useQuery(trackedAccountsQuery);
   // The same session query the app guard already runs, so this costs no
   // extra request — it only reads one more field off it.
+  // A sync the server still runs — a first import, or one from before a
+  // reload — shows on the accounts; the sync stream (`routes/_app.tsx`)
+  // refreshes them and the library when it lands.
   const session = useQuery(sessionQuery);
 
   const state = onboardingState({
     games: library.data?.total,
     accounts: accounts.data,
-    onboarded: session.isPending ? undefined : session.data?.onboardedAt != null,
+    onboarded: session.isPending ? undefined : (session.data?.onboarded ?? false),
     failed: library.isError || accounts.isError,
   });
 

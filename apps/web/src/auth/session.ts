@@ -1,6 +1,6 @@
 /** One shared session query/cache, not Better Auth's own `useSession()` — avoids a second cache of the same fact. */
 
-import { authClient, type SessionUser } from "./client.ts";
+import { authClient, toSessionUser, type SessionUser } from "./client.ts";
 import { queryOptions } from "../libs/react-query.ts";
 import { NetworkError } from "../api/index.ts";
 
@@ -19,16 +19,7 @@ async function fetchSession(): Promise<SessionUser | null> {
   }
 
   if (!data?.user) return null;
-  const { id, email, name, image, onboardedAt } = data.user;
-  return {
-    id,
-    email,
-    name,
-    image: image ?? null,
-    // Better Auth hands additional fields back as it stored them; the
-    // app only ever asks whether there is one.
-    onboardedAt: onboardedAt ? new Date(onboardedAt).toISOString() : null,
-  };
+  return toSessionUser(data.user);
 }
 
 export const sessionQuery = queryOptions({

@@ -32,9 +32,42 @@ export interface SessionUser {
    * that came from one. `null` for an email/password account, which is
    * why every consumer needs a fallback rather than an `<img>`. */
   image: string | null;
-  /** When this person finished onboarding, `null` if they never have.
+  /**
+   * Whether this person finished onboarding. A boolean, not the stamp:
+   * the only question any screen asks is whether there is one, and
+   * carrying the timestamp meant converting it on every read for nobody.
+   *
    * Server-stamped on their first connection and carried on the session,
    * so the tour does not come back on a new browser — or after
-   * disconnecting every account. */
-  onboardedAt: string | null;
+   * disconnecting every account.
+   */
+  onboarded: boolean;
+}
+
+/** Better Auth's own session user, inferred from this client's own
+ * configuration — including `onboardedAt`, which the plugin above adds. */
+type AuthUser = (typeof authClient.$Infer.Session)["user"];
+
+/**
+ * Better Auth's user into this app's `SessionUser` — narrower on purpose:
+ * no `emailVerified`, no `createdAt`, nothing a screen does not render.
+ *
+ * One place because two call sites built it identically, the session
+ * query and the sign-in mutation, and both had to make the same two
+ * decisions: absent `image` means `null`, and onboarding is a yes/no.
+ *
+ * No date handling here. Better Auth's client parses its own responses
+ * with a reviver that turns any ISO string into a `Date`, so the stamp
+ * never arrives as text — and nothing in this app reads it as text
+ * either. Asking `!= null` is total: there is no malformed value to guard
+ * against, rather than a guard to maintain.
+ */
+export function toSessionUser(user: AuthUser): SessionUser {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image ?? null,
+    onboarded: user.onboardedAt != null,
+  };
 }

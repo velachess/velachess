@@ -12,12 +12,11 @@ import { consumeRateLimit, type RateLimitPolicy } from "@velachess/infra-db";
 import type { ApiEnv } from "../server.ts";
 import type { ApiDeps } from "../deps.ts";
 
-/** One budget per shape of cost: a list read and an analysis request differ
+/** One budget per shape of cost: a list read and an import request differ
  * by orders of magnitude, and import also spends someone else's quota. */
 export const POLICIES = {
   authenticated: { name: "api", max: 300, windowSeconds: 60 },
   import: { name: "import", max: 5, windowSeconds: 60 },
-  expensive: { name: "analysis", max: 20, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export function rateLimit(

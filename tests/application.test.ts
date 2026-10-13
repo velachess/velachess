@@ -1,16 +1,13 @@
 // @vitest-environment node
 /**
- * Repository-wide integration suite: the full sync -> list -> analyze
- * pipeline exercised across the business module packages, against the
- * real harness (PGlite + migrations + pg-boss + advisory lock), Stockfish
- * real where the engine runs.
+ * Repository-wide integration suite: the full sync -> list pipeline
+ * exercised across the business module packages, against the real
+ * harness (PGlite + migrations + pg-boss + advisory lock).
  *
  * Lives at the repo root, not inside any one module, because it is a
  * genuine cross-module fact: no single package owns "importing a game
- * makes it listable and analyzable." `process-analysis`'s own
- * TOCTOU/disconnect/streaming contract lives in
- * `libs/analysis/tests/execution.test.ts` — that behavior is private to
- * one slice, not a cross-module pipeline fact.
+ * makes it listable." Analysis has no cross-module pipeline here — it
+ * runs browser-side, with no server leg to exercise.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -19,25 +16,23 @@ import type { NormalizedGame } from "@velachess/infra-platforms";
 import type { Database } from "@velachess/infra-db";
 import type { GameFilters, GamePage } from "@velachess/infra-db";
 import {
-  appendProgress,
-  clearProgress,
+  createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
-  findProviderProfiles,
   findTrackedAccountByPlatform,
-  getAnalysis,
-  getGame,
+  finishSyncJob,
   getTrackedAccount,
   getTrackedAccountForUser,
-  isProfileFresh,
   listGamesPage,
+  claimSyncAttempt,
+  markSyncRunning,
   markTrackedAccountSynced,
   markUserOnboarded,
-  saveAnalysis,
   saveGames,
   updateTrackedAccountCursor,
   upsertProviderProfile,
-  upsertTrackedAccount,
+  getSyncJobForUser,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 import { openLibrary, type ListGamesDeps } from "@velachess/games";
 import {
@@ -45,18 +40,19 @@ import {
   importAccount,
   syncAccount,
   type ConnectAccountDeps,
+  type ConnectOutcome,
   type DisconnectAccountDeps,
   type SyncAccountDeps,
   type SyncDeps,
 } from "@velachess/accounts";
-import { completeAnalysis, type AnalyzeDeps } from "@velachess/analysis";
+import { QUEUES } from "@velachess/infra-queue";
 
 import { LISTER_USERNAME, LOOPER_USERNAME } from "@velachess/fixtures";
 import {
   chessComFixtureFetch,
   chessComListingFixtureFetch,
   createLoopHarness,
-  makeStockfishSession as makeSession,
+  deliverSyncJob,
   type LoopHarness,
 } from "@velachess/test-utils";
 
@@ -69,40 +65,63 @@ function listGamesDeps(db: Database): ListGamesDeps {
 }
 
 /**
- * The same adapter apps/server/src/composition/accounts.ts's
- * buildSyncAccountDeps builds, restated here: libs never import from
- * apps, and @velachess/accounts's sync-account slice is narrow-deps, not
- * Database-first.
+ * The same adapter apps/worker/src/composition/accounts.ts builds,
+ * restated here: libs never import from apps, and @velachess/accounts's
+ * sync-account slice is narrow-deps, not Database-first.
  */
 function syncAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): SyncAccountDeps {
   return {
+    markSyncRunning: (id) => markSyncRunning(db, id),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
-    getTrackedAccountForUser: (userId, accountId) =>
-      getTrackedAccountForUser(db, userId, accountId),
-    saveGames: (newGameRows, opts) => saveGames(db, newGameRows, opts),
-    updateTrackedAccountCursor: (accountId, cursor) =>
-      updateTrackedAccountCursor(db, accountId, cursor),
-    markTrackedAccountSynced: (accountId) => markTrackedAccountSynced(db, accountId),
+    withTransaction: (fn) => db.transaction(fn),
+    claimSyncAttempt,
+    finishSyncJob,
+    saveGames,
+    updateTrackedAccountCursor,
+    markTrackedAccountSynced,
     ...(fetch ? { fetch } : {}),
   };
 }
 
+/** apps/server/src/composition/accounts.ts's `buildImportAccountDeps`, restated. */
 function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAccountDeps {
-  const syncDeps = syncAccountDeps(db, fetch);
   return {
-    findProviderProfiles: (seats) => findProviderProfiles(db, seats),
     upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
-    isProfileFresh,
-    upsertTrackedAccount: (userId, platform, username) =>
-      upsertTrackedAccount(db, userId, platform, username),
-    getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
-    discardAccount: (accountId) => deleteTrackedAccountAndGames(db, accountId),
+    withTransaction: (fn) => db.transaction(fn),
+    insertTrackedAccount,
+    createSyncJob,
+    enqueueSync: (tx, job) => h.syncQueue.enqueue(tx, job),
     markOnboarded: (userId) => markUserOnboarded(db, userId),
-    syncAccount: (accountId) => syncAccount(syncDeps, accountId),
     ...(fetch ? { fetch } : {}),
   };
+}
+
+/** Runs a sync job the way the worker's first delivery would: the slice
+ * returns, so pg-boss completes the job. */
+async function runSync(syncJobId: string, fetch?: SyncDeps["fetch"]) {
+  const job = await deliverSyncJob(h.boss, syncJobId);
+  await syncAccount(syncAccountDeps(h.db, fetch), job);
+  await h.boss.complete(QUEUES.sync, job);
+}
+
+/** A manual sync of an account: its job, the worker's run of it, the result. */
+async function syncNow(
+  account: { id: string; userId: string },
+  fetch: typeof globalThis.fetch,
+) {
+  const job = await h.db.transaction(async (tx) => {
+    const created = (await createSyncJob(tx, {
+      userId: account.userId,
+      accountId: account.id,
+      trigger: "manual",
+    }))!;
+    await h.syncQueue.enqueue(tx, { id: created.id, accountId: account.id });
+    return created;
+  });
+  await runSync(job.id, fetch);
+  return getSyncJobForUser(h.db, account.userId, job.id);
 }
 
 function disconnectAccountDeps(db: Database): DisconnectAccountDeps {
@@ -110,25 +129,6 @@ function disconnectAccountDeps(db: Database): DisconnectAccountDeps {
     getTrackedAccountForUser: (userId, accountId) =>
       getTrackedAccountForUser(db, userId, accountId),
     deleteAccountAndItsGames: (accountId) => deleteTrackedAccountAndGames(db, accountId),
-  };
-}
-
-/**
- * The same adapter apps/worker/src/composition/analysis.ts builds,
- * restated here: `analysis/process-analysis`'s `completeAnalysis` is
- * narrow-deps, not Database-first.
- */
-function analyzeDeps(db: Database, lock: LoopHarness["lock"]): AnalyzeDeps {
-  return {
-    makeSession,
-    tryAcquireLock: (key) => lock.tryAcquire(key),
-    getGame: (gameId) => getGame(db, gameId),
-    getAnalysis: (gameId) => getAnalysis(db, gameId),
-    withTransaction: (fn) => db.transaction(fn),
-    saveAnalysis: (tx, gameId, data) => saveAnalysis(tx, gameId, data),
-    appendProgress: (entry) => appendProgress(db, entry),
-    clearProgress: (gameId) => clearProgress(db, gameId),
-    depth: 8,
   };
 }
 
@@ -158,8 +158,7 @@ function pastedGame(): NormalizedGame {
   };
 }
 
-// Same shape `fetchChessCom` really throws on an unknown handle — a 404
-// off the archives index, not a network failure.
+// What chess.com answers for an unknown handle — a 404, not a network failure.
 const unknownHandle: typeof fetch = async () =>
   new Response("not found", { status: 404 });
 
@@ -168,6 +167,33 @@ beforeAll(async () => {
 });
 
 afterAll(() => h.close());
+
+function connectedOutcome(outcome: ConnectOutcome) {
+  if (outcome.status !== "connected") throw new Error(`not connected: ${outcome.status}`);
+  return outcome;
+}
+
+/** Two connects for one user whose pre-checks both run before either writes. */
+function racingConnects(ownerId: string, usernames: [string, string]) {
+  const deps = importAccountDeps(h.db, emptyArchive);
+  let arrived = 0;
+  let bothChecked!: () => void;
+  const checked = new Promise<void>((resolve) => (bothChecked = resolve));
+  const raced: ConnectAccountDeps = {
+    ...deps,
+    getTrackedAccountByPlatform: async (forUser, platform) => {
+      const existing = await deps.getTrackedAccountByPlatform(forUser, platform);
+      arrived += 1;
+      if (arrived === 2) bothChecked();
+      await checked;
+      return existing;
+    },
+  };
+  return Promise.all([
+    importAccount(raced, ownerId, "chess_com", usernames[0]),
+    importAccount(raced, ownerId, "chess_com", usernames[1]),
+  ]);
+}
 
 describe("application services (the flow, end to end)", () => {
   let userId: string;
@@ -192,8 +218,10 @@ describe("application services (the flow, end to end)", () => {
     if (outcome.status !== "connected") {
       throw new Error(`expected "connected", got "${outcome.status}"`);
     }
+    // The worker's part: the first sync connecting scheduled.
+    if (outcome.syncId) await runSync(outcome.syncId, syncDeps.fetch);
     return {
-      account: outcome.account,
+      account: (await getTrackedAccount(h.db, outcome.account.id))!,
       library: await openLibrary(listGamesDeps(h.db), ownerId, view),
     };
   }
@@ -206,28 +234,25 @@ describe("application services (the flow, end to end)", () => {
   });
 
   it("sync: fixture archive lands as games, cursor advances, re-sync inserts nothing", async () => {
-    const account = await upsertTrackedAccount(
+    const account = (await insertTrackedAccount(
       h.db,
       userId,
       "chess_com",
       LOOPER_USERNAME,
-    );
+    ))!;
 
-    const first = await syncAccount(
-      syncAccountDeps(h.db, chessComFixtureFetch()),
-      account.id,
-    );
-    expect(first.saved).toBe(2);
-    expect(first.complete).toBe(true);
+    expect(await syncNow(account, chessComFixtureFetch())).toMatchObject({
+      status: "succeeded",
+      gamesInserted: 2,
+    });
     expect((await getTrackedAccount(h.db, account.id))?.syncCursor).not.toBeNull();
 
     expect((await getTrackedAccount(h.db, account.id))?.lastSyncedAt).not.toBeNull();
 
-    const second = await syncAccount(
-      syncAccountDeps(h.db, chessComFixtureFetch()),
-      account.id,
-    );
-    expect(second.saved).toBe(0);
+    expect(await syncNow(account, chessComFixtureFetch())).toMatchObject({
+      status: "succeeded",
+      gamesInserted: 0,
+    });
   });
 
   it("sync: an empty archive still marks the account as synced", async () => {
@@ -237,34 +262,21 @@ describe("application services (the flow, end to end)", () => {
     // Its own user: one chess_com account per user now, and `userId` above
     // already has one from the previous test.
     const ownerId = (await createUser(h.db)).id;
-    const account = await upsertTrackedAccount(
+    const account = (await insertTrackedAccount(
       h.db,
       ownerId,
       "chess_com",
       "emptyarchive",
-    );
+    ))!;
 
-    const outcome = await syncAccount(syncAccountDeps(h.db, emptyArchive), account.id);
-
-    expect(outcome).toMatchObject({ saved: 0, complete: true });
+    expect(await syncNow(account, emptyArchive)).toMatchObject({
+      status: "succeeded",
+      gamesInserted: 0,
+    });
     const synced = await getTrackedAccount(h.db, account.id);
     expect(synced?.syncCursor).toBeNull();
     expect(synced?.lastSyncedAt).not.toBeNull();
   });
-
-  it("analyze: a synced game gets a real, persisted report", async () => {
-    // `completeAnalysis` is the same public entry apps/worker's analysis
-    // consumer calls — its own TOCTOU/streaming contract is covered at
-    // libs/analysis/tests/execution.test.ts.
-    const library = await openLibrary(listGamesDeps(h.db), userId, {});
-    const gameId = library.games[0]!.id;
-
-    await completeAnalysis(analyzeDeps(h.db, h.lock), gameId);
-
-    const analysis = await getAnalysis(h.db, gameId);
-    expect(analysis).not.toBeNull();
-    expect(analysis!.positions.length).toBeGreaterThan(0);
-  }, 120_000);
 
   it("importAccount: a first import fills the archive, a second one only reads", async () => {
     // Its own movetext: games dedupe per user and account, so reusing
@@ -320,27 +332,13 @@ describe("application services (the flow, end to end)", () => {
     expect(bySeat.white!.whiteName).toBe("fresh_import");
     expect(bySeat.black!.blackName).toBe("fresh_import");
 
-    // Importing runs no engine. Analysis is intent —
-    // an archive of hundreds of games must not queue hundreds of runs.
-    for (const game of library.games) {
-      expect(await h.analysisQueue.getState(game.id)).toBe("none");
-      expect(game.analyzed).toBe(false);
-    }
-
-    // Second import never pulls the archive again: a fetch that would throw
-    // on any game request. The profile endpoint is answered instead of
-    // throwing — a re-import still refreshes identity by design — and
-    // returning no avatar keeps what was stored.
+    // Reconnecting the handle already tracked asks the provider nothing.
     const again = await openImported(
       "fresh_import",
       {},
       {
-        fetch: (async (input: RequestInfo | URL) => {
-          const url = String(input);
-          if (/\/pub\/player\/[^/]+$/.test(url)) {
-            return Response.json({ username: "fresh_import" });
-          }
-          throw new Error("the archive was already filled");
+        fetch: (async () => {
+          throw new Error("the handle is already tracked");
         }) as unknown as typeof fetch,
       },
       ownerId,
@@ -351,7 +349,12 @@ describe("application services (the flow, end to end)", () => {
 
   it("importAccount: a second handle on an already-tracked provider is refused, not overwritten", async () => {
     const ownerId = (await createUser(h.db)).id;
-    const first = await upsertTrackedAccount(h.db, ownerId, "chess_com", "first_handle");
+    const first = (await insertTrackedAccount(
+      h.db,
+      ownerId,
+      "chess_com",
+      "first_handle",
+    ))!;
 
     const outcome = await importAccount(
       importAccountDeps(h.db, emptyArchive),
@@ -377,17 +380,44 @@ describe("application services (the flow, end to end)", () => {
     expect(again).toMatchObject({ status: "connected", account: { id: first.id } });
   });
 
-  it("importAccount: a failed first sync rolls back the row instead of leaving a dead slot", async () => {
+  it("importAccount: two simultaneous connects of one handle make one account and one sync", async () => {
     const ownerId = (await createUser(h.db)).id;
 
-    await expect(
-      importAccount(
+    const [first, second] = (
+      await racingConnects(ownerId, ["race_handle", "race_handle"])
+    ).map(connectedOutcome);
+
+    expect(second!.account.id).toBe(first!.account.id);
+    expect([first!.syncId, second!.syncId].filter(Boolean)).toHaveLength(1);
+  });
+
+  it("importAccount: two simultaneous connects of different handles keep one, refusing the other", async () => {
+    const ownerId = (await createUser(h.db)).id;
+
+    const outcomes = await racingConnects(ownerId, ["race_one", "race_two"]);
+
+    expect(outcomes.map((outcome) => outcome.status).toSorted()).toEqual([
+      "connected",
+      "provider-connected",
+    ]);
+    const winner = outcomes.find((outcome) => outcome.status === "connected");
+    const stored = await findTrackedAccountByPlatform(h.db, ownerId, "chess_com");
+    expect(stored?.username).toBe(
+      winner?.status === "connected" ? winner.account.username : undefined,
+    );
+  });
+
+  it("importAccount: a handle the provider does not have is refused before any row exists", async () => {
+    const ownerId = (await createUser(h.db)).id;
+
+    expect(
+      await importAccount(
         importAccountDeps(h.db, unknownHandle),
         ownerId,
         "chess_com",
         "ghost",
       ),
-    ).rejects.toThrow();
+    ).toEqual({ status: "not-found" });
 
     // No row left behind to occupy the slot or need manual cleanup.
     expect(await findTrackedAccountByPlatform(h.db, ownerId, "chess_com")).toBeNull();

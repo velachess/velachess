@@ -6,23 +6,19 @@
 import { serve } from "@hono/node-server";
 import postgres from "postgres";
 
-import { sessionAdvisoryLock } from "@velachess/infra-db";
 import { createAuth, resolveAuthEnv } from "@velachess/infra-auth";
 import { createFileStore, resolveStorageEnv } from "@velachess/infra-storage";
 import { bootstrapCredentialsFromEnv, bootstrapUser } from "@velachess/user";
-import { createDb } from "@velachess/infra-db";
-import { createWatchers } from "@velachess/analysis";
-import { logger } from "@velachess/infra-logger";
 import {
-  createBoss,
-  ensureQueues,
-  makeAnalysisQueue,
-  makeSyncQueue,
-} from "@velachess/infra-queue";
+  createDb,
+  createSyncNotifications,
+  postgresLockExecutor,
+} from "@velachess/infra-db";
+import { logger } from "@velachess/infra-logger";
+import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue";
 
 import { createApp } from "./server.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
-import { buildWatcherDeps } from "./composition/analysis.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -35,17 +31,17 @@ boss.on("error", (error) => apiLogger.error({ error }, "pg-boss error"));
 await boss.start();
 await ensureQueues(boss);
 
-// Dedicated session for advisory locks — session locks must outlive
-// individual queries, so the connection is pinned (max: 1).
-const lockSql = postgres(databaseUrl, { max: 1 });
-const lock = sessionAdvisoryLock({
-  query: async <T>(sql: string, params?: unknown[]) => {
-    const rows = await lockSql.unsafe(sql, (params ?? []) as never[]);
-    return { rows: rows as unknown as T[] };
-  },
-});
+const { lock, close: closeLockSql } = postgresLockExecutor(databaseUrl);
 
-const analysisQueue = makeAnalysisQueue(boss, db);
+// The ear on `sync_job_changed`. postgres.js keeps a connection of its
+// own for LISTEN, reconnecting and re-listening by itself; awaited so an
+// api that cannot hear the worker refuses to boot rather than going quiet.
+const listenSql = postgres(databaseUrl, { max: 1 });
+const syncNotifications = createSyncNotifications(async (channel, onNotify, onListen) => {
+  const { unlisten } = await listenSql.listen(channel, onNotify, onListen);
+  return unlisten;
+});
+await syncNotifications.ready;
 
 // Validated up front — a bad auth environment refuses to boot with a
 // message naming the variable, and the secret's value appears nowhere
@@ -104,9 +100,8 @@ const app = createApp({
   // configured. Derived from the same resolved env the auth instance is built
   // from, so the screen and the server cannot disagree about what exists.
   signInMethods: { password: true, google: Boolean(authEnv.google) },
-  analysisQueue,
-  watchers: createWatchers(buildWatcherDeps(db, analysisQueue)),
-  syncQueue: makeSyncQueue(boss, db),
+  syncNotifications,
+  syncQueue: makeSyncQueue(boss),
   lock,
   files: createFileStore(storageEnv.root),
 });
@@ -118,7 +113,9 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 async function shutdown() {
   await boss.stop({ graceful: true });
-  await lockSql.end({ timeout: 5 });
+  await syncNotifications.close();
+  await listenSql.end({ timeout: 5 });
+  await closeLockSql();
   process.exit(0);
 }
 

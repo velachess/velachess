@@ -6,6 +6,7 @@
  * cross-user independence of the same file, no connected account, no
  * and no engine.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -25,13 +26,8 @@ const json = (body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-interface Library {
-  games: { id: string; source: string; perspective: string | null }[];
-  total: number;
-}
-
-async function library(app: AuthedApp): Promise<Library> {
-  return (await (await app.request("/games")).json()) as Library;
+function library(app: AuthedApp) {
+  return parseResponse(app.api.games.$get({ query: {} }));
 }
 
 beforeAll(async () => {
@@ -64,11 +60,13 @@ describe("POST /games/import", () => {
     expect(seats.toSorted()).toEqual(["black", "white"]);
 
     // The color filter reads those resolved seats.
-    const asWhite = await owner.request("/games?color=white");
-    expect(((await asWhite.json()) as Library).total).toBe(1);
+    const asWhite = await parseResponse(
+      owner.api.games.$get({ query: { color: "white" } }),
+    );
+    expect(asWhite.total).toBe(1);
 
     // No connected account was created: PGN is a manual source, not a handle.
-    const accounts = (await (await owner.request("/accounts")).json()) as unknown[];
+    const accounts = await parseResponse(owner.api.accounts.$get());
     expect(accounts).toHaveLength(0);
   });
 
@@ -174,24 +172,20 @@ describe("POST /games/import", () => {
 });
 
 describe("imported games join the library", () => {
-  it("lists them without queueing Stockfish", async () => {
+  it("lists them", async () => {
     const owner = (await harness.signUp("pgn-flow@api.test")).app;
 
-    const imported = await owner.request(
-      "/games/import",
-      json({
-        pgn: NAMED_SECOND_GAME_PGN + NAMED_FIRST_GAME_PGN,
-        participation: byName(IMPORTED_PLAYER_NAME),
+    const outcome = await parseResponse(
+      owner.api.games.import.$post({
+        json: {
+          pgn: NAMED_SECOND_GAME_PGN + NAMED_FIRST_GAME_PGN,
+          participation: byName(IMPORTED_PLAYER_NAME),
+        },
       }),
     );
-    const outcome = (await imported.json()) as { imported: number };
     expect(outcome.imported).toBe(2);
 
-    // Import never queued Stockfish — analysis waits for an opened game.
     const games = (await library(owner)).games;
     expect(games).toHaveLength(2);
-    for (const game of games) {
-      expect(await harness.deps.analysisQueue.getState(game.id)).toBe("none");
-    }
   });
 });

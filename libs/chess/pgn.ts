@@ -145,18 +145,3 @@ export function hasPlayableGame(pgn: string): boolean {
     return replayed.isOk && replayed.value.moves.length > 0;
   });
 }
-
-/**
- * Minimal movetext emitter: SAN list → "1. e4 e6 2. d4 *". The inverse of
- * replayMainline — no headers, no variations.
- */
-export function sansToPgn(sans: string[]): string {
-  const parts: string[] = [];
-  for (let i = 0; i < sans.length; i += 2) {
-    const moveNumber = i / 2 + 1;
-    const white = sans[i];
-    const black = sans[i + 1];
-    parts.push(black ? `${moveNumber}. ${white} ${black}` : `${moveNumber}. ${white}`);
-  }
-  return parts.length > 0 ? `${parts.join(" ")} *` : "*";
-}

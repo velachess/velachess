@@ -26,21 +26,18 @@ export interface PlayerProfile {
   countryCode: string | null;
 }
 
-export const EMPTY_PROFILE: PlayerProfile = {
-  avatarUrl: null,
-  flair: null,
-  countryCode: null,
-};
-
 /**
  * The two outcomes a provider read can have, kept apart on purpose:
- * `failed` means we learned nothing (outage, timeout, unrecognizable
- * payload) and whatever is cached must stand; `fetched` is an answer,
- * even when that answer carries no avatar — profiles do get removed.
+ * `failed` means no profile came back and whatever is cached must stand —
+ * `not-found` when the handle does not exist, `unavailable` when we learned
+ * nothing (outage, timeout, unrecognizable payload); `fetched` is an
+ * answer, even when that answer carries no avatar — profiles do get removed.
  */
 export type ProfileFetch =
   | { status: "fetched"; profile: PlayerProfile }
-  | { status: "failed" };
+  | { status: "failed"; reason: "not-found" | "unavailable" };
+
+const UNAVAILABLE = { status: "failed", reason: "unavailable" } as const;
 
 /** Chess.com's `country` field is a link like `.../pub/country/BR` — the
  * last path segment is already the code, no need to resolve the link. */
@@ -75,9 +72,13 @@ const lichessProfileSchema = z.object({
  * socket into the same empty-profile path as any other failure. */
 const FETCH_TIMEOUT_MS = 5000;
 
-/** Null on any failure — non-ok status, network error, timeout, bad JSON.
- * Callers turn that into `failed`, never into a definitive empty profile. */
-async function fetchJson(url: string, doFetch: FetchFn): Promise<unknown | null> {
+/** A failure on any error — non-ok status, network error, timeout, bad
+ * JSON — never a definitive empty profile. Only a 404 says the handle does
+ * not exist; everything else says we learned nothing. */
+async function fetchJson(
+  url: string,
+  doFetch: FetchFn,
+): Promise<{ body: unknown } | Extract<ProfileFetch, { status: "failed" }>> {
   try {
     const res = await doFetch(url, {
       headers: HEADERS,
@@ -85,10 +86,11 @@ async function fetchJson(url: string, doFetch: FetchFn): Promise<unknown | null>
     });
     // A profile is decoration around a name. A missing or broken one leaves
     // the initials in place; it must never fail a game from loading.
-    if (!res.ok) return null;
-    return await res.json();
+    if (res.status === 404) return { status: "failed", reason: "not-found" };
+    if (!res.ok) return UNAVAILABLE;
+    return { body: await res.json() };
   } catch {
-    return null;
+    return UNAVAILABLE;
   }
 }
 
@@ -96,16 +98,19 @@ export async function fetchChessComProfile(
   username: string,
   opts: { fetch?: FetchFn } = {},
 ): Promise<ProfileFetch> {
-  if (!USERNAME_PATTERN.test(username))
-    return { status: "fetched", profile: EMPTY_PROFILE };
+  // A name no provider accepts cannot exist there.
+  if (!USERNAME_PATTERN.test(username)) return { status: "failed", reason: "not-found" };
   const doFetch = opts.fetch ?? globalThis.fetch;
 
-  const body = await fetchJson(`https://api.chess.com/pub/player/${username}`, doFetch);
-  if (body === null) return { status: "failed" };
-  const parsed = chessComProfileSchema.safeParse(body);
+  const fetched = await fetchJson(
+    `https://api.chess.com/pub/player/${username}`,
+    doFetch,
+  );
+  if (!("body" in fetched)) return fetched;
+  const parsed = chessComProfileSchema.safeParse(fetched.body);
   // A shape we do not recognize is not a trustworthy "no avatar" — treat
   // it like a failed ask rather than an answer that clears anything.
-  if (!parsed.success) return { status: "failed" };
+  if (!parsed.success) return UNAVAILABLE;
 
   return {
     status: "fetched",
@@ -121,16 +126,16 @@ export async function fetchLichessProfile(
   username: string,
   opts: { fetch?: FetchFn } = {},
 ): Promise<ProfileFetch> {
-  if (!USERNAME_PATTERN.test(username))
-    return { status: "fetched", profile: EMPTY_PROFILE };
+  // A name no provider accepts cannot exist there.
+  if (!USERNAME_PATTERN.test(username)) return { status: "failed", reason: "not-found" };
   const doFetch = opts.fetch ?? globalThis.fetch;
 
-  const body = await fetchJson(`https://lichess.org/api/user/${username}`, doFetch);
-  if (body === null) return { status: "failed" };
+  const fetched = await fetchJson(`https://lichess.org/api/user/${username}`, doFetch);
+  if (!("body" in fetched)) return fetched;
   // Same rule as chess.com above: an unrecognized payload must not be
   // read as a definitive empty profile.
-  const parsed = lichessProfileSchema.safeParse(body);
-  if (!parsed.success) return { status: "failed" };
+  const parsed = lichessProfileSchema.safeParse(fetched.body);
+  if (!parsed.success) return UNAVAILABLE;
 
   const flag = parsed.data.profile?.flag;
   return {

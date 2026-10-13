@@ -1,29 +1,32 @@
 # Analysis
 
 Facts about the shipped analysis pipeline: engine configuration, classification
-rules, and persisted shapes. The reasoning behind these choices lives inline in
+rules, and in-memory shapes. The reasoning behind these choices lives inline in
 `libs/analysis`'s own doc comments (`winchance.ts`, `move-category.ts`,
-`process-analysis/classify-move.ts`, `process-analysis/analyze-game.ts`) and
-this module's `tests/lichess-reference.test.ts`.
+`classify-move.ts`, `analyze-game.ts`) and this module's `tests/lichess-reference.test.ts`.
+
+Analysis runs entirely in the browser. There is no server or worker leg, no
+queue, and no persisted report — a result lives only in that tab's React
+Query cache for the session. `libs/analysis` holds only the pure
+algorithm and policies; `apps/web/src/games/browser-analysis/` runs it.
 
 ## Engine configuration (production)
 
-| Setting          | Value                                                                                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Binary           | `ENGINE_CMD` env var if set; otherwise `stockfish` npm `^19.0.0` (`stockfish-19-lite-single.js`, single-threaded WASM) run as a Node child process — `apps/worker/src/main.ts` |
-| Depth            | **12** — `deps.depth ?? 12` in `process-analysis.ts`; the worker passes no depth, so `analyzeGame`'s own default of 14 is never used in production                             |
-| UCI options      | None set. No Threads, no Hash, no MultiPV — `EngineSession.setOption` has no production caller. Only `multipv === 1` info lines are read                                       |
-| Search           | `go depth <N>` once per mainline position                                                                                                                                      |
-| Watchdog         | `min(30000, max(5000, 3000 + depth·400))` ms per search (7800 ms at depth 12); on timeout `stop` + 2 s grace                                                                   |
-| Failure policy   | One whole-game retry on a fresh session; a second failure throws                                                                                                               |
-| Handshake        | `EngineSession.init` fails after 10 s without `uciok`/`readyok`                                                                                                                |
-| `engine_version` | Stored as the literal `"stockfish"` (`deps.engineVersion ?? "stockfish"`; nothing passes a value)                                                                              |
+| Setting        | Value                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Binary         | `stockfish` npm package's `stockfish-19-lite-single.js` (single-threaded WASM), copied to `apps/web/public/engine/` and run in a browser `Worker` |
+| Depth          | **14** — `useBrowserAnalysis`'s own call into `analyzeGameInBrowser`                                                                              |
+| UCI options    | `Hash` only, fixed at 16 MB (`create-browser-engine-session.ts`'s `DEFAULT_HASH_MB`). No Threads — the lite-single build is single-threaded       |
+| Search         | `go depth <N>` once per mainline position                                                                                                         |
+| Watchdog       | `min(30000, max(5000, 3000 + depth·400))` ms per search (8600 ms at depth 14); on timeout `stop` + 2 s grace                                      |
+| Failure policy | One whole-game retry on a fresh session; a second failure throws                                                                                  |
+| Handshake      | `EngineSession.init` fails after 10 s without `uciok`/`readyok`                                                                                   |
 
-Analysis has one trigger: `POST /games/:id/analyze` enqueues (pg-boss); the
-worker executes. Execution ownership is the session advisory lock
-`analysis:${gameId}` (`libs/infra/db/advisory-lock.ts`), separate from queue
-dedup. On completion the report is saved in one transaction and the
-in-flight `analysis_progress` rows are cleared.
+Analysis has one trigger: opening a game. There is no explicit re-run
+affordance and no caching across sessions — reopening a game re-analyzes it.
+Cancellation is advisory only (`AbortSignal`, same convention
+`analysis-contract.ts` uses for `runAnalysis`); an in-flight run is not
+stopped when the screen is left early, it finishes in the background.
 
 ## Classification
 
@@ -36,36 +39,20 @@ in-flight `analysis_progress` rows are cleared.
   `best | good | inaccuracy | mistake | blunder`. Thresholds on
   win-chance loss: **0.10** inaccuracy, **0.20** mistake, **0.30** blunder
   (5/10/15 percentage points of win probability) —
-  `libs/analysis/process-analysis/classify-move.ts`.
+  `libs/analysis/classify-move.ts`.
 - A move equal to the engine's first PV move is `best` regardless of loss; the
-  raw `winChanceLoss` is still stored.
+  raw `winChanceLoss` is still returned.
 - Each `evalAfter` is reused as the next ply's `evalBefore` — one search per
   position total. A terminal final position (mate/stalemate) gets
   `{mate: ±1}` / `{cp: 0}` assigned directly, no search.
 
-## Persistence
-
-- `game_analyses`: `game_id` (unique), `engine_version`, `depth`, `positions`
-  jsonb of `StoredGradedPly[]`
-  (`{ply, fen, san, evalBefore, evalAfter, bestMove, category, winChanceLoss}`).
-  Row existence = analyzed. The row is the cache: an analyzed game is never
-  re-analyzed, and **changing engine configuration does not invalidate or
-  re-run existing reports** — old and new reports coexist, distinguishable
-  only by their stored `depth`/`engine_version`.
-- `analysis_progress`: per-ply streaming rows under a fresh `run_id` per
-  attempt; unique `(run_id, index)`; deleted once the report lands. Readers
-  follow the newest run only.
-
 ## Entry points
 
 - `libs/analysis/process-analysis/analyze-game.ts` → `analyzeGame`
-- `libs/analysis/process-analysis/classify-move.ts` → `classifyMove`,
-  `scoreToWinChance`
+- `libs/analysis/classify-move.ts` → `classifyMove`, `scoreToWinChance`
 - `libs/analysis/move-category.ts` → `MoveCategory`
-- `libs/analysis/process-analysis/process-analysis.ts` → `completeAnalysis`, `tryStartAnalysis`
-- `apps/server/src/routes/games.ts` → `POST /:id/analyze`, `GET /:id/analysis`,
-  `GET /:id/analysis/events` (SSE progress)
-- `apps/worker/src/consumers/analysis.ts` → `consumeAnalysisJob`
+- `apps/web/src/games/browser-analysis/` → `analyzeGameInBrowser`,
+  `useBrowserAnalysis`, `createBrowserEngineSession`
 
 ## Currently unused
 

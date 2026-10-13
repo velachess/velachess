@@ -169,6 +169,27 @@
       "when": 1791729364535,
       "tag": "0023_onboarded_at",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791747617489,
+      "tag": "0024_sync_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791817981455,
+      "tag": "0025_avatar_source_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791839665511,
+      "tag": "0026_eager_masque",
+      "breakpoints": true
     }
   ]
 }

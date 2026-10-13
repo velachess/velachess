@@ -32,7 +32,9 @@ const account = {
   platform: "chess_com",
   username: LANDING_PLAYER,
   lastSyncedAt: "2026-08-20T18:00:00.000Z",
-  syncState: "none",
+  syncStatus: "idle",
+  activeSyncId: null,
+  lastSyncError: null,
 };
 
 async function fulfillJson(route: Route, body: unknown, status = 200) {

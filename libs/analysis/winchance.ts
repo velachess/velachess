@@ -6,7 +6,7 @@
  * curve, and a mate score maps to ±1000 cp — not to a saturated ±1.
  *
  * `winChance` is module-root-private (not exported from index.ts): its
- * consumers are `process-analysis/classify-move.ts`'s `scoreToWinChance`
+ * consumers are `classify-move.ts`'s `scoreToWinChance`
  * and `win-percent.ts`'s reference 0–100 scale (no product caller yet).
  */
 

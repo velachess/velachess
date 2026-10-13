@@ -18,20 +18,19 @@ import { logger } from "@velachess/infra-logger";
 import type { ApiDeps } from "./deps.ts";
 import {
   buildDisconnectAccountDeps,
+  buildGetSyncDeps,
+  buildWatchSyncsDeps,
   buildImportAccountDeps,
   buildListAccountGamesDeps,
   buildListAccountsDeps,
-  buildSyncAccountDeps,
+  buildRequestSyncDeps,
+  buildSyncAllAccountsDeps,
 } from "./composition/accounts.ts";
 import {
   buildReadAvatarDeps,
   buildRemoveAvatarDeps,
   buildSetAvatarDeps,
 } from "./composition/user.ts";
-import {
-  buildGetAnalysisDeps,
-  buildRequestAnalysisDeps,
-} from "./composition/analysis.ts";
 import {
   buildGetGameDeps,
   buildImportPgnDeps,
@@ -41,6 +40,7 @@ import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { defaultHook } from "./validation.ts";
 import { accountsRoutes } from "./routes/accounts.ts";
+import { syncsRoutes } from "./routes/syncs.ts";
 import { userRoutes } from "./routes/user.ts";
 import { gamesRoutes } from "./routes/games.ts";
 
@@ -188,7 +188,9 @@ export function createApp(deps: ApiDeps) {
       "/accounts/:id/sync",
       rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
     )
-    .use("/games/:id/analyze", rateLimit(deps, POLICIES.expensive))
+    // The whole-library button gets its own budget, independent of each
+    // account's own cooldown-backed one above.
+    .use("/accounts/sync", rateLimit(deps, POLICIES.import))
     .route(
       "/me",
       userRoutes({
@@ -200,11 +202,19 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/accounts",
       accountsRoutes({
-        list: buildListAccountsDeps(deps.db, deps.syncQueue),
+        list: buildListAccountsDeps(deps.db),
         games: buildListAccountGamesDeps(deps.db),
-        connect: buildImportAccountDeps(deps.db, deps.sync?.fetch),
-        sync: buildSyncAccountDeps(deps.db, deps.sync?.fetch),
+        connect: buildImportAccountDeps(deps.db, deps.syncQueue, deps.sync?.fetch),
+        sync: buildRequestSyncDeps(deps.db, deps.syncQueue),
+        syncAll: buildSyncAllAccountsDeps(deps.db, deps.syncQueue),
         disconnect: buildDisconnectAccountDeps(deps.db),
+      }),
+    )
+    .route(
+      "/syncs",
+      syncsRoutes({
+        get: buildGetSyncDeps(deps.db, deps.syncQueue),
+        watch: buildWatchSyncsDeps(deps.db, deps.syncNotifications),
       }),
     )
     .route(
@@ -213,11 +223,6 @@ export function createApp(deps: ApiDeps) {
         get: buildGetGameDeps(deps.db, deps.sync?.fetch),
         list: buildListGamesDeps(deps.db),
         importPgn: buildImportPgnDeps(deps.db),
-        analysis: {
-          getAnalysis: buildGetAnalysisDeps(deps.db, deps.analysisQueue),
-          requestAnalysis: buildRequestAnalysisDeps(deps.db, deps.analysisQueue),
-          watchers: deps.watchers,
-        },
       }),
     );
 

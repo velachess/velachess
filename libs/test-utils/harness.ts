@@ -9,9 +9,9 @@ import type { Database } from "@velachess/infra-db";
 import {
   createTestBoss,
   ensureQueues,
-  makeAnalysisQueue,
   makeSyncQueue,
-  type AnalysisQueue,
+  QUEUES,
+  type Job,
   type PgBoss,
   type SyncQueue,
 } from "@velachess/infra-queue";
@@ -22,7 +22,6 @@ export interface LoopHarness {
   db: Database;
   pglite: PGlite;
   boss: PgBoss;
-  analysisQueue: AnalysisQueue;
   syncQueue: SyncQueue;
   lock: ExecutionLock;
   close(): Promise<void>;
@@ -38,7 +37,7 @@ export async function startBoss(pglite: PGlite): Promise<PgBoss> {
 
 export function pgliteLock(pglite: PGlite): ExecutionLock {
   return sessionAdvisoryLock({
-    query: (sql, params) => pglite.query(sql, params as never),
+    query: (sql, params) => pglite.query(sql, params),
   });
 }
 
@@ -50,12 +49,30 @@ export async function createLoopHarness(): Promise<LoopHarness> {
     db,
     pglite,
     boss,
-    analysisQueue: makeAnalysisQueue(boss, db),
-    syncQueue: makeSyncQueue(boss, db),
+    syncQueue: makeSyncQueue(boss),
     lock: pgliteLock(pglite),
     close: async () => {
       await boss.stop({ graceful: false });
       await close();
     },
   };
+}
+
+/** Raised per call, so the job just picked always outranks earlier picks. */
+let pickPriority = 1_000_000;
+
+/**
+ * One sync job's delivery, fetched from pg-boss the way a worker gets it
+ * (active, with a signal of its own), but picked by id: the job is moved
+ * ahead of the queue first, so the fetch claims it and nothing else.
+ */
+export async function deliverSyncJob(boss: PgBoss, id: string): Promise<Job> {
+  pickPriority += 1;
+  await boss.update(QUEUES.sync, undefined, { id, priority: pickPriority });
+  const [job] = await boss.fetch<object>(QUEUES.sync, {
+    ignoreStartAfter: true,
+    minPriority: pickPriority,
+  });
+  if (job?.id !== id) throw new Error(`sync job ${id} has no delivery waiting`);
+  return { ...job, signal: new AbortController().signal };
 }

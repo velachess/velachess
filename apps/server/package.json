@@ -14,7 +14,6 @@
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
     "@velachess/accounts": "workspace:*",
-    "@velachess/analysis": "workspace:*",
     "@velachess/infra-auth": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/games": "workspace:*",
