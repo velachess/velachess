@@ -1,14 +1,21 @@
 // @vitest-environment node
 import { createRequire } from "node:module";
 
-import { parsePgn } from "@velachess/chess";
+import { parsePgn, replayMainline } from "@velachess/chess";
 import { EngineSession, type Transport } from "@velachess/infra-engine";
 import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
 import { describe, expect, it } from "vitest";
 
 import type { StoredGradedPly } from "@velachess/infra-db";
 
-import { analyzeGame, type AnalysisEvent, type GradedPly } from "../analyze-game.ts";
+import {
+  analyzeGame,
+  evaluatePositions,
+  fensToEvaluate,
+  gradeGame,
+  type AnalysisEvent,
+  type GradedPly,
+} from "../analyze-game.ts";
 
 // Drift guard: infra-db stores a report as jsonb and declares its own
 // structural mirror of GradedPly, because drizzle-kit's schema loader must
@@ -179,4 +186,53 @@ describe("analyzeGame retry budget", () => {
     expect(done?.positions).toHaveLength(2);
     expect(sessions).toBe(3);
   }, 15_000);
+});
+
+describe("fensToEvaluate", () => {
+  it("includes the position after the final move when the game didn't end there", () => {
+    const game = parsePgn("1. e4 e5 *")[0]!;
+    const replay = replayMainline(game).unwrap();
+
+    expect(fensToEvaluate(replay)).toEqual([
+      replay.moves[0]!.fenBefore,
+      replay.moves[0]!.fenAfter,
+      replay.moves[1]!.fenAfter,
+    ]);
+  });
+
+  it("drops the final move's own position when it ends the game — the rules score it, not a search", () => {
+    const game = parsePgn(FOOLS_MATE)[0]!;
+    const replay = replayMainline(game).unwrap();
+
+    expect(fensToEvaluate(replay)).toEqual([
+      replay.moves[0]!.fenBefore,
+      replay.moves[0]!.fenAfter,
+      replay.moves[1]!.fenAfter,
+      replay.moves[2]!.fenAfter,
+    ]);
+    expect(fensToEvaluate(replay)).not.toContain(replay.moves[3]!.fenAfter);
+  });
+
+  it("returns nothing for a game with no moves", () => {
+    const game = parsePgn("*")[0]!;
+    const replay = replayMainline(game).unwrap();
+
+    expect(fensToEvaluate(replay)).toEqual([]);
+  });
+});
+
+describe("evaluatePositions + gradeGame parity", () => {
+  it("produces, in sequence, the exact same positions analyzeGame streams for the same input", async () => {
+    const game = parsePgn(FOOLS_MATE)[0]!;
+    const replay = replayMainline(game).unwrap();
+
+    const evals = await evaluatePositions(fensToEvaluate(replay), makeStockfishSession, {
+      depth: 8,
+    });
+    const split = gradeGame(replay.moves, replay.finalPosition, evals);
+
+    const { done } = await collect(analyzeGame(game, makeStockfishSession, { depth: 8 }));
+
+    expect(split).toEqual(done?.positions);
+  });
 });

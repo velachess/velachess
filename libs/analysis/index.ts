@@ -12,11 +12,17 @@
  * policies (no DB/queue dependency of their own).
  */
 
-export { analyzeGame } from "./process-analysis/analyze-game.ts";
+export {
+  analyzeGame,
+  evaluatePositions,
+  fensToEvaluate,
+  gradeGame,
+} from "./process-analysis/analyze-game.ts";
 export type {
   AnalysisEvent,
   AnalyzeOptions,
   GradedPly,
+  RawEval,
 } from "./process-analysis/analyze-game.ts";
 
 /** The move vocabulary itself, for consumers that render it — `apps/web`
