@@ -301,16 +301,28 @@ describe("game analysis", () => {
   });
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
-    // Cancellation is the browser-analysis service's own job (see
-    // `analyze-game-in-browser.test.ts`); here the concern is purely the
-    // screen's: a stale run's partial result must never render as if it
-    // belonged to whatever game is open now.
+    // Cancellation itself is `EngineManager`'s own job (see
+    // `engine-manager.test.ts` and `analyze-game-in-browser.test.ts`);
+    // here the concern is purely the screen's: a stale run's partial
+    // result must never render as if it belonged to whatever game is
+    // open now. The mock reacts to the abort signal — same as the real
+    // generator — so opening the second game can actually unblock the
+    // first game's teardown instead of leaving it stuck forever behind
+    // `EngineManager`'s serialized queue.
     const first = aGame();
     addGames(first);
-    // oxlint-disable-next-line eslint/require-yield -- mocks a run that never grades anything
-    vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
-      await neverResolves();
-    });
+    vi.mocked(analyzeGameInBrowser).mockImplementation(
+      // oxlint-disable-next-line eslint/require-yield -- mocks a run that never grades anything until cancelled
+      async function* (_pgn, _depth, signal) {
+        await new Promise<void>((resolve) => {
+          if (signal.aborted) {
+            resolve();
+            return;
+          }
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+    );
     await renderApp({ path: `/games/${first.id}` });
     await screen.findByRole("button", { name: "Previous move" });
 

@@ -1,7 +1,11 @@
 /**
  * Drives the review screen's analysis: Stockfish WASM in the browser only,
- * no server fallback. No cancel-on-unmount — an in-flight run finishes in
- * the background rather than stopping when the screen is left early.
+ * no server fallback. `EngineManager` is the one Worker this app ever
+ * runs — opening a different game cancels whatever the previous one was
+ * doing rather than letting two games fight over it (or a stale result
+ * leak into the game that's open now). There is still no cancel-on-close:
+ * closing the *last* open game's screen, with nothing new to replace it,
+ * lets that run finish in the background.
  */
 import { gameQuery } from "../analysis-contract.ts";
 import type { GradedPly, ReplayableGame } from "../analysis-contract.ts";
@@ -15,7 +19,7 @@ import {
   type ReplayNavigation,
 } from "../open-game/use-chess-replay.ts";
 
-import { analyzeGameInBrowser } from "./analyze-game-in-browser.ts";
+import { engineManager } from "./engine-manager.ts";
 
 function browserAnalysisKey(gameId: string) {
   return ["browser-analysis", gameId] as const;
@@ -41,7 +45,7 @@ export function useBrowserAnalysis(
   const analysis = useQuery({
     queryKey: browserAnalysisKey(gameId),
     queryFn: streamedQuery({
-      streamFn: ({ signal }) => analyzeGameInBrowser(rawPgn ?? "", 14, signal),
+      streamFn: ({ signal }) => engineManager.runGame(rawPgn ?? "", 14, signal),
       refetchMode: "replace",
     }),
     enabled: rawPgn !== undefined,

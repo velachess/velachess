@@ -53,6 +53,9 @@ export class EngineSession {
         })(),
         deadline,
       ]);
+    } catch (error) {
+      this.transport.close();
+      throw error;
     } finally {
       clearTimeout(timer);
     }
@@ -158,7 +161,10 @@ export class EngineSession {
   private async drainUntil(isDone: (line: string) => boolean): Promise<void> {
     while (true) {
       const next = await this.iterator.next();
-      if (next.done || isDone(next.value)) return;
+      if (next.done) {
+        throw new Error("Engine closed before completing the handshake");
+      }
+      if (isDone(next.value)) return;
     }
   }
 }

@@ -113,3 +113,70 @@ describe("analyzeGame failure policy", () => {
     expect(sessions).toBe(2);
   }, 15_000);
 });
+
+describe("analyzeGame retry budget", () => {
+  class FlakyTransport implements Transport {
+    private readonly queue: string[] = [];
+    private waiting: ((line: string) => void) | null = null;
+
+    constructor(
+      private readonly goCalls: { count: number },
+      private readonly failOnGoCalls: ReadonlySet<number>,
+    ) {}
+
+    send(command: string): void {
+      if (!command.startsWith("go")) return;
+      this.goCalls.count++;
+      if (this.failOnGoCalls.has(this.goCalls.count)) return;
+      this.push("info depth 1 multipv 1 score cp 0 pv e2e4");
+      this.push("bestmove e2e4");
+    }
+
+    private push(line: string): void {
+      if (this.waiting) {
+        const resolve = this.waiting;
+        this.waiting = null;
+        resolve(line);
+      } else {
+        this.queue.push(line);
+      }
+    }
+
+    async *lines(): AsyncIterable<string> {
+      while (true) {
+        const queued = this.queue.shift();
+        if (queued !== undefined) {
+          yield queued;
+          continue;
+        }
+        yield await new Promise<string>((resolve) => {
+          this.waiting = resolve;
+        });
+      }
+    }
+
+    close(): void {}
+  }
+
+  it("retries each failing position independently, not just the first one in the game", async () => {
+    const goCalls = { count: 0 };
+    const failOnGoCalls = new Set([1, 3]);
+    let sessions = 0;
+    const makeFlakySession = async () => {
+      sessions++;
+      return new EngineSession(new FlakyTransport(goCalls, failOnGoCalls));
+    };
+
+    // 2 plies need 3 searches (before e4, after e4, after e5). Go-calls #1
+    // (before e4) and #3 (after e4) each fail once — a global retry flag
+    // would let the first recover but abort the game on the second.
+    const game = parsePgn("1. e4 e5 *")[0]!;
+    const { positions, done } = await collect(
+      analyzeGame(game, makeFlakySession, { depth: 8, searchTimeoutMs: 50 }),
+    );
+
+    expect(positions).toHaveLength(2);
+    expect(done?.positions).toHaveLength(2);
+    expect(sessions).toBe(3);
+  }, 15_000);
+});

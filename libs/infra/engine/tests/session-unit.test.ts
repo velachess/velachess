@@ -153,3 +153,36 @@ describe("EngineSession.init timeout", () => {
     await expect(init).resolves.toBeUndefined();
   });
 });
+
+describe("EngineSession.init resilience", () => {
+  it("closes the transport when the handshake times out", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    await expect(session.init({ timeoutMs: 50 })).rejects.toThrow(/handshake timed out/);
+    expect(transport.closed).toBe(true);
+  });
+
+  it("closes the transport and rejects when the stream ends before uciok", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    const init = session.init({ timeoutMs: 1000 });
+    transport.end();
+
+    await expect(init).rejects.toThrow(/closed before completing the handshake/);
+    expect(transport.closed).toBe(true);
+  });
+
+  it("closes the transport and rejects when the stream ends between uciok and readyok", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    const init = session.init({ timeoutMs: 1000 });
+    transport.emit("uciok");
+    transport.end();
+
+    await expect(init).rejects.toThrow(/closed before completing the handshake/);
+    expect(transport.closed).toBe(true);
+  });
+});

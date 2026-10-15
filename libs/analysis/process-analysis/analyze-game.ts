@@ -111,16 +111,10 @@ export async function* analyzeGame(
   const total = replay.moves.length;
 
   let session = await makeSession();
-  let retried = false;
 
   const evaluate = async (fen: string): Promise<Evaluation> => {
     const first = await searchOnce(session, fen, depth, timeoutMs);
     if (first) return first;
-    if (retried) {
-      session.quit();
-      throw new Error(`Engine failed twice evaluating ${fen}`);
-    }
-    retried = true;
     session.quit();
     session = await makeSession();
     const second = await searchOnce(session, fen, depth, timeoutMs);
