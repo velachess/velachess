@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@velachess/chess": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@velachess/fixtures": "workspace:*"

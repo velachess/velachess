@@ -25,7 +25,7 @@
     "@velachess/infra-storage": "workspace:*",
     "hono": "^4.13.13",
     "postgres": "^3.4.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "type": "module",
   "devDependencies": {
