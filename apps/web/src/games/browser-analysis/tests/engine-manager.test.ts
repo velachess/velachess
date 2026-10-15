@@ -23,6 +23,7 @@ function makeControllableRun() {
   let aborted = false;
 
   const run = vi.fn(async function* (
+    _gameId: string,
     _rawPgn: string,
     _depth: number,
     signal: AbortSignal,
@@ -62,12 +63,12 @@ describe("EngineManager.runGame", () => {
     const first = makeControllableRun();
     vi.mocked(analyzeGameInBrowser).mockImplementation(first.run);
 
-    const genA = manager.runGame("pgn-a", 14, new AbortController().signal);
+    const genA = manager.runGame("game-a", "pgn-a", 14, new AbortController().signal);
     const runA = pump(genA);
     await vi.waitFor(() => expect(runA.seen).toHaveLength(1));
 
     const second = makeControllableRun();
-    const genB = manager.runGame("pgn-b", 14, new AbortController().signal);
+    const genB = manager.runGame("game-b", "pgn-b", 14, new AbortController().signal);
     const runB = pump(genB);
 
     await vi.waitFor(() => expect(first.wasAborted()).toBe(true));
@@ -88,7 +89,7 @@ describe("EngineManager.runGame", () => {
     const manager = new EngineManager();
     manager.terminate();
 
-    const gen = manager.runGame("pgn", 14, new AbortController().signal);
+    const gen = manager.runGame("game-x", "pgn", 14, new AbortController().signal);
     await expect(gen.next()).rejects.toThrow(/terminated/);
   });
 

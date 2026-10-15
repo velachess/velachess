@@ -12,7 +12,7 @@
     "import/no-unassigned-import": [
       "warn",
       {
-        "allow": ["**/*.css", "@testing-library/jest-dom/vitest"]
+        "allow": ["**/*.css", "@testing-library/jest-dom/vitest", "fake-indexeddb/auto"]
       }
     ],
     "eslint/no-inline-comments": "error",

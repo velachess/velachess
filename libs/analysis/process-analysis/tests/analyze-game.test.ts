@@ -221,6 +221,82 @@ describe("fensToEvaluate", () => {
   });
 });
 
+function makeSpyCache(
+  prefilled: Map<string, { score: { cp: number }; bestMove: string }>,
+) {
+  const puts: string[] = [];
+  return {
+    cache: {
+      get: (fen: string) => prefilled.get(fen) ?? null,
+      put: (fen: string, raw: { score: { cp: number }; bestMove: string | null }) => {
+        puts.push(fen);
+        prefilled.set(fen, { score: raw.score, bestMove: raw.bestMove ?? "" });
+      },
+    },
+    puts,
+  };
+}
+
+describe("AnalyzeOptions.cache", () => {
+  class AutoAnswerTransport implements Transport {
+    private readonly queue: string[] = [];
+    private waiting: ((line: string) => void) | null = null;
+
+    constructor(private readonly goCalls: { count: number }) {}
+
+    send(command: string): void {
+      if (!command.startsWith("go")) return;
+      this.goCalls.count++;
+      this.push("info depth 1 multipv 1 score cp 0 pv e2e4");
+      this.push("bestmove e2e4");
+    }
+
+    private push(line: string): void {
+      if (this.waiting) {
+        const resolve = this.waiting;
+        this.waiting = null;
+        resolve(line);
+      } else {
+        this.queue.push(line);
+      }
+    }
+
+    async *lines(): AsyncIterable<string> {
+      while (true) {
+        const queued = this.queue.shift();
+        if (queued !== undefined) {
+          yield queued;
+          continue;
+        }
+        yield await new Promise<string>((resolve) => {
+          this.waiting = resolve;
+        });
+      }
+    }
+
+    close(): void {}
+  }
+
+  it("skips the engine for a cached position and still writes a miss through", async () => {
+    const game = parsePgn("1. e4 e5 *")[0]!;
+    const replay = replayMainline(game).unwrap();
+    const fens = fensToEvaluate(replay);
+    const cachedFen = fens[1]!;
+    const cachedEval = { score: { cp: 999 }, bestMove: "g1f3" };
+
+    const goCalls = { count: 0 };
+    const { cache, puts } = makeSpyCache(new Map([[cachedFen, cachedEval]]));
+    const makeSession = async () => new EngineSession(new AutoAnswerTransport(goCalls));
+
+    const evals = await evaluatePositions(fens, makeSession, { depth: 8, cache });
+
+    // 3 positions, 1 already cached — only the other 2 ever reach the engine.
+    expect(goCalls.count).toBe(2);
+    expect(evals[1]).toEqual(cachedEval);
+    expect(puts).toEqual([fens[0], fens[2]]);
+  });
+});
+
 describe("evaluatePositions + gradeGame parity", () => {
   it("produces, in sequence, the exact same positions analyzeGame streams for the same input", async () => {
     const game = parsePgn(FOOLS_MATE)[0]!;

@@ -55,7 +55,7 @@ const findBlunderButton = () =>
 /** Yields each move in order, as `analyzeGameInBrowser` would. */
 function stageAnalysis(moves: GradedPly[]): void {
   vi.mocked(analyzeGameInBrowser).mockImplementation(
-    async function* (_pgn, _depth, signal) {
+    async function* (_gameId, _pgn, _depth, signal) {
       for (const move of moves) {
         if (signal.aborted) return;
         yield move;
@@ -313,7 +313,7 @@ describe("game analysis", () => {
     addGames(first);
     vi.mocked(analyzeGameInBrowser).mockImplementation(
       // oxlint-disable-next-line eslint/require-yield -- mocks a run that never grades anything until cancelled
-      async function* (_pgn, _depth, signal) {
+      async function* (_gameId, _pgn, _depth, signal) {
         await new Promise<void>((resolve) => {
           if (signal.aborted) {
             resolve();

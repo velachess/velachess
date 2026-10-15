@@ -23,6 +23,7 @@ export type {
   AnalyzeOptions,
   GradedPly,
   RawEval,
+  RawEvalCache,
 } from "./process-analysis/analyze-game.ts";
 
 /** The move vocabulary itself, for consumers that render it — `apps/web`
@@ -32,3 +33,5 @@ export type { MoveCategory } from "./move-category.ts";
 export type { WhitePovScore } from "./score.ts";
 
 export { scoreToWinChance } from "./classify-move.ts";
+
+export { POLICY_VERSION } from "./policy-version.ts";

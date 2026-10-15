@@ -42,15 +42,28 @@ export type AnalysisEvent =
   | { type: "position"; index: number; total: number; position: GradedPly }
   | { type: "done"; positions: GradedPly[] };
 
-export interface AnalyzeOptions {
-  depth?: number;
-  searchTimeoutMs?: number;
-}
-
 /** One position's engine output, nothing about the move it preceded. */
 export interface RawEval {
   score: WhitePovScore;
   bestMove: string | null;
+}
+
+/**
+ * A narrow dependency a caller may supply so a position already seen
+ * (same FEN, same search parameters) never reaches the engine twice. This
+ * module has no cache of its own — IndexedDB, keying by engine build, and
+ * LRU eviction are all the caller's concern
+ * (`apps/web/src/games/browser-analysis/analysis-cache.ts`).
+ */
+export interface RawEvalCache {
+  get(fen: string): RawEval | null | Promise<RawEval | null>;
+  put(fen: string, raw: RawEval): void | Promise<void>;
+}
+
+export interface AnalyzeOptions {
+  depth?: number;
+  searchTimeoutMs?: number;
+  cache?: RawEvalCache;
 }
 
 function sideToMove(fen: string): "white" | "black" {
@@ -121,6 +134,7 @@ class RetryingEvaluator {
     private readonly makeSession: () => Promise<EngineSession>,
     private readonly depth: number,
     private readonly timeoutMs: number,
+    private readonly cache: RawEvalCache | undefined,
   ) {
     this.session = session;
   }
@@ -129,13 +143,26 @@ class RetryingEvaluator {
     makeSession: () => Promise<EngineSession>,
     depth: number,
     timeoutMs: number,
+    cache?: RawEvalCache,
   ): Promise<RetryingEvaluator> {
-    return new RetryingEvaluator(await makeSession(), makeSession, depth, timeoutMs);
+    return new RetryingEvaluator(
+      await makeSession(),
+      makeSession,
+      depth,
+      timeoutMs,
+      cache,
+    );
   }
 
   async evaluate(fen: string): Promise<RawEval> {
+    const cached = await this.cache?.get(fen);
+    if (cached) return cached;
+
     const first = await searchOnce(this.session, fen, this.depth, this.timeoutMs);
-    if (first) return first;
+    if (first) {
+      await this.cache?.put(fen, first);
+      return first;
+    }
 
     this.session.quit();
     this.session = await this.makeSession();
@@ -144,6 +171,7 @@ class RetryingEvaluator {
       this.session.quit();
       throw new Error(`Engine failed twice evaluating ${fen}`);
     }
+    await this.cache?.put(fen, second);
     return second;
   }
 
@@ -217,7 +245,12 @@ export async function evaluatePositions(
   const depth = opts.depth ?? 14;
   const timeoutMs = watchdogMs(depth, opts.searchTimeoutMs);
 
-  const evaluator = await RetryingEvaluator.create(makeSession, depth, timeoutMs);
+  const evaluator = await RetryingEvaluator.create(
+    makeSession,
+    depth,
+    timeoutMs,
+    opts.cache,
+  );
   try {
     const evals: RawEval[] = [];
     for (const fen of fens) {
@@ -280,7 +313,12 @@ export async function* analyzeGame(
     return;
   }
 
-  const evaluator = await RetryingEvaluator.create(makeSession, depth, timeoutMs);
+  const evaluator = await RetryingEvaluator.create(
+    makeSession,
+    depth,
+    timeoutMs,
+    opts.cache,
+  );
   try {
     const positions: GradedPly[] = [];
     let current = await evaluator.evaluate(firstMove.fenBefore);

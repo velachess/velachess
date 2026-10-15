@@ -45,7 +45,7 @@ export function useBrowserAnalysis(
   const analysis = useQuery({
     queryKey: browserAnalysisKey(gameId),
     queryFn: streamedQuery({
-      streamFn: ({ signal }) => engineManager.runGame(rawPgn ?? "", 14, signal),
+      streamFn: ({ signal }) => engineManager.runGame(gameId, rawPgn ?? "", 14, signal),
       refetchMode: "replace",
     }),
     enabled: rawPgn !== undefined,

@@ -1,14 +1,30 @@
-import { describe, expect, it, vi } from "vitest";
+import "fake-indexeddb/auto";
 
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { fensToEvaluate, POLICY_VERSION } from "@velachess/analysis";
+import { parsePgn, replayMainline } from "@velachess/chess";
 import { EngineSession, type Transport } from "@velachess/infra-engine";
 
+import { aGradedPly } from "../../../test/games.ts";
+import {
+  putCachedRawEval,
+  putCachedReport,
+  resetAnalysisCacheForTests,
+  type CacheKeyParts,
+} from "../analysis-cache.ts";
 import { analyzeGameInBrowser } from "../analyze-game-in-browser.ts";
+import { ENGINE_BUILD } from "../engine-asset.ts";
 
 vi.mock("../create-browser-engine-session.ts", () => ({
   createBrowserEngineSession: vi.fn(),
 }));
 
 import { createBrowserEngineSession } from "../create-browser-engine-session.ts";
+
+afterEach(async () => {
+  await resetAnalysisCacheForTests();
+});
 
 /**
  * In-memory Transport — same shape as
@@ -21,6 +37,9 @@ import { createBrowserEngineSession } from "../create-browser-engine-session.ts"
  */
 class ScriptedTransport implements Transport {
   closed = false;
+  /** Every `go` the engine was actually asked to search — a cache hit
+   * must never increment this. */
+  goCallCount = 0;
   private readonly queue: string[] = [];
   private waiting: ((line: string) => void) | null = null;
   private readonly goResponses: string[][] = [];
@@ -34,6 +53,7 @@ class ScriptedTransport implements Transport {
     if (command === "uci") this.push("uciok");
     else if (command === "isready") this.push("readyok");
     else if (command.startsWith("go")) {
+      this.goCallCount++;
       const lines = this.goResponses.shift();
       if (lines) {
         for (const line of lines) this.push(line);
@@ -105,7 +125,7 @@ describe("analyzeGameInBrowser", () => {
   it("streams one classified GradedPly per ply, in order", async () => {
     const transports = mockEngine();
     const controller = new AbortController();
-    const gen = analyzeGameInBrowser(TWO_PLY_PGN, 14, controller.signal);
+    const gen = analyzeGameInBrowser("game-1", TWO_PLY_PGN, 14, controller.signal);
 
     const run = collect(gen);
     await vi.waitFor(() => expect(transports).toHaveLength(1));
@@ -122,7 +142,7 @@ describe("analyzeGameInBrowser", () => {
   it("aborting stops the in-flight search and ends the stream without the next ply", async () => {
     const transports = mockEngine();
     const controller = new AbortController();
-    const gen = analyzeGameInBrowser(TWO_PLY_PGN, 14, controller.signal);
+    const gen = analyzeGameInBrowser("game-1", TWO_PLY_PGN, 14, controller.signal);
 
     const firstPly = gen.next();
     await vi.waitFor(() => expect(transports).toHaveLength(1));
@@ -147,7 +167,46 @@ describe("analyzeGameInBrowser", () => {
     vi.mocked(createBrowserEngineSession).mockRejectedValue(new Error("no WASM support"));
     const controller = new AbortController();
     await expect(
-      collect(analyzeGameInBrowser(TWO_PLY_PGN, 14, controller.signal)),
+      collect(analyzeGameInBrowser("game-1", TWO_PLY_PGN, 14, controller.signal)),
     ).rejects.toThrow("no WASM support");
+  });
+
+  it("returns a cached report without ever touching the engine", async () => {
+    mockEngine();
+    const parts: CacheKeyParts = { depth: 14, multiPV: 1, engineBuild: ENGINE_BUILD };
+    const cached = [aGradedPly(1), aGradedPly(2)];
+    await putCachedReport("game-1", POLICY_VERSION, parts, cached);
+
+    const controller = new AbortController();
+    const graded = await collect(
+      analyzeGameInBrowser("game-1", TWO_PLY_PGN, 14, controller.signal),
+    );
+
+    expect(graded).toEqual(cached);
+    expect(createBrowserEngineSession).not.toHaveBeenCalled();
+  });
+
+  it("skips the engine for a batch-prefetched position but still searches a miss", async () => {
+    const [game] = parsePgn(TWO_PLY_PGN);
+    const replay = replayMainline(game!).unwrap();
+    const [firstFen] = fensToEvaluate(replay);
+
+    const parts: CacheKeyParts = { depth: 14, multiPV: 1, engineBuild: ENGINE_BUILD };
+    await putCachedRawEval(firstFen!, parts, { score: { cp: 5 }, bestMove: "e2e4" });
+
+    const transports = mockEngine();
+    const controller = new AbortController();
+    const run = collect(
+      analyzeGameInBrowser("game-1", TWO_PLY_PGN, 14, controller.signal),
+    );
+
+    await vi.waitFor(() => expect(transports).toHaveLength(1));
+    // Only the 2 positions the batch prefetch missed — before e5, after e5.
+    transports[0]!.queueGoResponse(goLines(15, "e7e5"));
+    transports[0]!.queueGoResponse(goLines(10, "g1f3"));
+
+    const graded = await run;
+    expect(graded.map((p) => p.san)).toEqual(["e4", "e5"]);
+    expect(transports[0]!.goCallCount).toBe(2);
   });
 });

@@ -18,6 +18,7 @@ export class EngineManager {
   private settled: Promise<void> = Promise.resolve();
 
   async *runGame(
+    gameId: string,
     rawPgn: string,
     depth: number,
     signal: AbortSignal,
@@ -43,7 +44,12 @@ export class EngineManager {
       if (epoch !== this.epoch) return;
 
       const combined = AbortSignal.any([signal, supersede.signal]);
-      for await (const position of analyzeGameInBrowser(rawPgn, depth, combined)) {
+      for await (const position of analyzeGameInBrowser(
+        gameId,
+        rawPgn,
+        depth,
+        combined,
+      )) {
         if (epoch !== this.epoch) return;
         yield position;
       }
