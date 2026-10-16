@@ -118,6 +118,12 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const guardedReplay: ChessReplay = {
     ...replay,
     canGoForward: replay.canGoForward && !isExploring,
+    // Exploring from the very first position (`replay.ply === 0`) has no
+    // real move to go back to, so `replay.canGoBack` alone would leave
+    // Previous disabled — and with Next also blocked while exploring,
+    // nothing could exit. Previous doubles as "leave the exploration"
+    // regardless of whether there's a real ply behind it.
+    canGoBack: replay.canGoBack || isExploring,
     goTo: (ply) => {
       exploration.exit();
       replay.goTo(ply);
