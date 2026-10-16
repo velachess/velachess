@@ -16,7 +16,9 @@ import {
   type Role,
 } from "chessops/types";
 import { makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
-import { parseSan } from "chessops/san";
+import { makeSan, parseSan } from "chessops/san";
+
+import { makeFen } from "./fen.ts";
 
 export { isDrop, isNormal, castlingSide };
 export type { DropMove, Move, NormalMove };
@@ -119,6 +121,45 @@ export function legalMoveBetween(
     ...(promotion ? { promotion } : {}),
   });
   return pos.isLegal(move) ? move : null;
+}
+
+/** The result of actually playing a move, not just checking it. */
+export interface PlayedMove {
+  fen: string;
+  san: string;
+  uci: string;
+}
+
+/**
+ * Validates and applies one move from `from` to `to`, without mutating
+ * `pos`. Promotion defaults to queen — no picker in this app yet, but the
+ * parameter stays real so a future caller (a puzzle trainer, say) can
+ * override it. Returns null on an illegal move, same contract as
+ * `legalMoveBetween`.
+ */
+export function playMove(
+  pos: Position,
+  from: string,
+  to: string,
+  promotion: Role = "queen",
+): PlayedMove | null {
+  // chessops' isLegal rejects any move whose `promotion` doesn't match
+  // "is this actually a pawn landing on the back rank" — so a `queen`
+  // default can't be passed unconditionally. Try with it first (only a
+  // genuine promotion can succeed), fall back without it for everything
+  // else.
+  const move =
+    legalMoveBetween(pos, from, to, promotion) ?? legalMoveBetween(pos, from, to);
+  if (!move) return null;
+
+  // makeSan clones internally and must run before the position is played.
+  const san = makeSan(pos, move);
+  const uci = makeUci(move);
+
+  const next = pos.clone();
+  next.play(move);
+
+  return { fen: makeFen(next.toSetup()), san, uci };
 }
 
 /** A move as the two squares a board draws between. */

@@ -32,6 +32,7 @@ export { MOVE_CATEGORIES } from "./move-category.ts";
 export type { MoveCategory } from "./move-category.ts";
 export type { WhitePovScore } from "./score.ts";
 
-export { scoreToWinChance } from "./classify-move.ts";
+export { classifyMove, scoreToWinChance } from "./classify-move.ts";
+export type { ClassifyInput } from "./classify-move.ts";
 
 export { POLICY_VERSION } from "./policy-version.ts";
