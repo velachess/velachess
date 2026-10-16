@@ -11,16 +11,13 @@ import {
 } from "@velachess/ui/chess/board-stage";
 import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
-import { Button } from "@velachess/ui/components/button";
 import { cn } from "@velachess/ui/lib/utils";
 import type { LegalDestination, MoveSquares } from "@velachess/chess";
 import { squaresOfUci } from "@velachess/chess";
 
 import {
   badgeForCategory,
-  CATEGORY_LABELS,
   formatBarScore,
-  glyphOf,
   moveNumberOf,
   sideOfPly,
   squaresOfSanAt,
@@ -33,8 +30,6 @@ const BOARD_COPY = {
   region: msg`Board`,
   start: msg`Starting position`,
   evaluation: msg`Evaluation`,
-  evaluating: msg`Evaluating…`,
-  exitExploration: msg`Back to the game`,
 } as const;
 
 /** An even position, for before the engine has said anything. */
@@ -73,10 +68,9 @@ export interface BoardPaneProps {
    * to its verdict instead of the real grade's. */
   exploringMove: MoveSquares | undefined;
   /** The exploring move's verdict, once the engine has answered — absent
-   * while still evaluating. */
+   * while still evaluating. Only used for the square badge's color; the
+   * banner itself stays generic. */
   exploringCategory: MoveCategory | undefined;
-  /** Present only while exploring; renders the exit banner's button. */
-  onExitExploration: (() => void) | undefined;
   /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
@@ -100,7 +94,6 @@ export function BoardPane({
   legalTargetsOf,
   exploringMove,
   exploringCategory,
-  onExitExploration,
   top,
   bottom,
 }: BoardPaneProps) {
@@ -148,22 +141,6 @@ export function BoardPane({
           className="max-w-none flex-1"
         />
       </div>
-
-      {exploring && (
-        <div
-          className={cn("flex items-center justify-between gap-2 text-sm", BOARD_WIDTH)}
-        >
-          <span>
-            {glyphOf(exploringCategory)}{" "}
-            {exploringCategory
-              ? i18n._(CATEGORY_LABELS[exploringCategory])
-              : i18n._(BOARD_COPY.evaluating)}
-          </span>
-          <Button size="sm" variant="ghost" onClick={onExitExploration}>
-            {i18n._(BOARD_COPY.exitExploration)}
-          </Button>
-        </div>
-      )}
 
       <PlayerStrip
         name={bottom.name}

@@ -26,7 +26,11 @@ import {
 import { BoardPane } from "./board-pane.tsx";
 import { GameCrumb } from "./game-crumb.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
-import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
+import {
+  REPLAY_NAVIGATION,
+  type ChessReplay,
+  type ReplayNavigationEvent,
+} from "./use-chess-replay.ts";
 import { useMoveExploration } from "./use-move-exploration.ts";
 import { useBrowserAnalysis } from "../browser-analysis/index.ts";
 
@@ -95,17 +99,48 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const { game, isLoading, hasFailed, replay, graded, isAnalyzing, analysisFailed } =
     useBrowserAnalysis(gameId, playReplaySound);
 
-  // Ignored while a form field has focus (react-hotkeys-hook default) —
-  // an arrow key stepping the board while someone types elsewhere would
-  // be the wrong kind of clever.
-  useHotkeys("left", () => replay.previous(), { preventDefault: true }, [replay]);
-  useHotkeys("right", () => replay.next(), { preventDefault: true }, [replay]);
-
   // Computed before the early returns below, like every other hook here —
   // `replay`/`graded` are already available even while `game` itself is
   // still loading (useChessReplay falls back to the standard start).
   const positionGrade = gradeAtPly(graded, replay.ply + 1);
   const exploration = useMoveExploration(replay.fen, positionGrade);
+  const isExploring = exploration.result !== null;
+
+  /**
+   * Real replay navigation is also how a user leaves an explored
+   * variation — same as chessflare, which has no dedicated exit button
+   * either, just real moves to click back onto. `goTo`/`previous` exit
+   * first so the move underneath isn't briefly drawn through a stale
+   * attempt; `next` stays blocked outright while exploring, matching
+   * chessflare's own disabled-forward behavior, rather than quietly
+   * exiting and advancing in the same click.
+   */
+  const guardedReplay: ChessReplay = {
+    ...replay,
+    canGoForward: replay.canGoForward && !isExploring,
+    goTo: (ply) => {
+      exploration.exit();
+      replay.goTo(ply);
+    },
+    previous: () => {
+      exploration.exit();
+      replay.previous();
+    },
+    next: () => {
+      if (isExploring) return;
+      replay.next();
+    },
+  };
+
+  // Ignored while a form field has focus (react-hotkeys-hook default) —
+  // an arrow key stepping the board while someone types elsewhere would
+  // be the wrong kind of clever.
+  useHotkeys("left", () => guardedReplay.previous(), { preventDefault: true }, [
+    guardedReplay,
+  ]);
+  useHotkeys("right", () => guardedReplay.next(), { preventDefault: true }, [
+    guardedReplay,
+  ]);
 
   if (isLoading) {
     return <AnalysisSkeleton label={i18n._(ANALYSE_COPY.loading)} />;
@@ -181,7 +216,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
         legalTargetsOf={exploration.legalTargetsOf}
         exploringMove={exploration.result?.move}
         exploringCategory={exploration.verdict?.category}
-        onExitExploration={exploration.result ? exploration.exit : undefined}
         top={top}
         bottom={bottom}
       />
@@ -189,7 +223,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       <AnalysisPanel
         onShowBest={(san) => setPreview({ ply: replay.ply, san })}
         game={game}
-        replay={replay}
+        replay={guardedReplay}
         graded={graded}
         isAnalyzing={isAnalyzing}
         hasFailed={analysisFailed}
