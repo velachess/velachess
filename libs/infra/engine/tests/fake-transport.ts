@@ -1,7 +1,10 @@
 /**
  * In-memory Transport for deterministic session tests — no real process or
  * worker. `emit()` simulates a line arriving from the engine; `sent` records
- * every command the session sent, in order.
+ * every command the session sent, in order. `end()` simulates the
+ * underlying process/worker going away mid-stream (e.g. a crash) without a
+ * final line — the same shape `WorkerTransport` produces on the browser
+ * Worker's native `error` event.
  */
 
 import type { Transport } from "../transport.ts";

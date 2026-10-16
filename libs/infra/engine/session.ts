@@ -26,13 +26,21 @@ export class EngineSession {
   private readonly transport: Transport;
   private readonly iterator: AsyncIterator<string>;
   private inFlight = false;
+  private ready = false;
+  private terminated = false;
 
   constructor(transport: Transport) {
     this.transport = transport;
     this.iterator = transport.lines()[Symbol.asyncIterator]();
   }
 
-  /** Fails instead of hanging when the engine never completes the handshake. */
+  /**
+   * Fails instead of hanging when the engine never completes the
+   * handshake — and never leaves the transport running behind it: a
+   * timed-out or otherwise failed handshake closes the transport before
+   * the error propagates, instead of leaking whatever process/worker it
+   * owns.
+   */
   async init(options: { timeoutMs?: number } = {}): Promise<void> {
     const timeoutMs = options.timeoutMs ?? 10_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -53,6 +61,7 @@ export class EngineSession {
         })(),
         deadline,
       ]);
+      this.ready = true;
     } catch (error) {
       this.transport.close();
       throw error;
@@ -66,6 +75,7 @@ export class EngineSession {
   }
 
   setPosition(fen: string, moves: string[] = []): void {
+    this.assertReady();
     this.transport.send(buildPositionCommand(fen, moves));
   }
 
@@ -75,6 +85,7 @@ export class EngineSession {
    * them unpredictably. Await the previous bestMove (or stop() it) first.
    */
   go(mode: GoMode): GoResult {
+    this.assertReady();
     if (this.inFlight) {
       throw new Error(
         "EngineSession.go() called while a previous search is still in flight",
@@ -154,8 +165,18 @@ export class EngineSession {
   }
 
   quit(): void {
+    this.terminated = true;
     this.transport.send("quit");
     this.transport.close();
+  }
+
+  private assertReady(): void {
+    if (this.terminated) {
+      throw new Error("EngineSession has been terminated — quit() was already called");
+    }
+    if (!this.ready) {
+      throw new Error("EngineSession is not ready — init() has not completed yet");
+    }
   }
 
   private async drainUntil(isDone: (line: string) => boolean): Promise<void> {
