@@ -27,6 +27,7 @@ import { BoardPane } from "./board-pane.tsx";
 import { GameCrumb } from "./game-crumb.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
+import { useMoveExploration } from "./use-move-exploration.ts";
 import { useBrowserAnalysis } from "../browser-analysis/index.ts";
 
 const ANALYSE_COPY = {
@@ -100,6 +101,12 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   useHotkeys("left", () => replay.previous(), { preventDefault: true }, [replay]);
   useHotkeys("right", () => replay.next(), { preventDefault: true }, [replay]);
 
+  // Computed before the early returns below, like every other hook here —
+  // `replay`/`graded` are already available even while `game` itself is
+  // still loading (useChessReplay falls back to the standard start).
+  const positionGrade = gradeAtPly(graded, replay.ply + 1);
+  const exploration = useMoveExploration(replay.fen, positionGrade);
+
   if (isLoading) {
     return <AnalysisSkeleton label={i18n._(ANALYSE_COPY.loading)} />;
   }
@@ -139,7 +146,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const orientation = seatOf(game, myUsernames);
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
-  const positionGrade = gradeAtPly(graded, replay.ply + 1);
   // "You" is a claim, so it needs evidence. The board falls back to white
   // when nobody knows which seat is yours; the trail does not.
   const mySeat = resolveGamePerspective(game, myUsernames);
@@ -153,7 +159,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       }
     >
       <BoardPane
-        fen={replay.fen}
+        fen={exploration.result?.fen ?? replay.fen}
         orientation={orientation}
         move={replay.moves[replay.ply - 1]}
         playedGrade={playedGrade}
@@ -169,6 +175,13 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
             previewFor(preview, replay.ply),
           ) ?? undefined
         }
+        onMove={(boardMove) =>
+          boardMove.to ? exploration.tryMove(boardMove.from, boardMove.to) : false
+        }
+        legalTargetsOf={exploration.legalTargetsOf}
+        exploringMove={exploration.result?.move}
+        exploringCategory={exploration.verdict?.category}
+        onExitExploration={exploration.result ? exploration.exit : undefined}
         top={top}
         bottom={bottom}
       />

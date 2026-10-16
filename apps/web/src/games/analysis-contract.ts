@@ -10,7 +10,7 @@ import { api, parseResponse, type InferResponseType } from "../api/index.ts";
  * there is nothing to mirror. A local zod copy of the shape used to live
  * here and was never parsed; the tests bridged the two with a double cast.
  */
-export { MOVE_CATEGORIES } from "@velachess/analysis";
+export { classifyMove, MOVE_CATEGORIES } from "@velachess/analysis";
 export type { GradedPly, MoveCategory } from "@velachess/analysis";
 
 type GameResponse = InferResponseType<(typeof api.games)[":id"]["$get"], 200>;
