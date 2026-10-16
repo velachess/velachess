@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
 import { Board } from "@velachess/ui/chess/board";
+import type { BoardMove } from "@velachess/ui/chess/board";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 import {
   BOARD_STAGE_WIDTH,
@@ -11,7 +12,7 @@ import {
 import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
-import type { MoveSquares } from "@velachess/chess";
+import type { LegalDestination, MoveSquares } from "@velachess/chess";
 import { squaresOfUci } from "@velachess/chess";
 
 import {
@@ -22,7 +23,7 @@ import {
   squaresOfSanAt,
   whiteShareOf,
 } from "../analysis-read.ts";
-import type { GradedPly, ReplayMove } from "../analysis-contract.ts";
+import type { GradedPly, MoveCategory, ReplayMove } from "../analysis-contract.ts";
 
 const BOARD_COPY = {
   /** A landmark's name is read aloud, so it is copy like any other. */
@@ -56,6 +57,20 @@ export interface BoardPaneProps {
   positionGrade: GradedPly | undefined;
   /** A move someone asked to see, drawn apart from the grade colours. */
   suggestedMove: MoveSquares | undefined;
+  /** Accepts a drop/click move attempt; returns whether it was legal —
+   * absent means the board stays read-only, same as passing nothing. */
+  onMove: ((move: BoardMove) => boolean) | undefined;
+  /** Legal destinations from the square on screen, for the drag hints —
+   * absent means no hints drawn. */
+  legalTargetsOf: ((square: string) => readonly LegalDestination[]) | undefined;
+  /** Set while a user-tried alternate move is showing instead of the real
+   * position — suppresses the best-move arrow and swaps the badge/banner
+   * to its verdict instead of the real grade's. */
+  exploringMove: MoveSquares | undefined;
+  /** The exploring move's verdict, once the engine has answered — absent
+   * while still evaluating. Only used for the square badge's color; the
+   * banner itself stays generic. */
+  exploringCategory: MoveCategory | undefined;
   /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
@@ -75,17 +90,23 @@ export function BoardPane({
   playedGrade,
   positionGrade,
   suggestedMove,
+  onMove,
+  legalTargetsOf,
+  exploringMove,
+  exploringCategory,
   top,
   bottom,
 }: BoardPaneProps) {
   const { i18n } = useLingui();
 
+  const exploring = exploringMove !== undefined;
   const showing = showingLabel(move, i18n._(BOARD_COPY.start));
-  const lastMove = lastMoveOf(move);
-  const bestMove = bestMoveOf(positionGrade);
+  const lastMove = lastMoveOf(move, exploringMove);
+  const bestMove = bestMoveOf(positionGrade, exploringMove);
   const evaluation = evaluationOf(playedGrade);
-
-  const badges = badgesFor(lastMove?.to, playedGrade);
+  const badges = exploring
+    ? badgesFor(exploringMove.to, exploringCategory)
+    : badgesFor(lastMove?.to, playedGrade?.category);
 
   return (
     <BoardColumn label={i18n._(BOARD_COPY.region)}>
@@ -108,14 +129,15 @@ export function BoardPane({
         <Board
           fen={fen}
           orientation={orientation}
-          interactive={false}
           // Off while stepping: the next keypress lands before any easing
           // curve finishes, and a queued animation reads as lag.
           animated={false}
           lastMove={lastMove}
           bestMove={bestMove}
-          suggestedMove={suggestedMove}
+          suggestedMove={exploring ? undefined : suggestedMove}
           badges={badges}
+          onMove={onMove}
+          legalTargetsOf={legalTargetsOf}
           className="max-w-none flex-1"
         />
       </div>
@@ -140,13 +162,23 @@ function showingLabel(move: ReplayMove | undefined, start: string): string {
   return `${moveNumberOf(move.ply)}${suffix} ${move.san}`;
 }
 
-function lastMoveOf(move: ReplayMove | undefined): MoveSquares | undefined {
+function lastMoveOf(
+  move: ReplayMove | undefined,
+  exploringMove: MoveSquares | undefined,
+): MoveSquares | undefined {
+  if (exploringMove) return exploringMove;
   if (!move) return undefined;
   return squaresOfSanAt(move.fenBefore, move.san) ?? undefined;
 }
 
-function bestMoveOf(grade: GradedPly | undefined): MoveSquares | undefined {
-  if (!grade) return undefined;
+function bestMoveOf(
+  grade: GradedPly | undefined,
+  exploringMove: MoveSquares | undefined,
+): MoveSquares | undefined {
+  // Suppressed while exploring: an alternate move's arrow showing the
+  // real game's best move would compare against a position that is no
+  // longer on screen.
+  if (exploringMove || !grade) return undefined;
   return squaresOfUci(grade.bestMove) ?? undefined;
 }
 
@@ -161,10 +193,10 @@ function evaluationOf(grade: GradedPly | undefined) {
 
 function badgesFor(
   square: string | undefined,
-  grade: GradedPly | undefined,
+  category: MoveCategory | undefined,
 ): Record<string, BadgeTone> | undefined {
-  if (!square || !grade) return undefined;
-  const tone = badgeForCategory(grade.category);
+  if (!square || !category) return undefined;
+  const tone = badgeForCategory(category);
   if (!tone) return undefined;
   return { [square]: tone };
 }

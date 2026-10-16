@@ -100,6 +100,12 @@ describe("legalDestinations", () => {
   it("has nothing to offer for a square that is not one", () => {
     expect(squares(START, "z9")).toEqual([]);
   });
+
+  it("offers the other side's own destinations too — not only pos.turn's", () => {
+    // White to move, but asking about a black pawn: exploring what black
+    // could have played here instead needs its hints too.
+    expect(squares(START, "e7")).toEqual(["e5", "e6"]);
+  });
 });
 
 describe("squaresOfUci", () => {

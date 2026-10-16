@@ -10,6 +10,7 @@
 import { EngineSession, type EngineOption } from "@velachess/infra-engine";
 import { WorkerTransport } from "@velachess/infra-engine/transport-worker";
 
+import { checkEngineCapability } from "./check-engine-capability.ts";
 import { ENGINE_SCRIPT_URL } from "./engine-asset.ts";
 
 /** Conservative fixed default — not device-aware, a tuning knob for later. */
@@ -19,15 +20,12 @@ const DEFAULT_HASH_MB = 16;
  * comment below for why `Threads` isn't one of them. */
 const UCI_OPTION = { HASH: "Hash" } as const;
 
-function isBrowserEngineSupported(): boolean {
-  return typeof Worker !== "undefined" && typeof WebAssembly !== "undefined";
-}
-
 export async function createBrowserEngineSession(
   options: { hashMb?: number } = {},
 ): Promise<EngineSession> {
-  if (!isBrowserEngineSupported()) {
-    throw new Error("This browser doesn't support Worker/WebAssembly.");
+  const capability = await checkEngineCapability();
+  if (!capability.ok) {
+    throw new Error(`This browser can't run the engine (${capability.reason}).`);
   }
 
   const worker = new Worker(ENGINE_SCRIPT_URL);

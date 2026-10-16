@@ -26,7 +26,12 @@ import {
 import { BoardPane } from "./board-pane.tsx";
 import { GameCrumb } from "./game-crumb.tsx";
 import { AnalysisPanel } from "./analysis-panel.tsx";
-import { REPLAY_NAVIGATION, type ReplayNavigationEvent } from "./use-chess-replay.ts";
+import {
+  REPLAY_NAVIGATION,
+  type ChessReplay,
+  type ReplayNavigationEvent,
+} from "./use-chess-replay.ts";
+import { useMoveExploration } from "./use-move-exploration.ts";
 import { useBrowserAnalysis } from "../browser-analysis/index.ts";
 
 const ANALYSE_COPY = {
@@ -94,11 +99,54 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const { game, isLoading, hasFailed, replay, graded, isAnalyzing, analysisFailed } =
     useBrowserAnalysis(gameId, playReplaySound);
 
+  // Computed before the early returns below, like every other hook here —
+  // `replay`/`graded` are already available even while `game` itself is
+  // still loading (useChessReplay falls back to the standard start).
+  const positionGrade = gradeAtPly(graded, replay.ply + 1);
+  const exploration = useMoveExploration(replay.fen, positionGrade);
+  const isExploring = exploration.result !== null;
+
+  /**
+   * Real replay navigation is also how a user leaves an explored
+   * variation — same as chessflare, which has no dedicated exit button
+   * either, just real moves to click back onto. `goTo`/`previous` exit
+   * first so the move underneath isn't briefly drawn through a stale
+   * attempt; `next` stays blocked outright while exploring, matching
+   * chessflare's own disabled-forward behavior, rather than quietly
+   * exiting and advancing in the same click.
+   */
+  const guardedReplay: ChessReplay = {
+    ...replay,
+    canGoForward: replay.canGoForward && !isExploring,
+    // Exploring from the very first position (`replay.ply === 0`) has no
+    // real move to go back to, so `replay.canGoBack` alone would leave
+    // Previous disabled — and with Next also blocked while exploring,
+    // nothing could exit. Previous doubles as "leave the exploration"
+    // regardless of whether there's a real ply behind it.
+    canGoBack: replay.canGoBack || isExploring,
+    goTo: (ply) => {
+      exploration.exit();
+      replay.goTo(ply);
+    },
+    previous: () => {
+      exploration.exit();
+      replay.previous();
+    },
+    next: () => {
+      if (isExploring) return;
+      replay.next();
+    },
+  };
+
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would
   // be the wrong kind of clever.
-  useHotkeys("left", () => replay.previous(), { preventDefault: true }, [replay]);
-  useHotkeys("right", () => replay.next(), { preventDefault: true }, [replay]);
+  useHotkeys("left", () => guardedReplay.previous(), { preventDefault: true }, [
+    guardedReplay,
+  ]);
+  useHotkeys("right", () => guardedReplay.next(), { preventDefault: true }, [
+    guardedReplay,
+  ]);
 
   if (isLoading) {
     return <AnalysisSkeleton label={i18n._(ANALYSE_COPY.loading)} />;
@@ -139,7 +187,6 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
   const orientation = seatOf(game, myUsernames);
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, replay.ply);
-  const positionGrade = gradeAtPly(graded, replay.ply + 1);
   // "You" is a claim, so it needs evidence. The board falls back to white
   // when nobody knows which seat is yours; the trail does not.
   const mySeat = resolveGamePerspective(game, myUsernames);
@@ -153,7 +200,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       }
     >
       <BoardPane
-        fen={replay.fen}
+        fen={exploration.result?.fen ?? replay.fen}
         orientation={orientation}
         move={replay.moves[replay.ply - 1]}
         playedGrade={playedGrade}
@@ -169,6 +216,12 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
             previewFor(preview, replay.ply),
           ) ?? undefined
         }
+        onMove={(boardMove) =>
+          boardMove.to ? exploration.tryMove(boardMove.from, boardMove.to) : false
+        }
+        legalTargetsOf={exploration.legalTargetsOf}
+        exploringMove={exploration.result?.move}
+        exploringCategory={exploration.verdict?.category}
         top={top}
         bottom={bottom}
       />
@@ -176,7 +229,7 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
       <AnalysisPanel
         onShowBest={(san) => setPreview({ ply: replay.ply, san })}
         game={game}
-        replay={replay}
+        replay={guardedReplay}
         graded={graded}
         isAnalyzing={isAnalyzing}
         hasFailed={analysisFailed}

@@ -271,7 +271,7 @@ module.exports = {
     {
       name: "web-facade-only-for-third-party-clients",
       comment:
-        "zod, hono/client, @tanstack/react-query and event-source-plus are each wrapped once in apps/web/src/libs/* so a version bump or provider swap touches one file; every other file imports the wrapper, never the package directly.",
+        "zod, hono/client, @tanstack/react-query, event-source-plus and idb are each wrapped once in apps/web/src/libs/* so a version bump or provider swap touches one file; every other file imports the wrapper, never the package directly.",
       severity: "error",
       from: { path: "^apps/web/src/", pathNot: ["^apps/web/src/libs/", testPath] },
       to: {
@@ -280,6 +280,7 @@ module.exports = {
           externalPackage("hono"),
           externalPackage("@tanstack/react-query"),
           externalPackage("event-source-plus"),
+          externalPackage("idb"),
         ],
       },
     },

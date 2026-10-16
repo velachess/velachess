@@ -3,6 +3,16 @@ import { describe, expect, it } from "vitest";
 import { EngineSession } from "../session.ts";
 import { FakeTransport } from "./fake-transport.ts";
 
+async function readySession() {
+  const transport = new FakeTransport();
+  const session = new EngineSession(transport);
+  const init = session.init();
+  transport.emit("uciok");
+  transport.emit("readyok");
+  await init;
+  return { transport, session };
+}
+
 describe("EngineSession.init", () => {
   it("sends uci then isready, resolving once both acks arrive", async () => {
     const transport = new FakeTransport();
@@ -49,14 +59,20 @@ describe("EngineSession.setOption", () => {
 });
 
 describe("EngineSession.setPosition", () => {
-  it("sends position with and without moves", () => {
+  it("sends position with and without moves", async () => {
     const transport = new FakeTransport();
     const session = new EngineSession(transport);
+    const init = session.init();
+    transport.emit("uciok");
+    transport.emit("readyok");
+    await init;
 
     session.setPosition("fen-a");
     session.setPosition("fen-b", ["e2e4", "e7e5"]);
 
     expect(transport.sent).toEqual([
+      "uci",
+      "isready",
       "position fen fen-a",
       "position fen fen-b moves e2e4 e7e5",
     ]);
@@ -65,11 +81,10 @@ describe("EngineSession.setPosition", () => {
 
 describe("EngineSession.go", () => {
   it("streams updates and resolves bestMove", async () => {
-    const transport = new FakeTransport();
-    const session = new EngineSession(transport);
+    const { transport, session } = await readySession();
 
     const { updates, bestMove } = session.go({ kind: "depth", depth: 5 });
-    expect(transport.sent).toEqual(["go depth 5"]);
+    expect(transport.sent).toContain("go depth 5");
 
     transport.emit("info depth 1 multipv 1 score cp 10 pv e2e4");
     transport.emit("info depth 2 multipv 1 score cp 12 pv e2e4 e7e5");
@@ -83,9 +98,8 @@ describe("EngineSession.go", () => {
     expect(await bestMove).toEqual({ move: "e2e4", ponder: "e7e5" });
   });
 
-  it("throws if called again before the previous search resolved", () => {
-    const transport = new FakeTransport();
-    const session = new EngineSession(transport);
+  it("throws if called again before the previous search resolved", async () => {
+    const { session } = await readySession();
 
     session.go({ kind: "infinite" });
 
@@ -93,8 +107,7 @@ describe("EngineSession.go", () => {
   });
 
   it("allows a new go() once the previous bestMove has resolved", async () => {
-    const transport = new FakeTransport();
-    const session = new EngineSession(transport);
+    const { transport, session } = await readySession();
 
     const first = session.go({ kind: "depth", depth: 1 });
     transport.emit("bestmove e2e4");
@@ -104,8 +117,7 @@ describe("EngineSession.go", () => {
   });
 
   it("stop() lets an in-flight search's bestMove resolve without draining every update", async () => {
-    const transport = new FakeTransport();
-    const session = new EngineSession(transport);
+    const { transport, session } = await readySession();
 
     const { updates, bestMove } = session.go({ kind: "infinite" });
     const iterator = updates[Symbol.asyncIterator]();
@@ -151,5 +163,80 @@ describe("EngineSession.init timeout", () => {
     transport.emit("readyok");
 
     await expect(init).resolves.toBeUndefined();
+  });
+});
+
+describe("EngineSession.init resilience", () => {
+  it("closes the transport when the handshake times out, instead of leaking it", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    await expect(session.init({ timeoutMs: 50 })).rejects.toThrow(/handshake timed out/);
+    expect(transport.closed).toBe(true);
+  });
+
+  it("rejects with a dedicated error if the line stream ends before uciok arrives", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    const init = session.init({ timeoutMs: 1000 });
+    transport.end();
+
+    await expect(init).rejects.toThrow(/closed before completing the handshake/);
+    expect(transport.closed).toBe(true);
+  });
+
+  it("rejects with a dedicated error if the stream ends between uciok and readyok", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    const init = session.init({ timeoutMs: 1000 });
+    transport.emit("uciok");
+    transport.end();
+
+    await expect(init).rejects.toThrow(/closed before completing the handshake/);
+    expect(transport.closed).toBe(true);
+  });
+});
+
+describe("EngineSession state guards", () => {
+  it("throws if setPosition is called before init() has completed", () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    expect(() => session.setPosition("fen-a")).toThrow(/not ready/);
+  });
+
+  it("throws if go() is called before init() has completed", () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+
+    expect(() => session.go({ kind: "infinite" })).toThrow(/not ready/);
+  });
+
+  it("throws if setPosition is called after quit()", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+    const init = session.init();
+    transport.emit("uciok");
+    transport.emit("readyok");
+    await init;
+
+    session.quit();
+
+    expect(() => session.setPosition("fen-a")).toThrow(/terminated/);
+  });
+
+  it("throws if go() is called after quit()", async () => {
+    const transport = new FakeTransport();
+    const session = new EngineSession(transport);
+    const init = session.init();
+    transport.emit("uciok");
+    transport.emit("readyok");
+    await init;
+
+    session.quit();
+
+    expect(() => session.go({ kind: "infinite" })).toThrow(/terminated/);
   });
 });
