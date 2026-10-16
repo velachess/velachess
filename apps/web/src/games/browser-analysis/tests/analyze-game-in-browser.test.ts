@@ -110,7 +110,12 @@ function mockEngine() {
   vi.mocked(createBrowserEngineSession).mockImplementation(async () => {
     const transport = new ScriptedTransport();
     transports.push(transport);
-    return new EngineSession(transport);
+    const session = new EngineSession(transport);
+    // Real createBrowserEngineSession always awaits init() before handing
+    // the session back — the mock must too, or EngineSession's own
+    // ready guard rejects every setPosition()/go() this test drives.
+    await session.init();
+    return session;
   });
   return transports;
 }

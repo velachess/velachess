@@ -91,18 +91,40 @@ describe("analyzeGame (real Stockfish)", () => {
 describe("analyzeGame failure policy", () => {
   class MuteTransport implements Transport {
     readonly sent: string[] = [];
+    private readonly queue: string[] = [];
+    private waiting: ((line: string) => void) | null = null;
+
     send(command: string): void {
       this.sent.push(command);
+      // Answers the handshake so init() resolves — only `go` is left mute.
+      // The watchdog must react to that, not to init() never completing.
+      if (command === "uci") this.push("uciok");
+      else if (command === "isready") this.push("readyok");
     }
-    // Never emits and never ends: the watchdog is what must react.
-    // Written as a plain method rather than `async *` because a generator
-    // with no yield is a lint error and, more to the point, a lie about
-    // what this does.
-    lines(): AsyncIterable<string> {
-      return {
-        [Symbol.asyncIterator]: () => ({ next: () => new Promise<never>(() => {}) }),
-      };
+
+    private push(line: string): void {
+      if (this.waiting) {
+        const resolve = this.waiting;
+        this.waiting = null;
+        resolve(line);
+      } else {
+        this.queue.push(line);
+      }
     }
+
+    async *lines(): AsyncIterable<string> {
+      while (true) {
+        const queued = this.queue.shift();
+        if (queued !== undefined) {
+          yield queued;
+          continue;
+        }
+        yield await new Promise<string>((resolve) => {
+          this.waiting = resolve;
+        });
+      }
+    }
+
     close(): void {}
   }
 
@@ -110,7 +132,9 @@ describe("analyzeGame failure policy", () => {
     let sessions = 0;
     const makeMuteSession = async () => {
       sessions++;
-      return new EngineSession(new MuteTransport());
+      const session = new EngineSession(new MuteTransport());
+      await session.init();
+      return session;
     };
 
     const game = parsePgn("1. e4 e5 *")[0]!;
@@ -132,6 +156,8 @@ describe("analyzeGame retry budget", () => {
     ) {}
 
     send(command: string): void {
+      if (command === "uci") this.push("uciok");
+      else if (command === "isready") this.push("readyok");
       if (!command.startsWith("go")) return;
       this.goCalls.count++;
       if (this.failOnGoCalls.has(this.goCalls.count)) return;
@@ -171,7 +197,9 @@ describe("analyzeGame retry budget", () => {
     let sessions = 0;
     const makeFlakySession = async () => {
       sessions++;
-      return new EngineSession(new FlakyTransport(goCalls, failOnGoCalls));
+      const session = new EngineSession(new FlakyTransport(goCalls, failOnGoCalls));
+      await session.init();
+      return session;
     };
 
     // 2 plies need 3 searches (before e4, after e4, after e5). Go-calls #1
@@ -245,6 +273,8 @@ describe("AnalyzeOptions.cache", () => {
     constructor(private readonly goCalls: { count: number }) {}
 
     send(command: string): void {
+      if (command === "uci") this.push("uciok");
+      else if (command === "isready") this.push("readyok");
       if (!command.startsWith("go")) return;
       this.goCalls.count++;
       this.push("info depth 1 multipv 1 score cp 0 pv e2e4");
@@ -286,7 +316,11 @@ describe("AnalyzeOptions.cache", () => {
 
     const goCalls = { count: 0 };
     const { cache, puts } = makeSpyCache(new Map([[cachedFen, cachedEval]]));
-    const makeSession = async () => new EngineSession(new AutoAnswerTransport(goCalls));
+    const makeSession = async () => {
+      const session = new EngineSession(new AutoAnswerTransport(goCalls));
+      await session.init();
+      return session;
+    };
 
     const evals = await evaluatePositions(fens, makeSession, { depth: 8, cache });
 
