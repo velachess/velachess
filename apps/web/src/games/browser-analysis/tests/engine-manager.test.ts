@@ -1,11 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { RawEval } from "@velachess/analysis";
+
 vi.mock("../analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
+}));
+vi.mock("../evaluate-position-in-browser.ts", () => ({
+  evaluatePositionInBrowser: vi.fn(),
 }));
 
 import { aGradedPly } from "../../../test/games.ts";
 import { analyzeGameInBrowser } from "../analyze-game-in-browser.ts";
+import { evaluatePositionInBrowser } from "../evaluate-position-in-browser.ts";
 import { EngineManager } from "../engine-manager.ts";
 
 /**
@@ -57,6 +63,36 @@ function pump<T>(gen: AsyncGenerator<T>) {
   return { seen, done };
 }
 
+const A_RAW_EVAL: RawEval = { score: { cp: 10 }, bestMove: "e2e4" };
+
+/**
+ * A controllable stand-in for `evaluatePositionInBrowser`: never resolves
+ * until the test says so, same reasoning as `makeControllableRun` above —
+ * a real abort only hurries the in-flight search, it doesn't make the
+ * call return before the engine actually answers.
+ */
+function makeControllableEval(result: RawEval = A_RAW_EVAL) {
+  let resolveEval!: () => void;
+  const engineAnswered = new Promise<void>((resolve) => {
+    resolveEval = resolve;
+  });
+  let aborted = false;
+
+  const run = vi.fn(async (_fen: string, _depth: number, signal: AbortSignal) => {
+    signal.addEventListener("abort", () => {
+      aborted = true;
+    });
+    await engineAnswered;
+    return result;
+  });
+
+  return {
+    run,
+    answer: () => resolveEval(),
+    wasAborted: () => aborted,
+  };
+}
+
 describe("EngineManager.runGame", () => {
   it("cancels the previous run's signal and serializes the next run behind its teardown", async () => {
     const manager = new EngineManager();
@@ -96,5 +132,89 @@ describe("EngineManager.runGame", () => {
   it("cancel() is a no-op when nothing is running", () => {
     const manager = new EngineManager();
     expect(() => manager.cancel()).not.toThrow();
+  });
+});
+
+describe("EngineManager.evaluatePosition", () => {
+  it("a second call preempts the first — the stale result resolves to undefined", async () => {
+    const manager = new EngineManager();
+    const first = makeControllableEval({ score: { cp: 1 }, bestMove: "e2e4" });
+    vi.mocked(evaluatePositionInBrowser).mockImplementation(first.run);
+
+    const resultA = manager.evaluatePosition("fen-a", 14, new AbortController().signal);
+    await vi.waitFor(() => expect(evaluatePositionInBrowser).toHaveBeenCalledTimes(1));
+
+    const second = makeControllableEval({ score: { cp: 2 }, bestMove: "d2d4" });
+    vi.mocked(evaluatePositionInBrowser).mockImplementation(second.run);
+    const resultB = manager.evaluatePosition("fen-b", 14, new AbortController().signal);
+
+    await vi.waitFor(() => expect(first.wasAborted()).toBe(true));
+    first.answer();
+    expect(await resultA).toBeUndefined();
+
+    await vi.waitFor(() => expect(second.run).toHaveBeenCalledTimes(1));
+    second.answer();
+    expect(await resultB).toEqual({ score: { cp: 2 }, bestMove: "d2d4" });
+  });
+
+  it("rejects once terminated", async () => {
+    const manager = new EngineManager();
+    manager.terminate();
+
+    await expect(
+      manager.evaluatePosition("fen-a", 14, new AbortController().signal),
+    ).rejects.toThrow(/terminated/);
+  });
+});
+
+describe("EngineManager cross-lane priority", () => {
+  it("evaluatePosition preempts an active runGame", async () => {
+    const manager = new EngineManager();
+    const background = makeControllableRun();
+    vi.mocked(analyzeGameInBrowser).mockImplementation(background.run);
+
+    const gen = manager.runGame("game-a", "pgn-a", 14, new AbortController().signal);
+    const run = pump(gen);
+    await vi.waitFor(() => expect(run.seen).toHaveLength(1));
+
+    const interactive = makeControllableEval();
+    vi.mocked(evaluatePositionInBrowser).mockImplementation(interactive.run);
+    const result = manager.evaluatePosition("fen-a", 14, new AbortController().signal);
+
+    await vi.waitFor(() => expect(background.wasAborted()).toBe(true));
+    background.finishTeardown();
+    await run.done;
+
+    await vi.waitFor(() => expect(interactive.run).toHaveBeenCalledTimes(1));
+    interactive.answer();
+    expect(await result).toEqual(A_RAW_EVAL);
+  });
+
+  it("runGame queues behind an active evaluatePosition instead of preempting it", async () => {
+    const manager = new EngineManager();
+    const interactive = makeControllableEval();
+    vi.mocked(evaluatePositionInBrowser).mockImplementation(interactive.run);
+
+    const result = manager.evaluatePosition("fen-a", 14, new AbortController().signal);
+    await vi.waitFor(() => expect(interactive.run).toHaveBeenCalledTimes(1));
+
+    const background = makeControllableRun();
+    vi.mocked(analyzeGameInBrowser).mockImplementation(background.run);
+    const gen = manager.runGame("game-a", "pgn-a", 14, new AbortController().signal);
+    const run = pump(gen);
+
+    // Give the event loop a turn — runGame must still be waiting, not
+    // having started analyzeGameInBrowser (and not having aborted the
+    // interactive call).
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(interactive.wasAborted()).toBe(false);
+    expect(analyzeGameInBrowser).not.toHaveBeenCalled();
+
+    interactive.answer();
+    expect(await result).toEqual(A_RAW_EVAL);
+
+    await vi.waitFor(() => expect(run.seen).toHaveLength(1));
+    background.finishTeardown();
+    await run.done;
   });
 });
