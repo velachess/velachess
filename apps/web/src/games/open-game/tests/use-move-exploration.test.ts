@@ -181,6 +181,34 @@ describe("useMoveExploration", () => {
     expect(pending.wasAborted()).toBe(true);
   });
 
+  it("plays the other side's piece, never marking it the engine's best move", async () => {
+    // bestMove deliberately equals the opponent move's own UCI — if
+    // wasEngineBest weren't gated on the mover matching the position's
+    // real side to move, this would wrongly classify as "best".
+    const grade = aGradedPly(1, {
+      fen: START_FEN,
+      evalBefore: { cp: 20 },
+      bestMove: "e7e5",
+    });
+    const pending = makeControllableEval({ score: { cp: 18 }, bestMove: "e2e4" });
+    vi.mocked(engineManager.evaluatePosition).mockImplementation(pending.run);
+
+    const { result } = renderHook(() => useMoveExploration(START_FEN, grade));
+    let accepted = false;
+    act(() => {
+      accepted = result.current.tryMove("e7", "e5");
+    });
+    expect(accepted).toBe(true);
+
+    await act(async () => {
+      pending.answer();
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("resolved");
+    expect(result.current.verdict?.category).not.toBe("best");
+  });
+
   it("never calls the engine when positionGrade hasn't arrived yet", () => {
     const { result } = renderHook(() => useMoveExploration(START_FEN, undefined));
 

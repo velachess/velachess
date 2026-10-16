@@ -15,6 +15,18 @@ describe("playMove", () => {
       fen: "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
       san: "e4",
       uci: "e2e4",
+      mover: "white",
+    });
+  });
+
+  it("plays the other side's piece — exploring what it could have played instead", () => {
+    const pos = positionFromFen(STARTING_POSITION).unwrap();
+
+    expect(playMove(pos, "e7", "e5")).toEqual({
+      fen: "rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 2",
+      san: "e5",
+      uci: "e7e5",
+      mover: "black",
     });
   });
 

@@ -96,8 +96,13 @@ export function useMoveExploration(
         const { category, winChanceLoss } = classifyMove({
           before: positionGrade.evalBefore,
           after: raw.score,
-          mover: sideToMove(fen),
-          wasEngineBest: positionGrade.bestMove === played.uci,
+          mover: played.mover,
+          // The engine's bestMove is only known for the position's real
+          // side to move — dragging the other side's piece (exploring
+          // what it could have played instead) has no engine opinion to
+          // compare against, so it can never register as "best".
+          wasEngineBest:
+            played.mover === sideToMove(fen) && positionGrade.bestMove === played.uci,
         });
 
         setAttempt({
