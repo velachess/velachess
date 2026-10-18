@@ -249,6 +249,9 @@ importers:
       better-auth:
         specifier: 1.7.7
         version: 1.7.7(@opentelemetry/api@1.9.1)(@tanstack/react-start@1.168.60(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.11)(rollup@4.62.4)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.1)))(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(kysely@0.29.5)(pg@8.23.1)(postgres@3.4.9))(next@16.3.8(@babel/core@8.0.6)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.3(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(msw@2.15.0(@types/node@26.6.4)(typescript@7.0.2))(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.1)))
+      effection:
+        specifier: ^4.2.0
+        version: 4.2.0
       event-source-plus:
         specifier: ^0.1.15
         version: 0.1.15
@@ -376,10 +379,13 @@ importers:
       '@velachess/infra-db':
         specifier: workspace:*
         version: link:../infra/db
+      effection:
+        specifier: ^4.2.0
+        version: 4.2.0
+    devDependencies:
       '@velachess/infra-engine':
         specifier: workspace:*
         version: link:../infra/engine
-    devDependencies:
       stockfish:
         specifier: ^19.0.0
         version: 19.0.1
@@ -446,6 +452,10 @@ importers:
         version: 0.31.10
 
   libs/infra/engine:
+    dependencies:
+      effection:
+        specifier: ^4.2.0
+        version: 4.2.0
     devDependencies:
       '@velachess/fixtures':
         specifier: workspace:*
@@ -512,6 +522,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@electric-sql/pglite@0.5.8)(@opentelemetry/api@1.9.1)(kysely@0.29.5)(pg@8.23.1)(postgres@3.4.9)
+      effection:
+        specifier: ^4.2.0
+        version: 4.2.0
       stockfish:
         specifier: ^19.0.0
         version: 19.0.1
@@ -4353,6 +4366,10 @@ packages:
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
+
+  effection@4.2.0:
+    resolution: {integrity: sha512-exjR8G1aFFcmNMUSsAZKsFJXB1K7CZQm6eKFcNyNnFOG7yEcVo81GLWGEadjheFIr0Mxvi6e40TzN+HyW/uyxw==}
+    engines: {node: '>= 16'}
 
   electron-to-chromium@1.5.422:
     resolution: {integrity: sha512-UvA/32XqrLDdZSn7Jllo1AYNcWji/G0d5M0GTViE7KoGBiMunw3a34Sb2KO4ZZyrSEhqsxFoVhWWJshdyfKqJA==}
@@ -10280,6 +10297,8 @@ snapshots:
       gopd: 1.2.0
 
   ee-first@1.1.1: {}
+
+  effection@4.2.0: {}
 
   electron-to-chromium@1.5.422: {}
 

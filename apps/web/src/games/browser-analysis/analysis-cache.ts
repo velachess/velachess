@@ -20,6 +20,14 @@ export interface CacheKeyParts {
   engineBuild: string;
 }
 
+/** Fixed today — nothing in this app exposes a MultiPV control yet. Part
+ * of the cache key anyway, so turning it on later invalidates what was
+ * cached under the old, always-1 behavior instead of reading it back as
+ * if it reflected more lines than the engine actually searched. Both
+ * callers key off this one value: they have to agree, or a whole-game
+ * pass and an ad-hoc evaluation would miss each other's entries. */
+export const MULTI_PV = 1;
+
 interface RawEvalEntry {
   key: string;
   score: RawEval["score"];

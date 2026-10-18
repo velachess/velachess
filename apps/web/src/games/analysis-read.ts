@@ -61,7 +61,7 @@ function emptyCounts(): CategoryCounts {
 }
 
 /** Split by side because the interesting number is *yours*. */
-export function summarize(moves: GradedPly[]): SideBreakdown {
+export function summarize(moves: readonly GradedPly[]): SideBreakdown {
   const breakdown: SideBreakdown = {
     white: emptyCounts(),
     black: emptyCounts(),
@@ -127,7 +127,10 @@ export function formatBarScore(score: GradedPly["evalAfter"]): string {
 }
 
 /** The verdict on one ply, if any. Looks the ply up rather than indexing: the array is a streaming prefix, not aligned to ply. */
-export function gradeAtPly(graded: GradedPly[], ply: number): GradedPly | undefined {
+export function gradeAtPly(
+  graded: readonly GradedPly[],
+  ply: number,
+): GradedPly | undefined {
   return graded.find((move) => move.ply === ply);
 }
 
@@ -168,7 +171,7 @@ export interface EvalPoint {
 }
 
 /** Delegates cp→win-chance to `@velachess/analysis`: an earlier local copy disagreed on mate handling. */
-export function evalCurve(moves: GradedPly[]): EvalPoint[] {
+export function evalCurve(moves: readonly GradedPly[]): EvalPoint[] {
   return moves.map((move) => ({
     ply: move.ply,
     winChance: whiteShareOf(move.evalAfter),

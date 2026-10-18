@@ -1,15 +1,19 @@
 # @velachess/infra-engine
 
 The UCI engine library, exposed in the workspace as `@velachess/infra-engine`. It
-parses and builds UCI protocol messages, abstracts
-Stockfish transport, and exposes engine sessions; it should not classify moves,
-persist reports, or decide when an engine run starts.
+parses and builds UCI protocol messages, abstracts Stockfish transport, exposes
+engine sessions, and owns evaluation reliability — search watchdog, grace
+period, and retry on a fresh session. It should not classify moves, persist
+reports, or decide when an engine run starts.
+
+Asynchronous lifecycle is Effection: sessions and transports are resources, so
+leaving the scope that opened one quits the engine and releases it.
 
 ## Dependencies
 
 - Internal: none at runtime; tests use `@velachess/fixtures`.
-- External/runtime: transport consumers provide the Stockfish process or worker;
-  tests use the `stockfish` package.
+- External/runtime: `effection`. Transport consumers provide the Stockfish
+  process or worker; tests use the `stockfish` package.
 
 ## Usage / Development
 

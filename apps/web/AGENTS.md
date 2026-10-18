@@ -28,8 +28,9 @@ does not restate it.
   for business logic. A facade re-exports its package under one name so a
   version bump or provider swap touches one file, enforced by
   dependency-cruiser (`web-facade-only-for-third-party-clients`): nothing
-  outside `libs/` may import `zod`, `hono`/`hono/client`, or
-  `@tanstack/react-query` directly.
+  outside `libs/` may import `zod`, `hono`/`hono/client`,
+  `@tanstack/react-query`, `event-source-plus`, `idb`, or `effection`
+  directly.
 - `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
 - API responses are typed through `AppType` and `InferResponseType`. Do not
@@ -54,6 +55,14 @@ does not restate it.
   client-only preference that outlives a screen, `useState` for what dies
   with the component. Derive rather than store — no `useEffect` to keep
   two copies of the same fact in sync.
+- One exception, and it has to earn the name: work this device is doing
+  that outlives the screen watching it. Today that is exactly one thing,
+  browser analysis, whose progress is neither server state nor a
+  preference — `games/browser-analysis/analysis-store.ts` holds it behind
+  `useSyncExternalStore`, and `start-analysis.ts` owns its lifecycle.
+  Reach for zustand for anything a user chose and this pattern only for
+  something still running; a second one of these is a sign the boundary
+  was drawn wrong.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,

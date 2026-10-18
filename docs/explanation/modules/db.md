@@ -103,7 +103,7 @@ simpler scheme, not Lichess's.
 
 `StoredGradedPly` is a structural mirror of `libs/analysis`'s `GradedPly`,
 kept only as a typecheck-time compatibility guard
-(`libs/analysis/process-analysis/tests/analyze-game.test.ts`) — it no longer
+(`libs/analysis/tests/analyze-game.test.ts`) — it no longer
 backs a column; analysis is browser-only and persists nothing server-side.
 
 Every foreign key has an explicit `onDelete`, and every FK gets an explicit

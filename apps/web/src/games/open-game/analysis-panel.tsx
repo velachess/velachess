@@ -28,7 +28,7 @@ const TABS = { move: "move", report: "report" } as const;
 export interface AnalysisPanelProps {
   game: ReplayableGame;
   replay: ChessReplay;
-  graded: GradedPly[];
+  graded: readonly GradedPly[];
   /** Show the engine's move on the board, from the Move tab. */
   onShowBest: (san: string) => void;
   isAnalyzing: boolean;

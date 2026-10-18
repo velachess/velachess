@@ -1,23 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { LegalDestination, MoveSquares } from "@velachess/chess";
+import type { LegalDestination, MoveSquares, PlayedMove } from "@velachess/chess";
 import { legalDestinations, playMove, positionFromFen } from "@velachess/chess";
 
-import { classifyMove, type GradedPly, type MoveCategory } from "../analysis-contract.ts";
-import { engineManager } from "../browser-analysis/index.ts";
+import type { GradedPly } from "../analysis-contract.ts";
+import { run } from "../../libs/effection.ts";
 
-/** Matches `use-browser-analysis.ts`'s own literal — no depth control
- * exposed anywhere in this app yet, for the real review or exploration. */
-const EXPLORATION_DEPTH = 14;
+import { exploreMove, type ExplorationVerdict } from "./explore-move.ts";
 
 type ExplorationStatus = "idle" | "evaluating" | "resolved";
 
+/**
+ * The move being explored, and everything the evaluation of it needs.
+ * `grade` is captured when the move lands rather than read live: the
+ * verdict has to compare against the evaluation the move was tried
+ * against, not whatever the background pass has published since.
+ */
 interface Attempt {
   startFen: string;
   move: MoveSquares;
-  resultFen: string;
+  played: PlayedMove;
+  grade: GradedPly;
   status: "evaluating" | "resolved";
-  verdict: { category: MoveCategory; winChanceLoss: number } | undefined;
+  verdict: ExplorationVerdict | undefined;
 }
 
 export interface MoveExploration {
@@ -26,7 +31,7 @@ export interface MoveExploration {
    * comes back, so the board advances right away. */
   result: { fen: string; move: MoveSquares } | null;
   /** Set only once `status` is "resolved". */
-  verdict: { category: MoveCategory; winChanceLoss: number } | null;
+  verdict: ExplorationVerdict | null;
   /** Legal destinations from the position on screen. Empty once a move
    * has landed — chaining a second exploratory move is out of scope. */
   legalTargetsOf: (square: string) => readonly LegalDestination[];
@@ -34,91 +39,78 @@ export interface MoveExploration {
   exit: () => void;
 }
 
-function sideToMove(fen: string): "white" | "black" {
-  return fen.includes(" w ") ? "white" : "black";
-}
-
 /**
  * Lets a user try an alternate move at the position currently on screen
  * and see it classified against the real engine — without touching the
  * actual graded report or its cache.
  *
- * Owns one piece of state (the attempt, if any); everything this returns
- * derives from comparing it against the `fen` on screen right now, same
- * idiom `previewFor` in `analysis-read.ts` already uses for its own
- * ply-tagged preview. Real replay navigation changes `fen` out from under
- * a stale attempt, which simply stops being selected — no effect needed
- * to notice that. The one exception is the component leaving the screen
- * entirely, which nothing can derive; that's the only effect below.
+ * Three actions, one piece of state. The attempt is only the one on
+ * screen while its own `startFen` still matches, same idiom `previewFor`
+ * in `analysis-read.ts` uses for its ply-tagged preview — so real replay
+ * navigation drops it without anything having to clear it.
  */
 export function useMoveExploration(
   fen: string,
   positionGrade: GradedPly | undefined,
 ): MoveExploration {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
+  const active = attempt?.startFen === fen ? attempt : null;
 
+  /**
+   * The one place an exploration is started, and the one place it is
+   * stopped. React's cleanup is the rule: everything that makes this
+   * attempt stop being the one on screen — a newer move, navigation
+   * changing `fen`, `exit()`, the screen going away — runs the same
+   * teardown, so the engine is handed back instead of being left
+   * searching for an answer nobody will read.
+   */
   useEffect(() => {
-    return () => controllerRef.current?.abort();
-  }, []);
+    if (!active || active.status !== "evaluating") return;
 
-  const active = attempt && attempt.startFen === fen ? attempt : null;
+    let cancelled = false;
+    const evaluation = run(() =>
+      exploreMove(active.startFen, active.played, active.grade),
+    );
+
+    evaluation.then(
+      (verdict) => {
+        if (!cancelled) setAttempt({ ...active, status: "resolved", verdict });
+      },
+      () => {
+        // Not a cancellation — `cancelled` covers those, including the
+        // manager preempting this search for a newer one. A real engine
+        // failure has no verdict to show, and leaving the attempt in
+        // "evaluating" would strand the board, so the exploration ends.
+        if (!cancelled) setAttempt(null);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+      // `halt()` hands back a lazy handle: the task is interrupted only
+      // once that handle is consumed, and consuming it rejects.
+      void evaluation.halt().catch(() => {});
+    };
+  }, [active]);
 
   function tryMove(from: string, to: string): boolean {
     if (!positionGrade) return false;
 
-    const position = positionFromFen(fen).unwrap();
-    const played = playMove(position, from, to);
+    const played = playMove(positionFromFen(fen).unwrap(), from, to);
     if (!played) return false;
-
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
 
     setAttempt({
       startFen: fen,
       move: { from, to },
-      resultFen: played.fen,
+      played,
+      grade: positionGrade,
       status: "evaluating",
       verdict: undefined,
     });
-
-    void engineManager
-      .evaluatePosition(played.fen, EXPLORATION_DEPTH, controller.signal)
-      .then((raw) => {
-        // `raw === undefined` means a newer evaluatePosition() call
-        // superseded this one; `controllerRef.current !== controller`
-        // catches the other way an attempt goes stale — exit() or
-        // unmount, which abort the signal without starting a new call,
-        // so EngineManager's own epoch never advances to flag it.
-        if (raw === undefined || controllerRef.current !== controller) return;
-
-        const { category, winChanceLoss } = classifyMove({
-          before: positionGrade.evalBefore,
-          after: raw.score,
-          mover: played.mover,
-          // The engine's bestMove is only known for the position's real
-          // side to move — dragging the other side's piece (exploring
-          // what it could have played instead) has no engine opinion to
-          // compare against, so it can never register as "best".
-          wasEngineBest:
-            played.mover === sideToMove(fen) && positionGrade.bestMove === played.uci,
-        });
-
-        setAttempt({
-          startFen: fen,
-          move: { from, to },
-          resultFen: played.fen,
-          status: "resolved",
-          verdict: { category, winChanceLoss },
-        });
-      });
-
     return true;
   }
 
   function exit(): void {
-    controllerRef.current?.abort();
     setAttempt(null);
   }
 
@@ -133,7 +125,7 @@ export function useMoveExploration(
 
   return {
     status: active?.status ?? "idle",
-    result: active ? { fen: active.resultFen, move: active.move } : null,
+    result: active ? { fen: active.played.fen, move: active.move } : null,
     verdict: active?.verdict ?? null,
     legalTargetsOf,
     tryMove,

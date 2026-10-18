@@ -1,4 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
+import { ensure, withResolvers, type Operation } from "effection";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { RawEval } from "@velachess/analysis";
@@ -15,27 +16,37 @@ const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /**
  * A controllable stand-in for `engineManager.evaluatePosition`: never
- * resolves until the test says so, and records whether its signal was
- * aborted — same reasoning as `engine-manager.test.ts`'s own
- * `makeControllableEval`, duplicated locally per this codebase's
- * test-helper convention.
+ * settles until the test says so, and records whether it was halted
+ * instead — duplicated locally per this codebase's test-helper
+ * convention.
  */
 function makeControllableEval(result: RawEval) {
-  let resolveEval!: () => void;
-  const engineAnswered = new Promise<void>((resolve) => {
-    resolveEval = resolve;
-  });
-  let aborted = false;
+  const engineAnswered = withResolvers<RawEval>();
+  let unwound = false;
+  let answered = false;
 
-  const run = vi.fn(async (_fen: string, _depth: number, signal: AbortSignal) => {
-    signal.addEventListener("abort", () => {
-      aborted = true;
+  const run = vi.fn(function* (): Operation<RawEval> {
+    yield* ensure(() => {
+      unwound = true;
     });
-    await engineAnswered;
-    return result;
+    const value = yield* engineAnswered.operation;
+    answered = true;
+    return value;
   });
 
-  return { run, answer: () => resolveEval(), wasAborted: () => aborted };
+  return {
+    run,
+    answer: () => engineAnswered.resolve(result),
+    reject: (error: Error) => engineAnswered.reject(error),
+    wasHalted: () => unwound && !answered,
+  };
+}
+
+/** Lets Effection's scheduler and React's state updates settle. */
+async function flush() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 }
 
 afterEach(() => {
@@ -90,16 +101,14 @@ describe("useMoveExploration", () => {
       result.current.tryMove("e2", "e4");
     });
 
-    await act(async () => {
-      pending.answer();
-      await Promise.resolve();
-    });
+    pending.answer();
+    await flush();
 
     expect(result.current.status).toBe("resolved");
     expect(result.current.verdict?.category).toBeDefined();
   });
 
-  it("a second tryMove aborts the first — only the second's result lands", async () => {
+  it("a second tryMove halts the first — only the second's result lands", async () => {
     const grade = aGradedPly(1, {
       fen: START_FEN,
       evalBefore: { cp: 20 },
@@ -118,24 +127,21 @@ describe("useMoveExploration", () => {
     act(() => {
       result.current.tryMove("d2", "d4");
     });
+    await flush();
 
-    expect(first.wasAborted()).toBe(true);
+    expect(first.wasHalted()).toBe(true);
 
-    await act(async () => {
-      first.answer();
-      await Promise.resolve();
-    });
+    first.answer();
+    await flush();
     expect(result.current.status).toBe("evaluating");
 
-    await act(async () => {
-      second.answer();
-      await Promise.resolve();
-    });
+    second.answer();
+    await flush();
     expect(result.current.status).toBe("resolved");
     expect(result.current.result?.move).toEqual({ from: "d2", to: "d4" });
   });
 
-  it("resets to idle when the real replay navigates to a different fen", () => {
+  it("resets to idle and hands the engine back when the replay navigates away", async () => {
     const grade = aGradedPly(1, {
       fen: START_FEN,
       evalBefore: { cp: 20 },
@@ -154,12 +160,60 @@ describe("useMoveExploration", () => {
     expect(result.current.status).toBe("evaluating");
 
     rerender({ fen: "some-other-fen" });
+    await flush();
 
     expect(result.current.status).toBe("idle");
     expect(result.current.result).toBeNull();
+    // Not merely out of sight: the search is stopped, so the whole-game
+    // pass can take the engine back (`engine-manager.test.ts` covers the
+    // resuming itself).
+    expect(pending.wasHalted()).toBe(true);
   });
 
-  it("exit() resets to idle and aborts a pending eval", () => {
+  it("ends the exploration when the engine fails, rather than leaving it evaluating", async () => {
+    const grade = aGradedPly(1, {
+      fen: START_FEN,
+      evalBefore: { cp: 20 },
+      bestMove: "e2e4",
+    });
+    const pending = makeControllableEval({ score: { cp: 10 }, bestMove: "e7e5" });
+    vi.mocked(engineManager.evaluatePosition).mockImplementation(pending.run);
+
+    const { result } = renderHook(() => useMoveExploration(START_FEN, grade));
+    act(() => {
+      result.current.tryMove("e2", "e4");
+    });
+    expect(result.current.status).toBe("evaluating");
+
+    pending.reject(new Error("Engine failed twice evaluating fen-a"));
+    await flush();
+
+    expect(result.current.status).toBe("idle");
+    expect(result.current.result).toBeNull();
+    expect(result.current.verdict).toBeNull();
+  });
+
+  it("releases the engine when the screen goes away", async () => {
+    const grade = aGradedPly(1, {
+      fen: START_FEN,
+      evalBefore: { cp: 20 },
+      bestMove: "e2e4",
+    });
+    const pending = makeControllableEval({ score: { cp: 10 }, bestMove: "e7e5" });
+    vi.mocked(engineManager.evaluatePosition).mockImplementation(pending.run);
+
+    const { result, unmount } = renderHook(() => useMoveExploration(START_FEN, grade));
+    act(() => {
+      result.current.tryMove("e2", "e4");
+    });
+
+    unmount();
+    await flush();
+
+    expect(pending.wasHalted()).toBe(true);
+  });
+
+  it("exit() resets to idle and halts a pending eval", async () => {
     const grade = aGradedPly(1, {
       fen: START_FEN,
       evalBefore: { cp: 20 },
@@ -176,9 +230,10 @@ describe("useMoveExploration", () => {
     act(() => {
       result.current.exit();
     });
+    await flush();
 
     expect(result.current.status).toBe("idle");
-    expect(pending.wasAborted()).toBe(true);
+    expect(pending.wasHalted()).toBe(true);
   });
 
   it("plays the other side's piece, never marking it the engine's best move", async () => {
@@ -200,10 +255,8 @@ describe("useMoveExploration", () => {
     });
     expect(accepted).toBe(true);
 
-    await act(async () => {
-      pending.answer();
-      await Promise.resolve();
-    });
+    pending.answer();
+    await flush();
 
     expect(result.current.status).toBe("resolved");
     expect(result.current.verdict?.category).not.toBe("best");

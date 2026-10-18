@@ -9,7 +9,7 @@ import type { GradedPly, MoveCategory, ReplayMove } from "../analysis-contract.t
 export interface MoveListProps {
   moves: ReplayMove[];
   /** Grades in ply order — shorter than `moves` while the run streams. */
-  graded: GradedPly[];
+  graded: readonly GradedPly[];
   currentPly: number;
   onSelectPly: (ply: number) => void;
   whiteName: string;
@@ -72,7 +72,7 @@ export function MoveList({
 
 interface MoveCellProps {
   move: ReplayMove | undefined;
-  graded: GradedPly[];
+  graded: readonly GradedPly[];
   currentPly: number;
   onSelectPly: (ply: number) => void;
 }

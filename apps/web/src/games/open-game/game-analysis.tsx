@@ -108,12 +108,11 @@ function GameAnalysisContent({ gameId }: { gameId: string }) {
 
   /**
    * Real replay navigation is also how a user leaves an explored
-   * variation — same as chessflare, which has no dedicated exit button
-   * either, just real moves to click back onto. `goTo`/`previous` exit
-   * first so the move underneath isn't briefly drawn through a stale
-   * attempt; `next` stays blocked outright while exploring, matching
-   * chessflare's own disabled-forward behavior, rather than quietly
-   * exiting and advancing in the same click.
+   * variation — there is no dedicated exit button, just real moves to
+   * click back onto. `goTo`/`previous` exit first so the move underneath
+   * isn't briefly drawn through a stale attempt; `next` stays blocked
+   * outright while exploring, rather than quietly exiting and advancing
+   * in the same click.
    */
   const guardedReplay: ChessReplay = {
     ...replay,

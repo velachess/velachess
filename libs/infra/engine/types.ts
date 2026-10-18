@@ -36,3 +36,12 @@ export interface EngineOption {
   name: string;
   value: string | number | boolean;
 }
+
+/** What one completed search settled on. `bestMove` is null when the
+ * transport's line stream ended before the engine answered — a dead
+ * process or worker. */
+export interface SearchOutcome {
+  /** Last `info` line at `multipv 1`, absent when the engine said nothing. */
+  lastInfo?: EngineUpdate;
+  bestMove: BestMove | null;
+}

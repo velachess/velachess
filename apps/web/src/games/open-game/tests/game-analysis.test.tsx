@@ -1,4 +1,5 @@
 import { fireEvent, screen, within } from "@testing-library/react";
+import { call, suspend, type Operation } from "effection";
 import {
   afterAll,
   afterEach,
@@ -14,6 +15,7 @@ import { addGames, stageSeatIdentities } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
+import { resetAnalysisForTests } from "../../browser-analysis/start-analysis.ts";
 import type { GradedPly } from "../../analysis-contract.ts";
 import type { Game } from "../../list/queries.ts";
 
@@ -41,46 +43,31 @@ const gradedPlies = () =>
 const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
-/**
- * `findByRole`'s own polling defaults to 1000ms, separate from the test's
- * overall timeout — fine for the old, effectively-synchronous mocked HTTP
- * answer, too tight on a slower CI runner for this streamed generator's
- * render-per-ply cadence (seven plies, each its own `setQueryData` + React
- * commit) to land the full game within. An explicit, generous budget here,
- * not a global `asyncUtilTimeout` bump that would loosen every other test.
- */
-const findBlunderButton = () =>
-  screen.findByRole("button", { name: blunderButton }, { timeout: 15_000 });
+const findBlunderButton = () => screen.findByRole("button", { name: blunderButton });
 
-/** Yields each move in order, as `analyzeGameInBrowser` would. */
-function stageAnalysis(moves: GradedPly[]): void {
-  vi.mocked(analyzeGameInBrowser).mockImplementation(
-    async function* (_gameId, _pgn, _depth, signal) {
-      for (const move of moves) {
-        if (signal.aborted) return;
-        yield move;
-      }
-    },
-  );
+/**
+ * Publishes exactly these plies, as `analyzeGameInBrowser` would.
+ * `finished: false` never returns — standing in for "the engine hasn't
+ * finished the rest of the game yet" — and nothing has to be flushed
+ * afterwards, because opening another game halts it.
+ */
+function plyPass(moves: GradedPly[], { finished = true }: { finished?: boolean } = {}) {
+  return function* (_input: unknown, publish: (ply: GradedPly) => void): Operation<void> {
+    for (const move of moves) publish(move);
+    if (!finished) yield* suspend();
+  };
 }
 
-/**
- * A promise that never resolves on its own — standing in for "the engine
- * hasn't finished this ply yet" within a test. Nothing cancels an
- * in-flight query on unmount (by design), so each caller's resolver is
- * tracked and flushed in `afterEach`; otherwise it would keep running in
- * the background for the rest of the suite.
- */
-let pendingForever: Array<() => void> = [];
-function neverResolves(): Promise<void> {
-  return new Promise((resolve) => pendingForever.push(resolve));
+function stageAnalysis(moves: GradedPly[]): void {
+  vi.mocked(analyzeGameInBrowser).mockImplementation(plyPass(moves));
 }
 
 function stageFailedAnalysis(): void {
-  // oxlint-disable-next-line eslint/require-yield -- mocks a run that fails before grading anything
-  vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
-    throw new Error("engine failed");
-  });
+  vi.mocked(analyzeGameInBrowser).mockImplementation(() =>
+    call((): never => {
+      throw new Error("engine failed");
+    }),
+  );
 }
 
 const openGame = async (
@@ -99,11 +86,9 @@ describe("game analysis", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-  });
-
-  afterEach(() => {
-    for (const resolve of pendingForever) resolve();
-    pendingForever = [];
+    // The game-id fixture restarts at `game-1` every test, so a pass the
+    // store still holds under that id would answer for a different game.
+    resetAnalysisForTests();
   });
 
   it("analyses the game on opening it", async () => {
@@ -271,23 +256,20 @@ describe("game analysis", () => {
   it("keeps progress up while the rest of the game is still being graded", async () => {
     const moves = gradedPlies();
     moves[0] = aGradedPly(1, { san: GAME_SANS[0]!, category: "blunder" });
-    vi.mocked(analyzeGameInBrowser).mockImplementation(async function* () {
-      yield moves[0]!;
-      // The rest of the game doesn't arrive within this test — the run
-      // is demonstrably still in progress, not finished short.
-      await neverResolves();
-    });
+    // The rest of the game doesn't arrive within this test — the run is
+    // demonstrably still in progress, not finished short.
+    vi.mocked(analyzeGameInBrowser).mockImplementation(
+      plyPass([moves[0]!], { finished: false }),
+    );
     const game = aGame();
     addGames(game);
     await renderApp({ path: `/games/${game.id}` });
 
     // One move graded, the run demonstrably unfinished — and the status
     // says exactly where it is rather than only that it is working.
-    await screen.findByRole(
-      "button",
-      { name: (c) => c.includes("e4") && c.includes("??") },
-      { timeout: 15_000 },
-    );
+    await screen.findByRole("button", {
+      name: (c) => c.includes("e4") && c.includes("??"),
+    });
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
   }, 20_000);
 
@@ -305,24 +287,12 @@ describe("game analysis", () => {
     // `engine-manager.test.ts` and `analyze-game-in-browser.test.ts`);
     // here the concern is purely the screen's: a stale run's partial
     // result must never render as if it belonged to whatever game is
-    // open now. The mock reacts to the abort signal — same as the real
-    // generator — so opening the second game can actually unblock the
-    // first game's teardown instead of leaving it stuck forever behind
-    // `EngineManager`'s serialized queue.
+    // open now. The first game's pass never grades anything and never
+    // ends on its own — opening the second game is what has to displace
+    // it, rather than the screen waiting behind it.
     const first = aGame();
     addGames(first);
-    vi.mocked(analyzeGameInBrowser).mockImplementation(
-      // oxlint-disable-next-line eslint/require-yield -- mocks a run that never grades anything until cancelled
-      async function* (_gameId, _pgn, _depth, signal) {
-        await new Promise<void>((resolve) => {
-          if (signal.aborted) {
-            resolve();
-            return;
-          }
-          signal.addEventListener("abort", () => resolve(), { once: true });
-        });
-      },
-    );
+    vi.mocked(analyzeGameInBrowser).mockImplementation(plyPass([], { finished: false }));
     await renderApp({ path: `/games/${first.id}` });
     await screen.findByRole("button", { name: "Previous move" });
 
@@ -349,6 +319,9 @@ describe("game breadcrumb", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
+    // The game-id fixture restarts at `game-1` every test, so a pass the
+    // store still holds under that id would answer for a different game.
+    resetAnalysisForTests();
   });
 
   /** Renders the game and hands back its last crumb: the page's own name, not the trail leading to it. */
@@ -487,6 +460,9 @@ describe("provider identity on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
+    // The game-id fixture restarts at `game-1` every test, so a pass the
+    // store still holds under that id would answer for a different game.
+    resetAnalysisForTests();
   });
 
   it("shows each player's own picture beside their name", async () => {
