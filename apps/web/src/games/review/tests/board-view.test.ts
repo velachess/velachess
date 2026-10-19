@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { previewFor, seatIdentityOf, seatOf, suggestedArrow } from "../board-view.ts";
+import { legalTargetsAt, seatIdentityOf, seatOf, suggestedArrow } from "../board-view.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -95,19 +95,26 @@ describe("suggestedArrow", () => {
   });
 });
 
-describe("previewFor", () => {
-  it("keeps the preview on the ply it was asked for", () => {
-    expect(previewFor({ ply: 4, san: "d4" }, 4)).toBe("d4");
+describe("legalTargetsAt", () => {
+  it("offers every square the piece on it can reach", () => {
+    expect(legalTargetsAt(START, "e2").map((target) => target.square)).toEqual([
+      "e3",
+      "e4",
+    ]);
   });
 
-  it("drops it as soon as the board steps anywhere", () => {
-    // Tying it to a ply is what dismisses it: no control has to remember
-    // to clear anything, so none of them can forget.
-    expect(previewFor({ ply: 4, san: "d4" }, 5)).toBeNull();
-    expect(previewFor({ ply: 4, san: "d4" }, 3)).toBeNull();
+  it("offers the side that is not to move too — a variation decides the turn, this does not", () => {
+    expect(legalTargetsAt(START, "e7").map((target) => target.square)).toEqual([
+      "e5",
+      "e6",
+    ]);
   });
 
-  it("has nothing to show when none was asked for", () => {
-    expect(previewFor(null, 4)).toBeNull();
+  it("has nothing to offer from an empty square", () => {
+    expect(legalTargetsAt(START, "e4")).toEqual([]);
+  });
+
+  it("stays quiet on a position it cannot set up, rather than throwing", () => {
+    expect(legalTargetsAt("not a fen", "e2")).toEqual([]);
   });
 });

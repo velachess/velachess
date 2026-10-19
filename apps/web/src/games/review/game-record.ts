@@ -63,7 +63,11 @@ function replay(rawPgn: string): { moves: ReplayMove[]; startFen: string } {
 }
 
 /** A ply is one half-move. Ply 0 is the position before anyone moved. */
-export function fenAtPly(moves: ReplayMove[], startFen: string, ply: number): string {
+export function fenAtPly(
+  moves: readonly ReplayMove[],
+  startFen: string,
+  ply: number,
+): string {
   if (ply <= 0) return startFen;
   return moves[Math.min(ply, moves.length) - 1]?.fenAfter ?? startFen;
 }

@@ -1,10 +1,10 @@
 /**
  * One Worker, one search at a time, across two priority lanes:
  * `background` (the review screen's whole-game pass) and `interactive` (a
- * single ad-hoc FEN from a user exploring an alternate move). Interactive
+ * single ad-hoc FEN from a variation someone is playing). Interactive
  * always preempts background; background queues behind an interactive
  * call rather than interrupting it, and resumes once the engine is free.
- * A user waiting on the move they just tried should never queue behind a
+ * Someone waiting on the move they just played should never queue behind a
  * whole game.
  *
  * All of the coordination is one claim (`holder`) plus one broadcast

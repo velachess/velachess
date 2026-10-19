@@ -67,18 +67,33 @@ does not restate it.
   through `Intl`. Run `pnpm --filter @velachess/web i18n:extract` after
   touching copy.
 - State has four owners and they don't overlap: React Query for anything
-  from the API, the URL for selection and filters, zustand for
-  client-only preference that outlives a screen, `useState` for what dies
-  with the component. Derive rather than store — no `useEffect` to keep
-  two copies of the same fact in sync.
-- One exception, and it has to earn the name: work this device is doing
-  that outlives the screen watching it. Today that is exactly one thing,
-  browser analysis, whose progress is neither server state nor a
-  preference — `games/analysis/analysis-store.ts` holds it behind
-  `useSyncExternalStore`, and `analysis/game/start-analysis.ts` owns its
-  lifecycle. Reach for zustand for anything a user chose and this pattern only for
-  something still running; a second one of these is a sign the boundary
-  was drawn wrong.
+  from the API, the URL for selection and filters, zustand for client-only
+  state, `useState` for what dies with the component. Derive rather than
+  store — no `useEffect` to keep two copies of the same fact in sync.
+- zustand covers two shapes, and the difference is the lifetime, not the
+  library. A module-level store (`create`) holds what outlives every
+  screen: a preference someone chose (`chess-sounds`, `i18n/locale-store`,
+  `import/accounts/source-store`) or work this device is doing
+  (`games/analysis/analysis-store.ts`, whose lifecycle
+  `analysis/game/start-analysis.ts` owns, and which deliberately keeps
+  grading with nothing mounted). A store built per instance
+  (`createStore` from `zustand/vanilla`, handed to consumers through one
+  React context) holds what belongs to one screen but to more than one
+  component in it — today that is exactly `games/review/review-store.ts`.
+  Reach for the second only when a single `useState` would have to be
+  threaded through the tree as props; a third of these is a sign the
+  boundary was drawn wrong.
+- A per-instance store is reached through a domain facade, never
+  directly: components import `use-game-review.ts`, not
+  `review-store.ts` or `zustand`, so the state library can be replaced
+  without touching a screen. The facade is the React boundary and nothing
+  else — no state of its own, no synchronizing effect, no task to run.
+- Review / Variation / Evaluation are three different things and keep
+  their own names. Review is the domain (`games/review`); a Variation is
+  a line of alternative moves played from one ply of the real game, and
+  it is what the types, state and selectors are named after; an
+  Evaluation is what Stockfish produced for a position. A variation gets
+  a number, never a grade — classification belongs to the report.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,

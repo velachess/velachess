@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { resolveGamePerspective } from "@velachess/chess";
@@ -11,22 +11,22 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { cn } from "@velachess/ui/lib/utils";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
-import { CHESS_SOUND_EVENT, useChessSounds } from "../../chess-sounds/index.ts";
+import { CHESS_SOUND_EVENT, playChessSound } from "../../chess-sounds/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
+import { ANALYSIS_DEPTH, startAnalysis, useEngineAnalysis } from "../analysis/index.ts";
 import { flairImageOf, useMyAccounts } from "../import/index.ts";
-import { gradeAtPly } from "../analysis/index.ts";
 import { AnalysisPanel } from "./analysis-panel.tsx";
-import { previewFor, seatIdentityOf, seatOf, suggestedArrow } from "./board-view.ts";
+import { seatIdentityOf, seatOf } from "./board-view.ts";
 import { BoardPane } from "./board-pane.tsx";
-import { gameQuery } from "./game-record.ts";
+import { gameQuery, type ReplayableGame } from "./game-record.ts";
 import { GameCrumb } from "./game-crumb.tsx";
-import { useBrowserAnalysis } from "./use-browser-analysis.ts";
 import {
   REPLAY_NAVIGATION,
-  type ChessReplay,
-  type ReplayNavigationEvent,
-} from "./use-chess-replay.ts";
-import { useMoveExploration } from "./use-move-exploration.ts";
+  ReviewStoreProvider,
+  useCreateReviewStore,
+  type ReplayNavigation,
+} from "./use-game-review.ts";
+import { useVariationEvaluation } from "./use-variation-evaluation.ts";
 
 const ANALYSE_COPY = {
   loading: msg`Loading the game…`,
@@ -39,113 +39,32 @@ const SCORESHEET_SKELETON_CELLS = Array.from(
 );
 
 /**
- * Read the id, hand off to a component keyed by the game. The key is
- * load-bearing: `ply` belongs to *this* game, and remounting resets it
- * without an effect watching `gameId`.
+ * The game itself still comes over HTTP through React Query; the analysis
+ * does not, because it is computed here and its progress belongs to the
+ * device rather than to a cache of server state.
  */
 export function GameReview() {
+  const { i18n } = useLingui();
   // strict: false so it mounts under both the generated route tree and
   // the hand-built one in tests.
   const { gameId = "" } = useParams({ strict: false });
-  return <GameReviewContent key={gameId} gameId={gameId} />;
-}
+  const game = useQuery(gameQuery(gameId));
+  const rawPgn = game.data?.rawPgn;
 
-function GameReviewContent({ gameId }: { gameId: string }) {
-  const { i18n } = useLingui();
-  const playSound = useChessSounds();
-  // The array itself, mapped where it is used: a selector that builds a
-  // new array every render never compares equal, and zustand re-renders
-  // until React gives up.
-  const myAccounts = useMyAccounts((state) => state.accounts);
-  /**
-   * The engine's move, shown on the board.
-   *
-   * Tagged with the ply it belongs to, so stepping anywhere invalidates
-   * it without anything having to clear it. The alternative — a callback
-   * on every control that can navigate — is four places to forget.
-   */
-  const [preview, setPreview] = useState<{ ply: number; san: string } | null>(null);
+  // Whether an analysis is running is not something a render can derive,
+  // and it has to outlive this screen — so this is the one effect here,
+  // and deliberately without cleanup: leaving the screen is not a reason
+  // to throw away the grading already paid for.
+  useEffect(() => {
+    if (rawPgn === undefined) return;
+    startAnalysis({ gameId, rawPgn, depth: ANALYSIS_DEPTH });
+  }, [gameId, rawPgn]);
 
-  // `playReplaySound` is wired into `useAnalysis` below, which is where
-  // `game` (and so `orientation`) normally comes from — reading the same
-  // query directly here breaks that ordering instead of caching the
-  // value in a ref. Same cache entry, no extra fetch.
-  const gameForSound = useQuery(gameQuery(gameId));
-  const orientationForSound = gameForSound.data
-    ? seatOf(
-        gameForSound.data,
-        myAccounts.map((account) => account.username),
-      )
-    : undefined;
-  const playReplaySound = (event: ReplayNavigationEvent) => {
-    if (event.type === REPLAY_NAVIGATION.START) {
-      playSound({ type: CHESS_SOUND_EVENT.GAME_START });
-      return;
-    }
-    playSound({
-      type: CHESS_SOUND_EVENT.MOVE,
-      fenBefore: event.move.fenBefore,
-      san: event.move.san,
-      viewerColor: orientationForSound,
-    });
-  };
-
-  const { game, isLoading, hasFailed, replay, graded, isAnalyzing, analysisFailed } =
-    useBrowserAnalysis(gameId, playReplaySound);
-
-  // Computed before the early returns below, like every other hook here —
-  // `replay`/`graded` are already available even while `game` itself is
-  // still loading (useChessReplay falls back to the standard start).
-  const positionGrade = gradeAtPly(graded, replay.ply + 1);
-  const exploration = useMoveExploration(replay.fen, positionGrade);
-  const isExploring = exploration.result !== null;
-
-  /**
-   * Real replay navigation is also how a user leaves an explored
-   * variation — there is no dedicated exit button, just real moves to
-   * click back onto. `goTo`/`previous` exit first so the move underneath
-   * isn't briefly drawn through a stale attempt; `next` stays blocked
-   * outright while exploring, rather than quietly exiting and advancing
-   * in the same click.
-   */
-  const guardedReplay: ChessReplay = {
-    ...replay,
-    canGoForward: replay.canGoForward && !isExploring,
-    // Exploring from the very first position (`replay.ply === 0`) has no
-    // real move to go back to, so `replay.canGoBack` alone would leave
-    // Previous disabled — and with Next also blocked while exploring,
-    // nothing could exit. Previous doubles as "leave the exploration"
-    // regardless of whether there's a real ply behind it.
-    canGoBack: replay.canGoBack || isExploring,
-    goTo: (ply) => {
-      exploration.exit();
-      replay.goTo(ply);
-    },
-    previous: () => {
-      exploration.exit();
-      replay.previous();
-    },
-    next: () => {
-      if (isExploring) return;
-      replay.next();
-    },
-  };
-
-  // Ignored while a form field has focus (react-hotkeys-hook default) —
-  // an arrow key stepping the board while someone types elsewhere would
-  // be the wrong kind of clever.
-  useHotkeys("left", () => guardedReplay.previous(), { preventDefault: true }, [
-    guardedReplay,
-  ]);
-  useHotkeys("right", () => guardedReplay.next(), { preventDefault: true }, [
-    guardedReplay,
-  ]);
-
-  if (isLoading) {
+  if (game.isPending) {
     return <AnalysisSkeleton label={i18n._(ANALYSE_COPY.loading)} />;
   }
 
-  if (hasFailed || !game) {
+  if (game.isError || !game.data) {
     return (
       <div className="p-6">
         <Empty className="border-0">
@@ -156,6 +75,51 @@ function GameReviewContent({ gameId }: { gameId: string }) {
       </div>
     );
   }
+
+  // The key is load-bearing: the review's state belongs to *this* game,
+  // and remounting resets it without an effect watching `gameId`.
+  return <ReviewScreen key={gameId} gameId={gameId} game={game.data} />;
+}
+
+function ReviewScreen({ gameId, game }: { gameId: string; game: ReplayableGame }) {
+  const { i18n } = useLingui();
+  const analysis = useEngineAnalysis(gameId);
+  // The array itself, mapped where it is used: a selector that builds a
+  // new array every render never compares equal, and zustand re-renders
+  // until React gives up.
+  const myAccounts = useMyAccounts((state) => state.accounts);
+
+  const myUsernames = usernamesOf(myAccounts);
+  const orientation = seatOf(game, myUsernames);
+
+  // Stepping the game is what makes a sound; playing a variation is not.
+  // The store keeps the first of these it is given, so the seat is read
+  // when a sound plays rather than captured — tracked accounts can land
+  // after the screen has mounted.
+  const announce: ReplayNavigation = (event) => {
+    if (event.type === REPLAY_NAVIGATION.START) {
+      playChessSound({ type: CHESS_SOUND_EVENT.GAME_START });
+      return;
+    }
+    playChessSound({
+      type: CHESS_SOUND_EVENT.MOVE,
+      fenBefore: event.move.fenBefore,
+      san: event.move.san,
+      viewerColor: seatOf(game, usernamesOf(useMyAccounts.getState().accounts)),
+    });
+  };
+
+  const store = useCreateReviewStore(game, announce);
+
+  useVariationEvaluation(store);
+
+  // Arrow keys step the board. Ignored while a form field has focus
+  // (react-hotkeys-hook default) — an arrow key stepping the board while
+  // someone types elsewhere would be the wrong kind of clever.
+  useHotkeys("left", () => store.getState().previous(), { preventDefault: true }, [
+    store,
+  ]);
+  useHotkeys("right", () => store.getState().next(), { preventDefault: true }, [store]);
 
   // Identity rides with the game detail payload for BOTH seats — the
   // server resolves each handle from a shared profile cache, tracked
@@ -176,10 +140,6 @@ function GameReviewContent({ gameId }: { gameId: string }) {
   const white = seat(game.whiteName, game.whiteRating, "white");
   const black = seat(game.blackName, game.blackRating, "black");
 
-  const myUsernames = myAccounts.map((account) => account.username);
-  const orientation = seatOf(game, myUsernames);
-  // The move just played, and the choice facing whoever is to move now.
-  const playedGrade = gradeAtPly(graded, replay.ply);
   // "You" is a claim, so it needs evidence. The board falls back to white
   // when nobody knows which seat is yours; the trail does not.
   const mySeat = resolveGamePerspective(game, myUsernames);
@@ -187,49 +147,32 @@ function GameReviewContent({ gameId }: { gameId: string }) {
   const bottom = orientation === "white" ? white : black;
 
   return (
-    <BoardScreen
-      page={
-        <GameCrumb game={game} white={white.name} black={black.name} mySeat={mySeat} />
-      }
-    >
-      <BoardPane
-        fen={exploration.result?.fen ?? replay.fen}
-        orientation={orientation}
-        move={replay.moves[replay.ply - 1]}
-        playedGrade={playedGrade}
-        positionGrade={positionGrade}
-        // Squares are absolute, so the arrow can be drawn on the board
-        // as it stands. What needs the earlier position is turning the
-        // SAN into squares — `Bf5` names a bishop that has since moved
-        // — so the translation reads `fenBefore` and the board is left
-        // exactly as it was. Pointing is not playing.
-        suggestedMove={
-          suggestedArrow(
-            replay.moves[replay.ply - 1]?.fenBefore,
-            previewFor(preview, replay.ply),
-          ) ?? undefined
+    <ReviewStoreProvider value={store}>
+      <BoardScreen
+        page={
+          <GameCrumb game={game} white={white.name} black={black.name} mySeat={mySeat} />
         }
-        onMove={(boardMove) =>
-          boardMove.to ? exploration.tryMove(boardMove.from, boardMove.to) : false
-        }
-        legalTargetsOf={exploration.legalTargetsOf}
-        exploringMove={exploration.result?.move}
-        exploringCategory={exploration.verdict?.category}
-        top={top}
-        bottom={bottom}
-      />
+      >
+        <BoardPane
+          graded={analysis.graded}
+          orientation={orientation}
+          top={top}
+          bottom={bottom}
+        />
 
-      <AnalysisPanel
-        onShowBest={(san) => setPreview({ ply: replay.ply, san })}
-        game={game}
-        replay={guardedReplay}
-        graded={graded}
-        isAnalyzing={isAnalyzing}
-        hasFailed={analysisFailed}
-      />
-    </BoardScreen>
+        <AnalysisPanel
+          game={game}
+          graded={analysis.graded}
+          isAnalyzing={analysis.status === "analyzing"}
+          hasFailed={analysis.status === "error"}
+        />
+      </BoardScreen>
+    </ReviewStoreProvider>
   );
 }
+
+const usernamesOf = (accounts: readonly { username: string }[]) =>
+  accounts.map((account) => account.username);
 
 function AnalysisSkeleton({ label }: { label: string }) {
   return (

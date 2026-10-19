@@ -12,8 +12,9 @@
 import { run } from "../../../libs/effection.ts";
 
 import {
-  analysisStore,
   IDLE_ANALYSIS,
+  setAnalysis,
+  snapshotOf,
   type AnalysisSnapshot,
 } from "../analysis-store.ts";
 import type { GameAnalysisInput } from "./analyze-game-in-browser.ts";
@@ -32,7 +33,7 @@ let active: Pass | null = null;
  * same tick as a replacement cannot land in the new game's snapshot. */
 function publish(pass: Pass, next: (held: AnalysisSnapshot) => AnalysisSnapshot): void {
   if (active !== pass) return;
-  analysisStore.set(pass.gameId, next(analysisStore.snapshotOf(pass.gameId)));
+  setAnalysis(pass.gameId, next(snapshotOf(pass.gameId)));
 }
 
 /**
@@ -41,13 +42,13 @@ function publish(pass: Pass, next: (held: AnalysisSnapshot) => AnalysisSnapshot)
  * screen does not, because nothing here is called on unmount.
  */
 export function startAnalysis(input: GameAnalysisInput): void {
-  const held = analysisStore.snapshotOf(input.gameId);
+  const held = snapshotOf(input.gameId);
   if (active?.gameId === input.gameId && held.status !== "error") return;
 
   const previous = active;
   const pass: Pass = { gameId: input.gameId, halt: null };
   active = pass;
-  analysisStore.set(input.gameId, { status: "analyzing", graded: [], error: null });
+  setAnalysis(input.gameId, { status: "analyzing", graded: [], error: null });
   // After `active` moved, so the replaced pass can no longer write,
   // whichever order the two settle in.
   previous?.halt?.();
@@ -90,5 +91,5 @@ export function resetAnalysisForTests(): void {
   const previous = active;
   active = null;
   previous?.halt?.();
-  if (previous) analysisStore.set(previous.gameId, IDLE_ANALYSIS);
+  if (previous) setAnalysis(previous.gameId, IDLE_ANALYSIS);
 }

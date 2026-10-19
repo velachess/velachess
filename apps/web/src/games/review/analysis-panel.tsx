@@ -13,7 +13,7 @@ import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
-import type { ChessReplay } from "./use-chess-replay.ts";
+import { selectTotalPlies, useGameReview } from "./use-game-review.ts";
 
 const PANEL_COPY = {
   move: msg`Move`,
@@ -27,13 +27,9 @@ const TABS = { move: "move", report: "report" } as const;
 
 export interface AnalysisPanelProps {
   game: ReplayableGame;
-  replay: ChessReplay;
   graded: readonly GradedPly[];
-  /** Show the engine's move on the board, from the Move tab. */
-  onShowBest: (san: string) => void;
   isAnalyzing: boolean;
   hasFailed: boolean;
-  /** The wait, when the failure is the rate limit and not a defect. */
 }
 
 /**
@@ -55,29 +51,37 @@ export interface AnalysisPanelProps {
  */
 export function AnalysisPanel({
   game,
-  replay,
   graded,
-  onShowBest,
   isAnalyzing,
   hasFailed,
 }: AnalysisPanelProps) {
   const { i18n } = useLingui();
   const breakdown = summarize(graded);
 
+  const ply = useGameReview((state) => state.ply);
+  const totalPlies = useGameReview(selectTotalPlies);
+  const goToPly = useGameReview((state) => state.goToPly);
+  const showBest = useGameReview((state) => state.showBest);
+  const move = useGameReview((state) => state.moves[state.ply - 1]);
+  // While a variation is on the board, the main line's verdict is about a
+  // position nobody is looking at — so it is not shown at all, rather
+  // than shown as if it belonged to the move someone just tried.
+  const inVariation = useGameReview((state) => state.variation !== null);
+
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>
       <div className="shrink-0 border-b p-3">
         <EvalGraph
           points={evalCurve(graded)}
-          totalPlies={replay.totalPlies}
-          selectedPly={replay.ply}
-          onSelectPly={replay.goTo}
+          totalPlies={totalPlies}
+          selectedPly={ply}
+          onSelectPly={goToPly}
         />
       </div>
 
       <AnalysisProgress
         graded={breakdown.graded}
-        totalPlies={replay.totalPlies}
+        totalPlies={totalPlies}
         isAnalyzing={isAnalyzing}
         hasFailed={hasFailed}
       />
@@ -102,16 +106,11 @@ export function AnalysisPanel({
         </TabsList>
 
         <TabsContent value={TABS.move} className="flex min-h-0 flex-1 flex-col">
-          <MoveInsight
-            move={replay.moves[replay.ply - 1]}
-            graded={graded[replay.ply - 1]}
-            onShowBest={onShowBest}
-          />
+          {!inVariation && (
+            <MoveInsight move={move} graded={graded[ply - 1]} onShowBest={showBest} />
+          )}
           <MoveList
-            moves={replay.moves}
             graded={graded}
-            currentPly={replay.ply}
-            onSelectPly={replay.goTo}
             whiteName={game.whiteName}
             blackName={game.blackName}
           />
@@ -130,7 +129,7 @@ export function AnalysisPanel({
 
       <GameResult result={game.result} termination={game.termination} />
 
-      <ReplayControls replay={replay} />
+      <ReplayControls />
     </BoardPanel>
   );
 }

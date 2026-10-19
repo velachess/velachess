@@ -12,18 +12,23 @@ import {
 import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
-import type { LegalDestination, MoveSquares } from "@velachess/chess";
+import type { MoveSquares } from "@velachess/chess";
 import { squaresOfUci } from "@velachess/chess";
 
 import {
+  gradeAtPly,
   moveNumberOf,
   sideOfPly,
   whiteShareOf,
   type GradedPly,
-  type MoveCategory,
 } from "../analysis/index.ts";
-import { squaresOfSanAt } from "./board-view.ts";
-import type { ReplayMove } from "./game-record.ts";
+import { legalTargetsAt, squaresOfSanAt, suggestedArrow } from "./board-view.ts";
+import {
+  selectFen,
+  selectLastMove,
+  selectShowingSan,
+  useGameReview,
+} from "./use-game-review.ts";
 import { badgeForCategory, formatBarScore } from "./move-presentation.ts";
 
 const BOARD_COPY = {
@@ -47,31 +52,9 @@ interface PlayerSeat {
 }
 
 export interface BoardPaneProps {
-  fen: string;
+  /** Grades in ply order — shorter than the game while the run streams. */
+  graded: readonly GradedPly[];
   orientation: "white" | "black";
-  /** The move the board is showing; absent at the starting position. */
-  move: ReplayMove | undefined;
-  /** The engine's verdict on `move`, once it has reached that ply. */
-  playedGrade: GradedPly | undefined;
-  /** The verdict on the position now on the board — its `bestMove` is
-   * the choice facing the player here, which is what the arrow draws. */
-  positionGrade: GradedPly | undefined;
-  /** A move someone asked to see, drawn apart from the grade colours. */
-  suggestedMove: MoveSquares | undefined;
-  /** Accepts a drop/click move attempt; returns whether it was legal —
-   * absent means the board stays read-only, same as passing nothing. */
-  onMove: ((move: BoardMove) => boolean) | undefined;
-  /** Legal destinations from the square on screen, for the drag hints —
-   * absent means no hints drawn. */
-  legalTargetsOf: ((square: string) => readonly LegalDestination[]) | undefined;
-  /** Set while a user-tried alternate move is showing instead of the real
-   * position — suppresses the best-move arrow and swaps the badge/banner
-   * to its verdict instead of the real grade's. */
-  exploringMove: MoveSquares | undefined;
-  /** The exploring move's verdict, once the engine has answered — absent
-   * while still evaluating. Only used for the square badge's color; the
-   * banner itself stays generic. */
-  exploringCategory: MoveCategory | undefined;
   /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
@@ -84,30 +67,27 @@ const BOARD_WIDTH = BOARD_STAGE_WIDTH;
 /** The strips sit beside the bar, so they start where the board starts. */
 const STRIP_INSET = "ps-6";
 
-export function BoardPane({
-  fen,
-  orientation,
-  move,
-  playedGrade,
-  positionGrade,
-  suggestedMove,
-  onMove,
-  legalTargetsOf,
-  exploringMove,
-  exploringCategory,
-  top,
-  bottom,
-}: BoardPaneProps) {
+export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) {
   const { i18n } = useLingui();
 
-  const exploring = exploringMove !== undefined;
-  const showing = showingLabel(move, i18n._(BOARD_COPY.start));
-  const lastMove = lastMoveOf(move, exploringMove);
-  const bestMove = bestMoveOf(positionGrade, exploringMove);
-  const evaluation = evaluationOf(playedGrade);
-  const badges = exploring
-    ? badgesFor(exploringMove.to, exploringCategory)
-    : badgesFor(lastMove?.to, playedGrade?.category);
+  const fen = useGameReview(selectFen);
+  const ply = useGameReview((state) => state.ply);
+  const inVariation = useGameReview((state) => state.variation !== null);
+  const variationScore = useGameReview((state) => state.variationEvaluation?.score);
+  const preview = useGameReview((state) => state.preview);
+  const variationMove = useGameReview(selectLastMove);
+  const showingSan = useGameReview(selectShowingSan);
+  const playMove = useGameReview((state) => state.playMove);
+  const move = useGameReview((state) => state.moves[state.ply - 1]);
+
+  // The move just played, and the choice facing whoever is to move now.
+  const playedGrade = gradeAtPly(graded, ply);
+  const positionGrade = gradeAtPly(graded, ply + 1);
+
+  const showing = showingLabel(showingSan, ply, inVariation, i18n._(BOARD_COPY.start));
+  const lastMove = variationMove ?? lastMoveOf(move);
+  const evaluation = evaluationOf(variationScore ?? playedGrade?.evalAfter);
+  const badges = inVariation ? undefined : badgesFor(lastMove?.to, playedGrade?.category);
 
   return (
     <BoardColumn label={i18n._(BOARD_COPY.region)}>
@@ -133,12 +113,20 @@ export function BoardPane({
           // Off while stepping: the next keypress lands before any easing
           // curve finishes, and a queued animation reads as lag.
           animated={false}
-          lastMove={lastMove}
-          bestMove={bestMove}
-          suggestedMove={exploring ? undefined : suggestedMove}
+          lastMove={lastMove ?? undefined}
+          // Suppressed inside a variation: the real game's best move here
+          // would be an arrow about a position that is no longer on screen.
+          bestMove={inVariation ? undefined : bestMoveOf(positionGrade)}
+          suggestedMove={
+            inVariation
+              ? undefined
+              : (suggestedArrow(move?.fenBefore, preview) ?? undefined)
+          }
           badges={badges}
-          onMove={onMove}
-          legalTargetsOf={legalTargetsOf}
+          onMove={(boardMove: BoardMove) =>
+            boardMove.to ? playMove(boardMove.from, boardMove.to) : false
+          }
+          legalTargetsOf={(square) => legalTargetsAt(fen, square)}
           className="max-w-none flex-1"
         />
       </div>
@@ -156,45 +144,45 @@ export function BoardPane({
   );
 }
 
-function showingLabel(move: ReplayMove | undefined, start: string): string {
-  if (!move) return start;
+/**
+ * A variation's moves have no number of their own — they all answer the
+ * same ply — so the line's notation is announced on its own.
+ */
+function showingLabel(
+  san: string | null,
+  ply: number,
+  inVariation: boolean,
+  start: string,
+): string {
+  if (!san) return start;
+  if (inVariation) return san;
 
-  const suffix = sideOfPly(move.ply) === "white" ? "." : "…";
-  return `${moveNumberOf(move.ply)}${suffix} ${move.san}`;
+  const suffix = sideOfPly(ply) === "white" ? "." : "…";
+  return `${moveNumberOf(ply)}${suffix} ${san}`;
 }
 
-function lastMoveOf(
-  move: ReplayMove | undefined,
-  exploringMove: MoveSquares | undefined,
-): MoveSquares | undefined {
-  if (exploringMove) return exploringMove;
-  if (!move) return undefined;
-  return squaresOfSanAt(move.fenBefore, move.san) ?? undefined;
+function lastMoveOf(move: { fenBefore: string; san: string } | undefined) {
+  if (!move) return null;
+  return squaresOfSanAt(move.fenBefore, move.san);
 }
 
-function bestMoveOf(
-  grade: GradedPly | undefined,
-  exploringMove: MoveSquares | undefined,
-): MoveSquares | undefined {
-  // Suppressed while exploring: an alternate move's arrow showing the
-  // real game's best move would compare against a position that is no
-  // longer on screen.
-  if (exploringMove || !grade) return undefined;
+function bestMoveOf(grade: GradedPly | undefined): MoveSquares | undefined {
+  if (!grade) return undefined;
   return squaresOfUci(grade.bestMove) ?? undefined;
 }
 
-function evaluationOf(grade: GradedPly | undefined) {
-  if (!grade) return { whiteShare: EVEN_SHARE, label: EVEN_LABEL };
+function evaluationOf(score: GradedPly["evalAfter"] | undefined) {
+  if (!score) return { whiteShare: EVEN_SHARE, label: EVEN_LABEL };
 
   return {
-    whiteShare: whiteShareOf(grade.evalAfter),
-    label: formatBarScore(grade.evalAfter),
+    whiteShare: whiteShareOf(score),
+    label: formatBarScore(score),
   };
 }
 
 function badgesFor(
   square: string | undefined,
-  category: MoveCategory | undefined,
+  category: GradedPly["category"] | undefined,
 ): Record<string, BadgeTone> | undefined {
   if (!square || !category) return undefined;
   const tone = badgeForCategory(category);

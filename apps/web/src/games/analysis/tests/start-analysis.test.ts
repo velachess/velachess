@@ -5,7 +5,7 @@ vi.mock("../game/analyze-game-in-browser.ts", () => ({
 }));
 
 import { aGradedPly } from "../../../test/games.ts";
-import { analysisStore, IDLE_ANALYSIS } from "../analysis-store.ts";
+import { IDLE_ANALYSIS, snapshotOf } from "../analysis-store.ts";
 import { resetAnalysisForTests, startAnalysis } from "../game/start-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
 
@@ -27,7 +27,7 @@ describe("startAnalysis progress", () => {
 
     startAnalysis(GAME_A);
 
-    expect(analysisStore.snapshotOf("game-a")).toEqual({
+    expect(snapshotOf("game-a")).toEqual({
       status: "analyzing",
       graded: [],
       error: null,
@@ -40,13 +40,11 @@ describe("startAnalysis progress", () => {
     await vi.waitFor(() => expect(passes).toHaveLength(1));
 
     passes[0]!.publish(aGradedPly(1));
-    expect(analysisStore.snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([1]);
+    expect(snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([1]);
 
     passes[0]!.publish(aGradedPly(2));
-    expect(analysisStore.snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([
-      1, 2,
-    ]);
-    expect(analysisStore.snapshotOf("game-a").status).toBe("analyzing");
+    expect(snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([1, 2]);
+    expect(snapshotOf("game-a").status).toBe("analyzing");
   });
 
   it("settles on done, keeping everything it graded", async () => {
@@ -58,7 +56,7 @@ describe("startAnalysis progress", () => {
     passes[0]!.finish();
     await flush();
 
-    const snapshot = analysisStore.snapshotOf("game-a");
+    const snapshot = snapshotOf("game-a");
     expect(snapshot.status).toBe("done");
     expect(snapshot.graded).toHaveLength(1);
     expect(snapshot.error).toBeNull();
@@ -74,7 +72,7 @@ describe("startAnalysis progress", () => {
     passes[0]!.fail(boom);
     await flush();
 
-    const snapshot = analysisStore.snapshotOf("game-a");
+    const snapshot = snapshotOf("game-a");
     expect(snapshot.status).toBe("error");
     expect(snapshot.error).toBe(boom);
     expect(snapshot.graded).toHaveLength(1);
@@ -92,7 +90,7 @@ describe("startAnalysis deduplication", () => {
     await flush();
 
     expect(passes).toHaveLength(1);
-    expect(analysisStore.snapshotOf("game-a").graded).toHaveLength(1);
+    expect(snapshotOf("game-a").graded).toHaveLength(1);
   });
 
   it("does not re-analyze a game that already finished", async () => {
@@ -106,7 +104,7 @@ describe("startAnalysis deduplication", () => {
     await flush();
 
     expect(passes).toHaveLength(1);
-    expect(analysisStore.snapshotOf("game-a").status).toBe("done");
+    expect(snapshotOf("game-a").status).toBe("done");
   });
 
   it("tries again when the game is reopened after a failure", async () => {
@@ -119,8 +117,8 @@ describe("startAnalysis deduplication", () => {
     startAnalysis(GAME_A);
     await vi.waitFor(() => expect(passes).toHaveLength(2));
 
-    expect(analysisStore.snapshotOf("game-a").status).toBe("analyzing");
-    expect(analysisStore.snapshotOf("game-a").error).toBeNull();
+    expect(snapshotOf("game-a").status).toBe("analyzing");
+    expect(snapshotOf("game-a").error).toBeNull();
     passes[1]!.finish();
   });
 });
@@ -136,8 +134,8 @@ describe("startAnalysis replacement", () => {
     await vi.waitFor(() => expect(passes[0]!.wasHalted()).toBe(true));
     await vi.waitFor(() => expect(passes).toHaveLength(2));
 
-    expect(analysisStore.snapshotOf("game-b").status).toBe("analyzing");
-    expect(analysisStore.snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
+    expect(snapshotOf("game-b").status).toBe("analyzing");
+    expect(snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
     passes[1]!.finish();
   });
 
@@ -153,8 +151,8 @@ describe("startAnalysis replacement", () => {
     // decided in the same tick must not land in game B's snapshot.
     passes[0]!.publish(aGradedPly(1));
 
-    expect(analysisStore.snapshotOf("game-b").graded).toEqual([]);
-    expect(analysisStore.snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
+    expect(snapshotOf("game-b").graded).toEqual([]);
+    expect(snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
     passes[1]!.finish();
   });
 
@@ -167,8 +165,8 @@ describe("startAnalysis replacement", () => {
     await vi.waitFor(() => expect(passes).toHaveLength(2));
     await flush();
 
-    expect(analysisStore.snapshotOf("game-b").status).toBe("analyzing");
-    expect(analysisStore.snapshotOf("game-b").error).toBeNull();
+    expect(snapshotOf("game-b").status).toBe("analyzing");
+    expect(snapshotOf("game-b").error).toBeNull();
     passes[1]!.finish();
   });
 });

@@ -23,9 +23,9 @@ schedules who gets the one Worker. Its two lanes are its two sub-slices:
 `game/` grades a whole game, `position/` searches a single FEN.
 
 Inside that domain the three jobs are split again, one owner each:
-`engine-manager.ts` decides who gets the engine, `analysis-store.ts`
-stores snapshots and notifies React, and `game/start-analysis.ts` is the
-only thing that knows both — it starts a pass, replaces it when another
+`engine-manager.ts` decides who gets the engine, `analysis-store.ts` is a
+zustand store holding one game's snapshot, and `game/start-analysis.ts` is
+the only thing that knows both — it starts a pass, replaces it when another
 game is opened, and refuses writes from a pass that was replaced. A ply is
 published by a synchronous callback the whole way up: there is no stream,
 queue or async generator between the engine and the screen.
@@ -35,7 +35,7 @@ queue or async generator between the engine and the screen.
 | Setting        | Value                                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Binary         | `stockfish` npm package's `stockfish-19-lite-single.js` (single-threaded WASM), copied to `apps/web/public/engine/` and run in a browser `Worker` |
-| Depth          | **14** — `review/use-browser-analysis.ts`'s own call into `startAnalysis`                                                                         |
+| Depth          | **14** — `review/game-review.tsx`'s own call into `startAnalysis`                                                                                 |
 | UCI options    | `Hash` only, fixed at 16 MB (`open-browser-engine-session.ts`'s `DEFAULT_HASH_MB`). No Threads — the lite-single build is single-threaded         |
 | Search         | `go depth <N>` once per mainline position                                                                                                         |
 | Watchdog       | `min(30000, max(5000, 3000 + depth·400))` ms of **silence**, rearmed by every `info` line (8600 ms at depth 14); on timeout `stop` + 2 s grace    |
@@ -47,7 +47,7 @@ affordance, and reopening a game reads the cached report rather than
 searching again.
 
 One Worker runs at a time, across two priority lanes. `interactive` (one
-ad-hoc FEN, from a user trying an alternate move on the board) always
+ad-hoc FEN, from a variation someone is playing on the board) always
 preempts `background` (the whole-game pass); `background` never interrupts
 `interactive`, and a newer request supersedes the older one in its own
 lane. A preempted whole-game pass **resumes** once the engine is free: it
@@ -58,13 +58,19 @@ twice.
 Cancelling is halting the task that started the work, which unwinds the
 engine session and terminates the Worker — and the handle that halts it
 settles only once that teardown has finished, so the next lane never
-starts against a Worker that is still going away. Exactly two things
-cancel, and neither overlaps the other: an interactive evaluation
-preempts the background lane (`engine-manager.ts`), and opening a
-different game replaces the pass under way (`game/start-analysis.ts`).
-There is still no cancel-on-close: closing the last open game's screen, with
-nothing new to replace it, lets that run finish in the background, and
-reopening it picks the same pass up rather than starting a second.
+starts against a Worker that is still going away. Exactly three things
+cancel, and none overlaps another: an interactive evaluation preempts the
+background lane (`engine-manager.ts`), opening a different game replaces
+the pass under way (`game/start-analysis.ts`), and the position a
+variation is showing stops being the one on screen
+(`review/use-variation-evaluation.ts`, whose effect cleanup also covers
+leaving the review).
+
+The whole-game pass is nobody's to cancel on close: closing the last open
+game's screen, with nothing new to replace it, lets that run finish in the
+background, and reopening it picks the same pass up rather than starting a
+second. The review's own cleanup cancels only the interactive search, and
+never the Worker or the pass.
 
 ## Classification
 
@@ -120,5 +126,6 @@ the engine's side-to-move score happens once, in
 - `apps/web/src/games/analysis/` internals → `engineManager`,
   `analysisStore`, `analyzeGameInBrowser`, `evaluatePositionInBrowser`,
   `openBrowserEngineSession`, `cachedPositionEvaluator`
-- `apps/web/src/games/review/use-browser-analysis.ts` →
-  `useBrowserAnalysis`, the one hook the review screen calls
+- `apps/web/src/games/review/use-variation-evaluation.ts` → the one place
+  a variation's position is searched, and the one place that search is
+  cancelled

@@ -1,6 +1,6 @@
 /**
- * On-demand evaluation for a single ad-hoc FEN — a user exploring an
- * alternate move on the review board, not a position from the replayed
+ * On-demand evaluation for a single ad-hoc FEN — one position of a
+ * variation on the review board, not a position from the replayed
  * game. Checked against the cache before the engine is started at all: a
  * whole-game pass can amortize a session over hundreds of positions, a
  * single FEN cannot.

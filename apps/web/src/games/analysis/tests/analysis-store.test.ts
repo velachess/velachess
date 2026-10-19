@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { aGradedPly } from "../../../test/games.ts";
 import {
-  createAnalysisStore,
+  analysisStore,
   IDLE_ANALYSIS,
+  setAnalysis,
+  snapshotOf,
   type AnalysisSnapshot,
 } from "../analysis-store.ts";
 
@@ -19,85 +21,56 @@ function analyzing(...plies: number[]): AnalysisSnapshot {
   };
 }
 
-describe("AnalysisStore snapshots", () => {
-  it("reads idle for a game nothing was written for, as one stable object", () => {
-    const store = createAnalysisStore();
+beforeEach(() => {
+  analysisStore.setState({ gameId: null, snapshot: IDLE_ANALYSIS });
+});
 
-    expect(store.snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
-    expect(store.snapshotOf("game-a")).toBe(store.snapshotOf("game-b"));
+describe("analysis snapshots", () => {
+  it("reads idle for a game nothing was written for, as one stable object", () => {
+    expect(snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
+    expect(snapshotOf("game-a")).toBe(snapshotOf("game-b"));
   });
 
   it("hands back the very object that was written, every time", () => {
-    const store = createAnalysisStore();
     const snapshot = analyzing(1);
 
-    store.set("game-a", snapshot);
+    setAnalysis("game-a", snapshot);
 
-    expect(store.snapshotOf("game-a")).toBe(snapshot);
-    expect(store.snapshotOf("game-a")).toBe(snapshot);
+    expect(snapshotOf("game-a")).toBe(snapshot);
+    expect(snapshotOf("game-a")).toBe(snapshot);
   });
 
   it("replaces on write and leaves the snapshot it already handed out alone", () => {
-    const store = createAnalysisStore();
-    store.set("game-a", analyzing(1));
-    const held = store.snapshotOf("game-a");
+    setAnalysis("game-a", analyzing(1));
+    const held = snapshotOf("game-a");
 
-    store.set("game-a", analyzing(1, 2));
+    setAnalysis("game-a", analyzing(1, 2));
 
     expect(held.graded.map((ply) => ply.ply)).toEqual([1]);
-    expect(store.snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([1, 2]);
+    expect(snapshotOf("game-a").graded.map((ply) => ply.ply)).toEqual([1, 2]);
   });
 
   it("answers for one game at a time — writing another makes the first idle", () => {
-    const store = createAnalysisStore();
-    store.set("game-a", analyzing(1));
+    setAnalysis("game-a", analyzing(1));
 
-    store.set("game-b", analyzing(1, 2));
+    setAnalysis("game-b", analyzing(1, 2));
 
-    expect(store.snapshotOf("game-b").graded).toHaveLength(2);
-    expect(store.snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
+    expect(snapshotOf("game-b").graded).toHaveLength(2);
+    expect(snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
   });
-});
 
-describe("AnalysisStore subscriptions", () => {
-  it("notifies on every write and stops once unsubscribed", () => {
-    const store = createAnalysisStore();
-    let notifications = 0;
-    const unsubscribe = store.subscribe(() => {
-      notifications++;
+  it("notifies a reader on every write and stops once unsubscribed", () => {
+    let notified = 0;
+    const unsubscribe = analysisStore.subscribe(() => {
+      notified++;
     });
 
-    store.set("game-a", analyzing(1));
-    store.set("game-a", analyzing(1, 2));
-    expect(notifications).toBe(2);
+    setAnalysis("game-a", analyzing(1));
+    setAnalysis("game-a", analyzing(1, 2));
+    expect(notified).toBe(2);
 
     unsubscribe();
-    store.set("game-a", analyzing(1, 2, 3));
-
-    expect(notifications).toBe(2);
-    // Unsubscribing is not a write: the snapshot is untouched.
-    expect(store.snapshotOf("game-a").graded).toHaveLength(3);
-  });
-
-  it("notifies every listener, even one that unsubscribes mid-notification", () => {
-    const store = createAnalysisStore();
-    const calls: string[] = [];
-    const unsubscribeFirst = store.subscribe(() => {
-      calls.push("first");
-      unsubscribeFirst();
-    });
-    store.subscribe(() => calls.push("second"));
-
-    store.set("game-a", analyzing(1));
-    store.set("game-a", analyzing(1, 2));
-
-    expect(calls).toEqual(["first", "second", "second"]);
-  });
-
-  it("subscribing on its own changes nothing", () => {
-    const store = createAnalysisStore();
-    store.subscribe(() => {});
-
-    expect(store.snapshotOf("game-a")).toBe(IDLE_ANALYSIS);
+    setAnalysis("game-a", analyzing(1, 2, 3));
+    expect(notified).toBe(2);
   });
 });

@@ -112,8 +112,18 @@ once, at the edge, inside the slice.
   `validateSearch` and a zod schema; every field `.catch()`es a default,
   because that schema runs before any component exists and a throw there
   blanks the screen instead of showing an unfiltered list.
-- **Zustand** — client-only state that outlives a screen: the selected
-  import source, and (persisted) which accounts this device imported.
+- **Zustand** — client-only state, in two shapes that differ by lifetime
+  rather than by library. A module-level store (`create`) holds what
+  outlives every screen: a preference someone chose (sound, locale, the
+  selected import source, and — persisted — which accounts this device
+  imported) or work this device is doing, where browser analysis keeps
+  grading with nothing mounted. A store built per instance (`createStore`
+  from `zustand/vanilla`) holds what belongs to one screen but to several
+  components inside it: the review's ply, its variation and the
+  evaluation that came back for it. Components reach a per-instance store
+  through a domain facade — `games/review/use-game-review.ts` — rather
+  than through zustand, so the library can be replaced without touching a
+  screen.
 - **`useState`** — what dies with the component (text being typed).
 
 Derive instead of storing: the active nav item comes from the pathname.

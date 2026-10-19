@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react";
 
 import { MoveNav } from "@velachess/ui/chess/move-nav";
 
-import type { ChessReplay } from "./use-chess-replay.ts";
+import { selectCanGoBack, selectCanGoForward, useGameReview } from "./use-game-review.ts";
 
 const CONTROLS_COPY = {
   previous: msg`Previous move`,
@@ -13,16 +13,12 @@ const CONTROLS_COPY = {
   nextShort: msg`Next`,
 } as const;
 
-export interface ReplayControlsProps {
-  replay: ChessReplay;
-}
-
 /**
  * Stepping a game, in the shared vocabulary.
  *
- * The buttons themselves are `MoveNav` — the shared ones — so this file is only the translation from a replay to that
- * component's plain callbacks, plus this screen's words for them. No
- * reset: the scoresheet already reaches every ply in one click.
+ * The buttons themselves are `MoveNav` — the shared ones — so this file is
+ * only this screen's words for them. No reset: the scoresheet already
+ * reaches every ply in one click.
  *
  * `sticky bottom-0`: on mobile the panel above this scrolls the page, so
  * without it Prev/Next would sit below a long game's eval graph, tabs and
@@ -31,8 +27,13 @@ export interface ReplayControlsProps {
  * a no-op at `lg`, where the panel bounds its own scroll and this already
  * sits at its natural position.
  */
-export function ReplayControls({ replay }: ReplayControlsProps) {
+export function ReplayControls() {
   const { i18n } = useLingui();
+
+  const canGoBack = useGameReview(selectCanGoBack);
+  const canGoForward = useGameReview(selectCanGoForward);
+  const previous = useGameReview((state) => state.previous);
+  const next = useGameReview((state) => state.next);
 
   return (
     <MoveNav
@@ -44,10 +45,10 @@ export function ReplayControls({ replay }: ReplayControlsProps) {
         previousShort: i18n._(CONTROLS_COPY.previousShort),
         nextShort: i18n._(CONTROLS_COPY.nextShort),
       }}
-      canGoBack={replay.canGoBack}
-      canGoForward={replay.canGoForward}
-      onPrevious={replay.previous}
-      onNext={replay.next}
+      canGoBack={canGoBack}
+      canGoForward={canGoForward}
+      onPrevious={previous}
+      onNext={next}
     />
   );
 }
