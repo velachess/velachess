@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ReplayMove } from "../game-record.ts";
 import {
-  createReviewStore,
   REPLAY_NAVIGATION,
   selectCanGoBack,
   selectCanGoForward,
   selectFen,
   selectTotalPlies,
-} from "../review-store.ts";
+} from "../review-model.ts";
+import { createReviewStore } from "../review-store.ts";
 
 /**
  * A screen test proves you can step forward and back; these pin the edges

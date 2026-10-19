@@ -13,7 +13,7 @@ import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
-import { selectTotalPlies, useGameReview } from "./use-game-review.ts";
+import { useAnalysisPanelReview } from "./use-analysis-panel-review.ts";
 
 const PANEL_COPY = {
   move: msg`Move`,
@@ -58,15 +58,11 @@ export function AnalysisPanel({
   const { i18n } = useLingui();
   const breakdown = summarize(graded);
 
-  const ply = useGameReview((state) => state.ply);
-  const totalPlies = useGameReview(selectTotalPlies);
-  const goToPly = useGameReview((state) => state.goToPly);
-  const showBest = useGameReview((state) => state.showBest);
-  const move = useGameReview((state) => state.moves[state.ply - 1]);
-  // While a variation is on the board, the main line's verdict is about a
-  // position nobody is looking at — so it is not shown at all, rather
-  // than shown as if it belonged to the move someone just tried.
-  const inVariation = useGameReview((state) => state.variation !== null);
+  // `inVariation`: the main line's verdict is then about a position
+  // nobody is looking at, so it is not shown at all rather than shown as
+  // if it belonged to the move someone just played.
+  const { ply, totalPlies, move, inVariation, goToPly, showBest } =
+    useAnalysisPanelReview();
 
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>

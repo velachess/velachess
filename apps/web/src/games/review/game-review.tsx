@@ -20,12 +20,8 @@ import { seatIdentityOf, seatOf } from "./board-view.ts";
 import { BoardPane } from "./board-pane.tsx";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
 import { GameCrumb } from "./game-crumb.tsx";
-import {
-  REPLAY_NAVIGATION,
-  ReviewStoreProvider,
-  useCreateReviewStore,
-  type ReplayNavigation,
-} from "./use-game-review.ts";
+import { REPLAY_NAVIGATION, type ReplayNavigation } from "./review-model.ts";
+import { ReviewStoreProvider, useCreateReviewStore } from "./use-game-review.ts";
 import { useVariationEvaluation } from "./use-variation-evaluation.ts";
 
 const ANALYSE_COPY = {

@@ -1,38 +1,16 @@
 /**
  * The review's React boundary: the one file that knows the state is held
- * in a zustand store, so the screens only know the domain.
+ * in a zustand store, so nothing else has to.
  *
- * It owns no state of its own, synchronizes nothing, and runs nothing —
- * `review-store.ts` owns the state and its transitions, and
- * `use-variation-evaluation.ts` owns the engine call.
+ * It owns no state, synchronizes nothing and runs nothing. The screens do
+ * not call it either — `use-board-review.ts` and
+ * `use-analysis-panel-review.ts` are what they consume.
  */
 import { createContext, useContext, useState } from "react";
 import { useStore } from "zustand";
 
-import {
-  createReviewStore,
-  type ReplayNavigation,
-  type ReviewGame,
-  type ReviewState,
-  type ReviewStore,
-} from "./review-store.ts";
-
-export {
-  REPLAY_NAVIGATION,
-  selectCanGoBack,
-  selectCanGoForward,
-  selectFen,
-  selectLastMove,
-  selectShowingSan,
-  selectTotalPlies,
-} from "./review-store.ts";
-export type {
-  ReplayNavigation,
-  ReplayNavigationEvent,
-  ReviewGame,
-  ReviewState,
-  Variation,
-} from "./review-store.ts";
+import type { ReplayNavigation, ReviewGame } from "./review-model.ts";
+import { createReviewStore, type ReviewState, type ReviewStore } from "./review-store.ts";
 
 const ReviewStoreContext = createContext<ReviewStore | null>(null);
 

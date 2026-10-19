@@ -13,7 +13,8 @@ import { useStore } from "zustand";
 import { ANALYSIS_DEPTH, evaluatePosition } from "../analysis/index.ts";
 import { run } from "../../libs/effection.ts";
 
-import { variationFen, type ReviewStore } from "./review-store.ts";
+import { variationFen } from "./review-model.ts";
+import type { ReviewStore } from "./review-store.ts";
 
 export function useVariationEvaluation(store: ReviewStore): void {
   const fen = useStore(store, (state) => variationFen(state.variation));

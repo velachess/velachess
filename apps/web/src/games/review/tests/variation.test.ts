@@ -12,13 +12,12 @@ vi.mock("../../analysis/index.ts", async (importOriginal) => ({
 import { evaluatePosition } from "../../analysis/index.ts";
 import type { ReplayMove } from "../game-record.ts";
 import {
-  createReviewStore,
   selectCanGoBack,
   selectCanGoForward,
   selectFen,
   selectShowingSan,
-  type ReviewStore,
-} from "../review-store.ts";
+} from "../review-model.ts";
+import { createReviewStore, type ReviewStore } from "../review-store.ts";
 import { useVariationEvaluation } from "../use-variation-evaluation.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

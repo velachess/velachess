@@ -10,7 +10,7 @@ import {
   type MoveCategory,
 } from "../analysis/index.ts";
 import type { ReplayMove } from "./game-record.ts";
-import { useGameReview } from "./use-game-review.ts";
+import { useMoveListReview } from "./use-analysis-panel-review.ts";
 import { glyphOf } from "./move-presentation.ts";
 
 export interface MoveListProps {
@@ -22,9 +22,7 @@ export interface MoveListProps {
 
 /** Cells are real buttons for keyboard reach. */
 export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
-  const moves = useGameReview((state) => state.moves);
-  const currentPly = useGameReview((state) => state.ply);
-  const onSelectPly = useGameReview((state) => state.goToPly);
+  const { moves, currentPly, onSelectPly } = useMoveListReview();
 
   const rows = Array.from({ length: moveNumberOf(moves.length) }, (_, index) => {
     const number = index + 1;
