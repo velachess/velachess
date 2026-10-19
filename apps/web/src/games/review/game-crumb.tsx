@@ -3,9 +3,8 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Fragment, type ComponentType } from "react";
 
-import { ChessComIcon, LichessIcon } from "@velachess/ui/icons";
-
-import { PLATFORMS, type Game } from "../list/index.ts";
+import { GAME_SOURCES } from "../game-sources.ts";
+import type { Game } from "../list/index.ts";
 import type { Seat } from "./board-view.ts";
 
 const GAME_CRUMB_COPY = {
@@ -19,23 +18,11 @@ const GAME_CRUMB_COPY = {
 /** Between the facts in the trail — punctuation, not copy. */
 const SEPARATOR = " · ";
 
-type SourceIcon = ComponentType<{ className?: string }>;
-
-/**
- * The mark beside the provider's name. A PGN file is not a provider, so
- * it has none — `null` is the decision, not a missing entry.
- */
-const SOURCE_ICON = {
-  chess_com: ChessComIcon,
-  lichess: LichessIcon,
-  pgn: null,
-} as const satisfies Record<Game["source"], SourceIcon | null>;
-
 interface CrumbPart {
   id: "matchup" | "date" | "source" | "result";
   text: string;
   /** Shown before the text when present; omitted otherwise. */
-  Icon?: SourceIcon | null;
+  Icon?: ComponentType<{ className?: string }>;
 }
 
 function playedOn(i18n: I18n, playedAt: string | null): string {
@@ -70,14 +57,11 @@ export function GameCrumb({ game, white, black, mySeat }: GameCrumbProps) {
       })
     : i18n._({ ...GAME_CRUMB_COPY.matchup, values: { white, black } });
 
+  const source = GAME_SOURCES[game.source];
   const parts: CrumbPart[] = [
     { id: "matchup", text: matchup },
     { id: "date", text: playedOn(i18n, game.playedAt) },
-    {
-      id: "source",
-      text: PLATFORMS[game.source].label,
-      Icon: SOURCE_ICON[game.source],
-    },
+    { id: "source", text: source.label, Icon: source.Icon },
     { id: "result", text: game.result },
   ];
 

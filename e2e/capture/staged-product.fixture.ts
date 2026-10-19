@@ -3,7 +3,6 @@ import { expect, test as base, type Page, type Route } from "@playwright/test";
 import {
   LANDING_GAME_ID,
   LANDING_PLAYER,
-  landingCompletedAnalysis,
   landingGame,
 } from "../../apps/web/src/games/review/tests/fixtures/landing-game.ts";
 
@@ -66,12 +65,14 @@ async function handleApi(route: Route) {
     await fulfillJson(route, landingGame);
     return;
   }
-  if (method === "GET" && pathname === `/api/games/${LANDING_GAME_ID}/analysis`) {
-    await fulfillJson(route, landingCompletedAnalysis);
-    return;
-  }
-  if (method === "POST" && pathname === `/api/games/${LANDING_GAME_ID}/analyze`) {
-    await fulfillJson(route, landingCompletedAnalysis);
+  // The session's one SSE stream, opened by the `_app` layout. Nothing
+  // settles during a capture, so an empty stream is the whole of it.
+  //
+  // There is no analysis endpoint to stage: Stockfish runs in the browser,
+  // so this capture drives the real engine and the grades on screen are
+  // the ones it searched.
+  if (method === "GET" && pathname === "/api/syncs/events") {
+    await route.fulfill({ status: 200, contentType: "text/event-stream", body: "" });
     return;
   }
 

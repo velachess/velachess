@@ -66,12 +66,3 @@ export const landingAnalysis: GradedPly[] = [
     winChanceLoss: 0,
   },
 ];
-
-export const landingCompletedAnalysis = {
-  status: "completed",
-  analysis: {
-    engineVersion: "stockfish-17",
-    depth: 18,
-    positions: landingAnalysis,
-  },
-} as const;

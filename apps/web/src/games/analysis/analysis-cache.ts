@@ -28,6 +28,13 @@ export interface CacheKeyParts {
  * pass and an ad-hoc evaluation would miss each other's entries. */
 export const MULTI_PV = 1;
 
+/** How deep every search in this app goes. Fixed today — nothing exposes a
+ * depth control — and part of the cache key for the same reason `MULTI_PV`
+ * is: the whole-game pass and an ad-hoc evaluation have to agree, or they
+ * miss each other's entries and the second one searches a position the
+ * first already paid for. */
+export const ANALYSIS_DEPTH = 14;
+
 interface RawEvalEntry {
   key: string;
   score: RawEval["score"];

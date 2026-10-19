@@ -39,9 +39,9 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
+import { GAME_SOURCES } from "../../games/game-sources.ts";
 import {
   ConnectAccount,
-  IMPORT_SOURCES,
   isSyncInProgress,
   trackedAccountsQuery,
   useDisconnectAccount,
@@ -170,7 +170,7 @@ export function ConnectionsScreen() {
 
 function AccountRow({ account }: { account: TrackedAccount }) {
   const { i18n } = useLingui();
-  const Icon = IMPORT_SOURCES[account.platform].icon;
+  const { Icon, label: platform } = GAME_SOURCES[account.platform];
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const disconnect = useDisconnectAccount();
@@ -280,7 +280,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
                 ...CONNECTIONS_COPY.disconnectDescription,
                 values: {
                   username: account.username,
-                  platform: IMPORT_SOURCES[account.platform].label,
+                  platform,
                 },
               })}
             </DialogDescription>

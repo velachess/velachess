@@ -12,6 +12,7 @@ import { engineManager } from "./engine-manager.ts";
 export { classifyMove, MOVE_CATEGORIES } from "@velachess/analysis";
 export type { GradedPly, MoveCategory } from "@velachess/analysis";
 
+export { ANALYSIS_DEPTH } from "./analysis-cache.ts";
 export { startAnalysis } from "./game/index.ts";
 export { useEngineAnalysis } from "./use-engine-analysis.ts";
 

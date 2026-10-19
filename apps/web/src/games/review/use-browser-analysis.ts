@@ -11,7 +11,12 @@
  */
 import { useEffect } from "react";
 
-import { startAnalysis, useEngineAnalysis, type GradedPly } from "../analysis/index.ts";
+import {
+  ANALYSIS_DEPTH,
+  startAnalysis,
+  useEngineAnalysis,
+  type GradedPly,
+} from "../analysis/index.ts";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
 import { useQuery } from "../../libs/react-query.ts";
 import {
@@ -19,8 +24,6 @@ import {
   type ChessReplay,
   type ReplayNavigation,
 } from "./use-chess-replay.ts";
-
-const ANALYSIS_DEPTH = 14;
 
 export interface BrowserAnalysis {
   game: ReplayableGame | undefined;

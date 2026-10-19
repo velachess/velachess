@@ -363,23 +363,22 @@ describe("game breadcrumb", () => {
     const { crumb } = await openCrumb({ source: "pgn", result: "1/2-1/2" });
 
     expect(crumb.textContent).toBe("gothamchess vs you · 8/22/2026 · PGN · 1/2-1/2");
-    // A file is not a provider: no mark, and nothing left behind where one
-    // would have gone (the text above has no stray gap either).
-    expect(crumb.querySelector("svg")).toBeNull();
   });
 
-  it("gives each provider its own icon", async () => {
-    // The icon is decorative — the name stands right beside it — so it has
+  it("gives each source its own mark", async () => {
+    // The mark is decorative — the name stands right beside it — so it has
     // no accessible handle to find it by; its markup is the only evidence.
+    // A PGN file carries one too: the library table marks it, and the trail
+    // reads from the same catalogue rather than deciding again.
     const icons: (string | undefined)[] = [];
-    for (const source of ["chess_com", "lichess"] as const) {
+    for (const source of ["chess_com", "lichess", "pgn"] as const) {
       const { crumb, unmount } = await openCrumb({ source });
       icons.push(crumb.querySelector("svg")?.innerHTML);
       unmount();
     }
 
     expect(icons.every(Boolean)).toBe(true);
-    expect(new Set(icons).size).toBe(2);
+    expect(new Set(icons).size).toBe(3);
   });
 
   it("shows a dash when the game has no date", async () => {

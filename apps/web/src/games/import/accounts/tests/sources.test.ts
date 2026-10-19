@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { GAME_SOURCES } from "../../../game-sources.ts";
 import { IMPORT_SOURCES, INPUT_KINDS, SOURCE_IDS, SOURCE_ORDER } from "../sources.ts";
 
 /** Stands in for the active locale: renders a descriptor's source text. */
@@ -18,13 +19,21 @@ describe("the source catalogue", () => {
     expect(SOURCE_IDS.lichess).toBe("lichess");
   });
 
-  it("gives every source what the form needs to render and validate it", () => {
+  it("gives every source what the form needs to validate it", () => {
     for (const id of SOURCE_ORDER) {
       const source = IMPORT_SOURCES[id];
       expect(source.id).toBe(id);
       expect(source.inputKind).toBe(INPUT_KINDS.username);
-      expect(source.icon).toBeDefined();
       expect(source.buildSchema(translate)).toBeDefined();
+    }
+  });
+
+  it("names and marks every source it offers, from the shared catalogue", () => {
+    // The tabs render the name and icon from `games/game-sources.ts`, so a
+    // source the form offers and that map does not would render blank.
+    for (const id of SOURCE_ORDER) {
+      expect(GAME_SOURCES[id].label).toBeTruthy();
+      expect(GAME_SOURCES[id].Icon).toBeDefined();
     }
   });
 });

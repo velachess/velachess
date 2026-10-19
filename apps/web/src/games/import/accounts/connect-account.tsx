@@ -21,6 +21,7 @@ import { Input } from "@velachess/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import { isProviderAlreadyConnectedError } from "../../../api/index.ts";
+import { GAME_SOURCES } from "../../game-sources.ts";
 import { useQuery } from "../../../libs/react-query.ts";
 import { trackedAccountsQuery, useImportGames, type ImportRequest } from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";
@@ -60,6 +61,7 @@ export function ConnectAccount({
   const translate: Translate = (message) => i18n._(message);
 
   const source: ImportSource = IMPORT_SOURCES[sourceId];
+  const sourceName = GAME_SOURCES[sourceId].label;
 
   // One account per provider: the selected tab's platform already being
   // tracked makes every username doomed, so the form gives way to a note
@@ -116,11 +118,11 @@ export function ConnectAccount({
         >
           <TabsList className="w-full">
             {SOURCE_ORDER.map((id) => {
-              const Icon = IMPORT_SOURCES[id].icon;
+              const { Icon, label } = GAME_SOURCES[id];
               return (
                 <TabsTrigger key={id} value={id}>
                   <Icon data-icon="inline-start" />
-                  {IMPORT_SOURCES[id].label}
+                  {label}
                 </TabsTrigger>
               );
             })}
@@ -128,7 +130,7 @@ export function ConnectAccount({
         </Tabs>
 
         {connectedHandle !== undefined && (
-          <AlreadyConnectedNotice username={connectedHandle} source={source} />
+          <AlreadyConnectedNotice username={connectedHandle} platform={sourceName} />
         )}
 
         {connectedHandle === undefined && (
@@ -240,10 +242,10 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
  * successfully. Red belongs to an import that actually failed. */
 function AlreadyConnectedNotice({
   username,
-  source,
+  platform,
 }: {
   username: string;
-  source: ImportSource;
+  platform: string;
 }) {
   const { i18n } = useLingui();
 
@@ -253,7 +255,7 @@ function AlreadyConnectedNotice({
         <span className="font-medium text-foreground">
           {i18n._({
             ...IMPORT_COPY.alreadyConnectedTitle,
-            values: { platform: source.label },
+            values: { platform },
           })}
         </span>
         <span>

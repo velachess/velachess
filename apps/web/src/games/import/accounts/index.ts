@@ -3,7 +3,6 @@ export { SyncGamesButton } from "./sync-games-button.tsx";
 export { useMyAccounts } from "./my-accounts.ts";
 export type { RememberedAccount } from "./my-accounts.ts";
 export { useSourceStore } from "./source-store.ts";
-export { IMPORT_SOURCES } from "./sources.ts";
 export {
   flairImageOf,
   IMPORT_MUTATION_KEY,

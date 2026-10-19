@@ -1,10 +1,8 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import type * as React from "react";
-
-import { ChessComIcon, LichessIcon } from "@velachess/ui/icons";
 
 import { z } from "../../../libs/zod.ts";
+import type { GameSource } from "../../game-sources.ts";
 
 export type Translate = (message: MessageDescriptor) => string;
 
@@ -21,24 +19,30 @@ export const INPUT_KINDS = {
 
 type InputKind = (typeof INPUT_KINDS)[keyof typeof INPUT_KINDS];
 
+/**
+ * A provider you can connect an account on: a game source minus the one
+ * nobody has an account with. Stated as a subtraction so adding a source
+ * makes this choice explicit rather than silently leaving it out.
+ */
+export type SourceId = Exclude<GameSource, "pgn">;
+
 /** The values the API already speaks, so nothing is translated on the way out. */
 export const SOURCE_IDS = {
   chessCom: "chess_com",
   lichess: "lichess",
-} as const;
+} as const satisfies Record<string, SourceId>;
 
-export type SourceId = (typeof SOURCE_IDS)[keyof typeof SOURCE_IDS];
-
+/**
+ * What the connect form needs on top of the source's own name and mark,
+ * which every screen reads from `games/game-sources.ts` instead.
+ */
 export interface ImportSource {
   id: SourceId;
-  /** The platform's own name — not translated, it is a proper noun. */
-  label: string;
   inputKind: InputKind;
   /** Shown in the field and used as its accessible name. */
   inputLabel: MessageDescriptor;
   /** Per render: zod bakes error text in, so it needs an active locale. */
   buildSchema: (translate: Translate) => z.ZodType<string, string>;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
 
 /** Both platforms allow letters, digits, `_` and `-` — caught here to spare a round trip. */
@@ -53,19 +57,15 @@ const buildUsernameSchema = (translate: Translate) =>
 export const IMPORT_SOURCES = {
   [SOURCE_IDS.chessCom]: {
     id: SOURCE_IDS.chessCom,
-    label: "Chess.com",
     inputKind: INPUT_KINDS.username,
     inputLabel: msg`Chess.com username`,
     buildSchema: buildUsernameSchema,
-    icon: ChessComIcon,
   },
   [SOURCE_IDS.lichess]: {
     id: SOURCE_IDS.lichess,
-    label: "Lichess",
     inputKind: INPUT_KINDS.username,
     inputLabel: msg`Lichess username`,
     buildSchema: buildUsernameSchema,
-    icon: LichessIcon,
   },
 } as const satisfies Record<SourceId, ImportSource>;
 

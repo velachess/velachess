@@ -12,16 +12,13 @@ import type { PlayedMove } from "@velachess/chess";
 import { sideToMoveOf } from "@velachess/chess";
 
 import {
+  ANALYSIS_DEPTH,
   classifyMove,
   evaluatePosition,
   type GradedPly,
   type MoveCategory,
 } from "../analysis/index.ts";
 import type { Operation } from "../../libs/effection.ts";
-
-/** Matches `use-browser-analysis.ts`'s own literal — no depth control
- * exposed anywhere in this app yet, for the real review or exploration. */
-const EXPLORATION_DEPTH = 14;
 
 export interface ExplorationVerdict {
   category: MoveCategory;
@@ -35,7 +32,7 @@ export function* exploreMove(
 ): Operation<ExplorationVerdict> {
   const raw = yield* evaluatePosition({
     fen: played.fen,
-    depth: EXPLORATION_DEPTH,
+    depth: ANALYSIS_DEPTH,
   });
 
   return classifyMove({

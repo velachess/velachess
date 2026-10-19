@@ -28,15 +28,16 @@ does not restate it.
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
-- `games/` is four domains and one shared file. Review consumes Analysis;
+- `games/` is four domains and two shared files. Review consumes Analysis;
   Analysis never imports Review, `import` or `list`
   (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
   evaluations — `analysis/graded-game.ts` — and Review decides what a
   person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
-  (`games-domain-logic-stays-react-free`); the screens are `.tsx`. That
-  shared file is `games/game-query-keys.ts` — the two prefixes all four
-  spell identically, at their common ancestor rather than borrowed from
+  (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
+  shared files are `games/game-query-keys.ts` (the cache prefixes every
+  domain spells identically) and `games/game-sources.ts` (each source's
+  name and mark) — at their common ancestor rather than borrowed from
   whichever domain happened to declare one.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
