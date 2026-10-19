@@ -5,7 +5,7 @@ import {
   LANDING_PLAYER,
   landingCompletedAnalysis,
   landingGame,
-} from "../../apps/web/src/games/open-game/tests/fixtures/landing-game-analysis.ts";
+} from "../../apps/web/src/games/review/tests/fixtures/landing-game.ts";
 
 const FIXED_NOW = "2026-08-21T12:00:00.000Z";
 

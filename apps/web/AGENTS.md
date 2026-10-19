@@ -20,9 +20,24 @@ does not restate it.
 - A vertical's public surface is its `index.ts`; a file inside it that
   isn't re-exported is private to that vertical. Dependency-cruiser
   enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
-  for `api`, `backend-status`, `chess-sounds`, and `query`; other
-  verticals may still be deep-imported from `routes/` until the same
-  enforcement is scoped onto them too.
+  for `api`, `backend-status`, `chess-sounds`, and `query`, and
+  (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
+  four domains under `games/` — `analysis`, `review`, `import`, `list`. A
+  domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
+  `index.ts` is a contract toward the rest of its domain, not toward the
+  app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
+  be deep-imported from `routes/` until the same enforcement is scoped onto
+  them too.
+- `games/` is four domains and one shared file. Review consumes Analysis;
+  Analysis never imports Review, `import` or `list`
+  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
+  evaluations — `analysis/graded-game.ts` — and Review decides what a
+  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
+  `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
+  (`games-domain-logic-stays-react-free`); the screens are `.tsx`. That
+  shared file is `games/game-query-keys.ts` — the two prefixes all four
+  spell identically, at their common ancestor rather than borrowed from
+  whichever domain happened to declare one.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
   for business logic. A facade re-exports its package under one name so a
@@ -58,9 +73,9 @@ does not restate it.
 - One exception, and it has to earn the name: work this device is doing
   that outlives the screen watching it. Today that is exactly one thing,
   browser analysis, whose progress is neither server state nor a
-  preference — `games/browser-analysis/analysis-store.ts` holds it behind
-  `useSyncExternalStore`, and `start-analysis.ts` owns its lifecycle.
-  Reach for zustand for anything a user chose and this pattern only for
+  preference — `games/analysis/analysis-store.ts` holds it behind
+  `useSyncExternalStore`, and `analysis/game/start-analysis.ts` owns its
+  lifecycle. Reach for zustand for anything a user chose and this pattern only for
   something still running; a second one of these is a sign the boundary
   was drawn wrong.
 - Structure enters a layout component through a slot, content through
@@ -68,11 +83,12 @@ does not restate it.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,
   `form.Subscribe`) with Zod validators, not hand-rolled `useState` +
   `safeParse` plumbing — see `settings/account/profile-form.tsx`,
-  `games/import/import-games.tsx`, and `games/import-pgn/pgn-import-dialog.tsx`.
+  `games/import/accounts/connect-account.tsx`, and
+  `games/import/pgn/pgn-import-dialog.tsx`.
   Per render: zod bakes error text in, so a schema needing copy takes a
   `translate` function and is built inside the component (`buildSchema(translate)`
-  in `games/import/sources.ts`), never a module-level schema with English baked
-  in. Render a field's error through `<FieldError errors={field.state.meta.errors} />`
+  in `games/import/accounts/sources.ts`), never a module-level schema with
+  English baked in. Render a field's error through `<FieldError errors={field.state.meta.errors} />`
   (plural, from the schema) rather than indexing `errors[0]` or branching text
   in JSX — a validator returning more than one message is for `FieldError` to
   show, not for the field to pick from.

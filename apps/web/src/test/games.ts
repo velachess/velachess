@@ -1,5 +1,5 @@
-import type { GradedPly } from "../games/analysis-contract.ts";
-import type { Game } from "../games/list/queries.ts";
+import type { GradedPly } from "../games/analysis/index.ts";
+import type { Game } from "../games/list/index.ts";
 
 export const ME = "yurimutti";
 

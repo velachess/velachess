@@ -8,9 +8,9 @@ import {
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
-import { GameAnalysis } from "../games/open-game/game-analysis.tsx";
-import { GamesList } from "../games/games-list.tsx";
-import { ImportGames } from "../games/import/import-games.tsx";
+import { GameReview } from "../games/review/index.ts";
+import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
+import { ConnectAccount, startSyncEvents } from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { AccountScreen } from "../settings/account/account-screen.tsx";
 import { AppearanceScreen } from "../settings/appearance/appearance-screen.tsx";
@@ -19,8 +19,6 @@ import { GameplayScreen } from "../settings/gameplay/gameplay-screen.tsx";
 import { LanguageRegionScreen } from "../settings/language-region/language-region-screen.tsx";
 import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { gamesSearchSchema } from "../games/list/filters.ts";
-import { startSyncEvents } from "../games/import/sync-events.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
@@ -97,13 +95,13 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
-  component: GameAnalysis,
+  component: GameReview,
 });
 
 const importRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/import",
-  component: ImportGames,
+  component: ConnectAccount,
 });
 
 // Nested for real, like /games: the account screen is

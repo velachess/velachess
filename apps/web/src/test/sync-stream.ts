@@ -5,7 +5,7 @@
  * handler so the archive can announce without importing msw.
  */
 
-import type { SYNC_SETTLED_EVENT_NAMES } from "../games/import/sync-events.ts";
+import type { SYNC_SETTLED_EVENT_NAMES } from "../games/import/index.ts";
 
 type Controller = ReadableStreamDefaultController<Uint8Array>;
 

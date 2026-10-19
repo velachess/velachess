@@ -18,7 +18,7 @@ Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
   registration, and graceful shutdown. It does not become a second business
   layer.
 - No engine runs here. Analysis executes entirely in the browser (Stockfish
-  WASM, `apps/web/src/games/browser-analysis/`) — see PR #155 and
+  WASM, `apps/web/src/games/analysis/`) — see PR #155 and
   `docs/reference/analysis.md`. This app registers only the `sync` queue
   consumer.
 

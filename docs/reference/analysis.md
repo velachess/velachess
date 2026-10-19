@@ -18,14 +18,15 @@ Three modules split the work and none of them reaches into another's:
 reaching the engine only through the `PositionEvaluator` dependency it
 declares; `@velachess/infra-engine` owns the UCI protocol, the session
 lifetime, the search watchdog and recovery from a dead engine;
-`apps/web/src/games/browser-analysis/` composes the two, adds the cache,
-and schedules who gets the one Worker.
+`apps/web/src/games/analysis/` composes the two, adds the cache, and
+schedules who gets the one Worker. Its two lanes are its two sub-slices:
+`game/` grades a whole game, `position/` searches a single FEN.
 
-Inside that slice the three jobs are split again, one owner each:
+Inside that domain the three jobs are split again, one owner each:
 `engine-manager.ts` decides who gets the engine, `analysis-store.ts`
-stores snapshots and notifies React, and `start-analysis.ts` is the only
-thing that knows both — it starts a pass, replaces it when another game is
-opened, and refuses writes from a pass that was replaced. A ply is
+stores snapshots and notifies React, and `game/start-analysis.ts` is the
+only thing that knows both — it starts a pass, replaces it when another
+game is opened, and refuses writes from a pass that was replaced. A ply is
 published by a synchronous callback the whole way up: there is no stream,
 queue or async generator between the engine and the screen.
 
@@ -34,7 +35,7 @@ queue or async generator between the engine and the screen.
 | Setting        | Value                                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Binary         | `stockfish` npm package's `stockfish-19-lite-single.js` (single-threaded WASM), copied to `apps/web/public/engine/` and run in a browser `Worker` |
-| Depth          | **14** — `useBrowserAnalysis`'s own call into `analyzeGameInBrowser`                                                                              |
+| Depth          | **14** — `review/use-browser-analysis.ts`'s own call into `startAnalysis`                                                                         |
 | UCI options    | `Hash` only, fixed at 16 MB (`open-browser-engine-session.ts`'s `DEFAULT_HASH_MB`). No Threads — the lite-single build is single-threaded         |
 | Search         | `go depth <N>` once per mainline position                                                                                                         |
 | Watchdog       | `min(30000, max(5000, 3000 + depth·400))` ms of **silence**, rearmed by every `info` line (8600 ms at depth 14); on timeout `stop` + 2 s grace    |
@@ -60,8 +61,8 @@ settles only once that teardown has finished, so the next lane never
 starts against a Worker that is still going away. Exactly two things
 cancel, and neither overlaps the other: an interactive evaluation
 preempts the background lane (`engine-manager.ts`), and opening a
-different game replaces the pass under way (`start-analysis.ts`). There
-is still no cancel-on-close: closing the last open game's screen, with
+different game replaces the pass under way (`game/start-analysis.ts`).
+There is still no cancel-on-close: closing the last open game's screen, with
 nothing new to replace it, lets that run finish in the background, and
 reopening it picks the same pass up rather than starting a second.
 
@@ -87,7 +88,7 @@ reopening it picks the same pass up rather than starting a second.
 
 Two IndexedDB stores, both LRU-pruned on write and both keyed on the engine
 build so swapping the wasm binary invalidates what came before it
-(`apps/web/src/games/browser-analysis/analysis-cache.ts`):
+(`apps/web/src/games/analysis/analysis-cache.ts`):
 
 | Store     | Key                                              | Holds                       |
 | --------- | ------------------------------------------------ | --------------------------- |
@@ -111,7 +112,13 @@ the engine's side-to-move score happens once, in
 - `libs/analysis/classify-move.ts` → `classifyMove`, `scoreToWinChance`
 - `libs/analysis/move-category.ts` → `MoveCategory`
 - `libs/infra/engine/engine-evaluator.ts` → `useEngineEvaluator`
-- `apps/web/src/games/browser-analysis/` → `useBrowserAnalysis`,
-  `startAnalysis`, `analysisStore`, `useEngineAnalysis`, `engineManager`,
-  `analyzeGameInBrowser`, `evaluatePositionInBrowser`,
+- `apps/web/src/games/analysis/index.ts` → `startAnalysis`,
+  `useEngineAnalysis`, `evaluatePosition`, plus the graded-game read model
+  (`gradeAtPly`, `summarize`, `evalCurve`, `whiteShareOf`,
+  `progressPercent`, `bestMoveSan`, `sideOfPly`, `moveNumberOf`) and the
+  `@velachess/analysis` vocabulary it re-exports
+- `apps/web/src/games/analysis/` internals → `engineManager`,
+  `analysisStore`, `analyzeGameInBrowser`, `evaluatePositionInBrowser`,
   `openBrowserEngineSession`, `cachedPositionEvaluator`
+- `apps/web/src/games/review/use-browser-analysis.ts` →
+  `useBrowserAnalysis`, the one hook the review screen calls

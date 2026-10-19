@@ -1,6 +1,9 @@
 import { accountIsTracked } from "./handlers/accounts.ts";
-import { useMyAccounts, type RememberedAccount } from "../games/import/my-accounts.ts";
-import { useSourceStore } from "../games/import/source-store.ts";
+import {
+  useMyAccounts,
+  useSourceStore,
+  type RememberedAccount,
+} from "../games/import/index.ts";
 import { useSoundPreferences } from "../chess-sounds/index.ts";
 import { archiveAccount } from "./archive.ts";
 

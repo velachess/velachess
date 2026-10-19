@@ -21,12 +21,16 @@ src/
   backend-status/ backend-availability state and the banner that shows it
   chess-sounds/   move-sound preference, mapping and playback
   i18n/           locale resolution and catalogue activation
-  games/          everything you do to games
-    import/         connect an account and pull games in
-    import-pgn/     paste or upload a PGN
+  games/          everything you do to games, as four domains
+    analysis/       Stockfish in the browser: produce evaluations and read them
+      game/           grade a whole game, ply by ply
+      position/       search one FEN
+    review/         walk a game, understand its analysis, try a variation
+    import/         get games in
+      accounts/       connect a provider account and keep it synced
+      pgn/            paste or upload a PGN
     list/           filter and page owned games
-    open-game/      load the playable game record and review it on the board
-    browser-analysis/ request-analysis/ view-analysis/
+    game-query-keys.ts  the prefixes the game caches hang off, shared by all four
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -35,9 +39,33 @@ src/
   router.tsx      router construction; route-error.tsx sits beside it
 ```
 
-Importing and analysis are things you do _to games_, so they nest under
-`games/` rather than sitting beside it — the folder says what the behavior
-belongs to, not merely that it exists.
+Importing, analysing and reviewing are things you do _to games_, so they
+nest under `games/` rather than sitting beside it — the folder says what
+the behavior belongs to, not merely that it exists.
+
+Inside `games/` the four domains are the product's four capabilities, and
+each one's `index.ts` is the only thing a route, a sibling vertical or the
+test harness may import; dependency-cruiser enforces it
+(`games-domain-index-only`). A sub-slice (`analysis/game/`,
+`import/pgn/`) is internal to its domain: its own `index.ts` is a contract
+toward the rest of that domain, not toward the app.
+
+The one direction that matters is that **Review consumes Analysis and
+Analysis knows nothing of Review** — analysis produces and interprets
+evaluations, review decides what a person sees. A rule holds Analysis to
+it (`games-analysis-depends-on-no-sibling-domain`), so a formatter or a
+badge can never drift into the domain that runs the engine. That same
+split is why `analysis/graded-game.ts` holds the reading of a graded game
+(`summarize`, `evalCurve`, `gradeAtPly`) while `review/move-presentation.ts`
+and `review/board-view.ts` hold what reaches the screen (score text,
+badges, arrows, which seat the board faces).
+
+`game-query-keys.ts` sits at the root because it is the one thing all four
+share: the React Query key prefixes. `list` and `review` read those
+caches, `import` invalidates them when games land, and an invalidation
+only works if the write spells the key exactly as the read does. One
+spelling at the common ancestor beats one domain importing another for a
+string.
 
 A slice owns its data (`queries.ts`), its screen, its constants and its
 tests. It never positions itself on the page — it returns content, and the
@@ -128,7 +156,7 @@ is a mutation that only asks: `POST /accounts/:id/sync` per account in
 parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
 when the requests settle so the server's `syncStatus` / `activeSyncId` drive
 the "Syncing…" state on every screen and after a reload. Landing is announced,
-not polled: `games/import/sync-events.ts` keeps the session's one
+not polled: `games/import/accounts/sync-events.ts` keeps the session's one
 `GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
 and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
 `games` and `accounts` — the payload is never read. The stream is a signal,

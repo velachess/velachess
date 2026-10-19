@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { startSyncEvents } from "../games/import/sync-events.ts";
+import { startSyncEvents } from "../games/import/index.ts";
 import { useQueryClient } from "../libs/react-query.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 

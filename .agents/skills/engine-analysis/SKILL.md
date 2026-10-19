@@ -17,15 +17,20 @@ Keep three concerns separate, and do not let one reach into another:
   and nothing about how the engine is driven. The engine reaches it only
   through the `PositionEvaluator` dependency it declares, so this module
   depends on neither `@velachess/infra-engine` nor a cache.
-- `apps/web/src/games/browser-analysis/` composes the two, owns the
-  IndexedDB caches and the side-to-move → white-POV conversion, and
-  schedules which lane gets the one Worker (`engine-manager.ts`). Inside
-  it, `analysis-store.ts` only stores snapshots and notifies React —
-  it imports neither Effection nor the manager — and `start-analysis.ts`
-  is the one module that knows both. Keep it that way: a ply travels up
-  by synchronous callback, and the two cancellations (interactive
-  preempting background; a new game replacing the pass under way) have
-  one owner each.
+- `apps/web/src/games/analysis/` composes the two, owns the IndexedDB
+  caches and the side-to-move → white-POV conversion, and schedules which
+  lane gets the one Worker (`engine-manager.ts`). Its two lanes are its
+  two sub-slices: `game/` grades a whole game, `position/` searches one
+  FEN. Inside the domain, `analysis-store.ts` only stores snapshots and
+  notifies React — it imports neither Effection nor the manager — and
+  `game/start-analysis.ts` is the one module that knows both. Keep it that
+  way: a ply travels up by synchronous callback, and the two cancellations
+  (interactive preempting background; a new game replacing the pass under
+  way) have one owner each.
+- The domain's `index.ts` is what the review screen sees: `startAnalysis`,
+  `useEngineAnalysis`, `evaluatePosition` and the read model in
+  `graded-game.ts`. The scheduler itself is private — a caller asks for an
+  evaluation and does not choose a lane. Analysis never imports `review/`.
 
 Asynchronous lifecycle is Effection. A session is a resource, so leaving
 the scope that opened it quits the engine and terminates the Worker;

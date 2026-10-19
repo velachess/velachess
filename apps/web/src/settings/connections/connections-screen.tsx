@@ -39,16 +39,16 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
-import { ImportGames } from "../../games/import/import-games.tsx";
 import {
+  ConnectAccount,
+  IMPORT_SOURCES,
   isSyncInProgress,
   trackedAccountsQuery,
   useDisconnectAccount,
   useSyncAccount,
+  useSyncSettlementToast,
   type TrackedAccount,
-} from "../../games/import/queries.ts";
-import { IMPORT_SOURCES } from "../../games/import/sources.ts";
-import { useSyncSettlementToast } from "../../games/import/use-sync-settlement-toast.ts";
+} from "../../games/import/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const CONNECTIONS_COPY = {
@@ -162,7 +162,7 @@ export function ConnectionsScreen() {
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-medium">{i18n._(CONNECTIONS_COPY.connect)}</h3>
-        <ImportGames chrome="bare" redirectTo="/settings/connections" />
+        <ConnectAccount chrome="bare" redirectTo="/settings/connections" />
       </section>
     </div>
   );

@@ -6,7 +6,7 @@ turns those evaluations into `GradedPly`s (`grade-game.ts`), and the
 policies a result is read through (`score.ts`, `winchance.ts`,
 `classify-move.ts`, `move-category.ts`). No persistence, no queue, no
 HTTP route, no engine session and no cache — analysis runs entirely in
-`apps/web/src/games/browser-analysis/` (Stockfish WASM in a Web Worker),
+`apps/web/src/games/analysis/` (Stockfish WASM in a Web Worker),
 and a browser-computed result lives only in that session's React Query
 cache plus the caches that slice keeps. There is no server/worker
 analysis path.

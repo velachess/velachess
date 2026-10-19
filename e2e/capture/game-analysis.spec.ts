@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { LANDING_GAME_ID } from "../../apps/web/src/games/open-game/tests/fixtures/landing-game-analysis.ts";
+import { LANDING_GAME_ID } from "../../apps/web/src/games/review/tests/fixtures/landing-game.ts";
 import { expect, settle, test } from "./staged-product.fixture.ts";
 
 const output = path.resolve(

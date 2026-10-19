@@ -2,7 +2,7 @@
  * [ANALYSIS] — what a chess move was worth, and nothing about how the
  * engine that said so is driven.
  *
- * Analysis runs entirely in `apps/web/src/games/browser-analysis/`
+ * Analysis runs entirely in `apps/web/src/games/analysis/`
  * (Stockfish WASM, Web Worker, no server round-trip — see PR #155). This
  * module owns the per-ply sequencing (`analyzeGame`) and the pure
  * score/win-chance/move-category policies the result is read through,

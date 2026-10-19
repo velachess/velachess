@@ -9,10 +9,15 @@ const businessModules = "accounts|games|user|analysis";
 const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${businessModules}|infra|chess|ui/src))/`;
 
 // apps/web verticals born from eliminating shared/ (see docs/explanation/apps/web.md).
-// Only these expose an index.ts public surface; pre-existing verticals
-// (auth, games, ...) predate the rule and are a deliberate, separate
-// follow-up — see apps/web/AGENTS.md.
+// Only these expose an index.ts public surface; the remaining pre-existing
+// verticals (auth, onboarding, settings, ...) predate the rule and are a
+// deliberate, separate follow-up — see apps/web/AGENTS.md.
 const webIndexOnlyVerticals = "api|backend-status|chess-sounds|query";
+
+// The four domains inside apps/web/src/games, each with its own index.ts
+// public surface (see docs/explanation/apps/web.md). `games/` itself holds
+// nothing but these.
+const gamesDomains = "analysis|review|import|list";
 
 function externalPackage(name) {
   return `(?:^${name}(?:/|$)|(?:^|/)node_modules/${name}(?:/|$))`;
@@ -240,7 +245,7 @@ module.exports = {
     {
       name: "web-vertical-index-only",
       comment:
-        "A file outside api/, backend-status/, chess-sounds/, and query/ may only reach one of them through its index.ts — same shape as no-cross-module-deep-imports on the backend, scoped to the verticals this eliminates apps/web/src/shared/ into. Pre-existing verticals (auth, games, ...) are unaffected; retrofitting them is a separate follow-up.",
+        "A file outside api/, backend-status/, chess-sounds/, and query/ may only reach one of them through its index.ts — same shape as no-cross-module-deep-imports on the backend, scoped to the verticals this eliminates apps/web/src/shared/ into. The games domains have the same enforcement of their own, below; the remaining pre-existing verticals (auth, onboarding, settings, ...) are unaffected and retrofitting them is a separate follow-up.",
       severity: "error",
       from: {
         path: "^apps/web/src/",
@@ -266,6 +271,59 @@ module.exports = {
           `^apps/web/src/$1/`,
           `^apps/web/src/(?:${webIndexOnlyVerticals})/index[.]ts$`,
         ],
+      },
+    },
+    {
+      name: "games-domain-index-only",
+      comment:
+        "apps/web/src/games is four domains — analysis, review, import, list — and a route, a sibling vertical or the test harness reaches one only through its index.ts. A domain's sub-slices (analysis/game, import/pgn, ...) are internal: their own index.ts is a contract toward the rest of their domain, not toward the app.",
+      severity: "error",
+      from: {
+        path: "^apps/web/src/",
+        pathNot: [`^apps/web/src/games/(?:${gamesDomains})/`, testPath],
+      },
+      to: {
+        path: `^apps/web/src/games/(?:${gamesDomains})/[^/]`,
+        pathNot: `^apps/web/src/games/(?:${gamesDomains})/index[.]ts$`,
+      },
+    },
+    {
+      name: "games-domain-no-cross-deep-imports",
+      comment:
+        "Same rule as games-domain-index-only, for one games domain reaching a sibling's internals instead of its index.ts. Inside its own domain a file imports directly, sub-slices included.",
+      severity: "error",
+      from: {
+        path: `^apps/web/src/games/(${gamesDomains})/`,
+        pathNot: testPath,
+      },
+      to: {
+        path: `^apps/web/src/games/(?:${gamesDomains})/[^/]`,
+        pathNot: [
+          `^apps/web/src/games/$1/`,
+          `^apps/web/src/games/(?:${gamesDomains})/index[.]ts$`,
+        ],
+      },
+    },
+    {
+      name: "games-analysis-depends-on-no-sibling-domain",
+      comment:
+        "Analysis produces and reads evaluations and knows nothing about the screens that show them: Review consumes Analysis, never the other way round. Analysis is equally independent of import and list.",
+      severity: "error",
+      from: { path: "^apps/web/src/games/analysis/", pathNot: testPath },
+      to: { path: "^apps/web/src/games/(?:review|import|list)/" },
+    },
+    {
+      name: "games-domain-logic-stays-react-free",
+      comment:
+        "A .ts module inside a games domain is domain logic — a query, a store, a policy, a read model — and stays runnable without React; only a use-*.ts hook file reaches for it. A type-only import compiles away and does not count. The screens are .tsx, which this rule leaves alone.",
+      severity: "error",
+      from: {
+        path: "^apps/web/src/games/.*[.]ts$",
+        pathNot: ["(?:^|/)use-[^/]+[.]ts$", testPath],
+      },
+      to: {
+        path: [externalPackage("react"), externalPackage("react-dom")],
+        dependencyTypesNot: ["type-only"],
       },
     },
     {

@@ -1,8 +1,8 @@
 import { onboardingState } from "./onboarding-state.ts";
 import { OnboardingDialog } from "./onboarding-dialog.tsx";
 import { sessionQuery } from "../auth/session.ts";
-import { trackedAccountsQuery } from "../games/import/queries.ts";
-import { libraryQuery } from "../games/list/queries.ts";
+import { trackedAccountsQuery } from "../games/import/index.ts";
+import { libraryQuery } from "../games/list/index.ts";
 import { useQuery } from "../libs/react-query.ts";
 
 /** Stays silent (renders null) while loading or on backend failure, so it never flashes or implies lost data. */
