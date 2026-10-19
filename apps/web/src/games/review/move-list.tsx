@@ -10,27 +10,20 @@ import {
   type MoveCategory,
 } from "../analysis/index.ts";
 import type { ReplayMove } from "./game-record.ts";
+import { useMoveListReview } from "./use-analysis-panel-review.ts";
 import { glyphOf } from "./move-presentation.ts";
 
 export interface MoveListProps {
-  moves: ReplayMove[];
-  /** Grades in ply order — shorter than `moves` while the run streams. */
+  /** Grades in ply order — shorter than the game while the run streams. */
   graded: readonly GradedPly[];
-  currentPly: number;
-  onSelectPly: (ply: number) => void;
   whiteName: string;
   blackName: string;
 }
 
 /** Cells are real buttons for keyboard reach. */
-export function MoveList({
-  moves,
-  graded,
-  currentPly,
-  onSelectPly,
-  whiteName,
-  blackName,
-}: MoveListProps) {
+export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
+  const { moves, currentPly, onSelectPly } = useMoveListReview();
+
   const rows = Array.from({ length: moveNumberOf(moves.length) }, (_, index) => {
     const number = index + 1;
     return {

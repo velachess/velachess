@@ -1,5 +1,10 @@
-import type { MoveSquares } from "@velachess/chess";
-import { positionFromFen, resolveGamePerspective, squaresOfSan } from "@velachess/chess";
+import type { LegalDestination, MoveSquares } from "@velachess/chess";
+import {
+  legalDestinations,
+  positionFromFen,
+  resolveGamePerspective,
+  squaresOfSan,
+} from "@velachess/chess";
 
 // What the board shows: which way round it sits, who occupies each seat,
 // and the squares drawn on top of the position on screen.
@@ -61,10 +66,11 @@ export function suggestedArrow(
   return fen && san ? squaresOfSanAt(fen, san) : null;
 }
 
-/** The previewed move, if it still belongs to the ply on screen — tying it to the ply makes navigating auto-dismiss it. */
-export function previewFor(
-  preview: { ply: number; san: string } | null,
-  ply: number,
-): string | null {
-  return preview && preview.ply === ply ? preview.san : null;
+/** Drag hints for the position on screen. Wraps `legalDestinations` to take a FEN, same as `squaresOfSanAt`. */
+export function legalTargetsAt(fen: string, square: string): readonly LegalDestination[] {
+  try {
+    return legalDestinations(positionFromFen(fen).unwrap(), square);
+  } catch {
+    return [];
+  }
 }

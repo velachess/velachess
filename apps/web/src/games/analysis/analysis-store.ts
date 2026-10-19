@@ -9,14 +9,16 @@
  * decides when the engine is free, and the caches decide what survives a
  * reload.
  */
+import { createStore } from "zustand/vanilla";
+
 import type { GradedPly } from "@velachess/analysis";
 
 type AnalysisStatus = "idle" | "analyzing" | "done" | "error";
 
 /**
  * Immutable by contract: a change means a new snapshot with a new
- * `graded`, never an append in place. That is what lets
- * `useSyncExternalStore` compare by reference.
+ * `graded`, never an append in place. That is what lets a selector
+ * compare by reference.
  */
 export interface AnalysisSnapshot {
   readonly status: AnalysisStatus;
@@ -31,40 +33,24 @@ export const IDLE_ANALYSIS: AnalysisSnapshot = {
   error: null,
 };
 
-export interface AnalysisStore {
-  /** Returns its own unsubscribe. Subscribing neither starts nor stops an
-   * analysis — a listener is a reader, not an owner. */
-  subscribe(listener: () => void): () => void;
-  /** The same object until this game's snapshot is replaced. */
-  snapshotOf(gameId: string): AnalysisSnapshot;
-  set(gameId: string, snapshot: AnalysisSnapshot): void;
+/** One game at a time, because one review screen is open at a time.
+ * Whoever replaces it is replacing the analysis too. */
+interface AnalysisHeld {
+  /** Null before anything has been analyzed in this session. */
+  readonly gameId: string | null;
+  readonly snapshot: AnalysisSnapshot;
 }
 
-export function createAnalysisStore(): AnalysisStore {
-  const listeners = new Set<() => void>();
-  // One game at a time, because one review screen is open at a time.
-  // Whoever replaces it is replacing the analysis too.
-  let held: { gameId: string; snapshot: AnalysisSnapshot } | null = null;
+export const analysisStore = createStore<AnalysisHeld>(() => ({
+  gameId: null,
+  snapshot: IDLE_ANALYSIS,
+}));
 
-  return {
-    subscribe(listener: () => void): () => void {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-
-    snapshotOf(gameId: string): AnalysisSnapshot {
-      return held?.gameId === gameId ? held.snapshot : IDLE_ANALYSIS;
-    },
-
-    set(gameId: string, snapshot: AnalysisSnapshot): void {
-      held = { gameId, snapshot };
-      // A listener that unsubscribes itself here has already been called;
-      // one that unsubscribes another is asking for it to be skipped.
-      for (const listener of listeners) listener();
-    },
-  };
+/** The same object until this game's snapshot is replaced. */
+export function snapshotOf(gameId: string, held = analysisStore.getState()) {
+  return held.gameId === gameId ? held.snapshot : IDLE_ANALYSIS;
 }
 
-export const analysisStore = createAnalysisStore();
+export function setAnalysis(gameId: string, snapshot: AnalysisSnapshot): void {
+  analysisStore.setState({ gameId, snapshot });
+}

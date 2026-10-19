@@ -33,6 +33,14 @@ vi.mock("../../analysis/game/analyze-game-in-browser.ts", () => ({
 const { analyzeGameInBrowser } =
   await import("../../analysis/game/analyze-game-in-browser.ts");
 
+// Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
+// same module, and only the interactive search is stubbed.
+vi.mock("../../analysis/index.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
+  evaluatePosition: vi.fn(),
+}));
+const { evaluatePosition } = await import("../../analysis/index.ts");
+
 /** The staged run: every ply graded, with one blunder at Nc6 (ply 4). */
 const gradedPlies = () =>
   GAME_SANS.map((san, index) =>
@@ -509,5 +517,83 @@ describe("provider identity on the board", () => {
     fireEvent(flair, new Event("error"));
 
     expect(flair).not.toBeVisible();
+  });
+});
+
+/**
+ * Trying a move out on the board.
+ *
+ * The board is a third-party widget whose squares carry no accessible
+ * name — its own ids are the only handle a click has, which is why this
+ * is the one place in the suite that reaches for the DOM directly.
+ */
+/** Pick the piece up, then click where it goes — the board's own click-to-move. */
+async function playOnBoard(
+  user: Awaited<ReturnType<typeof openGame>>["user"],
+  from: string,
+  to: string,
+): Promise<void> {
+  for (const square of [from, to]) {
+    const element = document.getElementById(`chessboard-square-${square}`);
+    if (!element) throw new Error(`no square ${square} on the board`);
+    await user.click(element);
+  }
+}
+
+const evaluationReads = () =>
+  screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuetext");
+
+describe("a variation played on the board", () => {
+  beforeEach(() => {
+    deviceHasImported();
+    vi.mocked(analyzeGameInBrowser).mockReset();
+    vi.mocked(evaluatePosition).mockReset();
+    vi.mocked(evaluatePosition).mockImplementation(() =>
+      call(() => ({ score: { cp: -480 }, bestMove: "e7e5" })),
+    );
+    resetAnalysisForTests();
+  });
+
+  it("moves the bar to the variation's own evaluation", async () => {
+    const { user } = await openGame(gradedPlies());
+    await findBlunderButton();
+    // Nothing has been played, so the bar reads level.
+    expect(evaluationReads()).toBe("0.0");
+
+    await playOnBoard(user, "e2", "e4");
+
+    await vi.waitFor(() => expect(evaluationReads()).toBe("4.8"));
+  });
+
+  it("will not step the game forward while the line is on the board", async () => {
+    const { user } = await openGame(gradedPlies());
+    await findBlunderButton();
+
+    await playOnBoard(user, "e2", "e4");
+
+    expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
+  });
+
+  it("leaves the line on Previous, back onto the game", async () => {
+    const { user } = await openGame(gradedPlies());
+    await findBlunderButton();
+
+    await playOnBoard(user, "e2", "e4");
+    await user.click(screen.getByRole("button", { name: "Previous move" }));
+
+    expect(screen.getByText("The starting position.")).toBeInTheDocument();
+    // Back to the report's own reading for the position on screen.
+    await vi.waitFor(() => expect(evaluationReads()).toBe("0.0"));
+  });
+
+  it("stops explaining the real game's move, which is not what is on screen", async () => {
+    const { user } = await openGame(gradedPlies());
+    await findBlunderButton();
+    expect(screen.getByText("The starting position.")).toBeInTheDocument();
+
+    await playOnBoard(user, "e2", "e4");
+
+    expect(screen.queryByText("The starting position.")).toBeNull();
+    expect(screen.queryByText("Best was")).toBeNull();
   });
 });

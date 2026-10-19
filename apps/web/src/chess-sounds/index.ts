@@ -5,7 +5,7 @@
 // outside caller needs them.
 export {
   CHESS_SOUND_EVENT,
-  useChessSounds,
+  playChessSound,
   useSoundPreferences,
 } from "./chess-sounds.ts";
 export { SoundToggle } from "./sound-toggle.tsx";

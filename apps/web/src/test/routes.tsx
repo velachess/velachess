@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
-import { GameReview } from "../games/review/index.ts";
+import { GameReview, loadGameReview } from "../games/review/index.ts";
 import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
 import { ConnectAccount, startSyncEvents } from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
@@ -95,6 +95,9 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
+  // Mirrors `routes/_app/games/$gameId.tsx`: opening a game is what
+  // starts its analysis, and that is the route's, not the screen's.
+  loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
   component: GameReview,
 });
 
