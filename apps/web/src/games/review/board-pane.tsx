@@ -12,6 +12,7 @@ import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
 
 import type { GradedPly } from "../analysis/index.ts";
+import type { PlayerSeat } from "./review-presentation.ts";
 import { useBoardReview } from "./use-board-review.ts";
 
 const BOARD_COPY = {
@@ -19,15 +20,6 @@ const BOARD_COPY = {
   region: msg`Board`,
   evaluation: msg`Evaluation`,
 } as const;
-
-interface PlayerSeat {
-  name: string;
-  /** Already localised — absent when the platform did not report one. */
-  rating: string | undefined;
-  /** Provider identity of a tracked handle; absent for everyone else. */
-  avatarUrl: string | undefined;
-  flair: string | undefined;
-}
 
 export interface BoardPaneProps {
   /** Grades in ply order — shorter than the game while the run streams. */

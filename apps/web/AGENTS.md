@@ -94,6 +94,12 @@ does not restate it.
   it is what the types, state and selectors are named after; an
   Evaluation is what Stockfish produced for a position. A variation gets
   a number, never a grade — classification belongs to the report.
+- Work a route exists to do starts in that route's `loader`, not in an
+  effect inside the screen: `games/review/game-review-route.ts` resolves
+  the movetext through the query cache and starts the analysis, so the
+  component renders already-triggered work instead of triggering it
+  after the fact. A loader runs on the server too, so anything that needs
+  a browser API goes through `createClientOnlyFn`.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,
