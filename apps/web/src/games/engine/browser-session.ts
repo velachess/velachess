@@ -19,15 +19,13 @@ import { checkEngineCapability } from "./check-engine-capability.ts";
 import { ENGINE_SCRIPT_URL } from "./engine-asset.ts";
 
 /** Conservative fixed default — not device-aware, a tuning knob for later. */
-const DEFAULT_HASH_MB = 16;
+const HASH_MB = 16;
 
 /** UCI option names this adapter sets. Only `Hash` today — see the
  * comment below for why `Threads` isn't one of them. */
 const UCI_OPTION = { HASH: "Hash" } as const;
 
-export function* openBrowserEngineSession(
-  options: { hashMb?: number } = {},
-): Operation<EngineSession> {
+export function* openBrowserEngineSession(): Operation<EngineSession> {
   const capability = yield* call(() => checkEngineCapability());
   if (!capability.ok) {
     throw new Error(`This browser can't run the engine (${capability.reason}).`);
@@ -36,10 +34,7 @@ export function* openBrowserEngineSession(
   // No Threads option: the lite-single build is single-threaded. Hash is
   // the only UCI option configured anywhere in this repo today (server
   // production sets none at all).
-  const hash: EngineOption = {
-    name: UCI_OPTION.HASH,
-    value: options.hashMb ?? DEFAULT_HASH_MB,
-  };
+  const hash: EngineOption = { name: UCI_OPTION.HASH, value: HASH_MB };
 
   return yield* useEngineSession(
     () => useWorkerTransport(new Worker(ENGINE_SCRIPT_URL)),

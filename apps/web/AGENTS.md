@@ -22,17 +22,24 @@ does not restate it.
   enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
   for `api`, `backend-status`, `chess-sounds`, and `query`, and
   (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
-  four domains under `games/` — `analysis`, `review`, `import`, `list`. A
+  four domains under `games/` — `analysis`, `review`, `import`, `list` —
+  and for `engine`, the Stockfish infrastructure beside them. A
   domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
   `index.ts` is a contract toward the rest of its domain, not toward the
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
-- `games/` is four domains and two shared files. Review consumes Analysis;
-  Analysis never imports Review, `import` or `list`
-  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
-  evaluations — `analysis/graded-game.ts` — and Review decides what a
-  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
+- `games/` is four domains, one infrastructure folder and two shared
+  files. Review consumes Analysis; Analysis never imports Review, `import`
+  or `list` (`games-analysis-depends-on-no-sibling-domain`). Analysis
+  interprets evaluations — `analysis/graded-game.ts` — and Review decides
+  what a person sees — `review/move-presentation.ts`,
+  `review/board-view.ts`. `games/engine` is the odd one out: not a
+  capability but the Stockfish sessions and Workers the capabilities run
+  on, held to an `index.ts` like a domain and forbidden from reaching
+  into one, into `@velachess/analysis`, the router or a state library
+  (`games-engine-is-infrastructure`). It runs searches; nothing in it
+  knows what a score means. A
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every

@@ -38,6 +38,11 @@ export interface EngineEvaluator {
   /** Searches `fen`, retrying once on a fresh session when the engine dies
    * or goes silent. Throws when both attempts fail. */
   evaluate(fen: string): Operation<CompletedSearch>;
+  /** Hurries the in-flight search, the same way the silence watchdog
+   * does. It still settles with an outcome, because a real UCI engine
+   * answers `stop` with a bestmove — how long to wait for that is the
+   * caller's to decide, since nothing here asked for the stop. */
+  stop(): void;
 }
 
 export interface EngineEvaluatorOptions {
@@ -170,6 +175,7 @@ export function useEngineEvaluator(
         if (!second) throw new Error(`Engine failed twice evaluating ${fen}`);
         return second;
       },
+      stop: () => holder.session.stop(),
     });
   });
 }

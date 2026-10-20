@@ -7,8 +7,6 @@
  * that computes it — this app runs that same analysis in the browser, so
  * there is nothing to mirror and one import site for it.
  */
-import { engineManager } from "./engine-manager.ts";
-
 export { MOVE_CATEGORIES } from "@velachess/analysis";
 export type { GradedPly, MoveCategory } from "@velachess/analysis";
 
@@ -29,9 +27,9 @@ export {
 export type { EvalPoint, SideBreakdown } from "./graded-game.ts";
 
 /**
- * One position, searched on the interactive lane: it preempts a
- * whole-game pass and raises `EnginePreempted` once a newer request
- * supersedes it. The scheduler stays private on purpose — a caller asks
- * for an evaluation and does not get to choose a lane.
+ * Opens an evaluator for the positions someone explores by hand. It
+ * holds one engine session, so its owner keeps it for as long as those
+ * positions keep coming and disposes it when they stop.
  */
-export const evaluatePosition = engineManager.evaluatePosition;
+export { openPositionEvaluator } from "./position/index.ts";
+export type { OpenPositionEvaluator } from "./position/index.ts";

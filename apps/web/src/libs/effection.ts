@@ -1,14 +1,16 @@
 export {
   call,
-  createChannel,
   createQueue,
+  createScope,
   ensure,
   Err,
   Ok,
+  race,
   resource,
   run,
-  scoped,
+  sleep,
+  suspend,
   unbox,
-  useScope,
+  withResolvers,
 } from "effection";
-export type { Operation, Result, Task } from "effection";
+export type { Operation, Result, Task, WithResolvers } from "effection";

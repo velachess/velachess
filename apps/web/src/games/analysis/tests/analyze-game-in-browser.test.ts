@@ -19,14 +19,21 @@ import {
   analyzeGameInBrowser,
   type GameAnalysisInput,
 } from "../game/analyze-game-in-browser.ts";
-import { ENGINE_BUILD } from "../engine-asset.ts";
-import { createScriptedEngine, goLines, type ScriptedEngine } from "./scripted-engine.ts";
+import { ENGINE_BUILD } from "../../engine/index.ts";
+import {
+  createScriptedEngine,
+  goLines,
+  type ScriptedEngine,
+} from "../../engine/tests/scripted-engine.ts";
 
-vi.mock("../open-browser-engine-session.ts", () => ({
+// Mocked one level below the SDK: the real `createEngine` sessions, their
+// lifecycle and their UCI conversation all run, only the Worker behind
+// them is scripted.
+vi.mock("../../engine/browser-session.ts", () => ({
   openBrowserEngineSession: vi.fn(),
 }));
 
-import { openBrowserEngineSession } from "../open-browser-engine-session.ts";
+import { openBrowserEngineSession } from "../../engine/browser-session.ts";
 
 afterEach(async () => {
   await resetAnalysisCacheForTests();

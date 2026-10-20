@@ -8,7 +8,7 @@
 import { call, type Operation } from "../../libs/effection.ts";
 import { sideToMoveOf } from "@velachess/chess";
 import { toWhitePov, type PositionEvaluator, type RawEval } from "@velachess/analysis";
-import type { CompletedSearch, EngineEvaluator } from "@velachess/infra-engine";
+import type { CompletedSearch } from "@velachess/infra-engine";
 
 import { putCachedRawEval, type CacheKeyParts } from "./analysis-cache.ts";
 
@@ -26,7 +26,9 @@ export function rawEvalOf(fen: string, search: CompletedSearch): RawEval {
 }
 
 export interface CachedEvaluatorDeps {
-  engine: EngineEvaluator;
+  /** The engine call for one position. Narrow on purpose: this adapter
+   * needs a search, not a session to manage. */
+  search: (fen: string) => Operation<CompletedSearch>;
   parts: CacheKeyParts;
   /**
    * The cache read. A whole-game pass hands in a map pre-warmed by one
@@ -38,14 +40,14 @@ export interface CachedEvaluatorDeps {
 }
 
 export function cachedPositionEvaluator(deps: CachedEvaluatorDeps): PositionEvaluator {
-  const { engine, parts, lookup } = deps;
+  const { search, parts, lookup } = deps;
 
   return {
     *evaluate(fen: string): Operation<RawEval> {
       const cached = yield* lookup(fen);
       if (cached) return cached;
 
-      const raw = rawEvalOf(fen, yield* engine.evaluate(fen));
+      const raw = rawEvalOf(fen, yield* search(fen));
       yield* call(() => putCachedRawEval(fen, parts, raw));
       return raw;
     },

@@ -3,11 +3,10 @@
  * whole-game pass, decides which pass the store still answers for, and
  * turns what the engine publishes into snapshots.
  *
- * It owns no scheduling. Priority, exclusivity, preemption and resuming
- * after an interactive evaluation are `EngineManager`'s, and this file
- * never second-guesses them — the only cancellation it performs is
- * replacing one game's pass with another's, which is a decision the
- * manager has no way to make.
+ * It owns no scheduling, because there is none to own: the pass runs on
+ * its own engine session and competes with nothing. The one cancellation
+ * it performs is replacing one game's pass with another's, and halting
+ * the pass is what disposes that session.
  */
 import { run } from "../../../libs/effection.ts";
 
@@ -17,8 +16,10 @@ import {
   snapshotOf,
   type AnalysisSnapshot,
 } from "../analysis-store.ts";
-import type { GameAnalysisInput } from "./analyze-game-in-browser.ts";
-import { engineManager } from "../engine-manager.ts";
+import {
+  analyzeGameInBrowser,
+  type GameAnalysisInput,
+} from "./analyze-game-in-browser.ts";
 
 interface Pass {
   readonly gameId: string;
@@ -54,7 +55,7 @@ export function startAnalysis(input: GameAnalysisInput): void {
   previous?.halt?.();
 
   const task = run(() =>
-    engineManager.analyzeGame(input, (position) => {
+    analyzeGameInBrowser(input, (position) => {
       publish(pass, (snapshot) => ({
         status: "analyzing",
         graded: [...snapshot.graded, position],
