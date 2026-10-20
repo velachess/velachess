@@ -1,4 +1,4 @@
-import { isSyncActive, type TrackedAccount } from "../games/import/queries.ts";
+import { isSyncActive, type TrackedAccount } from "../games/import/index.ts";
 
 /** An empty library reads differently depending on whether anything is on its way. */
 export type OnboardingState =

@@ -169,7 +169,7 @@ For these, the answer is not to force the import. It is to mirror the shape
 and make a drift **fail the build**, in the module that owns the concept:
 
 ```ts
-// libs/analysis/process-analysis/tests/analyze-game.test.ts
+// libs/analysis/tests/analyze-game.test.ts
 const toStoredDriftCheck: StoredGradedPly = {} as GradedPly;
 const fromStoredDriftCheck: GradedPly = {} as StoredGradedPly;
 ```

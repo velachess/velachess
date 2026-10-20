@@ -1,58 +1,79 @@
 /**
- * In-memory Transport for deterministic session tests — no real process or
- * worker. `emit()` simulates a line arriving from the engine; `sent` records
- * every command the session sent, in order. `end()` simulates the
- * underlying process/worker going away mid-stream (e.g. a crash) without a
- * final line — the same shape `WorkerTransport` produces on the browser
- * Worker's native `error` event.
+ * In-memory Transport for deterministic session and evaluator tests — no
+ * real process or worker. `emit()` simulates lines arriving from the
+ * engine, `end()` simulates the process/worker going away mid-stream
+ * without a final line, and `sent` records every command the session sent.
+ *
+ * Teardown pushes `CLOSED` onto `sent` rather than only flipping a flag,
+ * so a test can assert what was sent *before* the transport went away —
+ * `quit` reaching an engine that can still hear it is an ordering
+ * guarantee, not just a pair of side effects.
  */
 
-import type { Transport } from "../transport.ts";
+import { createQueue, ensure, resource, type Operation } from "effection";
 
-export class FakeTransport implements Transport {
-  readonly sent: string[] = [];
-  closed = false;
-  private ended = false;
+import type { OpenTransport, Transport } from "../transport.ts";
 
-  private readonly queue: string[] = [];
-  private readonly waiting: Array<(line: string | null) => void> = [];
+export const CLOSED = "<closed>";
 
-  send(command: string): void {
-    this.sent.push(command);
-  }
+export interface FakeEngineOptions {
+  /** Answer `uci`/`isready`, so a session's handshake completes. */
+  handshake?: boolean;
+  /** Scripted reaction to every command, after it is recorded. */
+  onCommand?: (command: string, emit: (...lines: string[]) => void) => void;
+}
 
-  emit(line: string): void {
-    const resolve = this.waiting.shift();
-    if (resolve) resolve(line);
-    else this.queue.push(line);
-  }
+export interface FakeEngine {
+  readonly sent: string[];
+  closed: boolean;
+  /** How many transports this engine has been opened as. */
+  readonly opens: number;
+  emit(...lines: string[]): void;
+  end(): void;
+  open: OpenTransport;
+}
 
-  /** Simulates the underlying process/worker disappearing mid-stream — the
-   * async iterable completes without a final line, same as a crashed
-   * Worker's `lines()` would. */
-  end(): void {
-    this.ended = true;
-    const resolve = this.waiting.shift();
-    resolve?.(null);
-  }
+export function createFakeEngine(options: FakeEngineOptions = {}): FakeEngine {
+  const sent: string[] = [];
+  let lines = createQueue<string, void>();
+  let opens = 0;
 
-  async *lines(): AsyncIterable<string> {
-    while (true) {
-      const queued = this.queue.shift();
-      if (queued !== undefined) {
-        yield queued;
-        continue;
-      }
-      if (this.ended) return;
-      const line = await new Promise<string | null>((resolve) => {
-        this.waiting.push(resolve);
-      });
-      if (line === null) return;
-      yield line;
-    }
-  }
+  const emit = (...values: string[]) => {
+    for (const value of values) lines.add(value);
+  };
 
-  close(): void {
-    this.closed = true;
-  }
+  const engine: FakeEngine = {
+    sent,
+    closed: false,
+    get opens() {
+      return opens;
+    },
+    emit,
+    end: () => lines.close(),
+    open: (): Operation<Transport> =>
+      resource(function* (provide) {
+        opens++;
+        engine.closed = false;
+        lines = createQueue<string, void>();
+
+        yield* ensure(() => {
+          engine.closed = true;
+          sent.push(CLOSED);
+        });
+
+        yield* provide({
+          send(command: string) {
+            sent.push(command);
+            if (options.handshake) {
+              if (command === "uci") emit("uciok");
+              else if (command === "isready") emit("readyok");
+            }
+            options.onCommand?.(command, emit);
+          },
+          lines,
+        });
+      }),
+  };
+
+  return engine;
 }

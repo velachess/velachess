@@ -7,8 +7,8 @@
   "exports": {
     ".": "./index.ts",
     "./*": "./*.ts",
-    "./transport-child-process": "./transport-child-process.ts",
-    "./transport-worker": "./transport-worker.ts"
+    "./worker-transport": "./worker-transport.ts",
+    "./child-process-transport": "./child-process-transport.ts"
   },
   "scripts": {
     "test": "vitest run"
@@ -17,5 +17,8 @@
     "@velachess/fixtures": "workspace:*",
     "stockfish": "^19.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "effection": "^4.2.0"
+  }
 }

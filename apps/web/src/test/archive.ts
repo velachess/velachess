@@ -1,4 +1,4 @@
-import type { Game } from "../games/list/queries.ts";
+import type { Game } from "../games/list/index.ts";
 import { ME, resetGameIds } from "./games.ts";
 import { announceSync } from "./sync-stream.ts";
 

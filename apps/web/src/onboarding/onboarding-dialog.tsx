@@ -14,8 +14,7 @@ import { ArrowRightIcon } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
 import { ONBOARDING_STEPS, StepMedia } from "./steps.tsx";
-import { ImportGames } from "../games/import/import-games.tsx";
-import { IMPORT_MUTATION_KEY } from "../games/import/queries.ts";
+import { ConnectAccount, IMPORT_MUTATION_KEY } from "../games/import/index.ts";
 import { useIsMutating } from "../libs/react-query.ts";
 
 const DIALOG_COPY = {
@@ -84,7 +83,7 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
                 behind this, and the mutation awaited the caches it
                 invalidated — so the screen underneath is filled in by the
                 time the overlay's condition goes false and it unmounts. */}
-            <ImportGames chrome="bare" onImported={() => setStep(importStep)} />
+            <ConnectAccount chrome="bare" onImported={() => setStep(importStep)} />
           </div>
         )}
 

@@ -1,5 +1,4 @@
 export {
-  experimental_streamedQuery,
   MutationCache,
   QueryCache,
   QueryClient,

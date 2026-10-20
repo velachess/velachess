@@ -129,7 +129,12 @@ export function dispatchChessSound(
   }
 }
 
-export function useChessSounds(): (event: ChessSoundEvent) => void {
-  const muted = useSoundPreferences((state) => state.muted);
-  return (event) => dispatchChessSound(event, muted);
+/**
+ * Play one event's sound. A plain function rather than a hook: the mute
+ * preference is read when a sound is played, so nothing that only wants
+ * to play one has to re-render when the preference changes, and a
+ * long-lived callback cannot capture a stale one.
+ */
+export function playChessSound(event: ChessSoundEvent): void {
+  dispatchChessSound(event, useSoundPreferences.getState().muted);
 }
