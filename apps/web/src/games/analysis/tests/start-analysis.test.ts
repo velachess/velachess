@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../game/analyze-game-in-browser.ts", () => ({
+vi.mock("../analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 
 import { aGradedPly } from "../../../test/games.ts";
 import { IDLE_ANALYSIS, snapshotOf } from "../analysis-store.ts";
-import { resetAnalysisForTests, startAnalysis } from "../game/start-analysis.ts";
+import { resetAnalysisForTests, startAnalysis } from "../start-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
 
-const GAME_A = { gameId: "game-a", rawPgn: "pgn-a", depth: 14 };
-const GAME_B = { gameId: "game-b", rawPgn: "pgn-b", depth: 14 };
+const GAME_A = { gameId: "game-a", rawPgn: "pgn-a" };
+const GAME_B = { gameId: "game-b", rawPgn: "pgn-b" };
 
 beforeEach(() => {
   resetAnalysisForTests();

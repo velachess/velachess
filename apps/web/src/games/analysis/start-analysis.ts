@@ -8,14 +8,14 @@
  * it performs is replacing one game's pass with another's, and halting
  * the pass is what disposes that session.
  */
-import { run } from "../../../libs/effection.ts";
+import { run } from "../../libs/effection.ts";
 
 import {
   IDLE_ANALYSIS,
   setAnalysis,
   snapshotOf,
   type AnalysisSnapshot,
-} from "../analysis-store.ts";
+} from "./analysis-store.ts";
 import {
   analyzeGameInBrowser,
   type GameAnalysisInput,

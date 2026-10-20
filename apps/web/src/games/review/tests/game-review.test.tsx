@@ -15,23 +15,22 @@ import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/arch
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
-import { resetAnalysisForTests } from "../../analysis/game/start-analysis.ts";
+import { resetAnalysisForTests } from "../../analysis/start-analysis.ts";
 import type { GradedPly } from "../../analysis/index.ts";
 import type { Game } from "../../list/index.ts";
 
 /**
  * The screen through the route, over HTTP for the game itself; the engine
- * is mocked at `analyzeGameInBrowser` — the same seam
- * `use-browser-analysis.ts` calls through — rather than at the Worker/UCI
- * level, which `libs/infra/engine` and `analyze-game-in-browser.test.ts`
- * already cover.
+ * is mocked at `analyzeGameInBrowser` — the same seam `start-analysis.ts`
+ * runs — rather than at the Worker/UCI level, which `libs/infra/engine`
+ * and `analyze-game-in-browser.test.ts` already cover.
  */
 
-vi.mock("../../analysis/game/analyze-game-in-browser.ts", () => ({
+vi.mock("../../analysis/analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 const { analyzeGameInBrowser } =
-  await import("../../analysis/game/analyze-game-in-browser.ts");
+  await import("../../analysis/analyze-game-in-browser.ts");
 
 // Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
 // same module, and only the interactive evaluator is stubbed.

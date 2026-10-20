@@ -12,11 +12,7 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
-import {
-  ANALYSIS_DEPTH,
-  openPositionEvaluator,
-  type OpenPositionEvaluator,
-} from "../analysis/index.ts";
+import { openPositionEvaluator, type OpenPositionEvaluator } from "../analysis/index.ts";
 import { run } from "../../libs/effection.ts";
 
 import { variationFen } from "./review-model.ts";
@@ -51,7 +47,7 @@ export function useVariationEvaluation(store: ReviewStore): void {
     if (fen === null) return;
 
     let cancelled = false;
-    const evaluator = (evaluatorRef.current ??= openPositionEvaluator(ANALYSIS_DEPTH));
+    const evaluator = (evaluatorRef.current ??= openPositionEvaluator());
     const evaluation = run(() => evaluator.evaluate(fen));
 
     evaluation.then(

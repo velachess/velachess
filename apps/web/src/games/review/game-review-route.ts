@@ -5,7 +5,7 @@
  */
 import { createClientOnlyFn } from "@tanstack/react-start";
 
-import { ANALYSIS_DEPTH, startAnalysis } from "../analysis/index.ts";
+import { startAnalysis } from "../analysis/index.ts";
 import type { QueryClientType } from "../../libs/react-query.ts";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
 
@@ -15,7 +15,7 @@ import { gameQuery, type ReplayableGame } from "./game-record.ts";
  * so there is nothing to keep two copies of in sync.
  */
 const analyzeInBrowser = createClientOnlyFn((game: ReplayableGame) => {
-  startAnalysis({ gameId: game.id, rawPgn: game.rawPgn, depth: ANALYSIS_DEPTH });
+  startAnalysis({ gameId: game.id, rawPgn: game.rawPgn });
 });
 
 export async function loadGameReview(

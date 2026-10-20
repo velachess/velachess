@@ -10,7 +10,7 @@ How the engine itself is driven — sessions, watchdog, retry — is
 Analysis runs entirely in the browser. There is no server or worker leg and
 no queue — the game itself arrives over HTTP through React Query, but the
 analysis does not, because it is computed here. Progress lives in a store
-outside React for the session, with per-position and whole-game caches in
+outside React for the session, with one finished report per game stored in
 IndexedDB underneath it.
 
 Four modules split the work and none of them reaches into another's:
@@ -21,13 +21,13 @@ lifetime, the search watchdog and recovery from a dead engine;
 `apps/web/src/engine/` is the browser SDK over it — `createEngine()`
 hands out sessions, each owning one Worker, reusing it between searches
 and replacing a search in flight; and `apps/web/src/games/analysis/`
-composes those, adds the cache and the white-POV conversion. Its two lanes
-are its two sub-slices: `game/` grades a whole game, `position/` opens an
-evaluator for single FENs.
+composes those, adds the stored report and the white-POV conversion. Its
+two lanes are two flat files: `analyze-game-in-browser.ts` grades a whole
+game, `evaluate-position-in-browser.ts` opens an evaluator for single FENs.
 
 Inside the analysis domain the jobs are split again, one owner each:
 `analysis-store.ts` is a zustand store holding one game's snapshot, and
-`game/start-analysis.ts` is the only thing that knows both the engine and
+`start-analysis.ts` is the only thing that knows both the engine and
 the store — it starts a pass, replaces it when another game is opened, and
 refuses writes from a pass that was replaced. A ply is published by a
 synchronous callback the whole way up: there is no stream, queue or async
@@ -38,7 +38,7 @@ generator between the engine and the screen.
 | Setting        | Value                                                                                                                                             |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Binary         | `stockfish` npm package's `stockfish-19-lite-single.js` (single-threaded WASM), copied to `apps/web/public/engine/` and run in a browser `Worker` |
-| Depth          | **14** — `review/game-review-route.ts`'s own call into `startAnalysis`                                                                            |
+| Depth          | **14** — `ANALYSIS_DEPTH` in `games/analysis/evaluate-position-in-browser.ts`, the one place a session is opened                                  |
 | UCI options    | `Hash` only, fixed at 16 MB (`engine/browser-session.ts`'s `HASH_MB`). No Threads — the lite-single build is single-threaded                      |
 | Search         | `go depth <N>` once per mainline position                                                                                                         |
 | Watchdog       | `min(30000, max(5000, 3000 + depth·400))` ms of **silence**, rearmed by every `info` line (8600 ms at depth 14); on timeout `stop` + 2 s grace    |
@@ -66,15 +66,15 @@ could arbitrate between them.
 
 Each session has an owner, and the owner's lifetime is the session's:
 
-| Session               | Owner                                      | Disposed when                               |
-| --------------------- | ------------------------------------------ | ------------------------------------------- |
-| the whole-game pass   | `analysis/game/analyze-game-in-browser.ts` | the pass ends — finished, failed, or halted |
-| interactive positions | `review/use-variation-evaluation.ts`       | the review unmounts                         |
+| Session               | Owner                                 | Disposed when                               |
+| --------------------- | ------------------------------------- | ------------------------------------------- |
+| the whole-game pass   | `analysis/analyze-game-in-browser.ts` | the pass ends — finished, failed, or halted |
+| interactive positions | `review/use-variation-evaluation.ts`  | the review unmounts                         |
 
 Inside one session a newer search replaces the one in flight over UCI —
 `go`, `stop`, `bestmove`, `position`, `go` — and the replaced search is
 rejected with `SearchSuperseded` rather than returned, so a result cut
-short by `stop` is never read as an answer and never cached at full depth.
+short by `stop` is never read as an answer.
 The next search starts only once the engine has genuinely gone idle, which
 is what keeps one Worker usable across hundreds of searches instead of one
 Worker per FEN.
@@ -83,7 +83,7 @@ Cancelling is halting the task that started the work. That sends a real
 `stop` and leaves the session reusable; it is disposal, not cancellation,
 that terminates a Worker. Two things cancel, and they do not overlap:
 opening a different game replaces the pass under way
-(`game/start-analysis.ts`, whose halt also disposes that pass's session),
+(`analysis/start-analysis.ts`, whose halt also disposes that pass's session),
 and the position a variation is showing stops being the one on screen
 (`review/use-variation-evaluation.ts`, whose effect cleanup cancels the
 search while keeping the session).
@@ -112,25 +112,44 @@ nothing reads it once the screen is gone.
   position total. A terminal final position (mate/stalemate) gets
   `{mate: ±1}` / `{cp: 0}` assigned directly, no search.
 
-## Caching
+## Persistence
 
-Two IndexedDB stores, both LRU-pruned on write and both keyed on the engine
-build so swapping the wasm binary invalidates what came before it
-(`apps/web/src/games/analysis/analysis-cache.ts`):
+One IndexedDB store, holding one finished report per game
+(`apps/web/src/games/analysis/analysis-db.ts`):
 
-| Store     | Key                                              | Holds                       |
-| --------- | ------------------------------------------------ | --------------------------- |
-| `rawEval` | fen + depth + multiPV + engineBuild              | one position's evaluation   |
-| `report`  | gameId + policyVersion + depth + multiPV + build | a whole game's graded plies |
+| Store    | Key      | Holds                                                       |
+| -------- | -------- | ----------------------------------------------------------- |
+| `report` | `gameId` | `GameAnalysisReport` — graded plies plus what produced them |
 
-A cached report short-circuits before the engine is started at all.
-Otherwise every position the game needs is read in one transaction up
-front, and that pre-warmed map is what the evaluator checks per position —
-a hit never reaches Stockfish. `POLICY_VERSION` is bumped when
-`classify-move.ts` changes, which is what keeps a stale report from being
-read back as current. Stored evaluations are white POV; the conversion from
-the engine's side-to-move score happens once, in
-`cached-position-evaluator.ts`.
+```ts
+interface GameAnalysisReport {
+  gameId: string;
+  engineBuild: string;
+  depth: number;
+  policyVersion: number;
+  graded: GradedPly[];
+}
+```
+
+The record is plain JSON and says what produced it, so `getReport` reads a
+report written under settings this build no longer uses as a miss rather
+than as current — a new wasm binary, a different depth, or a
+`POLICY_VERSION` bumped because `classify-move.ts` changed. One report per
+game: re-analyzing replaces the previous one, and nothing derivable from
+`graded` is stored beside it.
+
+A stored report short-circuits before the engine is started at all.
+Otherwise the pass searches every position and the report is written once,
+at the end — a half-graded game is never stored, because an engine failure
+throws before that write. There is no per-position cache and no retention
+policy: an interrupted pass starts over, evaluations are not shared between
+games, and reports are kept until the browser reclaims the quota.
+
+A report is an optimization, so storage failures degrade rather than
+propagate: a failed read runs the analysis, a failed write logs and leaves
+the finished analysis on screen unpersisted. Stored evaluations are white
+POV; the conversion from the engine's side-to-move score happens once, in
+`evaluate-position-in-browser.ts`.
 
 ## Entry points
 
@@ -152,7 +171,8 @@ the engine's side-to-move score happens once, in
   (`review-model.ts`), score text, tones and labels
   (`move-presentation.ts`), UCI→SAN and board squares (`board-view.ts`)
 - `apps/web/src/games/analysis/` internals → `analysisStore`,
-  `analyzeGameInBrowser`, `cachedPositionEvaluator`
+  `analyzeGameInBrowser`, `positionEvaluationOf`, `ANALYSIS_DEPTH`, and
+  `getReport` / `saveReport` / `GameAnalysisReport` (`analysis-db.ts`)
 - `apps/web/src/games/review/index.ts` → `loadGameReview`, the route
   loader that starts a game's analysis
 - `apps/web/src/games/review/use-variation-evaluation.ts` → the one place

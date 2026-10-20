@@ -8,7 +8,7 @@ import { vi } from "vitest";
 import type { GradedPly } from "@velachess/analysis";
 
 import { ensure, withResolvers, type Operation } from "../../../libs/effection.ts";
-import { analyzeGameInBrowser } from "../game/analyze-game-in-browser.ts";
+import { analyzeGameInBrowser } from "../analyze-game-in-browser.ts";
 
 export interface ScriptedPass {
   readonly gameId: string;

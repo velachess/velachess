@@ -48,9 +48,9 @@ the behavior belongs to, not merely that it exists.
 Inside `games/` the four domains are the product's four capabilities, and
 each one's `index.ts` is the only thing a route, a sibling vertical or the
 test harness may import; dependency-cruiser enforces it
-(`games-domain-index-only`). A sub-slice (`analysis/game/`,
-`import/pgn/`) is internal to its domain: its own `index.ts` is a contract
-toward the rest of that domain, not toward the app.
+(`games-domain-index-only`). A sub-slice (`import/pgn/`,
+`import/accounts/`) is internal to its domain: its own `index.ts` is a
+contract toward the rest of that domain, not toward the app.
 
 `engine/` sits outside `games/` for the same reason `api/` and `query/`
 do: it is infrastructure, not a capability. It is the Stockfish factory,

@@ -10,8 +10,7 @@
 export { MOVE_CATEGORIES, scoreToWinChance } from "@velachess/analysis";
 export type { GradedPly, MoveCategory, WhitePovScore } from "@velachess/analysis";
 
-export { ANALYSIS_DEPTH } from "./analysis-cache.ts";
-export { startAnalysis } from "./game/index.ts";
+export { startAnalysis } from "./start-analysis.ts";
 export { useEngineAnalysis } from "./use-engine-analysis.ts";
 
 /**
@@ -19,5 +18,5 @@ export { useEngineAnalysis } from "./use-engine-analysis.ts";
  * holds one engine session, so its owner keeps it for as long as those
  * positions keep coming and disposes it when they stop.
  */
-export { openPositionEvaluator } from "./position/index.ts";
-export type { OpenPositionEvaluator } from "./position/index.ts";
+export { openPositionEvaluator } from "./evaluate-position-in-browser.ts";
+export type { OpenPositionEvaluator } from "./evaluate-position-in-browser.ts";
