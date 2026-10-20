@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@velachess/chess": "workspace:*",
-    "@velachess/infra-db": "workspace:*",
     "effection": "^4.2.0"
   },
   "devDependencies": {

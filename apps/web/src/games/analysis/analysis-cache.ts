@@ -10,7 +10,7 @@
  * classification policy invalidates the old entries instead of reading
  * a stale score or report back as current.
  */
-import type { GradedPly, RawEval } from "@velachess/analysis";
+import type { GradedPly, PositionEvaluation } from "@velachess/analysis";
 
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from "../../libs/idb.ts";
 
@@ -37,7 +37,7 @@ export const ANALYSIS_DEPTH = 14;
 
 interface RawEvalEntry {
   key: string;
-  score: RawEval["score"];
+  score: PositionEvaluation["score"];
   bestMove: string | null;
   lastAccessed: number;
 }
@@ -128,7 +128,7 @@ async function pruneLru(
 export async function getCachedRawEval(
   fen: string,
   parts: CacheKeyParts,
-): Promise<RawEval | null> {
+): Promise<PositionEvaluation | null> {
   const db = await openAnalysisCache();
   const entry = await db.get("rawEval", rawEvalKey(fen, parts));
   if (!entry) return null;
@@ -140,7 +140,7 @@ export async function getCachedRawEval(
 export async function putCachedRawEval(
   fen: string,
   parts: CacheKeyParts,
-  raw: RawEval,
+  raw: PositionEvaluation,
 ): Promise<void> {
   const db = await openAnalysisCache();
   await db.put("rawEval", {
@@ -163,13 +163,13 @@ export async function putCachedRawEval(
 export async function getCachedRawEvalsBatch(
   fens: readonly string[],
   parts: CacheKeyParts,
-): Promise<Map<string, RawEval>> {
+): Promise<Map<string, PositionEvaluation>> {
   const db = await openAnalysisCache();
   const tx = db.transaction("rawEval", "readwrite");
   const keys = fens.map((fen) => rawEvalKey(fen, parts));
   const entries = await Promise.all(keys.map((key) => tx.store.get(key)));
 
-  const hits = new Map<string, RawEval>();
+  const hits = new Map<string, PositionEvaluation>();
   const touches: Promise<string>[] = [];
   entries.forEach((entry, index) => {
     if (!entry) return;

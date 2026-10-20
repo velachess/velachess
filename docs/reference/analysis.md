@@ -136,7 +136,6 @@ the engine's side-to-move score happens once, in
 
 - `libs/analysis/analyze-game.ts` → `analyzeGame`, `fensToEvaluate`,
   `PositionEvaluator`
-- `libs/analysis/grade-game.ts` → `gradeGame`
 - `libs/analysis/classify-move.ts` → `classifyMove`, `scoreToWinChance`
 - `libs/analysis/move-category.ts` → `MoveCategory`
 - `libs/infra/engine/engine-evaluator.ts` → `useEngineEvaluator`, and

@@ -66,8 +66,8 @@ describe("playMove", () => {
     expect(played?.san).toBe("O-O");
     // chessops encodes a castling Move internally as king-takes-own-rook
     // (`to` = the rook's square) — makeUci reads that raw, same as this
-    // app's own uciOf() does for the real review's bestMove comparison
-    // (libs/analysis/process-analysis/uci.ts). Matching that existing
+    // app's own makeUci() does for the real review's bestMove
+    // comparison (libs/analysis/grade-game.ts). Matching that existing
     // behavior here, not inventing a different one for exploration.
     expect(played?.uci).toBe("e1h1");
   });

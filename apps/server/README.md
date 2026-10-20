@@ -8,9 +8,9 @@ the business modules under `libs/` (`@velachess/accounts`, `@velachess/games`,
 ## Dependencies
 
 - Internal: the business modules under `libs/` (`@velachess/accounts`,
-  `@velachess/games`, `@velachess/analysis`, `@velachess/user`),
+  `@velachess/games`, `@velachess/user`), `@velachess/infra-auth`,
   `@velachess/infra-db`, `@velachess/infra-queue`, `@velachess/infra-logger`,
-  plus narrow chess/engine types.
+  `@velachess/infra-platforms`, `@velachess/infra-storage`.
 - External runtime: Hono, `@hono/node-server`, `postgres`, `zod`.
 
 ## Usage / Development

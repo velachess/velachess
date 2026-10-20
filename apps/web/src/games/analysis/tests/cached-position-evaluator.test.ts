@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { RawEval } from "@velachess/analysis";
+import type { PositionEvaluation } from "@velachess/analysis";
 import type { CompletedSearch } from "@velachess/infra-engine";
 
 import { call, run, type Operation } from "../../../libs/effection.ts";
@@ -12,7 +12,10 @@ import {
   MULTI_PV,
   type CacheKeyParts,
 } from "../analysis-cache.ts";
-import { cachedPositionEvaluator, rawEvalOf } from "../cached-position-evaluator.ts";
+import {
+  cachedPositionEvaluator,
+  positionEvaluationOf,
+} from "../cached-position-evaluator.ts";
 import { ENGINE_BUILD } from "../../../engine/index.ts";
 
 afterEach(async () => {
@@ -46,16 +49,16 @@ function spyEngine(...results: CompletedSearch[]) {
   };
 }
 
-describe("rawEvalOf", () => {
+describe("positionEvaluationOf", () => {
   it("keeps a white-to-move score as the engine reported it", () => {
-    expect(rawEvalOf(WHITE_TO_MOVE, search(31, "e2e4"))).toEqual({
+    expect(positionEvaluationOf(WHITE_TO_MOVE, search(31, "e2e4"))).toEqual({
       score: { cp: 31 },
       bestMove: "e2e4",
     });
   });
 
   it("flips a black-to-move score into white POV", () => {
-    expect(rawEvalOf(BLACK_TO_MOVE, search(31, "e7e5"))).toEqual({
+    expect(positionEvaluationOf(BLACK_TO_MOVE, search(31, "e7e5"))).toEqual({
       score: { cp: -31 },
       bestMove: "e7e5",
     });
@@ -63,14 +66,17 @@ describe("rawEvalOf", () => {
 
   it("reads (none) as no move rather than a move named (none)", () => {
     const outcome: CompletedSearch = { bestMove: { move: "(none)" } };
-    expect(rawEvalOf(WHITE_TO_MOVE, outcome)).toEqual({ score: {}, bestMove: null });
+    expect(positionEvaluationOf(WHITE_TO_MOVE, outcome)).toEqual({
+      score: {},
+      bestMove: null,
+    });
   });
 });
 
 describe("cachedPositionEvaluator", () => {
   it("never reaches the engine for a position the lookup already has", async () => {
     const engine = spyEngine();
-    const cached: RawEval = { score: { cp: 7 }, bestMove: "e2e4" };
+    const cached: PositionEvaluation = { score: { cp: 7 }, bestMove: "e2e4" };
 
     const result = await run(function* () {
       const evaluator = cachedPositionEvaluator({
@@ -104,7 +110,7 @@ describe("cachedPositionEvaluator", () => {
 
   it("asks the lookup for every position, so a pre-warmed map shortcuts per FEN", async () => {
     const engine = spyEngine(search(20, "e2e4"));
-    const warm = new Map<string, RawEval>([
+    const warm = new Map<string, PositionEvaluation>([
       [BLACK_TO_MOVE, { score: { cp: -5 }, bestMove: "e7e5" }],
     ]);
 

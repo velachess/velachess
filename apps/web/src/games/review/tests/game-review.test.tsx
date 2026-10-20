@@ -291,8 +291,8 @@ describe("game analysis", () => {
   });
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
-    // Cancellation itself is `EngineManager`'s own job (see
-    // `engine-manager.test.ts` and `analyze-game-in-browser.test.ts`);
+    // Cancellation itself belongs to the pass (see
+    // `start-analysis.test.ts` and `analyze-game-in-browser.test.ts`);
     // here the concern is purely the screen's: a stale run's partial
     // result must never render as if it belonged to whatever game is
     // open now. The first game's pass never grades anything and never

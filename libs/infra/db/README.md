@@ -7,8 +7,7 @@ outside this library.
 
 ## Dependencies
 
-- Internal: `@velachess/infra-platforms` for source schemas; dev/test coverage also
-  exercises `@velachess/analysis`.
+- Internal: `@velachess/infra-platforms` for source schemas.
 - External runtime: Drizzle ORM and `postgres`; migrations use `drizzle-kit`.
 
 ## Usage / Development

@@ -1,13 +1,13 @@
 /**
- * Scripts `analyzeGameInBrowser`, so a test drives the real store, the
- * real coordinator and the real `EngineManager` with only the engine
- * itself standing still. The importing test must `vi.mock` that module.
+ * Scripts `analyzeGameInBrowser`, so a test drives the real store and
+ * the real coordinator with only the engine standing still. The
+ * importing test must `vi.mock` that module.
  */
-import { ensure, withResolvers, type Operation } from "effection";
 import { vi } from "vitest";
 
 import type { GradedPly } from "@velachess/analysis";
 
+import { ensure, withResolvers, type Operation } from "../../../libs/effection.ts";
 import { analyzeGameInBrowser } from "../game/analyze-game-in-browser.ts";
 
 export interface ScriptedPass {

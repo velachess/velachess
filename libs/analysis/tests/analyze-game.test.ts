@@ -2,7 +2,6 @@
 import { createRequire } from "node:module";
 
 import { parsePgn, replayMainline } from "@velachess/chess";
-import type { StoredGradedPly } from "@velachess/infra-db";
 import {
   useEngineEvaluator,
   useEngineSession,
@@ -13,23 +12,8 @@ import { call, run, type Operation } from "effection";
 import { describe, expect, it } from "vitest";
 
 import { analyzeGame, fensToEvaluate, type PositionEvaluator } from "../analyze-game.ts";
-import { gradeGame, type GradedPly } from "../grade-game.ts";
-import { toWhitePov, type RawEval } from "../score.ts";
-
-// Drift guard: infra-db stores a report as jsonb and declares its own
-// structural mirror of GradedPly, because drizzle-kit's schema loader must
-// never pull in the chess toolchain. The two must stay mutually
-// assignable, checked at typecheck time in both directions.
-//
-// It lives here, not in infra-db's own tests, because this is the
-// direction the package graph already runs: analysis depends on infra-db.
-// The reverse made @velachess/analysis a devDependency of infra-db, which
-// turned the graph into a cycle and made every analysis-only change mark
-// infra-db — and everything downstream of it — affected.
-const toStoredDriftCheck: StoredGradedPly = {} as GradedPly;
-const fromStoredDriftCheck: GradedPly = {} as StoredGradedPly;
-void toStoredDriftCheck;
-void fromStoredDriftCheck;
+import type { GradedPly } from "../grade-game.ts";
+import { toWhitePov, type PositionEvaluation } from "../score.ts";
 
 const FOOLS_MATE = "1. f3 e5 2. g4 Qh4# *";
 
@@ -124,7 +108,9 @@ describe("analyzeGame (real Stockfish)", () => {
 
 /** Answers every position identically — enough for the sequencing and
  * classification assertions that don't care what the score is. */
-function stubEvaluator(score: RawEval = { score: { cp: 0 }, bestMove: "e2e4" }) {
+function stubEvaluator(
+  score: PositionEvaluation = { score: { cp: 0 }, bestMove: "e2e4" },
+) {
   const asked: string[] = [];
   return {
     asked,
@@ -148,13 +134,13 @@ describe("analyzeGame sequencing", () => {
     expect(evaluator.asked).toEqual(fensToEvaluate(replay));
   });
 
-  it("publishes exactly what gradeGame produces for the same evaluations", async () => {
-    const evals: RawEval[] = [
+  it("grades each ply from the evaluation before it and the one after it", async () => {
+    const evals: PositionEvaluation[] = [
       { score: { cp: 20 }, bestMove: "e2e4" },
       { score: { cp: -300 }, bestMove: "d7d5" },
       { score: { cp: 10 }, bestMove: "g1f3" },
     ];
-    const recorded = new Map<string, RawEval>();
+    const recorded = new Map<string, PositionEvaluation>();
     const replay = replayMainline(parsePgn("1. e4 e5 *")[0]!).unwrap();
     fensToEvaluate(replay).forEach((fen, index) => recorded.set(fen, evals[index]!));
 
@@ -167,7 +153,30 @@ describe("analyzeGame sequencing", () => {
       );
     });
 
-    expect(published).toEqual(gradeGame(replay.moves, replay.finalPosition, evals));
+    expect(published).toEqual([
+      {
+        ply: 1,
+        fen: replay.moves[0]!.fenBefore,
+        san: "e4",
+        evalBefore: { cp: 20 },
+        evalAfter: { cp: -300 },
+        bestMove: "e2e4",
+        // Playing the engine's own move is `best` however much the eval
+        // then drops — the loss is still reported.
+        category: "best",
+        winChanceLoss: expect.closeTo(0.539055, 6),
+      },
+      {
+        ply: 2,
+        fen: replay.moves[1]!.fenBefore,
+        san: "e5",
+        evalBefore: { cp: -300 },
+        evalAfter: { cp: 10 },
+        bestMove: "d7d5",
+        category: "blunder",
+        winChanceLoss: expect.closeTo(0.520659, 6),
+      },
+    ]);
   });
 });
 
