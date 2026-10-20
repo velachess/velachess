@@ -5,7 +5,7 @@ description: Change or review VelaChess Stockfish execution, engine sessions, UC
 
 # Work on engine analysis
 
-Keep three concerns separate, and do not let one reach into another:
+Keep four concerns separate, and do not let one reach into another:
 
 - `libs/infra/engine` owns UCI transport, session lifetime, and evaluation
   reliability — the silence watchdog, the grace period, and retrying on a
@@ -17,29 +17,41 @@ Keep three concerns separate, and do not let one reach into another:
   and nothing about how the engine is driven. The engine reaches it only
   through the `PositionEvaluator` dependency it declares, so this module
   depends on neither `@velachess/infra-engine` nor a cache.
-- `apps/web/src/games/analysis/` composes the two, owns the IndexedDB
-  caches and the side-to-move → white-POV conversion, and schedules which
-  lane gets the one Worker (`engine-manager.ts`). Its two lanes are its
-  two sub-slices: `game/` grades a whole game, `position/` searches one
-  FEN. Inside the domain, `analysis-store.ts` only stores snapshots and
-  notifies React — it imports neither Effection nor the manager — and
-  `game/start-analysis.ts` is the one module that knows both. Keep it that
-  way: a ply travels up by synchronous callback, and the two cancellations
-  (interactive preempting background; a new game replacing the pass under
-  way) have one owner each.
+- `apps/web/src/games/engine/` is the browser SDK: `createEngine()` hands
+  out sessions, each owning one Stockfish Worker, creating it lazily,
+  reusing it between searches, replacing a search in flight over UCI
+  (`go`, `stop`, `bestmove`, `position`, `go`) and killing the Worker when
+  a stop goes unanswered. It returns `CompletedSearch` and knows nothing
+  about games, plies or scores. Sessions never see each other: there is no
+  registry, lane, priority or shared lock, and `createEngine` keeps no
+  list of what it created. Do not add one — two Workers running at once is
+  the design, not a problem to schedule away.
+- `apps/web/src/games/analysis/` composes the rest, owns the IndexedDB
+  caches and the side-to-move → white-POV conversion. Its two lanes are
+  its two sub-slices: `game/` grades a whole game on a session it owns for
+  the length of the pass, `position/` opens a disposable evaluator for
+  single FENs whose owner is `review/use-variation-evaluation.ts`. Inside
+  the domain, `analysis-store.ts` only stores snapshots and notifies React
+  — it imports no Effection — and `game/start-analysis.ts` is the one
+  module that knows both engine and store. Keep it that way: a ply travels
+  up by synchronous callback, and the two cancellations (a new game
+  replacing the pass under way; the variation's position changing) have
+  one owner each.
 - The domain's `index.ts` is what the review screen sees: `startAnalysis`,
-  `useEngineAnalysis`, `evaluatePosition` and the read model in
-  `graded-game.ts`. The scheduler itself is private — a caller asks for an
-  evaluation and does not choose a lane. Analysis never imports `review/`.
+  `useEngineAnalysis`, `openPositionEvaluator` and the read model in
+  `graded-game.ts`. Analysis never imports `review/`.
 
-Asynchronous lifecycle is Effection. A session is a resource, so leaving
-the scope that opened it quits the engine and terminates the Worker;
-cancelling is halting the task that started the work, and the handle that
-halts it settles only once teardown has finished. Do not add an
-`AbortController`, a settled-promise handoff, an epoch counter, or a second
-queue beside it — and keep Promises and native events at the external
-boundaries that genuinely need them (React Query's `streamFn`, a Worker's
-`message` event).
+Asynchronous lifecycle is Effection. Infra's session is a resource, so
+leaving the scope that opened it quits the engine and terminates the
+Worker — which is why the SDK holds its Worker in a scope of its own,
+outliving any one caller, and why an SDK session's `dispose()` is final
+rather than something a cancelled caller triggers. Cancelling is halting
+the task that started the work: it sends a real `stop`, drains the search,
+and leaves the session reusable. Do not add an `AbortController`, a
+settled-promise handoff, an epoch counter, or a second queue beside it —
+and keep Promises and native events at the external boundaries that
+genuinely need them (React Query's `streamFn`, a Worker's `message`
+event).
 
 Prefer Stockfish/UCI and Effection primitives over local schedulers,
 polling, timeouts, or retry frameworks. Keep classification pure and

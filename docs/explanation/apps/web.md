@@ -21,10 +21,11 @@ src/
   backend-status/ backend-availability state and the banner that shows it
   chess-sounds/   move-sound preference, mapping and playback
   i18n/           locale resolution and catalogue activation
-  games/          everything you do to games, as four domains
-    analysis/       Stockfish in the browser: produce evaluations and read them
+  games/          everything you do to games, as four domains over one engine
+    engine/         Stockfish sessions and the Workers they own
+    analysis/       produce evaluations and read them
       game/           grade a whole game, ply by ply
-      position/       search one FEN
+      position/       evaluate single ad-hoc FENs
     review/         walk a game, understand its analysis, try a variation
     import/         get games in
       accounts/       connect a provider account and keep it synced
@@ -50,6 +51,16 @@ test harness may import; dependency-cruiser enforces it
 (`games-domain-index-only`). A sub-slice (`analysis/game/`,
 `import/pgn/`) is internal to its domain: its own `index.ts` is a contract
 toward the rest of that domain, not toward the app.
+
+`engine/` is the one folder here that is not a capability. It is the
+Stockfish infrastructure the capabilities run on — a factory, its
+sessions, their Workers — and it sits inside `games/` because games are
+the only thing in the product that has an engine. It is held to the same
+`index.ts` surface as a domain, and one rule
+(`games-engine-is-infrastructure`) keeps it from reaching back into one,
+or into `@velachess/analysis`, the router or a state library: it runs
+searches and returns the engine's own result, so what a score means and
+who is looking at one stay outside it.
 
 The one direction that matters is that **Review consumes Analysis and
 Analysis knows nothing of Review** — analysis produces and interprets
