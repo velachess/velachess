@@ -93,6 +93,16 @@ adds is what to do when the engine misbehaves.
   whole game's only retry. Two failures throw
   `Engine failed twice evaluating <fen>`.
 
+`stop()` forwards to the session's, so a caller that wants the in-flight
+search hurried can ask for it without reaching past this layer. The search
+still settles with an outcome, because a real engine answers `stop` with a
+bestmove. How long to wait for that answer is deliberately _not_ decided
+here: the silence watchdog measures silence and is rearmed by every `info`
+line, so it is no deadline at all for an engine that keeps talking while
+ignoring `stop`. Whoever asked for the stop owns the deadline on it — in
+this repo that is `apps/web/src/engine`, which kills the Worker when
+the answer does not arrive.
+
 The replaceable session is held by a task the evaluator spawned, so
 replacing it is halting that task — which awaits the dead worker's actual
 teardown — and opening another. Nothing in the evaluator needs its own

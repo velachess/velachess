@@ -1,43 +1,35 @@
 /**
- * On-demand evaluation for a single ad-hoc FEN — one position of a
- * variation on the review board, not a position from the replayed
- * game. Checked against the cache before the engine is started at all: a
- * whole-game pass can amortize a session over hundreds of positions, a
- * single FEN cannot.
+ * On-demand evaluation for single ad-hoc FENs — the positions of a
+ * variation on the review board, not positions from the replayed game.
+ *
+ * One evaluator holds one engine session for as long as its owner keeps
+ * it, so walking a line reuses a single Worker instead of starting one
+ * per FEN. The owner is whoever opened it, and `dispose()` is final: see
+ * `review/use-variation-evaluation.ts`, which opens one per review and
+ * closes it on unmount.
  */
-import { call, type Operation } from "../../../libs/effection.ts";
-import type { RawEval } from "@velachess/analysis";
-import { useEngineEvaluator } from "@velachess/infra-engine";
+import type { PositionEvaluator } from "@velachess/analysis";
+import type { Operation } from "../../../libs/effection.ts";
+import { call } from "../../../libs/effection.ts";
 
-import {
-  getCachedRawEval,
-  putCachedRawEval,
-  MULTI_PV,
-  type CacheKeyParts,
-} from "../analysis-cache.ts";
-import { rawEvalOf } from "../cached-position-evaluator.ts";
-import { ENGINE_BUILD } from "../engine-asset.ts";
-import { openBrowserEngineSession } from "../open-browser-engine-session.ts";
+import { getCachedRawEval, MULTI_PV, type CacheKeyParts } from "../analysis-cache.ts";
+import { cachedPositionEvaluator } from "../cached-position-evaluator.ts";
+import { browserEngine, ENGINE_BUILD } from "../../../engine/index.ts";
 
-export interface PositionInput {
-  fen: string;
-  depth: number;
+export interface OpenPositionEvaluator extends PositionEvaluator {
+  dispose(): Operation<void>;
 }
 
-export function* evaluatePositionInBrowser(input: PositionInput): Operation<RawEval> {
-  const parts: CacheKeyParts = {
-    depth: input.depth,
-    multiPV: MULTI_PV,
-    engineBuild: ENGINE_BUILD,
+export function openPositionEvaluator(depth: number): OpenPositionEvaluator {
+  const parts: CacheKeyParts = { depth, multiPV: MULTI_PV, engineBuild: ENGINE_BUILD };
+  const session = browserEngine.createSession({ depth });
+
+  return {
+    ...cachedPositionEvaluator({
+      search: (fen) => session.evaluate(fen),
+      parts,
+      lookup: (fen) => call(() => getCachedRawEval(fen, parts)),
+    }),
+    dispose: () => session.dispose(),
   };
-
-  const cached = yield* call(() => getCachedRawEval(input.fen, parts));
-  if (cached) return cached;
-
-  const engine = yield* useEngineEvaluator(openBrowserEngineSession, {
-    depth: input.depth,
-  });
-  const raw = rawEvalOf(input.fen, yield* engine.evaluate(input.fen));
-  yield* call(() => putCachedRawEval(input.fen, parts, raw));
-  return raw;
 }

@@ -3,7 +3,7 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { RawEval } from "@velachess/analysis";
-import type { CompletedSearch, EngineEvaluator } from "@velachess/infra-engine";
+import type { CompletedSearch } from "@velachess/infra-engine";
 
 import { call, run, type Operation } from "../../../libs/effection.ts";
 import {
@@ -13,7 +13,7 @@ import {
   type CacheKeyParts,
 } from "../analysis-cache.ts";
 import { cachedPositionEvaluator, rawEvalOf } from "../cached-position-evaluator.ts";
-import { ENGINE_BUILD } from "../engine-asset.ts";
+import { ENGINE_BUILD } from "../../../engine/index.ts";
 
 afterEach(async () => {
   await resetAnalysisCacheForTests();
@@ -31,12 +31,12 @@ function search(cp: number, move: string): CompletedSearch {
   };
 }
 
-function spyEngine(...results: CompletedSearch[]): EngineEvaluator & { asked: string[] } {
+function spyEngine(...results: CompletedSearch[]) {
   const asked: string[] = [];
   const queued = [...results];
   return {
     asked,
-    evaluate: (fen: string) =>
+    search: (fen: string): Operation<CompletedSearch> =>
       call(() => {
         asked.push(fen);
         const next = queued.shift();
@@ -74,7 +74,7 @@ describe("cachedPositionEvaluator", () => {
 
     const result = await run(function* () {
       const evaluator = cachedPositionEvaluator({
-        engine,
+        search: engine.search,
         parts,
         lookup: () => call(() => cached),
       });
@@ -90,7 +90,7 @@ describe("cachedPositionEvaluator", () => {
 
     const result = await run(function* () {
       const evaluator = cachedPositionEvaluator({
-        engine,
+        search: engine.search,
         parts,
         lookup: () => call(() => null),
       });
@@ -110,7 +110,7 @@ describe("cachedPositionEvaluator", () => {
 
     const results = await run(function* () {
       const evaluator = cachedPositionEvaluator({
-        engine,
+        search: engine.search,
         parts,
         lookup: (fen) => call(() => warm.get(fen) ?? null),
       });

@@ -1,15 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
-import { ensure, withResolvers, type Operation } from "effection";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { call, ensure, withResolvers, type Operation } from "effection";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RawEval } from "@velachess/analysis";
 
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
-  evaluatePosition: vi.fn(),
+  openPositionEvaluator: vi.fn(),
 }));
 
-import { evaluatePosition } from "../../analysis/index.ts";
+import { openPositionEvaluator } from "../../analysis/index.ts";
 import type { ReplayMove } from "../game-record.ts";
 import {
   selectCanGoBack,
@@ -74,8 +74,23 @@ const play = (store: ReviewStore, from: string, to: string) => {
   return accepted;
 };
 
+/**
+ * The hook owns one evaluator per review and asks it for every position,
+ * so the double is split in two: `evaluate` is the search, and `dispose`
+ * is the session going away.
+ */
+const evaluate = vi.fn<(fen: string) => Operation<RawEval>>();
+const dispose = vi.fn<() => Operation<void>>(() => call(() => undefined));
+
+beforeEach(() => {
+  vi.mocked(openPositionEvaluator).mockReturnValue({ evaluate, dispose });
+});
+
 afterEach(() => {
-  vi.mocked(evaluatePosition).mockReset();
+  vi.mocked(openPositionEvaluator).mockReset();
+  evaluate.mockReset();
+  dispose.mockReset();
+  dispose.mockImplementation(() => call(() => undefined));
 });
 
 describe("playing a variation", () => {
@@ -85,7 +100,7 @@ describe("playing a variation", () => {
     expect(play(store, "e2", "e5")).toBe(false);
     expect(store.getState().variation).toBeNull();
     expect(selectFen(store.getState())).toBe(START);
-    expect(evaluatePosition).not.toHaveBeenCalled();
+    expect(evaluate).not.toHaveBeenCalled();
   });
 
   it("rejects a move by the side that is not to play", () => {
@@ -95,12 +110,12 @@ describe("playing a variation", () => {
 
     expect(play(store, "e7", "e5")).toBe(false);
     expect(store.getState().variation).toBeNull();
-    expect(evaluatePosition).not.toHaveBeenCalled();
+    expect(evaluate).not.toHaveBeenCalled();
   });
 
   it("shows a legal move at once, before the engine has answered", () => {
     const pending = makeControllableEval({ score: { cp: 10 }, bestMove: "e7e5" });
-    vi.mocked(evaluatePosition).mockImplementation(pending.run);
+    evaluate.mockImplementation(pending.run);
 
     const store = openReview();
     expect(play(store, "e2", "e4")).toBe(true);
@@ -112,7 +127,7 @@ describe("playing a variation", () => {
 
   it("moves the bar once the engine answers, with no grade attached", async () => {
     const pending = makeControllableEval({ score: { cp: -500 }, bestMove: "d7d5" });
-    vi.mocked(evaluatePosition).mockImplementation(pending.run);
+    evaluate.mockImplementation(pending.run);
 
     const store = openReview();
     play(store, "e2", "e4");
@@ -126,7 +141,7 @@ describe("playing a variation", () => {
   });
 
   it("plays on, alternating sides by the rules", async () => {
-    vi.mocked(evaluatePosition).mockImplementation(
+    evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: "e7e5" }).run,
     );
 
@@ -146,9 +161,7 @@ describe("playing a variation", () => {
   it("supersedes the evaluation under way, and only the last one lands", async () => {
     const first = makeControllableEval({ score: { cp: 1 }, bestMove: "e7e5" });
     const second = makeControllableEval({ score: { cp: 2 }, bestMove: "g1f3" });
-    vi.mocked(evaluatePosition)
-      .mockImplementationOnce(first.run)
-      .mockImplementationOnce(second.run);
+    evaluate.mockImplementationOnce(first.run).mockImplementationOnce(second.run);
 
     const store = openReview();
     play(store, "e2", "e4");
@@ -164,7 +177,7 @@ describe("playing a variation", () => {
 
   it("refuses an answer about a position that is no longer on the board", async () => {
     const pending = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
-    vi.mocked(evaluatePosition).mockImplementation(pending.run);
+    evaluate.mockImplementation(pending.run);
 
     const store = openReview();
     play(store, "e2", "e4");
@@ -180,7 +193,7 @@ describe("playing a variation", () => {
 
   it("keeps the variation when the engine fails, rather than losing the moves", async () => {
     const pending = makeControllableEval({ score: { cp: 0 }, bestMove: null });
-    vi.mocked(evaluatePosition).mockImplementation(pending.run);
+    evaluate.mockImplementation(pending.run);
 
     const store = openReview();
     play(store, "e2", "e4");
@@ -195,7 +208,7 @@ describe("playing a variation", () => {
 
 describe("navigating a variation", () => {
   it("blocks Next for as long as the line is on the board", () => {
-    vi.mocked(evaluatePosition).mockImplementation(
+    evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
@@ -213,7 +226,7 @@ describe("navigating a variation", () => {
       makeControllableEval({ score: { cp: 2 }, bestMove: null }),
       makeControllableEval({ score: { cp: 3 }, bestMove: null }),
     ];
-    vi.mocked(evaluatePosition).mockImplementation(() => answers[0]!.run());
+    evaluate.mockImplementation(() => answers[0]!.run());
 
     const store = openReview();
     play(store, "e2", "e4");
@@ -224,11 +237,11 @@ describe("navigating a variation", () => {
     expect(store.getState().variation?.cursor).toBe(1);
     expect(selectFen(store.getState())).toBe(AFTER_E4);
     // Four searches: one per position shown, the walked-back one included.
-    expect(evaluatePosition).toHaveBeenCalledTimes(3);
+    expect(evaluate).toHaveBeenCalledTimes(3);
   });
 
   it("leaves the variation at its first move, without stepping the game", () => {
-    vi.mocked(evaluatePosition).mockImplementation(
+    evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
@@ -244,7 +257,7 @@ describe("navigating a variation", () => {
   });
 
   it("replaces the continuation when a move is played after walking back", () => {
-    vi.mocked(evaluatePosition).mockImplementation(
+    evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
@@ -261,7 +274,7 @@ describe("navigating a variation", () => {
   });
 
   it("ends the variation when a move of the real game is selected", () => {
-    vi.mocked(evaluatePosition).mockImplementation(
+    evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
@@ -276,7 +289,7 @@ describe("navigating a variation", () => {
 
   it("hands the engine back when the screen goes away", async () => {
     const pending = makeControllableEval({ score: { cp: 0 }, bestMove: null });
-    vi.mocked(evaluatePosition).mockImplementation(pending.run);
+    evaluate.mockImplementation(pending.run);
 
     const store = createReviewStore({ game: { moves, startFen: START } });
     const { unmount } = renderHook(() => useVariationEvaluation(store));
@@ -288,5 +301,75 @@ describe("navigating a variation", () => {
     await flush();
 
     expect(pending.wasHalted()).toBe(true);
+  });
+});
+
+describe("the engine session a review owns", () => {
+  it("opens none until a position actually needs one", () => {
+    openReview();
+
+    expect(openPositionEvaluator).not.toHaveBeenCalled();
+  });
+
+  it("answers every position of a line on the one it opened", () => {
+    evaluate.mockImplementation(
+      makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
+    );
+    const store = openReview();
+
+    play(store, "e2", "e4");
+    play(store, "e7", "e5");
+    act(() => store.getState().previous());
+
+    expect(evaluate).toHaveBeenCalledTimes(3);
+    expect(openPositionEvaluator).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps it when the position changes — only the search is cancelled", () => {
+    evaluate.mockImplementation(
+      makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
+    );
+    const store = openReview();
+
+    play(store, "e2", "e4");
+    play(store, "e7", "e5");
+
+    expect(dispose).not.toHaveBeenCalled();
+  });
+
+  it("closes it when the review goes away", async () => {
+    evaluate.mockImplementation(
+      makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
+    );
+    const store = createReviewStore({ game: { moves, startFen: START } });
+    const { unmount } = renderHook(() => useVariationEvaluation(store));
+    act(() => {
+      store.getState().playMove("e2", "e4");
+    });
+
+    unmount();
+    await flush();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens a fresh one after that, rather than reaching for the closed one", async () => {
+    evaluate.mockImplementation(
+      makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
+    );
+    const store = createReviewStore({ game: { moves, startFen: START } });
+    const first = renderHook(() => useVariationEvaluation(store));
+    act(() => {
+      store.getState().playMove("e2", "e4");
+    });
+    first.unmount();
+    await flush();
+
+    renderHook(() => useVariationEvaluation(store));
+    act(() => {
+      store.getState().playMove("e7", "e5");
+    });
+
+    expect(openPositionEvaluator).toHaveBeenCalledTimes(2);
   });
 });

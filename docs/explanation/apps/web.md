@@ -20,11 +20,12 @@ src/
   auth/           session, sign-in, sign-out and user presentation
   backend-status/ backend-availability state and the banner that shows it
   chess-sounds/   move-sound preference, mapping and playback
+  engine/         Stockfish sessions and the Workers they own
   i18n/           locale resolution and catalogue activation
   games/          everything you do to games, as four domains
-    analysis/       Stockfish in the browser: produce evaluations and read them
+    analysis/       produce evaluations and read them
       game/           grade a whole game, ply by ply
-      position/       search one FEN
+      position/       evaluate single ad-hoc FENs
     review/         walk a game, understand its analysis, try a variation
     import/         get games in
       accounts/       connect a provider account and keep it synced
@@ -50,6 +51,15 @@ test harness may import; dependency-cruiser enforces it
 (`games-domain-index-only`). A sub-slice (`analysis/game/`,
 `import/pgn/`) is internal to its domain: its own `index.ts` is a contract
 toward the rest of that domain, not toward the app.
+
+`engine/` sits outside `games/` for the same reason `api/` and `query/`
+do: it is infrastructure, not a capability. It is the Stockfish factory,
+its sessions and their Workers, and `games/analysis` is its only consumer
+— through its `index.ts`, like any vertical. One rule
+(`engine-is-infrastructure`) keeps it from reaching into `games/`, into
+`@velachess/analysis`, the router or a state library: it runs searches and
+returns the engine's own result, so what a score means and who is looking
+at one stay outside it.
 
 The one direction that matters is that **Review consumes Analysis and
 Analysis knows nothing of Review** — analysis produces and interprets

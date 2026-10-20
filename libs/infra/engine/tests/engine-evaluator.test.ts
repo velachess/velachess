@@ -60,6 +60,34 @@ describe("silenceTimeoutFor", () => {
 });
 
 describe("useEngineEvaluator", () => {
+  it("stop reaches the engine, and the search still settles", async () => {
+    // A real engine answers `stop` with a bestmove, so a caller that
+    // asks for one gets an outcome rather than a cancellation. How long
+    // to wait for it is the caller's business, not this evaluator's.
+    const { engines, open } = sessions(() => ({
+      handshake: true,
+      onCommand: (command, emit) => {
+        if (command === "stop") emit(INFO, "bestmove e2e4");
+      },
+    }));
+
+    const search = await run(function* () {
+      const evaluator = yield* useEngineEvaluator(open, FAST);
+      yield* spawn(function* () {
+        yield* flushUntil(
+          () => engines[0]!.sent.some((command) => command.startsWith("go")),
+          "the search to start",
+        );
+        evaluator.stop();
+      });
+      return yield* evaluator.evaluate("fen-a");
+    });
+
+    expect(engines[0]!.sent).toContain("stop");
+    expect(search.bestMove).toEqual({ move: "e2e4" });
+    expect(engines).toHaveLength(1);
+  });
+
   it("returns the search the engine answered, on one session", async () => {
     const { engines, open } = sessions(() => answering("e2e4"));
 

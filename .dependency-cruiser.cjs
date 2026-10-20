@@ -12,7 +12,7 @@ const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${busi
 // Only these expose an index.ts public surface; the remaining pre-existing
 // verticals (auth, onboarding, settings, ...) predate the rule and are a
 // deliberate, separate follow-up — see apps/web/AGENTS.md.
-const webIndexOnlyVerticals = "api|backend-status|chess-sounds|query";
+const webIndexOnlyVerticals = "api|backend-status|chess-sounds|engine|query";
 
 // The four domains inside apps/web/src/games, each with its own index.ts
 // public surface (see docs/explanation/apps/web.md). `games/` itself holds
@@ -311,6 +311,22 @@ module.exports = {
       severity: "error",
       from: { path: "^apps/web/src/games/analysis/", pathNot: testPath },
       to: { path: "^apps/web/src/games/(?:review|import|list)/" },
+    },
+    {
+      name: "engine-is-infrastructure",
+      comment:
+        "src/engine runs searches and knows nothing about what a score means or who is looking at one: it may not reach a games domain, @velachess/analysis, the router or a state library. React is already forbidden by area-contracts-stay-react-free.",
+      severity: "error",
+      from: { path: "^apps/web/src/engine/", pathNot: testPath },
+      to: {
+        path: [
+          "^apps/web/src/games/",
+          externalPackage("@velachess/analysis"),
+          externalPackage("zustand"),
+          externalPackage("@tanstack/react-router"),
+          externalPackage("@tanstack/react-start"),
+        ],
+      },
     },
     {
       name: "games-domain-logic-stays-react-free",

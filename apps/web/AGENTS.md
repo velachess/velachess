@@ -15,12 +15,12 @@ does not restate it.
 
 - No `shared/`. A grab-bag groups by technical type, which this app never
   does. Cross-vertical infrastructure gets its own vertical instead —
-  `api/`, `backend-status/`, `chess-sounds/`, `query/` — named for what it
-  does, same as any other slice.
+  `api/`, `backend-status/`, `chess-sounds/`, `engine/`, `query/` — named
+  for what it does, same as any other slice.
 - A vertical's public surface is its `index.ts`; a file inside it that
   isn't re-exported is private to that vertical. Dependency-cruiser
   enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
-  for `api`, `backend-status`, `chess-sounds`, and `query`, and
+  for `api`, `backend-status`, `chess-sounds`, `engine`, and `query`, and
   (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
   four domains under `games/` — `analysis`, `review`, `import`, `list`. A
   domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
@@ -39,6 +39,12 @@ does not restate it.
   domain spells identically) and `games/game-sources.ts` (each source's
   name and mark) — at their common ancestor rather than borrowed from
   whichever domain happened to declare one.
+- `engine/` is the Stockfish sessions and the Workers they own — the
+  infrastructure `games/analysis` runs on, a vertical of its own because
+  it is not a capability. One rule (`engine-is-infrastructure`) keeps it
+  from reaching into `games/`, `@velachess/analysis`, the router or a
+  state library: it runs searches and returns the engine's own result, so
+  what a score means and who is looking at one stay outside it.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
   for business logic. A facade re-exports its package under one name so a

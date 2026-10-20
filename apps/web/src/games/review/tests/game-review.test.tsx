@@ -34,12 +34,12 @@ const { analyzeGameInBrowser } =
   await import("../../analysis/game/analyze-game-in-browser.ts");
 
 // Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
-// same module, and only the interactive search is stubbed.
+// same module, and only the interactive evaluator is stubbed.
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
-  evaluatePosition: vi.fn(),
+  openPositionEvaluator: vi.fn(),
 }));
-const { evaluatePosition } = await import("../../analysis/index.ts");
+const { openPositionEvaluator } = await import("../../analysis/index.ts");
 
 /** The staged run: every ply graded, with one blunder at Nc6 (ply 4). */
 const gradedPlies = () =>
@@ -547,10 +547,11 @@ describe("a variation played on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    vi.mocked(evaluatePosition).mockReset();
-    vi.mocked(evaluatePosition).mockImplementation(() =>
-      call(() => ({ score: { cp: -480 }, bestMove: "e7e5" })),
-    );
+    vi.mocked(openPositionEvaluator).mockReset();
+    vi.mocked(openPositionEvaluator).mockReturnValue({
+      evaluate: () => call(() => ({ score: { cp: -480 }, bestMove: "e7e5" })),
+      dispose: () => call(() => undefined),
+    });
     resetAnalysisForTests();
   });
 

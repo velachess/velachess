@@ -6,9 +6,9 @@
  * That pre-warmed map is the `lookup` the evaluator checks, so a hit costs
  * nothing and a miss searches exactly as before.
  *
- * Cancellation is not a concern of this file. Halting the task that runs
- * this operation unwinds the engine session resource, which quits the
- * engine and terminates the Worker.
+ * This pass owns its engine session, so the session's lifetime is the
+ * pass's: halting the task that runs this operation disposes it, which
+ * quits the engine and terminates its Worker.
  */
 import { parsePgn, replayMainline } from "@velachess/chess";
 import {
@@ -18,8 +18,7 @@ import {
   type GradedPly,
   type PublishPly,
 } from "@velachess/analysis";
-import { useEngineEvaluator } from "@velachess/infra-engine";
-import { call, type Operation } from "../../../libs/effection.ts";
+import { call, ensure, type Operation } from "../../../libs/effection.ts";
 
 import {
   getCachedRawEvalsBatch,
@@ -29,8 +28,7 @@ import {
   type CacheKeyParts,
 } from "../analysis-cache.ts";
 import { cachedPositionEvaluator } from "../cached-position-evaluator.ts";
-import { ENGINE_BUILD } from "../engine-asset.ts";
-import { openBrowserEngineSession } from "../open-browser-engine-session.ts";
+import { browserEngine, ENGINE_BUILD } from "../../../engine/index.ts";
 
 export interface GameAnalysisInput {
   gameId: string;
@@ -64,11 +62,10 @@ export function* analyzeGameInBrowser(
     getCachedRawEvalsBatch(fensToEvaluate(replay), parts),
   );
 
-  const engine = yield* useEngineEvaluator(openBrowserEngineSession, {
-    depth: input.depth,
-  });
+  const session = browserEngine.createSession({ depth: input.depth });
+  yield* ensure(() => session.dispose());
   const evaluator = cachedPositionEvaluator({
-    engine,
+    search: (fen) => session.evaluate(fen),
     parts,
     lookup: (fen) => call(() => prefetched.get(fen) ?? null),
   });
