@@ -24,17 +24,21 @@ const scopes = [
   "ingest",
   "logger",
   "queue",
+  "rate-limit",
   "storage",
   "test-utils",
   "ui",
   "user",
   // Cross-cutting, so they are not workspaces:
-  "agents", // roles, skills, AGENTS.md
+  // "agents" covers roles, skills, and AGENTS.md.
+  "agents",
   "docs",
   "ci",
   "deps",
-  "deps-dev", // Dependabot's scope for devDependencies
-  "repo", // tooling and config that belongs to no package
+  // "deps-dev" is Dependabot's own scope for devDependencies.
+  "deps-dev",
+  // "repo" covers tooling and config that belongs to no package.
+  "repo",
 ];
 
 export default {

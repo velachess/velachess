@@ -4,6 +4,10 @@ The chess-rules library. It exposes typed entry points for FEN, PGN, SAN,
 legal moves, position replay, and chess vocabulary; it should not evaluate
 positions, talk to engines, persist games, or know application workflows.
 
+Move notation is part of that surface: `makeUci` (re-exported from chessops)
+is the one `Move` → UCI encoder in the repo, and `sideToMoveOf(fen)` the one
+reading of a FEN's active colour. Neither is reimplemented elsewhere.
+
 ## Dependencies
 
 - Internal: none at runtime; tests use `@velachess/fixtures`.

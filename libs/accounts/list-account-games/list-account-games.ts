@@ -1,6 +1,6 @@
 /**
- * ListAccountGames — one tracked handle's games with analysis presence,
- * the read model the account screen renders.
+ * ListAccountGames — one tracked handle's games, the read model the
+ * account screen renders.
  */
 import type { TrackedAccount } from "@velachess/infra-db";
 
@@ -17,7 +17,6 @@ export interface GameWithStatus {
   playedAt: Date | null;
   perspective: string | null;
   openingName: string | null;
-  analyzed: boolean;
 }
 
 type ListGamesWithStatusForAccount = (accountId: string) => Promise<GameWithStatus[]>;

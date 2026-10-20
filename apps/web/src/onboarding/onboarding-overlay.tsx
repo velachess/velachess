@@ -1,8 +1,8 @@
 import { onboardingState } from "./onboarding-state.ts";
 import { OnboardingDialog } from "./onboarding-dialog.tsx";
 import { sessionQuery } from "../auth/session.ts";
-import { trackedAccountsQuery } from "../games/import/queries.ts";
-import { libraryQuery } from "../games/list/queries.ts";
+import { trackedAccountsQuery } from "../games/import/index.ts";
+import { libraryQuery } from "../games/list/index.ts";
 import { useQuery } from "../libs/react-query.ts";
 
 /** Stays silent (renders null) while loading or on backend failure, so it never flashes or implies lost data. */
@@ -11,12 +11,15 @@ export function OnboardingOverlay() {
   const accounts = useQuery(trackedAccountsQuery);
   // The same session query the app guard already runs, so this costs no
   // extra request — it only reads one more field off it.
+  // A sync the server still runs — a first import, or one from before a
+  // reload — shows on the accounts; the sync stream (`routes/_app.tsx`)
+  // refreshes them and the library when it lands.
   const session = useQuery(sessionQuery);
 
   const state = onboardingState({
     games: library.data?.total,
     accounts: accounts.data,
-    onboarded: session.isPending ? undefined : session.data?.onboardedAt != null,
+    onboarded: session.isPending ? undefined : (session.data?.onboarded ?? false),
     failed: library.isError || accounts.isError,
   });
 

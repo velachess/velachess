@@ -14,7 +14,6 @@
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
     "@velachess/accounts": "workspace:*",
-    "@velachess/analysis": "workspace:*",
     "@velachess/infra-auth": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/games": "workspace:*",
@@ -24,6 +23,8 @@
     "@velachess/infra-queue": "workspace:*",
     "@velachess/infra-storage": "workspace:*",
     "hono": "^4.13.13",
+    "hono-rate-limiter": "^0.5.4",
+    "ioredis": "^6.0.0",
     "postgres": "^3.4.0",
     "zod": "^4.4.3"
   },

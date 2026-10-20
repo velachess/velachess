@@ -28,7 +28,8 @@ describe("SAN", () => {
     const san = makeSan(pos, move);
 
     expect(san).toBe("e4");
-    expect(pos.turn).toBe("white"); // unchanged
+    // san() reads the position; it doesn't advance it.
+    expect(pos.turn).toBe("white");
   });
 
   it("appends # for a mating move", () => {

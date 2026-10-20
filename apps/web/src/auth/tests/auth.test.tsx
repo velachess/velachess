@@ -32,6 +32,22 @@ async function signIn(user: Awaited<ReturnType<typeof renderApp>>["user"]) {
 }
 
 describe("the wall", () => {
+  it("lets a signed-in person in whatever `onboardedAt` holds", async () => {
+    // Better Auth hands additional fields back as it stored them, and its
+    // client reviver only turns ISO-shaped strings into dates. Anything
+    // else used to reach `new Date(x).toISOString()`, which throws
+    // `RangeError` — the session lookup rejected, the guard read that as
+    // "backend unavailable", and a signed-in person landed on the login
+    // screen. The session asks only whether a stamp exists now, so there
+    // is no value left that can fail.
+    sessionActive({ ...TEST_USER, onboardedAt: "not-a-date" });
+    deviceHasImported();
+
+    const { router } = await renderApp({ path: "/games" });
+
+    expect(router.state.location.pathname).not.toBe("/login");
+  });
+
   it("sends an unauthenticated visitor from a protected route to login", async () => {
     sessionInactive();
 

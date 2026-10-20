@@ -3,16 +3,13 @@
 
 import { createRequire } from "node:module";
 
-import { EngineSession } from "@velachess/infra-engine";
-import { ChildProcessTransport } from "@velachess/infra-engine/transport-child-process";
+import { useEngineSession, type EngineSession } from "@velachess/infra-engine";
+import { useChildProcessTransport } from "@velachess/infra-engine/child-process-transport";
+import type { Operation } from "effection";
 
 const require = createRequire(import.meta.url);
 const enginePath = require.resolve("stockfish/bin/stockfish-19-lite-single.js");
 
-export async function makeStockfishSession(): Promise<EngineSession> {
-  const session = new EngineSession(
-    new ChildProcessTransport(process.execPath, [enginePath]),
-  );
-  await session.init();
-  return session;
+export function openStockfishSession(): Operation<EngineSession> {
+  return useEngineSession(() => useChildProcessTransport(process.execPath, [enginePath]));
 }

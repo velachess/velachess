@@ -1,21 +1,9 @@
-/**
- * [ACCOUNTS] — what this module offers the rest of the system.
- *
- * Root index.ts is the public interface of a vertical/module/capability.
- * It is not a convenience barrel. See AGENTS.md "Modules and slices" for
- * what belongs here versus what stays a private slice file.
- *
- * `syncAccount`/`SyncAccountDeps` are exposed here for one reason beyond
- * `refreshAccount`/`processAccountSync`'s own use: `connect-account` (its
- * own module-mate) declares a `SyncAccount` dependency type and needs the
- * composition root to wire the real handler in.
- */
+/** [ACCOUNTS] — the tracked-account lifecycle: connect, list, sync, disconnect. */
 
 export { importAccount } from "./connect-account/connect-account.ts";
 export type {
   ConnectAccountDeps,
   ConnectOutcome,
-  Platform,
 } from "./connect-account/connect-account.ts";
 
 export { disconnectAccount } from "./disconnect-account/disconnect-account.ts";
@@ -26,8 +14,8 @@ export type {
 
 export { listAccounts } from "./list-accounts/list-accounts.ts";
 export type {
+  JobError,
   ListAccountsDeps,
-  SyncState,
   TrackedAccountSummary,
 } from "./list-accounts/list-accounts.ts";
 
@@ -37,16 +25,20 @@ export type {
   ListAccountGamesDeps,
 } from "./list-account-games/list-account-games.ts";
 
-export {
-  processAccountSync,
-  refreshAccount,
-  secondsUntilRefreshAllowed,
-  syncAccount,
-  SYNC_COOLDOWN_SECONDS,
-} from "./sync-account/sync-account.ts";
-export type {
-  RefreshOutcome,
-  SyncAccountDeps,
-  SyncDeps,
-  SyncOutcome,
-} from "./sync-account/sync-account.ts";
+export { requestSync } from "./request-sync/request-sync.ts";
+export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request-sync.ts";
+
+export { syncAllAccounts } from "./sync-all-accounts/sync-all-accounts.ts";
+export type { SyncAllAccountsDeps } from "./sync-all-accounts/sync-all-accounts.ts";
+
+export { getSync } from "./get-sync/get-sync.ts";
+export type { GetSyncDeps } from "./get-sync/get-sync.ts";
+
+export { watchSyncs } from "./watch-syncs/watch-syncs.ts";
+export type { SyncSettled, WatchSyncsDeps } from "./watch-syncs/watch-syncs.ts";
+
+export { syncAccount } from "./sync-account/sync-account.ts";
+export type { SyncAccountDeps, SyncDeps } from "./sync-account/sync-account.ts";
+
+export { SYNC_SETTLED_EVENTS } from "./sync-status.ts";
+export type { SyncJobStatus } from "./sync-status.ts";

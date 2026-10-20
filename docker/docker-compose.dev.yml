@@ -1,5 +1,5 @@
 # Local dev infra + the Dev Container's own service — not the release
-# stack (docker-compose.yml). No redis: not used anywhere in this repo.
+# stack (docker-compose.yml).
 name: velachess-dev
 
 services:
@@ -18,6 +18,29 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # The API's rate limiter. Not set container-wide, like DATABASE_URL: test
+  # suites that need it gate on REDIS_URL.
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional GUI for the `redis` service above. Opt in with
+  # `docker compose -f docker/docker-compose.dev.yml up redis-insight`, then
+  # open http://localhost:5540 and connect to redis:6379.
+  redis-insight:
+    image: redis/redisinsight:3.8.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5540:5540"
+    volumes:
+      - velachess_dev_redisinsight:/data
 
   app:
     build:
@@ -42,3 +65,4 @@ services:
 volumes:
   velachess_dev_pgdata:
   velachess_dev_node_modules:
+  velachess_dev_redisinsight:

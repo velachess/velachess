@@ -3,11 +3,12 @@ import { msg } from "@lingui/core/macro";
 import { Link } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 
+import { gameOutcomeFor, type GameOutcome } from "@velachess/chess";
 import { Badge } from "@velachess/ui/components/badge";
 import type { DataTableFeatures } from "@velachess/ui/components/data-table";
-import { ChessComIcon, LichessIcon, FileText } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
+import { GAME_SOURCES } from "../game-sources.ts";
 import type { Game } from "./queries.ts";
 
 const GAMES_COLUMNS_COPY = {
@@ -28,13 +29,6 @@ const GAMES_COLUMNS_COPY = {
   playedBlack: msg`You played black`,
 } as const;
 
-/** Platform names are proper nouns — not translated. */
-export const PLATFORMS = {
-  chess_com: { icon: ChessComIcon, label: "Chess.com" },
-  lichess: { icon: LichessIcon, label: "Lichess" },
-  pgn: { icon: FileText, label: "PGN" },
-} as const;
-
 /**
  * Who you played, from your seat. Without `perspective` the game was
  * never attributed, and white is simply the top name.
@@ -47,16 +41,11 @@ export function opponentOf(game: Game) {
   };
 }
 
-export type Outcome = "win" | "loss" | "draw" | "unfinished";
+export type Outcome = GameOutcome;
 
 /** The scoresheet says "1-0"; whether that's a win depends on your side. */
 export function outcomeOf(game: Game): Outcome {
-  if (game.result === "1/2-1/2") return "draw";
-  if (game.result === "*" || game.perspective === null) return "unfinished";
-
-  const won =
-    game.perspective === "white" ? game.result === "1-0" : game.result === "0-1";
-  return won ? "win" : "loss";
+  return gameOutcomeFor(game.result, game.perspective);
 }
 
 const OUTCOME_LABELS: Record<Outcome, MessageDescriptor> = {
@@ -107,13 +96,12 @@ export function gamesColumns({ translate, formatDate, timeClassLabel }: ColumnDe
       id: "source",
       cell: ({ row }) => {
         const game = row.original;
-        const platform = PLATFORMS[game.source];
-        const Icon = platform.icon;
+        const { Icon, label } = GAME_SOURCES[game.source];
         const playedWhite = game.perspective !== "black";
 
         return (
           <span className="flex items-center gap-2 text-muted-foreground">
-            <Icon className="size-4" aria-label={platform.label} />
+            <Icon className="size-4" aria-label={label} />
             <span
               aria-label={translate(
                 playedWhite

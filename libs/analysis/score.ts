@@ -4,15 +4,29 @@
  * conversion happens here, once, instead of at every callsite.
  */
 
-import type { EngineScore } from "@velachess/infra-engine";
+/** A score as an engine reports it: relative to the side to move. Declared
+ * here rather than imported so this module owns both halves of its own
+ * score vocabulary; it is structurally the engine's `EngineScore`, so a
+ * shape change there fails to compile at the callsite that bridges them. */
+export interface PovScore {
+  cp?: number;
+  mate?: number;
+}
 
 export interface WhitePovScore {
   cp?: number;
   mate?: number;
 }
 
+/** One position's evaluation, white POV — nothing about the move it
+ * preceded. `bestMove` is UCI, null when the engine had no move to offer. */
+export interface RawEval {
+  score: WhitePovScore;
+  bestMove: string | null;
+}
+
 export function toWhitePov(
-  score: EngineScore,
+  score: PovScore,
   sideToMove: "white" | "black",
 ): WhitePovScore {
   if (sideToMove === "white") return { ...score };

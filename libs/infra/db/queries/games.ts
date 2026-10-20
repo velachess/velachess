@@ -1,9 +1,9 @@
 import type { NormalizedGame } from "@velachess/infra-platforms";
-import { and, desc, eq, getTableColumns, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { perspectiveSql } from "./perspective.ts";
-import { gameAnalyses, games, trackedAccounts } from "../schema.ts";
+import { games, trackedAccounts } from "../schema.ts";
 
 function toRow(game: NormalizedGame, userId: string, accountId: string | undefined) {
   return {
@@ -32,73 +32,42 @@ function toRow(game: NormalizedGame, userId: string, accountId: string | undefin
   };
 }
 
+/** ~22 bind parameters per game: 500 rows stay far under Postgres's 65,535
+ * per statement, and Drizzle builds each statement without overflowing. */
+const SAVE_GAMES_BATCH_SIZE = 500;
+
 /**
  * Conflict-ignore persistence: a blocked insert is deduplication, not an
  * error — the caller reads it from the lower inserted count. Ownership is
  * always the user's; `accountId` is provenance only (a manual PGN import
  * has none), and the unique constraints decide what "duplicate" means per
  * source.
+ *
+ * Writes in sequential batches with no transaction across them: a failure
+ * keeps the batches before it, and a retry re-inserts them as no-ops.
  */
 export async function saveGames(
   db: Database,
   normalizedGames: NormalizedGame[],
   opts: { userId: string; accountId?: string },
 ): Promise<{ inserted: number }> {
-  if (normalizedGames.length === 0) return { inserted: 0 };
+  let inserted = 0;
 
-  const inserted = await db
-    .insert(games)
-    .values(normalizedGames.map((game) => toRow(game, opts.userId, opts.accountId)))
-    .onConflictDoNothing()
-    .returning({ id: games.id });
+  for (let start = 0; start < normalizedGames.length; start += SAVE_GAMES_BATCH_SIZE) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- each batch commits independently, by design
+    const rows = await db
+      .insert(games)
+      .values(
+        normalizedGames
+          .slice(start, start + SAVE_GAMES_BATCH_SIZE)
+          .map((game) => toRow(game, opts.userId, opts.accountId)),
+      )
+      .onConflictDoNothing()
+      .returning({ id: games.id });
+    inserted += rows.length;
+  }
 
-  return { inserted: inserted.length };
-}
-
-// Excludes rawPgn/movetextHash — a list view doesn't need the full PGN text
-// or the internal dedup key. Fetch a single game (with rawPgn) separately
-// once a reader actually needs it.
-const gameListColumns = {
-  id: games.id,
-  source: games.source,
-  externalId: games.externalId,
-  externalUrl: games.externalUrl,
-  accountId: games.accountId,
-  perspective: games.perspective,
-  whiteName: games.whiteName,
-  whiteRating: games.whiteRating,
-  blackName: games.blackName,
-  blackRating: games.blackRating,
-  result: games.result,
-  playedAt: games.playedAt,
-  timeControlInitialSeconds: games.timeControlInitialSeconds,
-  timeControlIncrementSeconds: games.timeControlIncrementSeconds,
-  timeControlRaw: games.timeControlRaw,
-  openingEco: games.openingEco,
-  openingName: games.openingName,
-  openingUrl: games.openingUrl,
-  termination: games.termination,
-  hasClocks: games.hasClocks,
-  createdAt: games.createdAt,
-};
-
-export async function listGames(
-  db: Database,
-  opts: { userId?: string; accountId?: string; limit?: number; offset?: number } = {},
-) {
-  const scopes: SQL[] = [];
-  if (opts.userId) scopes.push(eq(games.userId, opts.userId));
-  if (opts.accountId) scopes.push(eq(games.accountId, opts.accountId));
-
-  const query = db
-    .select(gameListColumns)
-    .from(games)
-    .where(scopes.length > 0 ? and(...scopes) : undefined)
-    .orderBy(desc(games.playedAt))
-    .limit(opts.limit ?? 50)
-    .offset(opts.offset ?? 0);
-
-  return query;
+  return { inserted };
 }
 
 /**
@@ -137,25 +106,33 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
 }
 
 /**
- * Game list with analysis presence in one join — what a game-list UI
- * renders without N+1. rawPgn deliberately excluded. Unscoped by owner —
- * callers that need ownership enforced check the tracked account first
- * (see `@velachess/accounts`'s list-account-games).
+ * Game list for one account — what a game-list UI renders without N+1.
+ * rawPgn deliberately excluded. Unscoped by owner — callers that need
+ * ownership enforced check the tracked account first (see
+ * `@velachess/accounts`'s list-account-games).
+ *
+ * `perspective` is derived, not read off the column, for the reason
+ * `perspective.ts` states: a synced game stores null there, and this list
+ * hands the seat to a caller. It served the raw column until this join
+ * was added — every synced row answered "unknown".
  */
 export async function listGamesWithStatusForAccount(db: Database, accountId: string) {
-  return db
-    .select({
-      id: games.id,
-      whiteName: games.whiteName,
-      blackName: games.blackName,
-      result: games.result,
-      playedAt: games.playedAt,
-      perspective: games.perspective,
-      openingName: games.openingName,
-      analyzed: sql<boolean>`${isNotNull(gameAnalyses.id)}`,
-    })
-    .from(games)
-    .leftJoin(gameAnalyses, eq(gameAnalyses.gameId, games.id))
-    .where(eq(games.accountId, accountId))
-    .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id));
+  return (
+    db
+      .select({
+        id: games.id,
+        whiteName: games.whiteName,
+        blackName: games.blackName,
+        result: games.result,
+        playedAt: games.playedAt,
+        perspective: perspectiveSql,
+        openingName: games.openingName,
+      })
+      .from(games)
+      // Provenance, not ownership: a LEFT join, so a pasted PGN with no
+      // account survives the read and answers from its stored column.
+      .leftJoin(trackedAccounts, eq(trackedAccounts.id, games.accountId))
+      .where(eq(games.accountId, accountId))
+      .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id))
+  );
 }

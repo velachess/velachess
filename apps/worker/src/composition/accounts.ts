@@ -1,31 +1,42 @@
 /**
- * Composition root for the accounts module's worker-side consumer: adapts
- * the DB client and fetch-override fixture `main.ts` already builds into
- * the narrow `SyncAccountDeps` `processAccountSync` declared. A duplicate
- * of `apps/server/src/composition/accounts.ts`'s `buildSyncAccountDeps`
- * in shape only — apps never share a composition helper
- * (`no-cross-app-runtime-imports`), so each builds its own.
+ * Composition root for the accounts module's worker-side handler: adapts
+ * the DB client and fetch-override fixture `main.ts` builds into the narrow
+ * `SyncAccountDeps` `syncAccount` declared.
  */
 import {
+  finishSyncJob,
   getTrackedAccount,
-  getTrackedAccountForUser,
+  claimSyncAttempt,
+  markSyncRunning,
   markTrackedAccountSynced,
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import type { SyncAccountDeps } from "@velachess/accounts";
-import type { FetchFn } from "@velachess/infra-platforms";
+import type { SyncAccountDeps, SyncDeps } from "@velachess/accounts";
+import { logger } from "@velachess/infra-logger";
 
-export function buildSyncAccountDeps(db: Database, fetch?: FetchFn): SyncAccountDeps {
+/** The cursor warning needs somewhere to land; the slice declares the
+ * callback and the composition root owns the sink. */
+const syncLogger = logger.child({ component: "sync" });
+
+export function buildSyncAccountDeps(db: Database, sync: SyncDeps = {}): SyncAccountDeps {
   return {
+    markSyncRunning: (id) => markSyncRunning(db, id),
     getTrackedAccount: (accountId) => getTrackedAccount(db, accountId),
-    getTrackedAccountForUser: (userId, accountId) =>
-      getTrackedAccountForUser(db, userId, accountId),
-    saveGames: (games, opts) => saveGames(db, games, opts),
-    updateTrackedAccountCursor: (accountId, cursor) =>
-      updateTrackedAccountCursor(db, accountId, cursor),
-    markTrackedAccountSynced: (accountId) => markTrackedAccountSynced(db, accountId),
-    ...(fetch ? { fetch } : {}),
+    withTransaction: (fn) => db.transaction(fn),
+    claimSyncAttempt,
+    finishSyncJob,
+    saveGames,
+    updateTrackedAccountCursor,
+    markTrackedAccountSynced,
+    onUnreadableCursor: (info) =>
+      syncLogger.warn(info, "stored sync cursor did not parse; starting over"),
+    // A caller may redirect either — a test harness reads the archive
+    // through a fixture and may want the cursor warning itself. Spread
+    // per key, not `...sync`: `exactOptionalPropertyTypes` treats an
+    // explicit `undefined` as a value, which would erase the default.
+    ...(sync.fetch ? { fetch: sync.fetch } : {}),
+    ...(sync.onUnreadableCursor ? { onUnreadableCursor: sync.onUnreadableCursor } : {}),
   };
 }

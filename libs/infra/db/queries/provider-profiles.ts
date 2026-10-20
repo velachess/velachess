@@ -1,12 +1,12 @@
+import type { AccountPlatform } from "@velachess/infra-platforms";
+import { normalizeUsername } from "@velachess/infra-platforms";
 import { and, eq, or } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
 import { providerProfiles } from "../schema.ts";
 
-type Platform = "chess_com" | "lichess";
-
 export interface ProviderSeat {
-  platform: Platform;
+  platform: AccountPlatform;
   username: string;
 }
 
@@ -17,11 +17,6 @@ export interface ProviderSeat {
  * resolution) share this file because both need the same two operations:
  * look a pair of handles up, write one back.
  */
-
-/** Case-insensitive key: providers fold case, so the cache must not fork on it. */
-function normalize(username: string): string {
-  return username.toLowerCase();
-}
 
 /**
  * Profiles change rarely and games every session; a week keeps an open
@@ -42,7 +37,7 @@ export async function findProviderProfiles(db: Database, seats: readonly Provide
   const matches = seats.map((seat) =>
     and(
       eq(providerProfiles.platform, seat.platform),
-      eq(providerProfiles.username, normalize(seat.username)),
+      eq(providerProfiles.username, normalizeUsername(seat.username)),
     ),
   );
 
@@ -69,7 +64,7 @@ export async function upsertProviderProfile(
     | { status: "fetched"; profile: { avatarUrl: string | null; flair: string | null } }
     | { status: "failed" },
 ) {
-  const username = normalize(seat.username);
+  const username = normalizeUsername(seat.username);
   const [row] = await db
     .insert(providerProfiles)
     .values({

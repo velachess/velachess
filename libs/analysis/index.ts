@@ -1,78 +1,34 @@
 /**
- * [ANALYSIS] — what this module offers the rest of the system.
+ * [ANALYSIS] — what a chess move was worth, and nothing about how the
+ * engine that said so is driven.
  *
- * Root index.ts is the public interface of a vertical/module/capability.
- * It is not a convenience barrel. See AGENTS.md "Modules and slices" for
- * what belongs here versus what stays a private slice file.
- *
- * Owns the Stockfish job lifecycle end to end: request (queue or report),
- * process (execute under the advisory lock, persist), watch (poll progress
- * for a live stream), and get (the composed read a game page renders).
- *
- * `score.ts`/`winchance.ts` are module-level pure policies (no DB/queue
- * dependency of their own). `classifyMove`'s machinery
- * (`process-analysis/classify-move.ts`) stays private there: only
- * `process-analysis` uses it.
- *
- * `requestAnalysis` (unscoped) is exported alongside `requestAnalysisForUser`
- * so `apps/server/src/composition/analysis.ts` can wire `get-analysis` and
- * `watch-analysis`'s own declared dependency on their sibling slice
- * `request-analysis` to the same real handler.
- *
- * `scoreToWinChance` is exported for `apps/web/src/games/analysis-read.ts`,
- * the one consumer outside this whole module's graph. `completeAnalysis`
- * is a lazy wrapper, not a direct re-export: `process-analysis.ts` uses
- * `node:crypto`/`node:events`, and a static re-export here would put both
- * in the static import graph of every consumer of this file, including
- * apps/web's own bundle — a browser can't load either. The dynamic
- * `import()` keeps that subtree out of anything that only touches this
- * module's pure exports; nothing about the backend's own call sites
- * changes; `completeAnalysis` is still one `await` away.
- *
- * `analyzeGame` is exported statically (not behind a dynamic import) for
- * `apps/web/src/games/browser-analysis/`, which runs this same per-ply
- * search/classify loop against a browser Worker engine instead of a
- * server process. Checked to be free of `process-analysis.ts`'s Node-only
- * imports.
+ * Analysis runs entirely in `apps/web/src/games/analysis/`
+ * (Stockfish WASM, Web Worker, no server round-trip — see PR #155). This
+ * module owns the per-ply sequencing (`analyzeGame`) and the pure
+ * score/win-chance/move-category policies the result is read through,
+ * nothing else: no job, no table, no route, no engine session and no
+ * cache. The engine reaches it through the `PositionEvaluator` dependency
+ * it declares; watchdogs, retries and session recovery belong to
+ * `@velachess/infra-engine`.
  */
 
-export { getAnalysisReport } from "./get-analysis/get-analysis.ts";
-export type { AnalysisReport, GetAnalysisDeps } from "./get-analysis/get-analysis.ts";
+export { analyzeGame, fensToEvaluate } from "./analyze-game.ts";
+export type { PositionEvaluator, PublishPly } from "./analyze-game.ts";
 
-export {
-  requestAnalysis,
-  requestAnalysisForUser,
-  startAnalysisForUser,
-} from "./request-analysis/request-analysis.ts";
-export type {
-  AnalysisRequest,
-  GameAnalysisRecord,
-  RequestAnalysisDeps,
-} from "./request-analysis/request-analysis.ts";
+export { gradeGame } from "./grade-game.ts";
+export type { GradedPly } from "./grade-game.ts";
 
-export { createWatchers } from "./watch-analysis/watchers.ts";
-export type {
-  WatcherDeps,
-  Watchers,
-  WatchSnapshot,
-  WatchTerminal,
-} from "./watch-analysis/watchers.ts";
+/** The move vocabulary itself, for consumers that render it — `apps/web`
+ * reads the ordered list for the report's rows instead of restating it. */
+export { MOVE_CATEGORIES } from "./move-category.ts";
+export type { MoveCategory } from "./move-category.ts";
 
-export type { AnalyzeDeps } from "./process-analysis/process-analysis.ts";
-export { analyzeGame } from "./process-analysis/analyze-game.ts";
-export type {
-  AnalysisEvent,
-  AnalyzeOptions,
-  GradedPly,
-} from "./process-analysis/analyze-game.ts";
+/** `toWhitePov` is exported for the one caller that bridges engine scores
+ * into this module's vocabulary: `apps/web`'s cached position evaluator. */
+export { toWhitePov } from "./score.ts";
+export type { PovScore, RawEval, WhitePovScore } from "./score.ts";
 
-export async function completeAnalysis(
-  deps: import("./process-analysis/process-analysis.ts").AnalyzeDeps,
-  gameId: string,
-): Promise<void> {
-  const { completeAnalysis: run } =
-    await import("./process-analysis/process-analysis.ts");
-  return run(deps, gameId);
-}
+export { classifyMove, scoreToWinChance } from "./classify-move.ts";
+export type { ClassifyInput } from "./classify-move.ts";
 
-export { scoreToWinChance } from "./process-analysis/classify-move.ts";
+export { POLICY_VERSION } from "./policy-version.ts";

@@ -1,5 +1,6 @@
 import { api, parseResponse, type InferResponseType } from "../../api/index.ts";
 import { queryOptions } from "../../libs/react-query.ts";
+import { gamesQueryKey } from "../game-query-keys.ts";
 import { PAGE_SIZE, type GamesSearch } from "./filters.ts";
 
 type GameRow = InferResponseType<typeof api.games.$get, 200>["games"][number];
@@ -29,7 +30,7 @@ export type Game = Pick<
  */
 export function libraryQuery(search: GamesSearch) {
   return queryOptions({
-    queryKey: ["games", search],
+    queryKey: [...gamesQueryKey, search],
     queryFn: () =>
       parseResponse(
         api.games.$get({

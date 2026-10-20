@@ -5,17 +5,15 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "scripts": {
-    "lint": "oxlint .",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
     "test": "vitest run"
   },
   "dependencies": {
     "@velachess/chess": "workspace:*",
     "@velachess/infra-db": "workspace:*",
-    "@velachess/infra-engine": "workspace:*"
+    "effection": "^4.2.0"
   },
   "devDependencies": {
+    "@velachess/infra-engine": "workspace:*",
     "stockfish": "^19.0.0"
   },
   "type": "module",

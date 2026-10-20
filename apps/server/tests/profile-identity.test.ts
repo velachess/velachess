@@ -5,6 +5,7 @@
  * user — asked for once, reused until stale, and never a reason for the
  * read to fail.
  */
+import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -90,12 +91,6 @@ function fakeSyncFetch() {
   };
 }
 
-const json = (body: unknown): RequestInit => ({
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify(body),
-});
-
 /** Exactly `/pub/player/{name}` — the archives index lives one segment
  * deeper (`/pub/player/{name}/games/archives`) and must fall through. */
 const CHESS_COM_PROFILE_URL = /^https:\/\/api\.chess\.com\/pub\/player\/[^/]+$/;
@@ -114,47 +109,39 @@ afterAll(async () => {
   await harness.close();
 });
 
-interface SeatIdentity {
-  avatarUrl: string | null;
-  flair: string | null;
-}
-
-interface GameView {
-  whiteIdentity: SeatIdentity;
-  blackIdentity: SeatIdentity;
-}
-
 /** First game of the caller's library from one source — any will do for seat reads. */
 async function firstGameId(app: AuthedApp, source = "chess_com"): Promise<string> {
-  const page = (await (await app.request("/games")).json()) as {
-    games: { id: string; source: string }[];
-  };
+  const page = await parseResponse(app.api.games.$get({ query: {} }));
   const pick = page.games.find((game) => game.source === source);
   expect(pick, `no ${source} game in the library`).toBeDefined();
   return pick!.id;
 }
 
-async function openGame(app: AuthedApp, gameId: string): Promise<Response> {
-  return app.request(`/games/${gameId}`);
+function openGame(app: AuthedApp, gameId: string) {
+  return parseResponse(app.api.games[":id"].$get({ param: { id: gameId } }));
+}
+
+async function connectAccount(
+  app: AuthedApp,
+  platform: "chess_com" | "lichess",
+  username: string,
+) {
+  const created = await app.api.accounts.$post({ json: { platform, username } });
+  expect(created.status).toBe(201);
+  if (created.status !== 201) throw new Error("unreachable");
+  return created.json();
 }
 
 describe("provider profile identity on game review", () => {
   it("carries the provider picture of both seats, connected player or opponent", async () => {
-    const created = await owner.request(
-      "/accounts",
-      json({ platform: "chess_com", username: "Looper" }),
-    );
-    expect(created.status).toBe(201);
+    const created = await connectAccount(owner, "chess_com", "Looper");
+    if (!created.syncId) throw new Error("expected a first sync on a fresh connect");
+    await harness.runSync(created.syncId);
 
     // Connect-time warmed my handle; the opponent's is a cold miss here.
     const before = sync.profileRequests.length;
     const game = await firstGameId(owner);
-    const response = await openGame(owner, game);
-    expect(response.status).toBe(200);
-
-    const body = (await response.json()) as GameView;
-    console.log("PROBE-BODY:", JSON.stringify(body));
-    console.log("PROBE-REQS:", JSON.stringify(sync.profileRequests));
+    const body = await openGame(owner, game);
     expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
     expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
 
@@ -166,11 +153,8 @@ describe("provider profile identity on game review", () => {
     const game = await firstGameId(owner);
     const before = sync.profileRequests.length;
 
-    const response = await openGame(owner, game);
-    expect(response.status).toBe(200);
-    expect(((await response.json()) as GameView).blackIdentity.avatarUrl).toBe(
-      RIVAL_AVATAR,
-    );
+    const body = await openGame(owner, game);
+    expect(body.blackIdentity.avatarUrl).toBe(RIVAL_AVATAR);
 
     expect(sync.profileRequests.slice(before)).toEqual([]);
   });
@@ -180,17 +164,13 @@ describe("provider profile identity on game review", () => {
     // same opponent — their connect warms only their own handle, and the
     // opponent's identity comes from the row the first user's open wrote.
     const second = (await harness.signUp("colleague@api.test")).app;
-    const connected = await second.request(
-      "/accounts",
-      json({ platform: "chess_com", username: "Lister" }),
-    );
-    expect(connected.status).toBe(201);
+    const connected = await connectAccount(second, "chess_com", "Lister");
+    if (!connected.syncId) throw new Error("expected a first sync on a fresh connect");
+    await harness.runSync(connected.syncId);
 
     const before = sync.profileRequests.length;
     const game = await firstGameId(second);
-    const response = await openGame(second, game);
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as GameView;
+    const body = await openGame(second, game);
     // The lister fixture's latest game is lister as black, rival as white.
     expect(body.whiteIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
     expect(body.blackIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
@@ -206,26 +186,17 @@ describe("provider profile identity on game review", () => {
     // Looper was warmed at this user's first connect; connecting again
     // reuses that row instead of spending a request on it.
     const before = sync.profileRequests.length;
-    const created = await owner.request(
-      "/accounts",
-      json({ platform: "chess_com", username: "Looper" }),
-    );
-    expect(created.status).toBe(201);
+    await connectAccount(owner, "chess_com", "Looper");
     expect(sync.profileRequests.slice(before)).toEqual([]);
   });
 
   it("reads a Lichess flair for either seat, and never an avatar", async () => {
-    const created = await owner.request(
-      "/accounts",
-      json({ platform: "lichess", username: "Sea-Lion" }),
-    );
-    expect(created.status).toBe(201);
+    const created = await connectAccount(owner, "lichess", "Sea-Lion");
+    if (!created.syncId) throw new Error("expected a first sync on a fresh connect");
+    await harness.runSync(created.syncId);
 
     const game = await firstGameId(owner, "lichess");
-    const response = await openGame(owner, game);
-    expect(response.status).toBe(200);
-
-    const body = (await response.json()) as GameView;
+    const body = await openGame(owner, game);
     for (const seat of [body.whiteIdentity, body.blackIdentity]) {
       expect(seat.flair).toBe(LICHESS_FLAIR);
       // Lichess has no profile pictures at all — the field exists and stays empty.
@@ -243,10 +214,7 @@ describe("provider profile identity on game review", () => {
       await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
       const game = await firstGameId(owner);
-      const response = await openGame(owner, game);
-      expect(response.status).toBe(200);
-
-      const body = (await response.json()) as GameView;
+      const body = await openGame(owner, game);
       expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
       expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
     } finally {
@@ -263,10 +231,7 @@ describe("provider profile identity on game review", () => {
 
     const before = sync.profileRequests.length;
     const game = await firstGameId(owner);
-    const response = await openGame(owner, game);
-    expect(response.status).toBe(200);
-
-    const body = (await response.json()) as GameView;
+    const body = await openGame(owner, game);
     expect(body.whiteIdentity.avatarUrl).toBe(CHESS_COM_AVATAR);
     expect(body.blackIdentity.avatarUrl).toBe(RIVAL_AVATAR);
     // One request per seat, both seats asked.
@@ -283,10 +248,7 @@ describe("provider profile identity on game review", () => {
       await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
       const game = await firstGameId(owner);
-      const response = await openGame(owner, game);
-      expect(response.status).toBe(200);
-
-      const body = (await response.json()) as GameView;
+      const body = await openGame(owner, game);
       expect(body.whiteIdentity).toEqual({ avatarUrl: null, flair: null });
       expect(body.blackIdentity).toEqual({ avatarUrl: null, flair: null });
     } finally {

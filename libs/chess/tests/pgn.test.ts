@@ -66,7 +66,8 @@ describe("replayMainline", () => {
     const replay = replayMainline(game).unwrap();
 
     expect(replay.legal).toBe(false);
-    expect(replay.moves).toHaveLength(2); // e4, e5 — Ra3 never gets played
+    // e4, e5 — Ra3 never gets played.
+    expect(replay.moves).toHaveLength(2);
     expect(replay.moves.map((m) => m.san)).toEqual(["e4", "e5"]);
   });
 

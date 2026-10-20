@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { classifyMove, scoreToWinChance } from "../process-analysis/classify-move.ts";
+import { classifyMove, scoreToWinChance } from "../classify-move.ts";
 import { winChance } from "../winchance.ts";
 
 function isCloseTo(a: number, b: number, delta: number) {

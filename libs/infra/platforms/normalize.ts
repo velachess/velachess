@@ -10,6 +10,7 @@ import { emptyHeaders, parsePgn } from "@velachess/chess";
 
 import { movetextHash } from "./hash.ts";
 import { openingNameFrom } from "./opening.ts";
+import { resultSchema } from "./schema.ts";
 import type { GameSource, NormalizedGame, Perspective, SyncFailure } from "./schema.ts";
 
 export interface NormalizeMeta {
@@ -52,8 +53,6 @@ function parseRating(value: string | undefined): number | undefined {
   return Number.isFinite(rating) ? rating : undefined;
 }
 
-const VALID_RESULTS = new Set(["1-0", "0-1", "1/2-1/2", "*"]);
-
 export function normalizeGame(
   rawPgn: string,
   meta: NormalizeMeta,
@@ -86,11 +85,11 @@ export function normalizeGame(
   }
 
   const headers = game.headers;
-  const rawResult = headers.get("Result");
-  const result =
-    rawResult && VALID_RESULTS.has(rawResult)
-      ? (rawResult as NormalizedGame["result"])
-      : "*";
+  // A PGN from the wild can carry anything in [Result]. The schema that
+  // defines the column's domain decides, so there is no second list to
+  // keep in step — and "*" (unknown) is the honest fallback.
+  const parsedResult = resultSchema.safeParse(headers.get("Result"));
+  const result = parsedResult.success ? parsedResult.data : "*";
 
   const ecoUrl = headers.get("ECOUrl");
   const openingName = openingNameFrom({

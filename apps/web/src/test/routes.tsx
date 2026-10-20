@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { useEffect } from "react";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -7,9 +8,9 @@ import {
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
-import { GameAnalysis } from "../games/open-game/game-analysis.tsx";
-import { GamesList } from "../games/games-list.tsx";
-import { ImportGames } from "../games/import/import-games.tsx";
+import { GameReview, loadGameReview } from "../games/review/index.ts";
+import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
+import { ConnectAccount, startSyncEvents } from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { AccountScreen } from "../settings/account/account-screen.tsx";
 import { AppearanceScreen } from "../settings/appearance/appearance-screen.tsx";
@@ -18,9 +19,8 @@ import { GameplayScreen } from "../settings/gameplay/gameplay-screen.tsx";
 import { LanguageRegionScreen } from "../settings/language-region/language-region-screen.tsx";
 import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { gamesSearchSchema } from "../games/list/filters.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
-import type { QueryClientType } from "../libs/react-query.ts";
+import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
 /**
  * The app's routes, by hand: `routeTree.gen.ts` is generated and
@@ -54,6 +54,10 @@ const appRoute = createRoute({
 });
 
 function TestAppLayout() {
+  const queryClient = useQueryClient();
+  // Mirrors `routes/_app.tsx`: the sync stream belongs to the wall.
+  useEffect(() => startSyncEvents(queryClient), [queryClient]);
+
   return (
     <AppShell>
       <Outlet />
@@ -91,13 +95,16 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
-  component: GameAnalysis,
+  // Mirrors `routes/_app/games/$gameId.tsx`: opening a game is what
+  // starts its analysis, and that is the route's, not the screen's.
+  loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
+  component: GameReview,
 });
 
 const importRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/import",
-  component: ImportGames,
+  component: ConnectAccount,
 });
 
 // Nested for real, like /games: the account screen is

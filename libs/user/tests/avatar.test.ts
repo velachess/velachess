@@ -1,11 +1,25 @@
+import type { AvatarSource as StoredAvatarSource } from "@velachess/infra-db";
 import { describe, expect, it } from "vitest";
 
+import type { AvatarSource } from "../avatar.ts";
 import {
   AVATAR_MAX_BYTES,
   avatarStorageKey,
   avatarUrl,
   sniffAvatarMediaType,
 } from "../avatar.ts";
+
+/**
+ * Drift guard: `users.avatar_source` is free `text` with no DB constraint,
+ * and `libs/infra/db` declares its own copy of the two-value domain
+ * because infra may not import a business module. The two stay mutually
+ * assignable, checked at typecheck from this side — the module that owns
+ * the concept and already depends on infra.
+ */
+const toStoredAvatarSource: StoredAvatarSource = {} as AvatarSource;
+const fromStoredAvatarSource: AvatarSource = {} as StoredAvatarSource;
+void toStoredAvatarSource;
+void fromStoredAvatarSource;
 
 const webp = () =>
   new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56]);

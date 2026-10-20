@@ -4,6 +4,7 @@
  */
 
 import { makeFen, parseFen } from "chessops/fen";
+import type { Color } from "chessops/types";
 
 export {
   parseFen,
@@ -31,4 +32,14 @@ export function epdToFen(epd: string): string {
  */
 export function positionKeyOf(fen: string): string {
   return makeFen(parseFen(fen).unwrap(), { epd: true });
+}
+
+/**
+ * Which side moves in a FEN. Reads the field directly rather than going
+ * through `parseFen`, which allocates a whole Setup: this runs once per
+ * ply of every analysed game, and a FEN's active-colour field is
+ * unambiguous.
+ */
+export function sideToMoveOf(fen: string): Color {
+  return fen.includes(" w ") ? "white" : "black";
 }

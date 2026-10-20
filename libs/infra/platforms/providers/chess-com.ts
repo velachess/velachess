@@ -8,17 +8,28 @@
 import { z } from "zod";
 
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
-import type { FetchFn, SyncFailure, SyncResult } from "../schema.ts";
+import type { FetchFn, NormalizedGame, SyncFailure, SyncResult } from "../schema.ts";
 
-export interface ChessComCursor {
+/**
+ * Where to resume this account's archive walk.
+ *
+ * A schema rather than a bare interface because the value round-trips
+ * through a `jsonb` column that also holds Lichess's cursor: the column
+ * cannot tell the two apart, so the reader has to. See
+ * docs/explanation/data-boundaries.md.
+ */
+export const chessComCursorSchema = z.object({
   /** "YYYY/MM" of the last archive month fully synced. */
-  month: string;
+  month: z.string(),
   /** end_time (unix seconds) of the last game seen in that month. */
-  lastEndTime: number;
-}
+  lastEndTime: z.number(),
+});
+export type ChessComCursor = z.infer<typeof chessComCursorSchema>;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{2,32}$/;
-const USER_AGENT = "velachess-ingest (+https://github.com/yurimutti/velachess)";
+/** Shared with lichess.ts: both providers' guidance is to identify the
+ * client, and a block is easier to lift when there's contact info in it. */
+export const USER_AGENT = "velachess-ingest (+https://github.com/yurimutti/velachess)";
 
 const archivesIndexSchema = z.object({ archives: z.array(z.string()) });
 
@@ -42,18 +53,47 @@ function monthOf(archiveUrl: string): string {
 export async function fetchChessCom(
   username: string,
   cursor: ChessComCursor | null,
-  opts: { fetch?: FetchFn } = {},
+  opts: {
+    fetch?: FetchFn;
+    signal?: AbortSignal;
+    /** Fires once a month's games are fully normalized and the cursor is
+     * about to advance past it — never for a month that failed. Lets the
+     * caller persist progress before the next month's request, so a worker
+     * crash mid-walk resumes from the last checkpointed month instead of
+     * the whole pass's starting cursor. */
+    onCheckpoint?: (
+      cursor: ChessComCursor,
+      monthGames: NormalizedGame[],
+    ) => Promise<void>;
+  } = {},
 ): Promise<SyncResult & { cursor: ChessComCursor | null }> {
   if (!USERNAME_PATTERN.test(username)) {
     throw new Error(`Invalid Chess.com username: "${username}"`);
   }
   const doFetch = opts.fetch ?? globalThis.fetch;
   const headers = { Accept: "application/json", "User-Agent": USER_AGENT };
+  const init = opts.signal ? { headers, signal: opts.signal } : { headers };
 
   const indexRes = await doFetch(
     `https://api.chess.com/pub/player/${username}/games/archives`,
-    { headers },
+    init,
   );
+  if (indexRes.status === 404) {
+    return {
+      games: [],
+      failures: [
+        {
+          scope: "page",
+          ref: username,
+          reason: "not-found",
+          retryable: false,
+          detail: "HTTP 404",
+        },
+      ],
+      cursor,
+      complete: false,
+    };
+  }
   if (!indexRes.ok) {
     throw new Error(
       `Chess.com returned no archives for "${username}" (${indexRes.status})`,
@@ -77,15 +117,17 @@ export async function fetchChessCom(
 
   for (const archiveUrl of months) {
     const month = monthOf(archiveUrl);
-    const monthRes = await doFetch(archiveUrl, { headers });
+    const monthStartIndex = games.length;
+    const monthRes = await doFetch(archiveUrl, init);
 
     if (!monthRes.ok) {
+      const retryAfter = monthRes.headers.get("Retry-After");
       failures.push({
         scope: "archive-month",
         ref: month,
-        reason: "http-error",
+        reason: monthRes.status === 429 ? "rate-limited" : "http-error",
         retryable: true,
-        detail: `HTTP ${monthRes.status}`,
+        detail: `HTTP ${monthRes.status}${retryAfter ? ` (retry-after ${retryAfter}s)` : ""}`,
       });
       cursorAdvancing = false;
       continue;
@@ -140,6 +182,7 @@ export async function fetchChessCom(
 
     if (cursorAdvancing && !monthHadFailure) {
       nextCursor = { month, lastEndTime: maxEndTime };
+      await opts.onCheckpoint?.(nextCursor, games.slice(monthStartIndex));
     } else {
       cursorAdvancing = false;
     }

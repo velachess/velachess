@@ -73,7 +73,6 @@ export interface BoardArrow {
 }
 
 export interface BoardProps {
-  /** Position to render, in FEN. */
   fen: string;
   /** Which side sits at the bottom. Defaults to white. */
   orientation?: BoardSide;
@@ -81,7 +80,7 @@ export interface BoardProps {
    * Called when the user drops a piece. Return true if the move was
    * accepted — returning false makes the piece snap back.
    */
-  onMove?: (move: BoardMove) => boolean;
+  onMove?: ((move: BoardMove) => boolean) | undefined;
   /** The move that produced this position: both squares get lit. */
   lastMove?: BoardArrow | undefined;
   /** The engine's first choice, drawn at full strength. */
@@ -112,7 +111,7 @@ export interface BoardProps {
    * whether a move captures, which en passant makes a rule question and
    * not a "is the square occupied" one.
    */
-  legalTargetsOf?: (square: string) => readonly LegalDestination[];
+  legalTargetsOf?: ((square: string) => readonly LegalDestination[]) | undefined;
   /**
    * Whether picking a piece up shows where it may go.
    *

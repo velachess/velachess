@@ -20,18 +20,42 @@ does not restate it.
 - A vertical's public surface is its `index.ts`; a file inside it that
   isn't re-exported is private to that vertical. Dependency-cruiser
   enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
-  for `api`, `backend-status`, `chess-sounds`, and `query`; other
-  verticals may still be deep-imported from `routes/` until the same
-  enforcement is scoped onto them too.
+  for `api`, `backend-status`, `chess-sounds`, and `query`, and
+  (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
+  four domains under `games/` — `analysis`, `review`, `import`, `list`. A
+  domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
+  `index.ts` is a contract toward the rest of its domain, not toward the
+  app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
+  be deep-imported from `routes/` until the same enforcement is scoped onto
+  them too.
+- `games/` is four domains and two shared files. Review consumes Analysis;
+  Analysis never imports Review, `import` or `list`
+  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
+  evaluations — `analysis/graded-game.ts` — and Review decides what a
+  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
+  `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
+  (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
+  shared files are `games/game-query-keys.ts` (the cache prefixes every
+  domain spells identically) and `games/game-sources.ts` (each source's
+  name and mark) — at their common ancestor rather than borrowed from
+  whichever domain happened to declare one.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
   for business logic. A facade re-exports its package under one name so a
   version bump or provider swap touches one file, enforced by
   dependency-cruiser (`web-facade-only-for-third-party-clients`): nothing
-  outside `libs/` may import `zod`, `hono`/`hono/client`, or
-  `@tanstack/react-query` directly.
+  outside `libs/` may import `zod`, `hono`/`hono/client`,
+  `@tanstack/react-query`, `event-source-plus`, `idb`, or `effection`
+  directly.
 - `libs/ui` owns every design token; this app inherits the theme and
   never declares one.
+- API responses are typed through `AppType` and `InferResponseType`. Do not
+  re-parse one with Zod — the RPC link is the contract, and a second schema
+  duplicates it rather than tightening it. Zod here is for URL search params and
+  forms. Where a shape must still be re-declared (this app does not depend on
+  `@velachess/infra-platforms`, and should not — it carries provider HTTP
+  clients), tie the mirror back to `InferResponseType` so drift fails typecheck.
+  See `docs/explanation/data-boundaries.md`.
 - Two vocabularies, one boundary. Data keeps the domain's name (a
   `winChanceLoss` stays `winChanceLoss`); screens, routes and folders are
   named after the user's job — `games`, `import`, `settings`. A module usually spans several endpoints, so it
@@ -43,20 +67,50 @@ does not restate it.
   through `Intl`. Run `pnpm --filter @velachess/web i18n:extract` after
   touching copy.
 - State has four owners and they don't overlap: React Query for anything
-  from the API, the URL for selection and filters, zustand for
-  client-only preference that outlives a screen, `useState` for what dies
-  with the component. Derive rather than store — no `useEffect` to keep
-  two copies of the same fact in sync.
+  from the API, the URL for selection and filters, zustand for client-only
+  state, `useState` for what dies with the component. Derive rather than
+  store — no `useEffect` to keep two copies of the same fact in sync.
+- zustand covers two shapes, and the difference is the lifetime, not the
+  library. A module-level store (`create`) holds what outlives every
+  screen: a preference someone chose (`chess-sounds`, `i18n/locale-store`,
+  `import/accounts/source-store`) or work this device is doing
+  (`games/analysis/analysis-store.ts`, whose lifecycle
+  `analysis/game/start-analysis.ts` owns, and which deliberately keeps
+  grading with nothing mounted). A store built per instance
+  (`createStore` from `zustand/vanilla`, handed to consumers through one
+  React context) holds what belongs to one screen but to more than one
+  component in it — today that is exactly `games/review/review-store.ts`.
+  Reach for the second only when a single `useState` would have to be
+  threaded through the tree as props; a third of these is a sign the
+  boundary was drawn wrong.
+- A per-instance store is reached through a domain facade, never
+  directly: components import `use-game-review.ts`, not
+  `review-store.ts` or `zustand`, so the state library can be replaced
+  without touching a screen. The facade is the React boundary and nothing
+  else — no state of its own, no synchronizing effect, no task to run.
+- Review / Variation / Evaluation are three different things and keep
+  their own names. Review is the domain (`games/review`); a Variation is
+  a line of alternative moves played from one ply of the real game, and
+  it is what the types, state and selectors are named after; an
+  Evaluation is what Stockfish produced for a position. A variation gets
+  a number, never a grade — classification belongs to the report.
+- Work a route exists to do starts in that route's `loader`, not in an
+  effect inside the screen: `games/review/game-review-route.ts` resolves
+  the movetext through the query cache and starts the analysis, so the
+  component renders already-triggered work instead of triggering it
+  after the fact. A loader runs on the server too, so anything that needs
+  a browser API goes through `createClientOnlyFn`.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,
   `form.Subscribe`) with Zod validators, not hand-rolled `useState` +
   `safeParse` plumbing — see `settings/account/profile-form.tsx`,
-  `games/import/import-games.tsx`, and `games/import-pgn/pgn-import-dialog.tsx`.
+  `games/import/accounts/connect-account.tsx`, and
+  `games/import/pgn/pgn-import-dialog.tsx`.
   Per render: zod bakes error text in, so a schema needing copy takes a
   `translate` function and is built inside the component (`buildSchema(translate)`
-  in `games/import/sources.ts`), never a module-level schema with English baked
-  in. Render a field's error through `<FieldError errors={field.state.meta.errors} />`
+  in `games/import/accounts/sources.ts`), never a module-level schema with
+  English baked in. Render a field's error through `<FieldError errors={field.state.meta.errors} />`
   (plural, from the schema) rather than indexing `errors[0]` or branching text
   in JSX — a validator returning more than one message is for `FieldError` to
   show, not for the field to pick from.

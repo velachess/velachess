@@ -39,15 +39,16 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
-import { ImportGames } from "../../games/import/import-games.tsx";
+import { GAME_SOURCES } from "../../games/game-sources.ts";
 import {
+  ConnectAccount,
+  isSyncInProgress,
   trackedAccountsQuery,
   useDisconnectAccount,
-  useSyncGames,
-  type SyncOutcome,
+  useSyncAccount,
+  useSyncSettlementToast,
   type TrackedAccount,
-} from "../../games/import/queries.ts";
-import { IMPORT_SOURCES } from "../../games/import/sources.ts";
+} from "../../games/import/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const CONNECTIONS_COPY = {
@@ -59,9 +60,6 @@ const CONNECTIONS_COPY = {
   connect: msg`Connect an account`,
   sync: msg`Sync games`,
   running: msg`Syncing…`,
-  upToDate: msg`Already up to date`,
-  nothingNew: msg`No new games since your last sync.`,
-  brought: msg`New games imported`,
   tooSoon: msg`Synced a moment ago`,
   failed: msg`Couldn't reach that account`,
   retry: msg`Try again in a moment.`,
@@ -164,7 +162,7 @@ export function ConnectionsScreen() {
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-medium">{i18n._(CONNECTIONS_COPY.connect)}</h3>
-        <ImportGames chrome="bare" redirectTo="/settings/connections" />
+        <ConnectAccount chrome="bare" redirectTo="/settings/connections" />
       </section>
     </div>
   );
@@ -172,7 +170,7 @@ export function ConnectionsScreen() {
 
 function AccountRow({ account }: { account: TrackedAccount }) {
   const { i18n } = useLingui();
-  const Icon = IMPORT_SOURCES[account.platform].icon;
+  const { Icon, label: platform } = GAME_SOURCES[account.platform];
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const disconnect = useDisconnectAccount();
@@ -194,33 +192,16 @@ function AccountRow({ account }: { account: TrackedAccount }) {
     });
   };
 
-  const sync = useSyncGames({
-    onOutcome: (outcome: SyncOutcome) => {
-      if (outcome.status === "too-soon") {
-        toast.add({
-          type: "info",
-          title: i18n._(CONNECTIONS_COPY.tooSoon),
-          description: i18n._({
-            ...retryIn,
-            values: { seconds: outcome.retryAfterSeconds },
-          }),
-        });
-        return;
-      }
-
-      if (outcome.saved === 0) {
-        toast.add({
-          type: "success",
-          title: i18n._(CONNECTIONS_COPY.upToDate),
-          description: i18n._(CONNECTIONS_COPY.nothingNew),
-        });
-        return;
-      }
-
+  const { watch } = useSyncSettlementToast();
+  const sync = useSyncAccount({
+    onTooSoon: (retryAfterSeconds) => {
       toast.add({
-        type: "success",
-        title: i18n._(CONNECTIONS_COPY.brought),
-        description: i18n.number(outcome.saved),
+        type: "info",
+        title: i18n._(CONNECTIONS_COPY.tooSoon),
+        description: i18n._({
+          ...retryIn,
+          values: { seconds: retryAfterSeconds },
+        }),
       });
     },
     onError: () => {
@@ -232,7 +213,18 @@ function AccountRow({ account }: { account: TrackedAccount }) {
     },
   });
 
-  const label = sync.isPending ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
+  // The server's word, not this row's memory: a job it still holds reads
+  // as running on any screen, after any reload.
+  const syncing = isSyncInProgress(sync.isPending, [account]);
+  const label = syncing ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
+
+  const handleSync = () => {
+    sync.mutate(account.id, {
+      onSuccess: (answer) => {
+        if (!("retryAfterSeconds" in answer)) watch([answer.syncId]);
+      },
+    });
+  };
 
   return (
     <Item>
@@ -252,10 +244,10 @@ function AccountRow({ account }: { account: TrackedAccount }) {
           variant="ghost"
           size="icon"
           aria-label={i18n._(label)}
-          onClick={() => sync.mutate([account])}
-          disabled={sync.isPending}
+          onClick={handleSync}
+          disabled={syncing}
         >
-          {sync.isPending ? <Spinner aria-hidden="true" /> : <RefreshCw />}
+          {syncing ? <Spinner aria-hidden="true" /> : <RefreshCw />}
         </Button>
 
         <DropdownMenu>
@@ -288,7 +280,7 @@ function AccountRow({ account }: { account: TrackedAccount }) {
                 ...CONNECTIONS_COPY.disconnectDescription,
                 values: {
                   username: account.username,
-                  platform: IMPORT_SOURCES[account.platform].label,
+                  platform,
                 },
               })}
             </DialogDescription>

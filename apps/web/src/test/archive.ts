@@ -1,5 +1,6 @@
-import type { Game } from "../games/list/queries.ts";
+import type { Game } from "../games/list/index.ts";
 import { ME, resetGameIds } from "./games.ts";
+import { announceSync } from "./sync-stream.ts";
 
 /** One player's archive, in memory. Filters/pages for real — production's filtering rules aren't imported, so both sides check independently. */
 
@@ -35,6 +36,15 @@ interface ArchiveState {
   refusesRefreshFor: number | null;
   /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
+  syncs: Map<string, SyncJob>;
+}
+
+export interface SyncJob {
+  id: string;
+  accountId: string;
+  trigger: "connect" | "manual";
+  status: "queued" | "running" | "retrying" | "succeeded" | "failed";
+  gamesInserted: number | null;
 }
 
 function fresh(): ArchiveState {
@@ -44,6 +54,7 @@ function fresh(): ArchiveState {
     incoming: [],
     refusesRefreshFor: null,
     identities: new Map(),
+    syncs: new Map(),
   };
 }
 
@@ -183,7 +194,47 @@ export function readArchive(view: ArchiveView): ArchivePage {
 export type RefreshResult =
   | { status: "not-found" }
   | { status: "too-soon"; retryAfterSeconds: number }
-  | { status: "refreshed"; saved: number };
+  | { status: "accepted"; job: SyncJob };
+
+/** Schedules a sync — active until `landSync`, the way the worker leaves it. */
+export function scheduleSync(accountId: string, trigger: SyncJob["trigger"]): SyncJob {
+  const job: SyncJob = {
+    id: `sync-${state.syncs.size + 1}`,
+    accountId,
+    trigger,
+    status: "queued",
+    gamesInserted: null,
+  };
+  state.syncs.set(job.id, job);
+  return job;
+}
+
+/** The account's newest scheduled sync — what a click just started. */
+export function latestSync(): SyncJob {
+  const job = [...state.syncs.values()].at(-1);
+  if (!job) throw new Error("no sync has been scheduled");
+  return job;
+}
+
+/**
+ * The worker finishing: the staged games land (or not), the row settles,
+ * and the stream announces it — in that order, as pg_notify on commit
+ * would have it.
+ */
+export function landSync(id: string, options: { fails?: boolean } = {}): void {
+  const job = state.syncs.get(id);
+  if (!job) throw new Error(`no sync ${id}`);
+  if (options.fails) {
+    job.status = "failed";
+    announceSync("sync.failed", job);
+    return;
+  }
+  job.gamesInserted = state.incoming.length;
+  state.games.push(...state.incoming);
+  state.incoming = [];
+  job.status = "succeeded";
+  announceSync("sync.completed", job);
+}
 
 export function refreshArchive(accountId: string): RefreshResult {
   if (accountId !== state.account.id) return { status: "not-found" };
@@ -196,11 +247,17 @@ export function refreshArchive(accountId: string): RefreshResult {
     return { status: "too-soon", retryAfterSeconds };
   }
 
-  const saved = state.incoming.length;
-  state.games.push(...state.incoming);
-  state.incoming = [];
+  return { status: "accepted", job: scheduleSync(accountId, "manual") };
+}
 
-  return { status: "refreshed", saved };
+/** The job active for an account, as `GET /accounts` reports it. */
+export function activeSyncOf(accountId: string): SyncJob | undefined {
+  return [...state.syncs.values()].find(
+    (job) =>
+      job.accountId === accountId &&
+      job.status !== "succeeded" &&
+      job.status !== "failed",
+  );
 }
 
 /** Which side you were on decides whether "1-0" is good news. */

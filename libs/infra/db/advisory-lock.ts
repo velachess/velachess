@@ -5,10 +5,12 @@
  * crashed executor never leaves a stale claim behind.
  */
 
+import postgres from "postgres";
+
 export interface LockExecutor {
   /** Same generic shape PGlite and node-postgres expose — the row type
    * flows through instead of being asserted at the call site. */
-  query<T>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+  query<T>(sql: string, params?: string[]): Promise<{ rows: T[] }>;
 }
 
 export interface ExecutionLock {
@@ -48,4 +50,22 @@ export function sessionAdvisoryLock(executor: LockExecutor): ExecutionLock {
       };
     },
   };
+}
+
+/**
+ * The `LockExecutor` over a dedicated postgres.js connection. Session locks
+ * must outlive individual queries, so the connection is pinned (`max: 1`);
+ * both the api and the worker need one of these, built from the same env.
+ */
+export function postgresLockExecutor(url: string): {
+  lock: ExecutionLock;
+  close(): Promise<void>;
+} {
+  const sql = postgres(url, { max: 1 });
+  const lock = sessionAdvisoryLock({
+    query: async <T>(query: string, params?: string[]) => ({
+      rows: await sql.unsafe<T[]>(query, params),
+    }),
+  });
+  return { lock, close: () => sql.end({ timeout: 5 }) };
 }

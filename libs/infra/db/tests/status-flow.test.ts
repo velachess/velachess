@@ -1,5 +1,5 @@
 // @vitest-environment node
-/** The account's game list: one row per game, newest first, with the analyzed flag. */
+/** The account's game list: one row per game, newest first. */
 import type { NormalizedGame } from "@velachess/infra-platforms";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -7,7 +7,7 @@ import {
   ensureUser,
   listGamesWithStatusForAccount,
   saveGames,
-  upsertTrackedAccount,
+  insertTrackedAccount,
 } from "@velachess/infra-db";
 
 import { createTestDb } from "./test-db.ts";
@@ -38,7 +38,7 @@ let accountId: string;
 
 beforeAll(async () => {
   const user = await ensureUser(db, "status-flow@test.local");
-  const account = await upsertTrackedAccount(db, user.id, "chess_com", "looper");
+  const account = (await insertTrackedAccount(db, user.id, "chess_com", "looper"))!;
   accountId = account.id;
 
   await saveGames(db, [syncedGame("1001"), syncedGame("1002")], {
@@ -53,6 +53,5 @@ describe("the account's game list", () => {
   it("shows one row per game", async () => {
     const rows = (await listGamesWithStatusForAccount(db, accountId))!;
     expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.analyzed === false)).toBe(true);
   });
 });

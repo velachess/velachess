@@ -61,7 +61,7 @@ const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
 /**
  * The picked file's own rules, with their messages, in one place — the
- * shape `games/import/sources.ts` uses for the same reason: a refusal and
+ * shape `games/import/accounts/sources.ts` uses for the same reason: a refusal and
  * the text explaining it should not be able to drift apart.
  *
  * `accept` on the input is a hint, not a gate. It filters the picker's
@@ -72,7 +72,7 @@ const buildFileSchema = (translate: (message: MessageDescriptor) => string) =>
   z
     .instanceof(File)
     .refine(
-      (file) => ACCEPTED.includes(file.type as (typeof ACCEPTED)[number]),
+      (file) => ACCEPTED.some((type) => type === file.type),
       translate(AVATAR_COPY.wrongType),
     )
     .refine((file) => file.size <= MAX_SOURCE_BYTES, translate(AVATAR_COPY.tooLarge));
