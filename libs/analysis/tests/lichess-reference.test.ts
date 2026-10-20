@@ -7,9 +7,6 @@
  *   fromCentiPawns with ±1000 ceiling, fromMate via the ceiling)
  * - Judgment thresholds: lila modules/tree Advice.scala (CpAdvice:
  *   winning-chance delta ≥ .1 inaccuracy, ≥ .2 mistake, ≥ .3 blunder)
- *
- * The move/game accuracy port's own reference suite lives in
- * `tests/accuracy.test.ts`.
  */
 import { describe, expect, it } from "vitest";
 

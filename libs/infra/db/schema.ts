@@ -411,26 +411,6 @@ export const games = pgTable(
   ],
 );
 
-/** Structural mirror of @velachess/analysis's GradedPly — declared
- * locally so drizzle-kit's schema loader never touches the chess toolchain.
- * Compatibility is asserted at typecheck from the analysis side, in
- * libs/analysis/process-analysis/tests/analyze-game.test.ts: analysis
- * already depends on this package, so the guard runs with the package
- * graph instead of against it. Asserting it here would need
- * @velachess/analysis as a devDependency, and that edge is a cycle.
- * No longer backs a column — analysis is browser-only and persists
- * nothing server-side — kept only for that typecheck-time guard. */
-export interface StoredGradedPly {
-  ply: number;
-  fen: string;
-  san: string;
-  evalBefore: { cp?: number; mate?: number };
-  evalAfter: { cp?: number; mate?: number };
-  bestMove: string;
-  category: "best" | "good" | "inaccuracy" | "mistake" | "blunder";
-  winChanceLoss: number;
-}
-
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
 export type SyncJob = typeof syncJobs.$inferSelect;

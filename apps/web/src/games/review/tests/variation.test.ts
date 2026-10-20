@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { call, ensure, withResolvers, type Operation } from "effection";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { RawEval } from "@velachess/analysis";
+import type { PositionEvaluation } from "@velachess/analysis";
 
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
@@ -31,12 +31,12 @@ const moves: ReplayMove[] = [{ ply: 1, san: "e4", fenBefore: START, fenAfter: AF
  * test says so, and records whether it was halted instead — duplicated
  * locally per this codebase's test-helper convention.
  */
-function makeControllableEval(result: RawEval) {
-  const engineAnswered = withResolvers<RawEval>();
+function makeControllableEval(result: PositionEvaluation) {
+  const engineAnswered = withResolvers<PositionEvaluation>();
   let unwound = false;
   let answered = false;
 
-  const run = vi.fn(function* (): Operation<RawEval> {
+  const run = vi.fn(function* (): Operation<PositionEvaluation> {
     yield* ensure(() => {
       unwound = true;
     });
@@ -79,7 +79,7 @@ const play = (store: ReviewStore, from: string, to: string) => {
  * so the double is split in two: `evaluate` is the search, and `dispose`
  * is the session going away.
  */
-const evaluate = vi.fn<(fen: string) => Operation<RawEval>>();
+const evaluate = vi.fn<(fen: string) => Operation<PositionEvaluation>>();
 const dispose = vi.fn<() => Operation<void>>(() => call(() => undefined));
 
 beforeEach(() => {

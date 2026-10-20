@@ -15,7 +15,6 @@
 export { analyzeGame, fensToEvaluate } from "./analyze-game.ts";
 export type { PositionEvaluator, PublishPly } from "./analyze-game.ts";
 
-export { gradeGame } from "./grade-game.ts";
 export type { GradedPly } from "./grade-game.ts";
 
 /** The move vocabulary itself, for consumers that render it — `apps/web`
@@ -26,9 +25,8 @@ export type { MoveCategory } from "./move-category.ts";
 /** `toWhitePov` is exported for the one caller that bridges engine scores
  * into this module's vocabulary: `apps/web`'s cached position evaluator. */
 export { toWhitePov } from "./score.ts";
-export type { PovScore, RawEval, WhitePovScore } from "./score.ts";
+export type { PositionEvaluation, WhitePovScore } from "./score.ts";
 
 export { classifyMove, scoreToWinChance } from "./classify-move.ts";
-export type { ClassifyInput } from "./classify-move.ts";
 
 export { POLICY_VERSION } from "./policy-version.ts";

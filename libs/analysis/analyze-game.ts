@@ -10,7 +10,7 @@ import { replayMainline } from "@velachess/chess";
 import type { Operation } from "effection";
 
 import { classifyPly, terminalScoreOf, type GradedPly } from "./grade-game.ts";
-import type { RawEval } from "./score.ts";
+import type { PositionEvaluation } from "./score.ts";
 
 /**
  * Called synchronously the moment a ply is decided, before the next
@@ -27,7 +27,7 @@ export type PublishPly = (position: GradedPly) => void;
  * twice here.
  */
 export interface PositionEvaluator {
-  evaluate(fen: string): Operation<RawEval>;
+  evaluate(fen: string): Operation<PositionEvaluation>;
 }
 
 /**
@@ -72,7 +72,7 @@ export function* analyzeGame(
     const played = replay.moves[i]!;
     const isLast = i === total - 1;
 
-    let next: RawEval;
+    let next: PositionEvaluation;
     if (isLast && replay.finalPosition.isEnd()) {
       next = { score: terminalScoreOf(replay.finalPosition), bestMove: null };
     } else {

@@ -9,7 +9,7 @@ import { makeUci, sideToMoveOf } from "@velachess/chess";
 
 import { classifyMove } from "./classify-move.ts";
 import type { MoveCategory } from "./move-category.ts";
-import type { RawEval, WhitePovScore } from "./score.ts";
+import type { PositionEvaluation, WhitePovScore } from "./score.ts";
 
 export interface GradedPly {
   /** 1-indexed. */
@@ -34,8 +34,8 @@ export function terminalScoreOf(finalPosition: Position): WhitePovScore {
 export function classifyPly(
   ply: number,
   played: ReplayedMove,
-  current: RawEval,
-  next: RawEval,
+  current: PositionEvaluation,
+  next: PositionEvaluation,
 ): GradedPly {
   const mover = sideToMoveOf(played.fenBefore);
   const { category, winChanceLoss } = classifyMove({
@@ -55,36 +55,4 @@ export function classifyPly(
     category,
     winChanceLoss,
   };
-}
-
-/**
- * Grades every ply from one evaluation per position. `evals` must align
- * with `fensToEvaluate(...)` for the same `moves`/`finalPosition` — one
- * entry per FEN, in the same order, omitting the terminal position when the
- * game ended on the last move.
- */
-export function gradeGame(
-  moves: ReplayedMove[],
-  finalPosition: Position,
-  evals: readonly RawEval[],
-): GradedPly[] {
-  const total = moves.length;
-  if (total === 0) return [];
-
-  const positions: GradedPly[] = [];
-  let current = evals[0]!;
-
-  for (let i = 0; i < total; i++) {
-    const played = moves[i]!;
-    const isLast = i === total - 1;
-    const next: RawEval =
-      isLast && finalPosition.isEnd()
-        ? { score: terminalScoreOf(finalPosition), bestMove: null }
-        : evals[i + 1]!;
-
-    positions.push(classifyPly(i + 1, played, current, next));
-    current = next;
-  }
-
-  return positions;
 }

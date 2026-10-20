@@ -20,7 +20,7 @@ export interface WhitePovScore {
 
 /** One position's evaluation, white POV — nothing about the move it
  * preceded. `bestMove` is UCI, null when the engine had no move to offer. */
-export interface RawEval {
+export interface PositionEvaluation {
   score: WhitePovScore;
   bestMove: string | null;
 }

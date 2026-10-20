@@ -5,9 +5,8 @@
  *
  * This file stores and notifies. It runs nothing, cancels nothing, and
  * knows nothing about Stockfish, Effection, scheduling or IndexedDB —
- * `start-analysis.ts` decides what to put here, `engine-manager.ts`
- * decides when the engine is free, and the caches decide what survives a
- * reload.
+ * `start-analysis.ts` decides what to put here, and the caches decide
+ * what survives a reload.
  */
 import { createStore } from "zustand/vanilla";
 

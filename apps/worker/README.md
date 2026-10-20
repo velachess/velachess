@@ -1,17 +1,15 @@
 # @velachess/worker
 
 The background worker process for VelaChess. It registers pg-boss consumers and
-adapts queue deliveries to the business modules' use cases (`@velachess/accounts`,
-`@velachess/analysis`); retry, delivery, and
-dead-letter behavior belong to pg-boss, and domain logic should not live in
-consumer handlers.
+adapts queue deliveries to the business modules' use cases
+(`@velachess/accounts`); retry, delivery, and dead-letter behavior belong to
+pg-boss, and domain logic should not live in consumer handlers.
 
 ## Dependencies
 
-- Internal: the business modules it consumes (`@velachess/accounts`,
-  `@velachess/analysis`), `@velachess/infra-db`, `@velachess/infra-engine`,
-  `@velachess/infra-logger`, `@velachess/infra-queue`.
-- External runtime: `postgres` and `stockfish`.
+- Internal: the business module it consumes (`@velachess/accounts`),
+  `@velachess/infra-db`, `@velachess/infra-logger`, `@velachess/infra-queue`.
+- External runtime: `postgres`.
 
 ## Usage / Development
 

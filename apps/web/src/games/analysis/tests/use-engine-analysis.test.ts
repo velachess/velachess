@@ -11,10 +11,9 @@ import { useEngineAnalysis } from "../use-engine-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
 
 /**
- * Exercises the real store, the real coordinator and the real
- * `EngineManager`, with only the engine itself scripted — the point of
- * these tests is the React subscription, which a hand-made store would
- * not prove.
+ * Exercises the real store and the real coordinator, with only the
+ * engine scripted — the point of these tests is the React
+ * subscription, which a hand-made store would not prove.
  */
 function renderAnalysis(gameId: string) {
   let renders = 0;
