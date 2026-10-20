@@ -46,7 +46,10 @@ export function parseInfoLine(line: string): EngineUpdate | null {
   const multipv = line.match(/ multipv (?<multipv>\d+)/)?.groups?.["multipv"];
   const cp = line.match(/ score cp (?<cp>-?\d+)/)?.groups?.["cp"];
   const mate = line.match(/ score mate (?<mate>-?\d+)/)?.groups?.["mate"];
-  const pv = line.match(/ pv (?<pv>.+)$/)?.groups?.["pv"];
+  // Scanned by index, not by regex: ` pv ` repeated across a long line
+  // makes the anchored pattern quadratic.
+  const pvAt = line.indexOf(" pv ");
+  const pv = pvAt === -1 ? undefined : line.slice(pvAt + " pv ".length);
   const nodes = line.match(/ nodes (?<nodes>\d+)/)?.groups?.["nodes"];
   const nps = line.match(/ nps (?<nps>\d+)/)?.groups?.["nps"];
   const time = line.match(/ time (?<time>\d+)/)?.groups?.["time"];

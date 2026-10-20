@@ -12,7 +12,10 @@ export function movetextHash(rawPgn: string): string {
     .split(/\r?\n/)
     .filter((line) => !line.trim().startsWith("["))
     .join(" ")
-    .replace(/\{[^}]*\}/g, "")
+    // PGN comments cannot nest, so excluding `{` from the body keeps an
+    // unterminated brace run from re-scanning the rest of the string
+    // (quadratic ReDoS on provider-supplied PGN).
+    .replace(/\{[^{}]*\}/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
