@@ -14,7 +14,7 @@ import { call } from "../../../libs/effection.ts";
 
 import { getCachedRawEval, MULTI_PV, type CacheKeyParts } from "../analysis-cache.ts";
 import { cachedPositionEvaluator } from "../cached-position-evaluator.ts";
-import { browserEngine, ENGINE_BUILD } from "../../engine/index.ts";
+import { browserEngine, ENGINE_BUILD } from "../../../engine/index.ts";
 
 export interface OpenPositionEvaluator extends PositionEvaluator {
   dispose(): Operation<void>;

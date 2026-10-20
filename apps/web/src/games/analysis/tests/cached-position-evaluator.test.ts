@@ -13,7 +13,7 @@ import {
   type CacheKeyParts,
 } from "../analysis-cache.ts";
 import { cachedPositionEvaluator, rawEvalOf } from "../cached-position-evaluator.ts";
-import { ENGINE_BUILD } from "../../engine/index.ts";
+import { ENGINE_BUILD } from "../../../engine/index.ts";
 
 afterEach(async () => {
   await resetAnalysisCacheForTests();

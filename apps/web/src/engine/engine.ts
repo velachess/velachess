@@ -25,7 +25,7 @@ import {
   type Result,
   type Task,
   type WithResolvers,
-} from "../../libs/effection.ts";
+} from "../libs/effection.ts";
 import {
   useEngineEvaluator,
   type CompletedSearch,
@@ -76,28 +76,39 @@ export interface EngineDeps {
 }
 
 interface Search {
-  /** The running search, detached into the session's scope. `null` until
-   * this search reaches the engine, which it may never do. */
+  /**
+   * The running search, detached into the session's scope. `null` before
+   * it starts and again the moment it ends, so this one field answers the
+   * only question anyone asks of it: is the engine busy on this search
+   * right now? Effection's `Task` cannot be asked.
+   */
   searchTask: Task<Result<CompletedSearch>> | null;
-  /** A newer search, or disposal, took the engine. Decides whether the
-   * outcome is delivered or dropped. */
-  superseded: boolean;
-  /** The engine produced an outcome, so there is nothing left to stop.
-   * Not the same fact as `released`: a search that never reached the
-   * engine releases it without ever completing. */
-  completed: boolean;
   /** Resolves when this search has stopped using the Worker — the link
-   * the next one waits on, and the session's only serialization. */
+   * the next one waits on, and the session's only serialization. A search
+   * that never reached the engine still has one, which is why this cannot
+   * be read off `searchTask`. */
   released: WithResolvers<void>;
 }
 
+/** The session's Worker, in the three states it can be in. A union rather
+ * than three fields, so "open while opening" cannot be written. */
+type WorkerSlot =
+  | { readonly status: "idle" }
+  | {
+      readonly status: "opening";
+      readonly task: Task<void>;
+      readonly ready: WithResolvers<Result<EngineEvaluator>>;
+    }
+  | {
+      readonly status: "ready";
+      readonly task: Task<void>;
+      readonly evaluator: EngineEvaluator;
+    };
+
+const IDLE: WorkerSlot = { status: "idle" };
+
 function createSearch(): Search {
-  return {
-    searchTask: null,
-    superseded: false,
-    completed: false,
-    released: withResolvers<void>(),
-  };
+  return { searchTask: null, released: withResolvers<void>() };
 }
 
 export function createEngine(deps: EngineDeps): Engine {
@@ -108,82 +119,94 @@ export function createEngine(deps: EngineDeps): Engine {
       const [scope, destroy] = createScope();
 
       let disposed = false;
-      let worker: EngineEvaluator | null = null;
-      let workerTask: Task<void> | null = null;
-      /** The open in flight, so two searches racing for a Worker wait on
-       * one rather than starting two. It carries its outcome as a value
-       * for the same reason the search does: a failing task raises on the
-       * scope that owns it, and this one is the session's. */
-      let opening: WithResolvers<Result<EngineEvaluator>> | null = null;
-      /** The most recent search, running or not. The chain it heads ends
-       * at the first link that has already released. */
-      let activeSearch: Search | null = null;
+      let workerSlot: WorkerSlot = IDLE;
+      /** The most recent search, running or not. */
+      let latestSearch: Search | null = null;
 
       function assertNotDisposed(): void {
         if (disposed) throw new EngineSessionDisposed();
       }
 
+      /** A search is stale exactly when it is no longer the latest one:
+       * `evaluate` claims `latestSearch` before it can block, and
+       * `dispose` clears it. Nothing else can make a search stale, so
+       * nothing has to record that it is. */
+      function isSuperseded(search: Search): boolean {
+        return latestSearch !== search;
+      }
+
       function* closeWorker(): Operation<void> {
-        const task = workerTask;
-        worker = null;
-        workerTask = null;
+        const slot = workerSlot;
+        workerSlot = IDLE;
         // An open still in flight is halted with it, and its own teardown
         // is what tells the search waiting on it.
-        if (task) yield* task.halt();
+        if (slot.status !== "idle") yield* slot.task.halt();
+      }
+
+      /**
+       * Opens the session's Worker and publishes it from in here, rather
+       * than handing it back for the search that asked to register: a
+       * search cancelled mid-open would otherwise leave a live Worker
+       * nobody had recorded, and the next one would open a second.
+       */
+      function* openWorker(
+        ready: WithResolvers<Result<EngineEvaluator>>,
+      ): Operation<void> {
+        // Settles the waiting searches exactly once: below on success or
+        // on the open's own failure, and through this hook when the open
+        // is halted before either — which would otherwise leave them
+        // waiting on a Worker nobody is opening. A second `resolve`
+        // cannot change an outcome already latched.
+        yield* ensure(() => {
+          if (workerSlot.status === "opening") workerSlot = IDLE;
+          ready.resolve(
+            Err(disposed ? new EngineSessionDisposed() : new SearchSuperseded()),
+          );
+        });
+
+        let evaluator: EngineEvaluator;
+        try {
+          evaluator = yield* useEngineEvaluator(deps.openSession, {
+            depth,
+            ...(deps.silenceTimeoutMs === undefined
+              ? {}
+              : { silenceTimeoutMs: deps.silenceTimeoutMs }),
+          });
+        } catch (error) {
+          // Carried rather than rethrown so the failure lands once, at the
+          // searches waiting for it, instead of also raising on the
+          // session's scope and taking the session down with it.
+          ready.resolve(Err(error));
+          return;
+        }
+
+        // The slot cannot have moved to another open while this one was
+        // alive — everything that takes it away (`closeWorker`, `dispose`)
+        // halts this task first — so `opening` here is always this open.
+        // Disposal is the one race left, and it publishes nothing.
+        if (disposed || workerSlot.status !== "opening") return;
+        workerSlot = { status: "ready", task: workerSlot.task, evaluator };
+        ready.resolve(Ok(evaluator));
+        yield* suspend();
       }
 
       /**
        * Lazy, and re-openable for as long as the session is alive: a stop
        * that went unanswered leaves no Worker behind, and the next search
-       * opens one. Disposal is the only thing this does not recover from.
-       *
-       * The Worker is published from inside the opening task, not by the
-       * search that asked for it: a search cancelled mid-open would
-       * otherwise leave a live Worker nobody had registered, and the next
-       * one would open a second.
+       * opens one. Searches that arrive while one is opening share it
+       * rather than starting a second. Disposal is the only thing this
+       * does not recover from.
        */
       function* getOrOpenWorker(): Operation<EngineEvaluator> {
         assertNotDisposed();
-        if (worker) return worker;
-        if (opening) return unbox(yield* opening.operation);
+        if (workerSlot.status === "ready") return workerSlot.evaluator;
+        if (workerSlot.status === "opening") {
+          return unbox(yield* workerSlot.ready.operation);
+        }
 
         const ready = withResolvers<Result<EngineEvaluator>>();
-        opening = ready;
-        workerTask = scope.run(function* (): Operation<void> {
-          // Settles the waiting search exactly once: here on success,
-          // below on the open's own failure, or through this hook when
-          // the open is halted before either — which would otherwise
-          // leave that search waiting on a Worker nobody is opening.
-          yield* ensure(() => {
-            opening = null;
-            ready.resolve(
-              Err(disposed ? new EngineSessionDisposed() : new SearchSuperseded()),
-            );
-          });
-
-          let evaluator: EngineEvaluator;
-          try {
-            evaluator = yield* useEngineEvaluator(deps.openSession, {
-              depth,
-              ...(deps.silenceTimeoutMs === undefined
-                ? {}
-                : { silenceTimeoutMs: deps.silenceTimeoutMs }),
-            });
-          } catch (error) {
-            // Carried rather than rethrown so the failure lands once, at
-            // the waiting search, instead of also raising on the
-            // session's scope and taking the session down with it.
-            ready.resolve(Err(error));
-            return;
-          }
-
-          if (disposed) return;
-          worker = evaluator;
-          opening = null;
-          ready.resolve(Ok(evaluator));
-          yield* suspend();
-        });
-
+        const task = scope.run(() => openWorker(ready));
+        workerSlot = { status: "opening", task, ready };
         return unbox(yield* ready.operation);
       }
 
@@ -194,12 +217,10 @@ export function createEngine(deps: EngineDeps): Engine {
        * on that: it is what lets the next search speak.
        */
       function* stopSearch(search: Search): Operation<void> {
-        if (search.completed) return;
-        search.superseded = true;
         const running = search.searchTask;
         if (!running) return;
 
-        worker?.stop();
+        if (workerSlot.status === "ready") workerSlot.evaluator.stop();
         const answered = yield* race([
           call(function* (): Operation<boolean> {
             yield* search.released.operation;
@@ -221,19 +242,19 @@ export function createEngine(deps: EngineDeps): Engine {
 
       /**
        * The caller stopped waiting. A search it left running has to be
-       * handed back before the next one may speak — and a search that
-       * never reached the engine still has to release the link, once the
-       * search it replaced has.
+       * handed back before the next one may speak.
        */
       function* releaseSearch(
         search: Search,
         previousSearch: Search | null,
       ): Operation<void> {
-        if (search.completed) return;
         if (search.searchTask) {
           yield* stopSearch(search);
           return;
         }
+        // Not running — it either never started or has already ended, so
+        // it holds nothing of its own. The next search still waits on this
+        // link, so it releases once the search it replaced has.
         if (previousSearch) yield* previousSearch.released.operation;
         search.released.resolve();
       }
@@ -254,29 +275,30 @@ export function createEngine(deps: EngineDeps): Engine {
       ): Operation<CompletedSearch> {
         // Superseded while the Worker was opening: starting now would be
         // a search nobody is waiting for.
-        if (search.superseded) throw new SearchSuperseded();
+        if (isSuperseded(search)) throw new SearchSuperseded();
 
-        search.searchTask = scope.run(function* (): Operation<Result<CompletedSearch>> {
+        const task = scope.run(function* (): Operation<Result<CompletedSearch>> {
           try {
             return Ok(yield* evaluator.evaluate(fen));
           } catch (error) {
             return Err(error);
           } finally {
-            search.completed = true;
+            search.searchTask = null;
             search.released.resolve();
           }
         });
+        search.searchTask = task;
 
         let settled: Result<CompletedSearch>;
         try {
-          settled = yield* search.searchTask;
+          settled = yield* task;
         } catch {
           // Unwinding never enters a `catch`, so a raise here is always a
           // deliberate halt: the Worker was closed under the search, or
           // the session was disposed.
           throw disposed ? new EngineSessionDisposed() : new SearchSuperseded();
         }
-        if (search.superseded) throw new SearchSuperseded();
+        if (isSuperseded(search)) throw new SearchSuperseded();
 
         try {
           return unbox(settled);
@@ -292,16 +314,16 @@ export function createEngine(deps: EngineDeps): Engine {
         *evaluate(fen: string): Operation<CompletedSearch> {
           assertNotDisposed();
 
-          const previousSearch = activeSearch;
+          const previousSearch = latestSearch;
           const search = createSearch();
-          activeSearch = search;
+          latestSearch = search;
           yield* ensure(() => releaseSearch(search, previousSearch));
 
           if (previousSearch) {
             yield* stopSearch(previousSearch);
             yield* previousSearch.released.operation;
           }
-          if (search.superseded) throw new SearchSuperseded();
+          if (isSuperseded(search)) throw new SearchSuperseded();
 
           const evaluator = yield* getOrOpenWorker();
           return yield* executeSearch(evaluator, search, fen);
@@ -310,12 +332,13 @@ export function createEngine(deps: EngineDeps): Engine {
         *dispose(): Operation<void> {
           if (disposed) return;
           disposed = true;
-          worker = null;
-          workerTask = null;
-          activeSearch = null;
-          // Unwinding the scope halts the search task, whose `finally`
-          // releases anything waiting on it, and quits the engine before
-          // the Worker is terminated.
+          workerSlot = IDLE;
+          latestSearch = null;
+          // Unwinding the scope halts whatever the session was running —
+          // an open still in flight included, freeing what it had already
+          // acquired — and quits the engine before the Worker is
+          // terminated. The search task's `finally` releases anything
+          // waiting on it.
           yield* destroy();
         },
       };

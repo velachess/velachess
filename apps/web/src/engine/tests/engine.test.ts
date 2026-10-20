@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useEngineSession, type CompletedSearch } from "@velachess/infra-engine";
 
-import { run, type Task } from "../../../libs/effection.ts";
+import { run, type Task } from "../../libs/effection.ts";
 import {
   createEngine,
   EngineSessionDisposed,
@@ -95,6 +95,16 @@ describe("createEngine", () => {
 
     expect(engines).toHaveLength(1);
     expect(engines[0]!.goCallCount).toBe(2);
+    // No `stop` anywhere: a search that answered on its own is not one
+    // the next search has to interrupt.
+    expect(engines[0]!.sent).toEqual([
+      "uci",
+      "isready",
+      `position fen ${FEN_A}`,
+      "go depth 14",
+      `position fen ${FEN_B}`,
+      "go depth 14",
+    ]);
   });
 
   it("replaces a search with stop, bestmove, then the new position", async () => {
@@ -181,10 +191,20 @@ describe("createEngine", () => {
     const session = engine.createSession({ depth: 14 });
 
     const abandoned = search(session, FEN_A);
+    let delivered: CompletedSearch | null = null;
+    void abandoned.then(
+      (result) => {
+        delivered = result;
+      },
+      () => {},
+    );
     await vi.waitFor(() => expect(engines).toHaveLength(1));
     const scripted = engines[0]!;
     await abandoned.halt().catch(() => {});
 
+    // The drained `bestmove` belongs to nobody: a halted caller is never
+    // handed a result, stale or otherwise.
+    expect(delivered).toBeNull();
     expect(scripted.sent).toContain("stop");
     expect(scripted.searching).toBe(false);
     expect(scripted.closed).toBe(false);
@@ -318,6 +338,36 @@ describe("createEngine", () => {
 
       await expect(search(session, FEN_B)).rejects.toBeInstanceOf(EngineSessionDisposed);
       expect(engines).toHaveLength(1);
+    });
+
+    it("hands a failed open to every search waiting on it", async () => {
+      const { engine, engines } = harness({ holdHandshake: true });
+      const session = engine.createSession({ depth: 14 });
+
+      // Both in the same tick, so the second shares the first's open
+      // rather than starting one of its own.
+      const first = search(session, FEN_A);
+      const second = search(session, FEN_B);
+      quiet(first);
+      quiet(second);
+      await vi.waitFor(() => expect(engines).toHaveLength(1));
+      expect(engines).toHaveLength(1);
+
+      // A dead Worker ends its line stream, which is a handshake that can
+      // never complete — without waiting out the 10s handshake timeout.
+      engines[0]!.crash();
+
+      const failure = /closed before completing the handshake/;
+      await expect(first).rejects.toThrow(failure);
+      await expect(second).rejects.toThrow(failure);
+      expect(engines[0]!.closed).toBe(true);
+
+      // Back to idle, so a later search opens a fresh Worker.
+      const third = search(session, FEN_C);
+      await vi.waitFor(() => expect(engines).toHaveLength(2));
+      engines[1]!.answerHandshake();
+      engines[1]!.queueGoResponse(goLines(10, "g1f3"));
+      expect((await third).bestMove.move).toBe("g1f3");
     });
   });
 

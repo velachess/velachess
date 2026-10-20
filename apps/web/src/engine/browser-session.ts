@@ -7,7 +7,7 @@
  * Worker down on the way out because the transport is a resource in this
  * operation's scope.
  */
-import { call, type Operation } from "../../libs/effection.ts";
+import { call, type Operation } from "../libs/effection.ts";
 import {
   useEngineSession,
   type EngineOption,

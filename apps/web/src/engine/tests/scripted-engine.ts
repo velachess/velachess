@@ -15,12 +15,7 @@
  * `libs/infra/engine/tests/` — a test-only helper does not cross a
  * package boundary.
  */
-import {
-  createQueue,
-  ensure,
-  resource,
-  type Operation,
-} from "../../../libs/effection.ts";
+import { createQueue, ensure, resource, type Operation } from "../../libs/effection.ts";
 import type { Transport } from "@velachess/infra-engine";
 
 export interface ScriptedEngineOptions {

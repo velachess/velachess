@@ -12,13 +12,12 @@ const productionSource = `^(?:apps/(?:server|worker|web|site)/src|libs/(?:${busi
 // Only these expose an index.ts public surface; the remaining pre-existing
 // verticals (auth, onboarding, settings, ...) predate the rule and are a
 // deliberate, separate follow-up — see apps/web/AGENTS.md.
-const webIndexOnlyVerticals = "api|backend-status|chess-sounds|query";
+const webIndexOnlyVerticals = "api|backend-status|chess-sounds|engine|query";
 
-// The four capability domains inside apps/web/src/games, plus engine/ —
-// the Stockfish infrastructure the domains run on — each with its own
-// index.ts public surface (see docs/explanation/apps/web.md). `games/`
-// itself holds nothing but these and two shared files.
-const gamesDomains = "analysis|review|import|list|engine";
+// The four domains inside apps/web/src/games, each with its own index.ts
+// public surface (see docs/explanation/apps/web.md). `games/` itself holds
+// nothing but these.
+const gamesDomains = "analysis|review|import|list";
 
 function externalPackage(name) {
   return `(?:^${name}(?:/|$)|(?:^|/)node_modules/${name}(?:/|$))`;
@@ -277,7 +276,7 @@ module.exports = {
     {
       name: "games-domain-index-only",
       comment:
-        "apps/web/src/games is four domains — analysis, review, import, list — plus engine, and a route, a sibling vertical or the test harness reaches one only through its index.ts. A domain's sub-slices (analysis/game, import/pgn, ...) are internal: their own index.ts is a contract toward the rest of their domain, not toward the app.",
+        "apps/web/src/games is four domains — analysis, review, import, list — and a route, a sibling vertical or the test harness reaches one only through its index.ts. A domain's sub-slices (analysis/game, import/pgn, ...) are internal: their own index.ts is a contract toward the rest of their domain, not toward the app.",
       severity: "error",
       from: {
         path: "^apps/web/src/",
@@ -314,14 +313,14 @@ module.exports = {
       to: { path: "^apps/web/src/games/(?:review|import|list)/" },
     },
     {
-      name: "games-engine-is-infrastructure",
+      name: "engine-is-infrastructure",
       comment:
-        "games/engine runs searches and knows nothing about what a score means or who is looking at one: it may not reach a games domain, @velachess/analysis, the router or a state library. React is already forbidden by games-domain-logic-stays-react-free.",
+        "src/engine runs searches and knows nothing about what a score means or who is looking at one: it may not reach a games domain, @velachess/analysis, the router or a state library. React is already forbidden by area-contracts-stay-react-free.",
       severity: "error",
-      from: { path: "^apps/web/src/games/engine/", pathNot: testPath },
+      from: { path: "^apps/web/src/engine/", pathNot: testPath },
       to: {
         path: [
-          "^apps/web/src/games/(?:analysis|review|import|list)/",
+          "^apps/web/src/games/",
           externalPackage("@velachess/analysis"),
           externalPackage("zustand"),
           externalPackage("@tanstack/react-router"),
