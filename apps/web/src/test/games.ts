@@ -39,8 +39,6 @@ export function aGame(overrides: Partial<Game> = {}): Game {
 export function aGradedPly(ply: number, overrides: Partial<GradedPly> = {}): GradedPly {
   return {
     ply,
-    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    san: GAME_SANS[ply - 1] ?? "e4",
     evalBefore: { cp: 20 },
     evalAfter: { cp: 15 },
     bestMove: "e2e4",

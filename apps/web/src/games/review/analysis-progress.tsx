@@ -5,8 +5,6 @@ import { Alert, AlertTitle } from "@velachess/ui/components/alert";
 import { Progress } from "@velachess/ui/components/progress";
 import { Spinner } from "@velachess/ui/components/spinner";
 
-import { progressPercent } from "../analysis/index.ts";
-
 const STATUS_COPY = {
   preparing: msg`Preparing analysis…`,
   loadError: msg`Couldn't load analysis.`,
@@ -14,6 +12,13 @@ const STATUS_COPY = {
 
 const analyzingLabel = (graded: number, total: number) =>
   msg`Analyzing move ${graded} of ${total}…`;
+
+/** Whole percent, floored at 0 and capped at 100. Null when unknowable —
+ * the bar then reads as indeterminate rather than as empty. */
+function progressPercent(graded: number, total: number): number | null {
+  if (total <= 0) return null;
+  return Math.min(100, Math.max(0, Math.round((graded / total) * 100)));
+}
 
 export interface AnalysisProgressProps {
   graded: number;

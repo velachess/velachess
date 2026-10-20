@@ -3,17 +3,13 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useEngineSession } from "@velachess/infra-engine";
+import type { CompletedSearch } from "@velachess/infra-engine";
 
 import { call, run } from "../../../libs/effection.ts";
 import {
-  getCachedRawEval,
-  putCachedRawEval,
-  resetAnalysisCacheForTests,
-  MULTI_PV,
-  type CacheKeyParts,
-} from "../analysis-cache.ts";
-import { openPositionEvaluator } from "../position/evaluate-position-in-browser.ts";
-import { ENGINE_BUILD } from "../../../engine/index.ts";
+  openPositionEvaluator,
+  positionEvaluationOf,
+} from "../evaluate-position-in-browser.ts";
 import {
   createScriptedEngine,
   goLines,
@@ -28,18 +24,19 @@ vi.mock("../../../engine/browser-session.ts", () => ({
 
 import { openBrowserEngineSession } from "../../../engine/browser-session.ts";
 
-afterEach(async () => {
-  await resetAnalysisCacheForTests();
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
-const DEPTH = 14;
 const FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
-const parts: CacheKeyParts = {
-  depth: DEPTH,
-  multiPV: MULTI_PV,
-  engineBuild: ENGINE_BUILD,
-};
+
+function searched(cp: number, move: string): CompletedSearch {
+  return {
+    lastInfo: { depth: 14, multipv: 1, score: { cp }, pv: [move] },
+    bestMove: { move },
+  };
+}
 
 function mockEngine(onEngine?: (engine: ScriptedEngine) => void) {
   const engines: ScriptedEngine[] = [];
@@ -54,7 +51,7 @@ function mockEngine(onEngine?: (engine: ScriptedEngine) => void) {
 
 /** One evaluator per test, closed however the test ends. */
 function open() {
-  const evaluator = openPositionEvaluator(DEPTH);
+  const evaluator = openPositionEvaluator();
   return {
     evaluator,
     evaluate: (fen: string) => run(() => evaluator.evaluate(fen)),
@@ -62,29 +59,37 @@ function open() {
   };
 }
 
-describe("openPositionEvaluator", () => {
-  it("returns a cached raw eval without ever touching the engine", async () => {
-    mockEngine();
-    await putCachedRawEval(FEN, parts, { score: { cp: 7 }, bestMove: "e2e4" });
-
-    const held = open();
-    const result = await held.evaluate(FEN);
-
-    expect(result).toEqual({ score: { cp: 7 }, bestMove: "e2e4" });
-    expect(openBrowserEngineSession).not.toHaveBeenCalled();
-    await held.close();
+describe("positionEvaluationOf", () => {
+  it("keeps a white-to-move score as the engine reported it", () => {
+    expect(positionEvaluationOf(FEN, searched(31, "e2e4"))).toEqual({
+      score: { cp: 31 },
+      bestMove: "e2e4",
+    });
   });
 
-  it("searches on a miss, returns the result, and writes it through to the cache", async () => {
+  it("flips a black-to-move score into white POV", () => {
+    expect(positionEvaluationOf(AFTER_E4, searched(31, "e7e5"))).toEqual({
+      score: { cp: -31 },
+      bestMove: "e7e5",
+    });
+  });
+
+  it("reads (none) as no move rather than a move named (none)", () => {
+    expect(positionEvaluationOf(FEN, { bestMove: { move: "(none)" } })).toEqual({
+      score: {},
+      bestMove: null,
+    });
+  });
+});
+
+describe("openPositionEvaluator", () => {
+  it("searches the position and returns the engine's answer", async () => {
     // Queued before the search starts, so the reply is deterministic
     // rather than racing the session's own handshake.
     mockEngine((engine) => engine.queueGoResponse(goLines(20, "e2e4")));
 
     const held = open();
-    const result = await held.evaluate(FEN);
-
-    expect(result).toEqual({ score: { cp: 20 }, bestMove: "e2e4" });
-    expect(await getCachedRawEval(FEN, parts)).toEqual(result);
+    expect(await held.evaluate(FEN)).toEqual({ score: { cp: 20 }, bestMove: "e2e4" });
     await held.close();
   });
 
@@ -113,6 +118,23 @@ describe("openPositionEvaluator", () => {
 
     expect(engines).toHaveLength(1);
     expect(engines[0]!.goCallCount).toBe(2);
+    await held.close();
+  });
+
+  it("searches a repeated position again, remembering nothing between calls", async () => {
+    // No store and no memo behind this evaluator.
+    const openDb = vi.spyOn(indexedDB, "open");
+    const engines = mockEngine((engine) => {
+      engine.queueGoResponse(goLines(20, "e2e4"));
+      engine.queueGoResponse(goLines(20, "e2e4"));
+    });
+
+    const held = open();
+    await held.evaluate(FEN);
+    await held.evaluate(FEN);
+
+    expect(engines[0]!.goCallCount).toBe(2);
+    expect(openDb).not.toHaveBeenCalled();
     await held.close();
   });
 

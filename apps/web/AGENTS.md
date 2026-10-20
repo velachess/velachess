@@ -23,16 +23,16 @@ does not restate it.
   for `api`, `backend-status`, `chess-sounds`, `engine`, and `query`, and
   (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
   four domains under `games/` — `analysis`, `review`, `import`, `list`. A
-  domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
+  domain's sub-slice (`import/pgn/`, `import/accounts/`) is internal: its
   `index.ts` is a contract toward the rest of its domain, not toward the
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
 - `games/` is four domains and two shared files. Review consumes Analysis;
   Analysis never imports Review, `import` or `list`
-  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
-  evaluations — `analysis/graded-game.ts` — and Review decides what a
-  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
+  (`games-analysis-depends-on-no-sibling-domain`). Analysis produces
+  `GradedPly[]` and Review reads it — `review/review-model.ts`,
+  `review/move-presentation.ts`, `review/board-view.ts`. A
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every
@@ -81,7 +81,7 @@ does not restate it.
   screen: a preference someone chose (`chess-sounds`, `i18n/locale-store`,
   `import/accounts/source-store`) or work this device is doing
   (`games/analysis/analysis-store.ts`, whose lifecycle
-  `analysis/game/start-analysis.ts` owns, and which deliberately keeps
+  `analysis/start-analysis.ts` owns, and which deliberately keeps
   grading with nothing mounted). A store built per instance
   (`createStore` from `zustand/vanilla`, handed to consumers through one
   React context) holds what belongs to one screen but to more than one

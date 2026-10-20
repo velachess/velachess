@@ -4,7 +4,7 @@ import { useLingui } from "@lingui/react";
 import { BoardPanel } from "@velachess/ui/chess/board-stage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
-import { evalCurve, summarize, type GradedPly } from "../analysis/index.ts";
+import type { GradedPly } from "../analysis/index.ts";
 import { AnalysisProgress } from "./analysis-progress.tsx";
 import { EvalGraph } from "./eval-graph.tsx";
 import type { ReplayableGame } from "./game-record.ts";
@@ -13,6 +13,7 @@ import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
+import { gradeAtPly } from "./review-model.ts";
 import { useAnalysisPanelReview } from "./use-analysis-panel-review.ts";
 
 const PANEL_COPY = {
@@ -56,7 +57,6 @@ export function AnalysisPanel({
   hasFailed,
 }: AnalysisPanelProps) {
   const { i18n } = useLingui();
-  const breakdown = summarize(graded);
 
   // `inVariation`: the main line's verdict is then about a position
   // nobody is looking at, so it is not shown at all rather than shown as
@@ -68,7 +68,7 @@ export function AnalysisPanel({
     <BoardPanel label={i18n._(PANEL_COPY.region)}>
       <div className="shrink-0 border-b p-3">
         <EvalGraph
-          points={evalCurve(graded)}
+          graded={graded}
           totalPlies={totalPlies}
           selectedPly={ply}
           onSelectPly={goToPly}
@@ -76,7 +76,7 @@ export function AnalysisPanel({
       </div>
 
       <AnalysisProgress
-        graded={breakdown.graded}
+        graded={graded.length}
         totalPlies={totalPlies}
         isAnalyzing={isAnalyzing}
         hasFailed={hasFailed}
@@ -103,7 +103,11 @@ export function AnalysisPanel({
 
         <TabsContent value={TABS.move} className="flex min-h-0 flex-1 flex-col">
           {!inVariation && (
-            <MoveInsight move={move} graded={graded[ply - 1]} onShowBest={showBest} />
+            <MoveInsight
+              move={move}
+              graded={gradeAtPly(graded, ply)}
+              onShowBest={showBest}
+            />
           )}
           <MoveList
             graded={graded}
@@ -114,7 +118,8 @@ export function AnalysisPanel({
 
         <TabsContent value={TABS.report} className="min-h-0 flex-1 overflow-y-auto">
           <GameReport
-            breakdown={breakdown}
+            graded={graded}
+            moves={game.moves}
             whiteName={game.whiteName}
             blackName={game.blackName}
             openingName={game.openingName}

@@ -2,16 +2,13 @@ import { cn } from "@velachess/ui/lib/utils";
 import { ScrollArea } from "@velachess/ui/components/scroll-area";
 
 import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
+import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
 
-import {
-  moveNumberOf,
-  sideOfPly,
-  type GradedPly,
-  type MoveCategory,
-} from "../analysis/index.ts";
+import type { GradedPly, MoveCategory } from "../analysis/index.ts";
 import type { ReplayMove } from "./game-record.ts";
+import { CATEGORY_TEXT_TONE } from "./move-presentation.ts";
+import { gradeAtPly } from "./review-model.ts";
 import { useMoveListReview } from "./use-analysis-panel-review.ts";
-import { glyphOf } from "./move-presentation.ts";
 
 export interface MoveListProps {
   /** Grades in ply order — shorter than the game while the run streams. */
@@ -20,18 +17,37 @@ export interface MoveListProps {
   blackName: string;
 }
 
+interface ScoresheetRow {
+  number: number;
+  white?: ReplayMove;
+  black?: ReplayMove;
+}
+
+/**
+ * One row per move number, each side in its own column. Built from the
+ * positions rather than by pairing plies two at a time: a game can start
+ * from a FEN, at any move number and with Black to play, and its first
+ * row then has no White move at all.
+ */
+function scoresheetRows(moves: readonly ReplayMove[]): ScoresheetRow[] {
+  const rows: ScoresheetRow[] = [];
+
+  for (const move of moves) {
+    const number = moveNumberOf(move.fenBefore);
+    const last = rows.at(-1);
+    const row = last?.number === number ? last : { number };
+    if (row !== last) rows.push(row);
+    row[sideToMoveOf(move.fenBefore)] = move;
+  }
+
+  return rows;
+}
+
 /** Cells are real buttons for keyboard reach. */
 export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
   const { moves, currentPly, onSelectPly } = useMoveListReview();
 
-  const rows = Array.from({ length: moveNumberOf(moves.length) }, (_, index) => {
-    const number = index + 1;
-    return {
-      number,
-      white: moves[number * 2 - 2],
-      black: moves[number * 2 - 1],
-    };
-  });
+  const rows = scoresheetRows(moves);
 
   return (
     <ScrollArea className="h-48 lg:h-auto lg:min-h-0 lg:flex-1">
@@ -76,19 +92,11 @@ interface MoveCellProps {
   onSelectPly: (ply: number) => void;
 }
 
-const GRADE_TONE: Partial<Record<MoveCategory, string>> = {
-  blunder: "text-move-blunder",
-  mistake: "text-move-mistake",
-  inaccuracy: "text-move-inaccuracy",
-};
-
 function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
   // An unplayed half-move at the end of an odd-length game.
   if (!move) return <span className="px-2 py-1 text-xs text-muted-foreground">…</span>;
 
-  const category = graded[move.ply - 1]?.category;
-  const glyph = glyphOf(category);
-  const tone = category ? GRADE_TONE[category] : undefined;
+  const category = gradeAtPly(graded, move.ply)?.category;
 
   return (
     <button
@@ -103,16 +111,30 @@ function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
     >
       <PieceIcon
         kind={pieceKindOf(move.san)}
-        side={sideOfPly(move.ply)}
+        side={sideToMoveOf(move.fenBefore)}
         className="text-sm"
       />
       <span className="truncate">{move.san}</span>
-      <MoveGlyph glyph={glyph} tone={tone} />
+      <MoveGlyph category={category} />
     </button>
   );
 }
 
-function MoveGlyph({ glyph, tone }: { glyph: string | null; tone: string | undefined }) {
+/** NAG notation, not copy — the glyphs every scoresheet already prints.
+ * `best` and `good` earn no symbol: a mark on every move is no mark. */
+const CATEGORY_GLYPHS: Partial<Record<MoveCategory, string>> = {
+  inaccuracy: "?!",
+  mistake: "?",
+  blunder: "??",
+};
+
+function MoveGlyph({ category }: { category: MoveCategory | undefined }) {
+  const glyph = category && CATEGORY_GLYPHS[category];
   if (!glyph) return null;
-  return <span className={cn("shrink-0 font-bold", tone)}>{glyph}</span>;
+
+  return (
+    <span className={cn("shrink-0 font-bold", CATEGORY_TEXT_TONE[category])}>
+      {glyph}
+    </span>
+  );
 }

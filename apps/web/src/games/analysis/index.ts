@@ -7,29 +7,16 @@
  * that computes it — this app runs that same analysis in the browser, so
  * there is nothing to mirror and one import site for it.
  */
-export { MOVE_CATEGORIES } from "@velachess/analysis";
-export type { GradedPly, MoveCategory } from "@velachess/analysis";
+export { MOVE_CATEGORIES, scoreToWinChance } from "@velachess/analysis";
+export type { GradedPly, MoveCategory, WhitePovScore } from "@velachess/analysis";
 
-export { ANALYSIS_DEPTH } from "./analysis-cache.ts";
-export { startAnalysis } from "./game/index.ts";
+export { startAnalysis } from "./start-analysis.ts";
 export { useEngineAnalysis } from "./use-engine-analysis.ts";
-
-export {
-  bestMoveSan,
-  evalCurve,
-  gradeAtPly,
-  moveNumberOf,
-  progressPercent,
-  sideOfPly,
-  summarize,
-  whiteShareOf,
-} from "./graded-game.ts";
-export type { EvalPoint, SideBreakdown } from "./graded-game.ts";
 
 /**
  * Opens an evaluator for the positions someone explores by hand. It
  * holds one engine session, so its owner keeps it for as long as those
  * positions keep coming and disposes it when they stop.
  */
-export { openPositionEvaluator } from "./position/index.ts";
-export type { OpenPositionEvaluator } from "./position/index.ts";
+export { openPositionEvaluator } from "./evaluate-position-in-browser.ts";
+export type { OpenPositionEvaluator } from "./evaluate-position-in-browser.ts";

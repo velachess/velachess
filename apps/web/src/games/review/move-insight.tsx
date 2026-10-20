@@ -13,15 +13,12 @@ import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
 import { Button } from "@velachess/ui/components/button";
 import { cn } from "@velachess/ui/lib/utils";
 
-import {
-  bestMoveSan,
-  moveNumberOf,
-  sideOfPly,
-  type GradedPly,
-  type MoveCategory,
-} from "../analysis/index.ts";
+import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
+
+import type { GradedPly, MoveCategory } from "../analysis/index.ts";
+import { sanOfUciAt } from "./board-view.ts";
 import type { ReplayMove } from "./game-record.ts";
-import { formatScore } from "./move-presentation.ts";
+import { CATEGORY_TEXT_TONE, formatScore } from "./move-presentation.ts";
 
 const INSIGHT_COPY = {
   start: msg`The starting position.`,
@@ -50,28 +47,14 @@ const EXPLANATIONS: Record<MoveCategory, MessageDescriptor> = {
   blunder: msg`It changes who is winning.`,
 };
 
-const TONES: Record<MoveCategory, string> = {
-  best: "text-move-ok",
-  good: "text-move-ok",
-  inaccuracy: "text-move-inaccuracy",
-  mistake: "text-move-mistake",
-  blunder: "text-move-blunder",
-};
-
-const BADGE_TONES: Record<MoveCategory, string> = {
-  best: "bg-move-ok",
-  good: "bg-move-ok",
-  inaccuracy: "bg-move-inaccuracy",
-  mistake: "bg-move-mistake",
-  blunder: "bg-move-blunder",
-};
-
-const BADGE_GLYPHS: Record<MoveCategory, string> = {
-  best: "!",
-  good: "✓",
-  inaccuracy: "?!",
-  mistake: "?",
-  blunder: "??",
+/** The badge's own vocabulary, which is not NAG: it stands for the
+ * verdict rather than annotating the move, so every category has one. */
+const BADGE: Record<MoveCategory, { glyph: string; tone: string }> = {
+  best: { glyph: "!", tone: "bg-move-ok" },
+  good: { glyph: "✓", tone: "bg-move-ok" },
+  inaccuracy: { glyph: "?!", tone: "bg-move-inaccuracy" },
+  mistake: { glyph: "?", tone: "bg-move-mistake" },
+  blunder: { glyph: "??", tone: "bg-move-blunder" },
 };
 
 export interface MoveInsightProps {
@@ -99,13 +82,13 @@ export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
     );
   }
 
-  const side = sideOfPly(move.ply);
+  const side = sideToMoveOf(move.fenBefore);
   const moveSuffix = side === "white" ? "." : "…";
   const heading = (
     <span className="flex items-center gap-1.5 text-base font-semibold">
       <PieceIcon kind={pieceKindOf(move.san)} side={side} />
       <span>
-        {moveNumberOf(move.ply)}
+        {moveNumberOf(move.fenBefore)}
         {moveSuffix} {move.san}
       </span>
     </span>
@@ -127,14 +110,14 @@ export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
     );
   }
 
-  const best = bestMoveSan(graded);
+  const best = graded.bestMove && sanOfUciAt(move.fenBefore, graded.bestMove);
 
   return (
     <InsightShell>
       <ItemContent>
         <ItemTitle>
           {heading}
-          <span className={cn(TONES[graded.category])}>
+          <span className={cn(CATEGORY_TEXT_TONE[graded.category])}>
             {i18n._(VERDICTS[graded.category])}
           </span>
         </ItemTitle>
@@ -216,10 +199,10 @@ function GradeBadge({ category }: { category: MoveCategory }) {
       aria-hidden="true"
       className={cn(
         "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
-        BADGE_TONES[category],
+        BADGE[category].tone,
       )}
     >
-      {BADGE_GLYPHS[category]}
+      {BADGE[category].glyph}
     </span>
   );
 }

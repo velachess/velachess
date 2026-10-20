@@ -1,6 +1,8 @@
 import type { LegalDestination, MoveSquares } from "@velachess/chess";
 import {
   legalDestinations,
+  makeSan,
+  parseUci,
   positionFromFen,
   resolveGamePerspective,
   squaresOfSan,
@@ -72,5 +74,22 @@ export function legalTargetsAt(fen: string, square: string): readonly LegalDesti
     return legalDestinations(positionFromFen(fen).unwrap(), square);
   } catch {
     return [];
+  }
+}
+
+/**
+ * The engine answers in UCI, which nobody reads. `parseUci` only reads
+ * squares and `makeSan` will happily name a move nobody could play, so a
+ * drifted record would otherwise render a confident, impossible
+ * suggestion — hence the legality check.
+ */
+export function sanOfUciAt(fen: string, uci: string): string | null {
+  try {
+    const position = positionFromFen(fen).unwrap();
+    const move = parseUci(uci);
+    if (!move || !position.isLegal(move)) return null;
+    return makeSan(position, move);
+  } catch {
+    return null;
   }
 }

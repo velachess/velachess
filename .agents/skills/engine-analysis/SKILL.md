@@ -16,7 +16,7 @@ Keep four concerns separate, and do not let one reach into another:
 - `libs/analysis` owns which positions to evaluate, what the answers mean,
   and nothing about how the engine is driven. The engine reaches it only
   through the `PositionEvaluator` dependency it declares, so this module
-  depends on neither `@velachess/infra-engine` nor a cache.
+  depends on neither `@velachess/infra-engine` nor any storage.
 - `apps/web/src/engine/` is the browser SDK: `createEngine()` hands
   out sessions, each owning one Stockfish Worker, creating it lazily,
   reusing it between searches, replacing a search in flight over UCI
@@ -26,20 +26,23 @@ Keep four concerns separate, and do not let one reach into another:
   registry, lane, priority or shared lock, and `createEngine` keeps no
   list of what it created. Do not add one — two Workers running at once is
   the design, not a problem to schedule away.
-- `apps/web/src/games/analysis/` composes the rest, owns the IndexedDB
-  caches and the side-to-move → white-POV conversion. Its two lanes are
-  its two sub-slices: `game/` grades a whole game on a session it owns for
-  the length of the pass, `position/` opens a disposable evaluator for
-  single FENs whose owner is `review/use-variation-evaluation.ts`. Inside
+- `apps/web/src/games/analysis/` composes the rest, owns the one IndexedDB
+  store and the side-to-move → white-POV conversion. Its two lanes are two
+  flat files: `analyze-game-in-browser.ts` grades a whole game on a session
+  it owns for the length of the pass, `evaluate-position-in-browser.ts`
+  opens a disposable evaluator for single FENs whose owner is
+  `review/use-variation-evaluation.ts`. `analysis-db.ts` holds one finished
+  report per game and nothing else — no per-position cache, so an
+  interrupted pass starts over and a variation is never persisted. Inside
   the domain, `analysis-store.ts` only stores snapshots and notifies React
-  — it imports no Effection — and `game/start-analysis.ts` is the one
-  module that knows both engine and store. Keep it that way: a ply travels
-  up by synchronous callback, and the two cancellations (a new game
-  replacing the pass under way; the variation's position changing) have
-  one owner each.
+  — it imports no Effection — and `start-analysis.ts` is the one module
+  that knows both engine and store. Keep it that way: a ply travels up by
+  synchronous callback, and the two cancellations (a new game replacing the
+  pass under way; the variation's position changing) have one owner each.
 - The domain's `index.ts` is what the review screen sees: `startAnalysis`,
-  `useEngineAnalysis`, `openPositionEvaluator` and the read model in
-  `graded-game.ts`. Analysis never imports `review/`.
+  `useEngineAnalysis`, `openPositionEvaluator` and the `@velachess/analysis`
+  vocabulary it re-exports. It hands over `GradedPly[]` and nothing else —
+  reading that result is Review's. Analysis never imports `review/`.
 
 Asynchronous lifecycle is Effection. Infra's session is a resource, so
 leaving the scope that opened it quits the engine and terminates the

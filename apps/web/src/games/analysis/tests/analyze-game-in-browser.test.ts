@@ -2,24 +2,16 @@ import "fake-indexeddb/auto";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fensToEvaluate, POLICY_VERSION, type GradedPly } from "@velachess/analysis";
-import { parsePgn, replayMainline } from "@velachess/chess";
+import type { GradedPly } from "@velachess/analysis";
 import { useEngineSession } from "@velachess/infra-engine";
 
 import { call, run } from "../../../libs/effection.ts";
 import { aGradedPly } from "../../../test/games.ts";
-import {
-  putCachedRawEval,
-  putCachedReport,
-  resetAnalysisCacheForTests,
-  MULTI_PV,
-  type CacheKeyParts,
-} from "../analysis-cache.ts";
+import { getReport, resetAnalysisDbForTests, saveReport } from "../analysis-db.ts";
 import {
   analyzeGameInBrowser,
   type GameAnalysisInput,
-} from "../game/analyze-game-in-browser.ts";
-import { ENGINE_BUILD } from "../../../engine/index.ts";
+} from "../analyze-game-in-browser.ts";
 import {
   createScriptedEngine,
   goLines,
@@ -36,15 +28,9 @@ vi.mock("../../../engine/browser-session.ts", () => ({
 import { openBrowserEngineSession } from "../../../engine/browser-session.ts";
 
 afterEach(async () => {
-  await resetAnalysisCacheForTests();
+  vi.restoreAllMocks();
+  await resetAnalysisDbForTests();
 });
-
-const DEPTH = 14;
-const parts: CacheKeyParts = {
-  depth: DEPTH,
-  multiPV: MULTI_PV,
-  engineBuild: ENGINE_BUILD,
-};
 
 /** "1. e4 e5" — 2 plies, needing 3 searches: before e4, before e5, after e5. */
 const TWO_PLY_PGN = '[Event "Test"]\n\n1. e4 e5 *\n';
@@ -71,7 +57,14 @@ function collect(game: GameAnalysisInput) {
 }
 
 function input(gameId = "game-1") {
-  return { gameId, rawPgn: TWO_PLY_PGN, depth: DEPTH };
+  return { gameId, rawPgn: TWO_PLY_PGN };
+}
+
+/** The three replies a full pass over `TWO_PLY_PGN` consumes. */
+function answerEveryPosition(engine: ScriptedEngine): void {
+  engine.queueGoResponse(goLines(20, "e2e4"));
+  engine.queueGoResponse(goLines(15, "e7e5"));
+  engine.queueGoResponse(goLines(10, "g1f3"));
 }
 
 describe("analyzeGameInBrowser", () => {
@@ -80,13 +73,10 @@ describe("analyzeGameInBrowser", () => {
     const { seen, task } = collect(input());
 
     await vi.waitFor(() => expect(engines).toHaveLength(1));
-    // 3 searches for 2 plies: before e4, before e5 (= after e4), after e5.
-    engines[0]!.queueGoResponse(goLines(20, "e2e4"));
-    engines[0]!.queueGoResponse(goLines(15, "e7e5"));
-    engines[0]!.queueGoResponse(goLines(10, "g1f3"));
+    answerEveryPosition(engines[0]!);
 
     await task;
-    expect(seen.map((ply) => ply.san)).toEqual(["e4", "e5"]);
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
     expect(openBrowserEngineSession).toHaveBeenCalledTimes(1);
   });
 
@@ -106,6 +96,19 @@ describe("analyzeGameInBrowser", () => {
     expect(seen).toHaveLength(1);
   });
 
+  it("stores nothing for a pass that was interrupted part-way", async () => {
+    const engines = mockEngine();
+    const { seen, task } = collect(input());
+
+    await vi.waitFor(() => expect(engines).toHaveLength(1));
+    engines[0]!.queueGoResponse(goLines(1, "e2e4"));
+    engines[0]!.queueGoResponse(goLines(2, "e7e5"));
+    await vi.waitFor(() => expect(seen).toHaveLength(1));
+    await task.halt();
+
+    await expect(getReport("game-1")).resolves.toBeNull();
+  });
+
   it("propagates an engine init failure", async () => {
     const boom = new Error("no WASM support");
     vi.mocked(openBrowserEngineSession).mockImplementation(() =>
@@ -118,15 +121,15 @@ describe("analyzeGameInBrowser", () => {
     await expect(task).rejects.toBe(boom);
   });
 
-  it("returns a cached report without ever touching the engine", async () => {
+  it("republishes a stored report without ever touching the engine", async () => {
     mockEngine();
-    const cached = [aGradedPly(1), aGradedPly(2)];
-    await putCachedReport("game-1", POLICY_VERSION, parts, cached);
+    const stored = [aGradedPly(1), aGradedPly(2)];
+    await saveReport("game-1", stored);
 
     const { seen, task } = collect(input());
     await task;
 
-    expect(seen).toEqual(cached);
+    expect(seen).toEqual(stored);
     expect(openBrowserEngineSession).not.toHaveBeenCalled();
   });
 
@@ -135,9 +138,7 @@ describe("analyzeGameInBrowser", () => {
     const first = collect(input());
 
     await vi.waitFor(() => expect(engines).toHaveLength(1));
-    engines[0]!.queueGoResponse(goLines(20, "e2e4"));
-    engines[0]!.queueGoResponse(goLines(15, "e7e5"));
-    engines[0]!.queueGoResponse(goLines(10, "g1f3"));
+    answerEveryPosition(engines[0]!);
     await first.task;
 
     vi.mocked(openBrowserEngineSession).mockClear();
@@ -148,22 +149,34 @@ describe("analyzeGameInBrowser", () => {
     expect(openBrowserEngineSession).not.toHaveBeenCalled();
   });
 
-  it("skips the engine for a batch-prefetched position but still searches a miss", async () => {
-    const [game] = parsePgn(TWO_PLY_PGN);
-    const replay = replayMainline(game!).unwrap();
-    const [firstFen] = fensToEvaluate(replay);
-    await putCachedRawEval(firstFen!, parts, { score: { cp: 5 }, bestMove: "e2e4" });
+  it("analyzes the game when the stored report cannot be read", async () => {
+    vi.spyOn(indexedDB, "open").mockImplementation(() => {
+      throw new DOMException("denied", "SecurityError");
+    });
 
     const engines = mockEngine();
     const { seen, task } = collect(input());
 
     await vi.waitFor(() => expect(engines).toHaveLength(1));
-    // Only the 2 positions the batch prefetch missed — before e5, after e5.
-    engines[0]!.queueGoResponse(goLines(15, "e7e5"));
-    engines[0]!.queueGoResponse(goLines(10, "g1f3"));
+    answerEveryPosition(engines[0]!);
 
     await task;
-    expect(seen.map((ply) => ply.san)).toEqual(["e4", "e5"]);
-    expect(engines[0]!.goCallCount).toBe(2);
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
+  });
+
+  it("finishes the analysis when the report cannot be written", async () => {
+    const engines = mockEngine();
+    const { seen, task } = collect(input());
+
+    await vi.waitFor(() => expect(engines).toHaveLength(1));
+    answerEveryPosition(engines[0]!);
+    // The store, not the connection: this pass already opened the
+    // database for its own (missing) report, so only the write can fail.
+    vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
+      throw new DOMException("quota", "QuotaExceededError");
+    });
+
+    await expect(task).resolves.toBeUndefined();
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
   });
 });

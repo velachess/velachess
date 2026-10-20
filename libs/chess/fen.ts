@@ -43,3 +43,22 @@ export function positionKeyOf(fen: string): string {
 export function sideToMoveOf(fen: string): Color {
   return fen.includes(" w ") ? "white" : "black";
 }
+
+const FULLMOVE_FIELD = 5;
+const FIRST_MOVE = 1;
+
+/**
+ * The move number a position belongs to — "1. e4" and "1… e5" share one.
+ * Read from the FEN rather than counted off a ply index, because a game
+ * can start from a position, at any move number and with either side to
+ * play.
+ *
+ * Reads the field directly, like `sideToMoveOf` and for the same reason.
+ * The FEN is not re-validated: every one that reaches here was written
+ * by `makeFen` from a position `replayMainline` already accepted. A move
+ * number is a positive integer, so anything else — a missing field, an
+ * EPD, a 0 — reads as the first move rather than as NaN on screen.
+ */
+export function moveNumberOf(fen: string): number {
+  return Number(fen.split(" ")[FULLMOVE_FIELD]) || FIRST_MOVE;
+}

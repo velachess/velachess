@@ -59,16 +59,17 @@ describe("analyzeGame (real Stockfish)", () => {
 
     expect(published.map((position) => position.ply)).toEqual([1, 2, 3, 4]);
 
-    // 2. g4 allows mate in one — the eval after it must be a black mate, white POV.
+    // 2. g4 (ply 3) allows mate in one — the eval after it must be a
+    // black mate, white POV.
     const g4 = published[2]!;
-    expect(g4.san).toBe("g4");
     expect(g4.evalAfter.mate).toBeLessThan(0);
     expect(g4.category).toBe("blunder");
 
-    // Final position is checkmate: terminal eval, no search.
+    // Qh4# (ply 4) ends the game: its eval comes from the rules, not a
+    // search, and mating was what the engine wanted played.
     const qh4 = published[3]!;
-    expect(qh4.san).toBe("Qh4#");
     expect(qh4.evalAfter).toEqual({ mate: -1 });
+    expect(qh4.category).toBe("best");
   }, 30_000);
 
   it("a failing engine fails the game rather than reporting a half-graded one", async () => {
@@ -156,20 +157,16 @@ describe("analyzeGame sequencing", () => {
     expect(published).toEqual([
       {
         ply: 1,
-        fen: replay.moves[0]!.fenBefore,
-        san: "e4",
         evalBefore: { cp: 20 },
         evalAfter: { cp: -300 },
         bestMove: "e2e4",
-        // Playing the engine's own move is `best` however much the eval
-        // then drops — the loss is still reported.
+        // The engine's own move is `best` however much the eval then
+        // drops; the loss is still reported.
         category: "best",
         winChanceLoss: expect.closeTo(0.539055, 6),
       },
       {
         ply: 2,
-        fen: replay.moves[1]!.fenBefore,
-        san: "e5",
         evalBefore: { cp: -300 },
         evalAfter: { cp: 10 },
         bestMove: "d7d5",

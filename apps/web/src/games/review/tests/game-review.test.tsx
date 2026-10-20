@@ -11,27 +11,26 @@ import {
   vi,
 } from "vitest";
 
-import { addGames, stageSeatIdentities } from "../../../test/archive.ts";
+import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
-import { resetAnalysisForTests } from "../../analysis/game/start-analysis.ts";
+import { resetAnalysisForTests } from "../../analysis/start-analysis.ts";
 import type { GradedPly } from "../../analysis/index.ts";
 import type { Game } from "../../list/index.ts";
 
 /**
  * The screen through the route, over HTTP for the game itself; the engine
- * is mocked at `analyzeGameInBrowser` — the same seam
- * `use-browser-analysis.ts` calls through — rather than at the Worker/UCI
- * level, which `libs/infra/engine` and `analyze-game-in-browser.test.ts`
- * already cover.
+ * is mocked at `analyzeGameInBrowser` — the same seam `start-analysis.ts`
+ * runs — rather than at the Worker/UCI level, which `libs/infra/engine`
+ * and `analyze-game-in-browser.test.ts` already cover.
  */
 
-vi.mock("../../analysis/game/analyze-game-in-browser.ts", () => ({
+vi.mock("../../analysis/analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 const { analyzeGameInBrowser } =
-  await import("../../analysis/game/analyze-game-in-browser.ts");
+  await import("../../analysis/analyze-game-in-browser.ts");
 
 // Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
 // same module, and only the interactive evaluator is stubbed.
@@ -41,10 +40,15 @@ vi.mock("../../analysis/index.ts", async (importOriginal) => ({
 }));
 const { openPositionEvaluator } = await import("../../analysis/index.ts");
 
-/** The staged run: every ply graded, with one blunder at Nc6 (ply 4). */
+/**
+ * The staged run: every ply graded, with one blunder at Nc6 (ply 4).
+ * Its `bestMove` has to be legal in the position that ply is about —
+ * the insight card reads the FEN from the replay, and would render no
+ * suggestion for a move that cannot be played there.
+ */
 const gradedPlies = () =>
-  GAME_SANS.map((san, index) =>
-    aGradedPly(index + 1, { san, category: index === 3 ? "blunder" : "good" }),
+  Array.from({ length: GAME_SANS.length }, (_, index) =>
+    aGradedPly(index + 1, index === 3 ? { category: "blunder", bestMove: "g7g6" } : {}),
   );
 
 /** Matches a move button by its SAN and the NAG glyph the grade adds. */
@@ -244,6 +248,19 @@ describe("game analysis", () => {
     expect(screen.getByText("Best was")).toBeInTheDocument();
   }, 30_000);
 
+  it("offers no suggestion when the report names no best move", async () => {
+    // A report written before `bestMove` became nullable stores "" for
+    // absent, and reports already in IndexedDB are still read back.
+    const moves = gradedPlies();
+    moves[3] = aGradedPly(4, { category: "blunder", bestMove: "" });
+    const { user } = await openGame(moves);
+
+    await user.click(await findBlunderButton());
+
+    expect(await screen.findByText("is a blunder")).toBeInTheDocument();
+    expect(screen.queryByText("Best was")).toBeNull();
+  }, 20_000);
+
   it("says how the game ended", async () => {
     await openGame(gradedPlies());
 
@@ -256,14 +273,20 @@ describe("game analysis", () => {
   it("shows the moves even while the engine is still working", async () => {
     // An empty run: it opens and closes with nothing graded, so this
     // pins that the board and move list never wait on the engine.
-    await openGame([]);
+    const { user } = await openGame([]);
 
     expect(await screen.findByRole("button", { name: /Qxf7#/ })).toBeInTheDocument();
+
+    // The report counts from zero rather than standing in for itself —
+    // a placeholder swapped for the table later moves every row.
+    await user.click(screen.getByRole("tab", { name: "Report" }));
+    const row = (await screen.findByText("Blunder")).closest("div");
+    expect(row).toHaveTextContent(/0.*Blunder.*0/);
   });
 
   it("keeps progress up while the rest of the game is still being graded", async () => {
     const moves = gradedPlies();
-    moves[0] = aGradedPly(1, { san: GAME_SANS[0]!, category: "blunder" });
+    moves[0] = aGradedPly(1, { category: "blunder" });
     // The rest of the game doesn't arrive within this test — the run is
     // demonstrably still in progress, not finished short.
     vi.mocked(analyzeGameInBrowser).mockImplementation(
@@ -279,6 +302,49 @@ describe("game analysis", () => {
       name: (c) => c.includes("e4") && c.includes("??"),
     });
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
+    // 1 of 7, as a whole percent — the bar moves with the count, it is
+    // not just spinning.
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "14");
+  }, 20_000);
+
+  it("reads a game that starts from a position, with Black to play", async () => {
+    // A PGN import can carry [SetUp]/[FEN], so ply 1 is not always
+    // White's: counting half-moves would credit every grade to the wrong
+    // player and number every move one too low.
+    const game = aGame({ whiteName: "white_player", blackName: "black_player" });
+    addGames(game);
+    stageMovetext(
+      game.id,
+      [
+        '[Event "From Position"]',
+        '[SetUp "1"]',
+        '[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"]',
+        "",
+        "2... Nc6 3. Nf3 *",
+      ].join("\n"),
+    );
+    stageAnalysis([
+      aGradedPly(1, { category: "blunder" }),
+      aGradedPly(2, { category: "good" }),
+    ]);
+    const { user } = await renderApp({ path: `/games/${game.id}` });
+
+    // The scoresheet opens at move 2, with nothing in White's column.
+    const nc6 = await screen.findByRole("button", {
+      name: (c) => c.includes("Nc6") && c.includes("??"),
+    });
+    expect(nc6).toBeInTheDocument();
+    expect(screen.getByText("2.")).toBeInTheDocument();
+
+    // The insight and the board's live region both name it as Black's
+    // move of move 2, not White's of move 1.
+    await user.click(nc6);
+    expect(await screen.findAllByText(/2… Nc6/)).not.toHaveLength(0);
+
+    // And the blunder is Black's, which is who actually played it.
+    await user.click(screen.getByRole("tab", { name: "Report" }));
+    const row = (await screen.findByText("Blunder")).closest("div");
+    expect(row).toHaveTextContent(/0.*Blunder.*1/);
   }, 20_000);
 
   it("shows a contextual analysis status when analysis fails", async () => {

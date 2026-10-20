@@ -1,12 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../game/analyze-game-in-browser.ts", () => ({
+vi.mock("../analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 
 import { aGradedPly } from "../../../test/games.ts";
-import { resetAnalysisForTests, startAnalysis } from "../game/start-analysis.ts";
+import { resetAnalysisForTests, startAnalysis } from "../start-analysis.ts";
 import { useEngineAnalysis } from "../use-engine-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
 
@@ -33,7 +33,7 @@ beforeEach(() => {
 
 function start(gameId: string) {
   act(() => {
-    startAnalysis({ gameId, rawPgn: "pgn", depth: 14 });
+    startAnalysis({ gameId, rawPgn: "pgn" });
   });
 }
 
