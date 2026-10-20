@@ -62,10 +62,10 @@ export function startAnalysis(input: GameAnalysisInput): void {
   previous?.halt?.();
 
   const task = run(() =>
-    analyzeGameInBrowser(input, (position) => {
+    analyzeGameInBrowser(input, (plies) => {
       publish(pass, (snapshot) => ({
         status: "analyzing",
-        graded: [...snapshot.graded, position],
+        graded: [...snapshot.graded, ...plies],
       }));
     }),
   );

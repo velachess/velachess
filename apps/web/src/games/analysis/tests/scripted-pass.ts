@@ -12,7 +12,7 @@ import { analyzeGameInBrowser } from "../analyze-game-in-browser.ts";
 
 export interface ScriptedPass {
   readonly gameId: string;
-  publish(ply: GradedPly): void;
+  publish(...plies: GradedPly[]): void;
   finish(): void;
   fail(error: Error): void;
   /** True once the pass was torn down without having ended on its own. */
@@ -30,7 +30,7 @@ export function scriptedPasses(): ScriptedPass[] {
 
       passes.push({
         gameId: input.gameId,
-        publish,
+        publish: (...plies) => publish(plies),
         finish: () => ended.resolve(),
         fail: (error) => ended.reject(error),
         wasHalted: () => torn && !completed,
