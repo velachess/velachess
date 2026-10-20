@@ -33,8 +33,13 @@ async function seedRaw(report: GameAnalysisReport): Promise<void> {
       database.createObjectStore("report", { keyPath: "gameId" });
     },
   });
-  await db.put("report", report);
-  db.close();
+  // Closed whatever the write does, or `deleteDB` in `afterEach` blocks
+  // on this connection and the suite hangs instead of failing.
+  try {
+    await db.put("report", report);
+  } finally {
+    db.close();
+  }
 }
 
 /** Every path into the database starts at `indexedDB.open`, so this is the
