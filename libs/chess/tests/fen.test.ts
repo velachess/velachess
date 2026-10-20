@@ -1,7 +1,13 @@
 import { STARTING_POSITION } from "@velachess/fixtures";
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_FEN, INITIAL_FEN, moveNumberOf, parseFen } from "@velachess/chess";
+import {
+  EMPTY_FEN,
+  INITIAL_FEN,
+  moveNumberOf,
+  parseFen,
+  positionKeyOf,
+} from "@velachess/chess";
 
 describe("FEN", () => {
   it("INITIAL_FEN matches the STARTING_POSITION fixture", () => {
@@ -35,8 +41,12 @@ describe("moveNumberOf", () => {
     expect(moveNumberOf("8/8/8/4k3/8/8/4K3/8 w - - 0 137")).toBe(137);
   });
 
-  it("falls back to the first move for a FEN without the field", () => {
-    // Legality is checked elsewhere; a label must not read "NaN".
+  it("reads the first move for anything that is not a move number", () => {
+    // Legality is checked before a FEN ever reaches here; this is only
+    // so a label never renders "NaN".
     expect(moveNumberOf("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")).toBe(1);
+    expect(moveNumberOf(positionKeyOf(STARTING_POSITION))).toBe(1);
+    expect(moveNumberOf("8/8/8/4k3/8/8/4K3/8 w - - 0 0")).toBe(1);
+    expect(moveNumberOf("8/8/8/4k3/8/8/4K3/8 w - - 0 12abc")).toBe(1);
   });
 });

@@ -92,7 +92,6 @@ export function gameById(id: string): Game | undefined {
   return state.games.find((game) => game.id === id);
 }
 
-/** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
 /** The movetext GET /games/:id answers for one game, when the default
  * Scholar's mate is not the game under test — a PGN that starts from a
  * position, say. */
@@ -104,6 +103,7 @@ export function movetextOf(gameId: string): string | undefined {
   return state.movetext.get(gameId);
 }
 
+/** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
 export function stageSeatIdentities(
   gameId: string,
   seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },
