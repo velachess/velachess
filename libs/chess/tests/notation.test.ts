@@ -4,11 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   makeSan,
   makeSanVariation,
-  moveNumberOf,
   parseSan,
   parseSquare,
   positionFromFen,
-  sideOfPly,
 } from "@velachess/chess";
 
 describe("SAN", () => {
@@ -49,20 +47,5 @@ describe("SAN", () => {
   it("agrees with the FOOLS_MATE_CHECKMATE fixture", () => {
     const pos = positionFromFen(FOOLS_MATE_CHECKMATE).unwrap();
     expect(pos.isCheckmate()).toBe(true);
-  });
-});
-
-describe("plies", () => {
-  it("gives odd plies to White and even to Black", () => {
-    expect(sideOfPly(1)).toBe("white");
-    expect(sideOfPly(2)).toBe("black");
-    expect(sideOfPly(7)).toBe("white");
-  });
-
-  it("pairs each two plies under one move number", () => {
-    expect(moveNumberOf(1)).toBe(1);
-    expect(moveNumberOf(2)).toBe(1);
-    expect(moveNumberOf(3)).toBe(2);
-    expect(moveNumberOf(0)).toBe(0);
   });
 });

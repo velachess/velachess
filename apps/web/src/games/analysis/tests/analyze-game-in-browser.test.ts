@@ -130,6 +130,30 @@ describe("analyzeGameInBrowser", () => {
     expect(openBrowserEngineSession).not.toHaveBeenCalled();
   });
 
+  it("replays a report written before GradedPly dropped san and fen", async () => {
+    // Reports persisted by an older build carry `fen`, `san` and an
+    // empty-string `bestMove`. The cache is keyed on the engine build and
+    // the policy version, neither of which changed, so those entries are
+    // still read back — and nothing downstream may stumble on them.
+    mockEngine();
+    const legacy = [
+      Object.assign(aGradedPly(1), {
+        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        san: "e4",
+        bestMove: "",
+      }),
+      Object.assign(aGradedPly(2), { fen: "unused", san: "e5", bestMove: "e7e5" }),
+    ];
+    await putCachedReport("game-1", POLICY_VERSION, parts, legacy);
+
+    const { seen, task } = collect(input());
+    await task;
+
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
+    expect(seen[0]?.bestMove).toBe("");
+    expect(openBrowserEngineSession).not.toHaveBeenCalled();
+  });
+
   it("writes the finished report through, so a second pass is engine-free", async () => {
     const engines = mockEngine();
     const first = collect(input());

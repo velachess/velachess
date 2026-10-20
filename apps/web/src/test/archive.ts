@@ -36,6 +36,8 @@ interface ArchiveState {
   refusesRefreshFor: number | null;
   /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
+  /** Per game — the movetext the detail read reports, when not the default. */
+  movetext: Map<string, string>;
   syncs: Map<string, SyncJob>;
 }
 
@@ -54,6 +56,7 @@ function fresh(): ArchiveState {
     incoming: [],
     refusesRefreshFor: null,
     identities: new Map(),
+    movetext: new Map(),
     syncs: new Map(),
   };
 }
@@ -90,6 +93,17 @@ export function gameById(id: string): Game | undefined {
 }
 
 /** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
+/** The movetext GET /games/:id answers for one game, when the default
+ * Scholar's mate is not the game under test — a PGN that starts from a
+ * position, say. */
+export function stageMovetext(gameId: string, rawPgn: string): void {
+  state.movetext.set(gameId, rawPgn);
+}
+
+export function movetextOf(gameId: string): string | undefined {
+  return state.movetext.get(gameId);
+}
+
 export function stageSeatIdentities(
   gameId: string,
   seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },

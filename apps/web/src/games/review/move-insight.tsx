@@ -13,7 +13,7 @@ import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
 import { Button } from "@velachess/ui/components/button";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { moveNumberOf, sideOfPly } from "@velachess/chess";
+import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
 
 import type { GradedPly, MoveCategory } from "../analysis/index.ts";
 import { sanOfUciAt } from "./board-view.ts";
@@ -82,13 +82,13 @@ export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
     );
   }
 
-  const side = sideOfPly(move.ply);
+  const side = sideToMoveOf(move.fenBefore);
   const moveSuffix = side === "white" ? "." : "…";
   const heading = (
     <span className="flex items-center gap-1.5 text-base font-semibold">
       <PieceIcon kind={pieceKindOf(move.san)} side={side} />
       <span>
-        {moveNumberOf(move.ply)}
+        {moveNumberOf(move.fenBefore)}
         {moveSuffix} {move.san}
       </span>
     </span>

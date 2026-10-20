@@ -2,7 +2,7 @@ import { cn } from "@velachess/ui/lib/utils";
 import { ScrollArea } from "@velachess/ui/components/scroll-area";
 
 import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
-import { moveNumberOf, sideOfPly } from "@velachess/chess";
+import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
 
 import type { GradedPly, MoveCategory } from "../analysis/index.ts";
 import type { ReplayMove } from "./game-record.ts";
@@ -17,18 +17,37 @@ export interface MoveListProps {
   blackName: string;
 }
 
+interface ScoresheetRow {
+  number: number;
+  white?: ReplayMove;
+  black?: ReplayMove;
+}
+
+/**
+ * One row per move number, each side in its own column. Built from the
+ * positions rather than by pairing plies two at a time: a game can start
+ * from a FEN, at any move number and with Black to play, and its first
+ * row then has no White move at all.
+ */
+function scoresheetRows(moves: readonly ReplayMove[]): ScoresheetRow[] {
+  const rows: ScoresheetRow[] = [];
+
+  for (const move of moves) {
+    const number = moveNumberOf(move.fenBefore);
+    const last = rows.at(-1);
+    const row = last?.number === number ? last : { number };
+    if (row !== last) rows.push(row);
+    row[sideToMoveOf(move.fenBefore)] = move;
+  }
+
+  return rows;
+}
+
 /** Cells are real buttons for keyboard reach. */
 export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
   const { moves, currentPly, onSelectPly } = useMoveListReview();
 
-  const rows = Array.from({ length: moveNumberOf(moves.length) }, (_, index) => {
-    const number = index + 1;
-    return {
-      number,
-      white: moves[number * 2 - 2],
-      black: moves[number * 2 - 1],
-    };
-  });
+  const rows = scoresheetRows(moves);
 
   return (
     <ScrollArea className="h-48 lg:h-auto lg:min-h-0 lg:flex-1">
@@ -92,7 +111,7 @@ function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
     >
       <PieceIcon
         kind={pieceKindOf(move.san)}
-        side={sideOfPly(move.ply)}
+        side={sideToMoveOf(move.fenBefore)}
         className="text-sm"
       />
       <span className="truncate">{move.san}</span>

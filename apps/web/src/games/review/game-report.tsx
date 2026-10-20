@@ -5,9 +5,10 @@ import { Item, ItemContent, ItemMedia, ItemTitle } from "@velachess/ui/component
 import { BookOpen } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { sideOfPly } from "@velachess/chess";
+import { sideToMoveOf } from "@velachess/chess";
 
 import { MOVE_CATEGORIES, type GradedPly, type MoveCategory } from "../analysis/index.ts";
+import type { ReplayMove } from "./game-record.ts";
 import { CATEGORY_LABELS, CATEGORY_TEXT_TONE } from "./move-presentation.ts";
 
 const REPORT_COPY = {
@@ -20,18 +21,28 @@ function emptyCounts(): CategoryCounts {
   return { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
 }
 
-/** Split by side because the interesting number is *yours*. */
-function summarize(moves: readonly GradedPly[]) {
+/**
+ * Split by side because the interesting number is *yours*. Which side
+ * played a ply comes from the position it was played from — a game can
+ * start from a FEN with Black to move, and counting plies would then
+ * credit every grade to the wrong player.
+ */
+function summarize(graded: readonly GradedPly[], moves: readonly ReplayMove[]) {
   const breakdown = { white: emptyCounts(), black: emptyCounts() };
-  for (const move of moves) {
-    breakdown[sideOfPly(move.ply)][move.category] += 1;
+
+  for (const grade of graded) {
+    const played = moves[grade.ply - 1];
+    if (played) breakdown[sideToMoveOf(played.fenBefore)][grade.category] += 1;
   }
+
   return breakdown;
 }
 
 export interface GameReportProps {
   /** Grades in ply order — shorter than the game while the run streams. */
   graded: readonly GradedPly[];
+  /** The replayed game, which is what says who played each ply. */
+  moves: readonly ReplayMove[];
   whiteName: string;
   blackName: string;
   openingName: string | null;
@@ -40,13 +51,14 @@ export interface GameReportProps {
 
 export function GameReport({
   graded,
+  moves,
   whiteName,
   blackName,
   openingName,
   openingEco,
 }: GameReportProps) {
   const { i18n } = useLingui();
-  const breakdown = summarize(graded);
+  const breakdown = summarize(graded, moves);
 
   return (
     <div className="flex flex-col gap-3 p-3">

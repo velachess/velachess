@@ -43,3 +43,18 @@ export function positionKeyOf(fen: string): string {
 export function sideToMoveOf(fen: string): Color {
   return fen.includes(" w ") ? "white" : "black";
 }
+
+const FULLMOVE_FIELD = 5;
+const FIRST_MOVE = 1;
+
+/**
+ * The move number a position belongs to — "1. e4" and "1… e5" share one.
+ * Read from the FEN rather than counted off a ply index, because a game
+ * can start from a position, at any move number and with either side to
+ * play. Falls back to the first move for a FEN without the field, which
+ * `makeFen` always writes but a hand-typed one may not.
+ */
+export function moveNumberOf(fen: string): number {
+  const parsed = Number.parseInt(fen.split(" ")[FULLMOVE_FIELD] ?? "", 10);
+  return Number.isFinite(parsed) ? parsed : FIRST_MOVE;
+}

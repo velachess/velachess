@@ -119,6 +119,7 @@ export function AnalysisPanel({
         <TabsContent value={TABS.report} className="min-h-0 flex-1 overflow-y-auto">
           <GameReport
             graded={graded}
+            moves={game.moves}
             whiteName={game.whiteName}
             blackName={game.blackName}
             openingName={game.openingName}

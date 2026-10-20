@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import {
   addGames,
   gameById,
+  movetextOf,
   pgnImport,
   readArchive,
   seatIdentityFields,
@@ -82,7 +83,7 @@ export const gamesHandlers = [
       ...seatIdentityFields(String(params["id"])),
       openingEco: "C20",
       termination: "by resignation",
-      rawPgn: GAME_PGN,
+      rawPgn: movetextOf(String(params["id"])) ?? GAME_PGN,
     });
   }),
 ];

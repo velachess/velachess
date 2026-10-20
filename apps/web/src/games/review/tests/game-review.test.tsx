@@ -11,7 +11,7 @@ import {
   vi,
 } from "vitest";
 
-import { addGames, stageSeatIdentities } from "../../../test/archive.ts";
+import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
@@ -249,6 +249,19 @@ describe("game analysis", () => {
     expect(screen.getByText("Best was")).toBeInTheDocument();
   }, 30_000);
 
+  it("offers no suggestion when the report names no best move", async () => {
+    // A report written before `bestMove` became nullable stores "" for
+    // absent, and reports already in IndexedDB are still read back.
+    const moves = gradedPlies();
+    moves[3] = aGradedPly(4, { category: "blunder", bestMove: "" });
+    const { user } = await openGame(moves);
+
+    await user.click(await findBlunderButton());
+
+    expect(await screen.findByText("is a blunder")).toBeInTheDocument();
+    expect(screen.queryByText("Best was")).toBeNull();
+  }, 20_000);
+
   it("says how the game ended", async () => {
     await openGame(gradedPlies());
 
@@ -293,6 +306,46 @@ describe("game analysis", () => {
     // 1 of 7, as a whole percent — the bar moves with the count, it is
     // not just spinning.
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "14");
+  }, 20_000);
+
+  it("reads a game that starts from a position, with Black to play", async () => {
+    // A PGN import can carry [SetUp]/[FEN], so ply 1 is not always
+    // White's: counting half-moves would credit every grade to the wrong
+    // player and number every move one too low.
+    const game = aGame({ whiteName: "white_player", blackName: "black_player" });
+    addGames(game);
+    stageMovetext(
+      game.id,
+      [
+        '[Event "From Position"]',
+        '[SetUp "1"]',
+        '[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2"]',
+        "",
+        "2... Nc6 3. Nf3 *",
+      ].join("\n"),
+    );
+    stageAnalysis([
+      aGradedPly(1, { category: "blunder" }),
+      aGradedPly(2, { category: "good" }),
+    ]);
+    const { user } = await renderApp({ path: `/games/${game.id}` });
+
+    // The scoresheet opens at move 2, with nothing in White's column.
+    const nc6 = await screen.findByRole("button", {
+      name: (c) => c.includes("Nc6") && c.includes("??"),
+    });
+    expect(nc6).toBeInTheDocument();
+    expect(screen.getByText("2.")).toBeInTheDocument();
+
+    // The insight and the board's live region both name it as Black's
+    // move of move 2, not White's of move 1.
+    await user.click(nc6);
+    expect(await screen.findAllByText(/2… Nc6/)).not.toHaveLength(0);
+
+    // And the blunder is Black's, which is who actually played it.
+    await user.click(screen.getByRole("tab", { name: "Report" }));
+    const row = (await screen.findByText("Blunder")).closest("div");
+    expect(row).toHaveTextContent(/0.*Blunder.*1/);
   }, 20_000);
 
   it("shows a contextual analysis status when analysis fails", async () => {

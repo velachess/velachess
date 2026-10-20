@@ -79,6 +79,11 @@ export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
     suggestedMove: inVariation
       ? undefined
       : (suggestedArrow(gameMove?.fenBefore, preview) ?? undefined),
-    showing: showingLabel(showingSan, ply, inVariation, i18n._(BOARD_COPY.start)),
+    showing: showingLabel(
+      showingSan,
+      gameMove?.fenBefore,
+      inVariation,
+      i18n._(BOARD_COPY.start),
+    ),
   };
 }
