@@ -17,7 +17,7 @@ Keep four concerns separate, and do not let one reach into another:
   and nothing about how the engine is driven. The engine reaches it only
   through the `PositionEvaluator` dependency it declares, so this module
   depends on neither `@velachess/infra-engine` nor a cache.
-- `apps/web/src/games/engine/` is the browser SDK: `createEngine()` hands
+- `apps/web/src/engine/` is the browser SDK: `createEngine()` hands
   out sessions, each owning one Stockfish Worker, creating it lazily,
   reusing it between searches, replacing a search in flight over UCI
   (`go`, `stop`, `bestmove`, `position`, `go`) and killing the Worker when

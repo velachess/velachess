@@ -15,37 +15,36 @@ does not restate it.
 
 - No `shared/`. A grab-bag groups by technical type, which this app never
   does. Cross-vertical infrastructure gets its own vertical instead —
-  `api/`, `backend-status/`, `chess-sounds/`, `query/` — named for what it
-  does, same as any other slice.
+  `api/`, `backend-status/`, `chess-sounds/`, `engine/`, `query/` — named
+  for what it does, same as any other slice.
 - A vertical's public surface is its `index.ts`; a file inside it that
   isn't re-exported is private to that vertical. Dependency-cruiser
   enforces this (`web-vertical-index-only`, `web-vertical-no-cross-deep-imports`)
-  for `api`, `backend-status`, `chess-sounds`, and `query`, and
+  for `api`, `backend-status`, `chess-sounds`, `engine`, and `query`, and
   (`games-domain-index-only`, `games-domain-no-cross-deep-imports`) for the
-  four domains under `games/` — `analysis`, `review`, `import`, `list` —
-  and for `engine`, the Stockfish infrastructure beside them. A
+  four domains under `games/` — `analysis`, `review`, `import`, `list`. A
   domain's sub-slice (`analysis/game/`, `import/pgn/`) is internal: its
   `index.ts` is a contract toward the rest of its domain, not toward the
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
-- `games/` is four domains, one infrastructure folder and two shared
-  files. Review consumes Analysis; Analysis never imports Review, `import`
-  or `list` (`games-analysis-depends-on-no-sibling-domain`). Analysis
-  interprets evaluations — `analysis/graded-game.ts` — and Review decides
-  what a person sees — `review/move-presentation.ts`,
-  `review/board-view.ts`. `games/engine` is the odd one out: not a
-  capability but the Stockfish sessions and Workers the capabilities run
-  on, held to an `index.ts` like a domain and forbidden from reaching
-  into one, into `@velachess/analysis`, the router or a state library
-  (`games-engine-is-infrastructure`). It runs searches; nothing in it
-  knows what a score means. A
+- `games/` is four domains and two shared files. Review consumes Analysis;
+  Analysis never imports Review, `import` or `list`
+  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
+  evaluations — `analysis/graded-game.ts` — and Review decides what a
+  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every
   domain spells identically) and `games/game-sources.ts` (each source's
   name and mark) — at their common ancestor rather than borrowed from
   whichever domain happened to declare one.
+- `engine/` is the Stockfish sessions and the Workers they own — the
+  infrastructure `games/analysis` runs on, a vertical of its own because
+  it is not a capability. One rule (`engine-is-infrastructure`) keeps it
+  from reaching into `games/`, `@velachess/analysis`, the router or a
+  state library: it runs searches and returns the engine's own result, so
+  what a score means and who is looking at one stay outside it.
 - `libs/` is reserved for thin third-party wrapper/facade files
   (`libs/zod.ts`, `libs/hono.ts`, `libs/react-query.ts`) — never a place
   for business logic. A facade re-exports its package under one name so a

@@ -100,7 +100,7 @@ bestmove. How long to wait for that answer is deliberately _not_ decided
 here: the silence watchdog measures silence and is rearmed by every `info`
 line, so it is no deadline at all for an engine that keeps talking while
 ignoring `stop`. Whoever asked for the stop owns the deadline on it — in
-this repo that is `apps/web/src/games/engine`, which kills the Worker when
+this repo that is `apps/web/src/engine`, which kills the Worker when
 the answer does not arrive.
 
 The replaceable session is held by a task the evaluator spawned, so

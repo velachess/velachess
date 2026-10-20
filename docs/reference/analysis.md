@@ -18,7 +18,7 @@ Four modules split the work and none of them reaches into another's:
 reaching the engine only through the `PositionEvaluator` dependency it
 declares; `@velachess/infra-engine` owns the UCI protocol, the session
 lifetime, the search watchdog and recovery from a dead engine;
-`apps/web/src/games/engine/` is the browser SDK over it — `createEngine()`
+`apps/web/src/engine/` is the browser SDK over it — `createEngine()`
 hands out sessions, each owning one Worker, reusing it between searches
 and replacing a search in flight; and `apps/web/src/games/analysis/`
 composes those, adds the cache and the white-POV conversion. Its two lanes
@@ -141,8 +141,8 @@ the engine's side-to-move score happens once, in
 - `libs/analysis/move-category.ts` → `MoveCategory`
 - `libs/infra/engine/engine-evaluator.ts` → `useEngineEvaluator`, and
   `EngineEvaluator.stop()` for whoever wants an in-flight search hurried
-- `apps/web/src/games/engine/index.ts` → `browserEngine`, `ENGINE_BUILD`
-- `apps/web/src/games/engine/` internals → `createEngine`,
+- `apps/web/src/engine/index.ts` → `browserEngine`, `ENGINE_BUILD`
+- `apps/web/src/engine/` internals → `createEngine`,
   `EngineSessionHandle`, `SearchSuperseded`, `EngineSessionDisposed`,
   `openBrowserEngineSession`, `checkEngineCapability`
 - `apps/web/src/games/analysis/index.ts` → `startAnalysis`,
