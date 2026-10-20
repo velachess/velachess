@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import { useLingui } from "@lingui/react";
 import { useParams } from "@tanstack/react-router";
+import { useHotkeys } from "react-hotkeys-hook";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
 import { useQuery } from "../../libs/react-query.ts";
@@ -10,9 +13,11 @@ import { BoardPane } from "./board-pane.tsx";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
 import { GameCrumb } from "./game-crumb.tsx";
 import { reviewPlayersOf, usernamesOf } from "./review-presentation.ts";
+import { createReplayNavigation } from "./review-navigation.ts";
 import { AnalysisSkeleton, GameError } from "./review-skeleton.tsx";
+import { createReviewStore } from "./review-store.ts";
 import { ReviewStoreProvider } from "./use-game-review.ts";
-import { useReviewSession } from "./use-review-session.ts";
+import { useVariationEvaluation } from "./use-variation-evaluation.ts";
 
 /**
  * The game itself comes over HTTP through React Query; the analysis does
@@ -37,7 +42,22 @@ export function GameReview() {
 function ReviewScreen({ gameId, game }: { gameId: string; game: ReplayableGame }) {
   const { i18n } = useLingui();
 
-  const store = useReviewSession(game);
+  // One store per review, built once: `key={gameId}` above is what
+  // replaces it, so nothing here watches the game for changes.
+  const [store] = useState(() =>
+    createReviewStore({ game, onNavigate: createReplayNavigation(game) }),
+  );
+
+  useVariationEvaluation(store);
+
+  // Ignored while a form field has focus (react-hotkeys-hook default) —
+  // an arrow key stepping the board while someone types elsewhere would
+  // be the wrong kind of clever.
+  useHotkeys("left", () => store.getState().previous(), { preventDefault: true }, [
+    store,
+  ]);
+  useHotkeys("right", () => store.getState().next(), { preventDefault: true }, [store]);
+
   const analysis = useEngineAnalysis(gameId);
   // The array itself, mapped where it is used: a selector that builds a
   // new array every render never compares equal, and zustand re-renders

@@ -134,10 +134,7 @@ describe("playing a variation", () => {
     pending.answer();
     await flush();
 
-    expect(store.getState().variationEvaluation).toEqual({
-      fen: AFTER_E4,
-      score: { cp: -500 },
-    });
+    expect(store.getState().variationEvaluation).toEqual({ cp: -500 });
   });
 
   it("plays on, alternating sides by the rules", async () => {
@@ -172,7 +169,7 @@ describe("playing a variation", () => {
     await flush();
 
     expect(first.wasHalted()).toBe(true);
-    expect(store.getState().variationEvaluation?.score).toEqual({ cp: 2 });
+    expect(store.getState().variationEvaluation).toEqual({ cp: 2 });
   });
 
   it("refuses an answer about a position that is no longer on the board", async () => {

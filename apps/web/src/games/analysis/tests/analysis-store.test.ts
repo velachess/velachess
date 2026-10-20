@@ -14,11 +14,7 @@ import {
 // *which* snapshot to write is `start-analysis.test.ts`.
 
 function analyzing(...plies: number[]): AnalysisSnapshot {
-  return {
-    status: "analyzing",
-    graded: plies.map((ply) => aGradedPly(ply)),
-    error: null,
-  };
+  return { status: "analyzing", graded: plies.map((ply) => aGradedPly(ply)) };
 }
 
 beforeEach(() => {

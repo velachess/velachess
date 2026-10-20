@@ -49,7 +49,7 @@ export function startAnalysis(input: GameAnalysisInput): void {
   const previous = active;
   const pass: Pass = { gameId: input.gameId, halt: null };
   active = pass;
-  setAnalysis(input.gameId, { status: "analyzing", graded: [], error: null });
+  setAnalysis(input.gameId, { status: "analyzing", graded: [] });
   // After `active` moved, so the replaced pass can no longer write,
   // whichever order the two settle in.
   previous?.halt?.();
@@ -59,7 +59,6 @@ export function startAnalysis(input: GameAnalysisInput): void {
       publish(pass, (snapshot) => ({
         status: "analyzing",
         graded: [...snapshot.graded, position],
-        error: null,
       }));
     }),
   );
@@ -73,11 +72,8 @@ export function startAnalysis(input: GameAnalysisInput): void {
       // A replaced pass ends by being halted, and `publish` already
       // refuses a pass that is no longer active — so anything that gets
       // through here is a real failure, not a cancellation.
-      publish(pass, (snapshot) => ({
-        ...snapshot,
-        status: "error",
-        error: error instanceof Error ? error : new Error(String(error)),
-      }));
+      console.error("Browser analysis failed", error);
+      publish(pass, (snapshot) => ({ ...snapshot, status: "error" }));
     },
   );
 }
