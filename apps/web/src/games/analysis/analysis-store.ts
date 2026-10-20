@@ -22,15 +22,9 @@ type AnalysisStatus = "idle" | "analyzing" | "done" | "error";
 export interface AnalysisSnapshot {
   readonly status: AnalysisStatus;
   readonly graded: readonly GradedPly[];
-  /** Why the analysis stopped, when `status` is `"error"`. */
-  readonly error: Error | null;
 }
 
-export const IDLE_ANALYSIS: AnalysisSnapshot = {
-  status: "idle",
-  graded: [],
-  error: null,
-};
+export const IDLE_ANALYSIS: AnalysisSnapshot = { status: "idle", graded: [] };
 
 /** One game at a time, because one review screen is open at a time.
  * Whoever replaces it is replacing the analysis too. */

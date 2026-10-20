@@ -20,7 +20,6 @@ import {
   type ReviewData,
   type ReviewGame,
   type ReviewTransition,
-  type VariationEvaluation,
 } from "./review-model.ts";
 
 interface ReviewActions {
@@ -29,7 +28,7 @@ interface ReviewActions {
   previous: () => void;
   /** False when the position does not allow the move — nothing changes. */
   playMove: (from: string, to: string) => boolean;
-  variationEvaluated: (fen: string, score: VariationEvaluation["score"]) => void;
+  variationEvaluated: (fen: string, score: ReviewData["variationEvaluation"]) => void;
   showBest: (san: string) => void;
 }
 
@@ -71,7 +70,7 @@ export function createReviewStore({
         // board may have moved on while the engine searched, and a number
         // from a position nobody is looking at is not this position's.
         if (variationFen(get().variation) !== fen) return;
-        set({ variationEvaluation: { fen, score } });
+        set({ variationEvaluation: score });
       },
 
       showBest: (san) => set({ preview: san }),

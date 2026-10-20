@@ -14,7 +14,8 @@ import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
 import { gradeAtPly } from "./review-model.ts";
-import { useAnalysisPanelReview } from "./use-analysis-panel-review.ts";
+import { selectGameMove, selectTotalPlies } from "./review-model.ts";
+import { useGameReview } from "./use-game-review.ts";
 
 const PANEL_COPY = {
   move: msg`Move`,
@@ -61,8 +62,12 @@ export function AnalysisPanel({
   // `inVariation`: the main line's verdict is then about a position
   // nobody is looking at, so it is not shown at all rather than shown as
   // if it belonged to the move someone just played.
-  const { ply, totalPlies, move, inVariation, goToPly, showBest } =
-    useAnalysisPanelReview();
+  const ply = useGameReview((state) => state.ply);
+  const totalPlies = useGameReview(selectTotalPlies);
+  const move = useGameReview(selectGameMove);
+  const inVariation = useGameReview((state) => state.variation !== null);
+  const goToPly = useGameReview((state) => state.goToPly);
+  const showBest = useGameReview((state) => state.showBest);
 
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>

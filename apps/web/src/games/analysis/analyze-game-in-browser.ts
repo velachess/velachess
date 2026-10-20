@@ -6,7 +6,7 @@
  * operation disposes it, which terminates the Worker.
  */
 import { parsePgn } from "@velachess/chess";
-import { analyzeGame, type GradedPly, type PublishPly } from "@velachess/analysis";
+import { analyzeGame, type GradedPly } from "@velachess/analysis";
 
 import { call, ensure, type Operation } from "../../libs/effection.ts";
 
@@ -18,16 +18,23 @@ export interface GameAnalysisInput {
   rawPgn: string;
 }
 
+/**
+ * Plies decided together. A search produces one at a time; a stored
+ * report is the whole game at once, and is handed over as such rather
+ * than taken apart and reassembled one ply per update.
+ */
+type PublishPlies = (plies: readonly GradedPly[]) => void;
+
 export function* analyzeGameInBrowser(
   input: GameAnalysisInput,
-  publish: PublishPly,
+  publish: PublishPlies,
 ): Operation<void> {
   const [game] = parsePgn(input.rawPgn);
   if (!game) return;
 
   const stored = yield* call(() => getReport(input.gameId));
   if (stored) {
-    for (const ply of stored.graded) publish(ply);
+    publish(stored.graded);
     return;
   }
 
@@ -39,7 +46,7 @@ export function* analyzeGameInBrowser(
   const graded: GradedPly[] = [];
   yield* analyzeGame(game, evaluator, (position) => {
     graded.push(position);
-    publish(position);
+    publish([position]);
   });
 
   yield* call(() => saveReport(input.gameId, graded));

@@ -64,8 +64,11 @@ const findBlunderButton = () => screen.findByRole("button", { name: blunderButto
  * afterwards, because opening another game halts it.
  */
 function plyPass(moves: GradedPly[], { finished = true }: { finished?: boolean } = {}) {
-  return function* (_input: unknown, publish: (ply: GradedPly) => void): Operation<void> {
-    for (const move of moves) publish(move);
+  return function* (
+    _input: unknown,
+    publish: (plies: readonly GradedPly[]) => void,
+  ): Operation<void> {
+    for (const move of moves) publish([move]);
     if (!finished) yield* suspend();
   };
 }

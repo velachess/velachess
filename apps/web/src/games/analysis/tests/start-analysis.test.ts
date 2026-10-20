@@ -27,11 +27,7 @@ describe("startAnalysis progress", () => {
 
     startAnalysis(GAME_A);
 
-    expect(snapshotOf("game-a")).toEqual({
-      status: "analyzing",
-      graded: [],
-      error: null,
-    });
+    expect(snapshotOf("game-a")).toEqual({ status: "analyzing", graded: [] });
   });
 
   it("writes each published ply through, one at a time", async () => {
@@ -59,11 +55,11 @@ describe("startAnalysis progress", () => {
     const snapshot = snapshotOf("game-a");
     expect(snapshot.status).toBe("done");
     expect(snapshot.graded).toHaveLength(1);
-    expect(snapshot.error).toBeNull();
   });
 
   it("records a real failure, keeping whatever was graded before it", async () => {
     const boom = new Error("Engine failed twice evaluating fen-a");
+    const reported = vi.spyOn(console, "error").mockImplementation(() => {});
     const passes = scriptedPasses();
     startAnalysis(GAME_A);
     await vi.waitFor(() => expect(passes).toHaveLength(1));
@@ -74,8 +70,11 @@ describe("startAnalysis progress", () => {
 
     const snapshot = snapshotOf("game-a");
     expect(snapshot.status).toBe("error");
-    expect(snapshot.error).toBe(boom);
     expect(snapshot.graded).toHaveLength(1);
+    // The cause is not in the snapshot — nothing reads it there — but it
+    // must not be swallowed either.
+    expect(reported).toHaveBeenCalledWith("Browser analysis failed", boom);
+    reported.mockRestore();
   });
 });
 
@@ -118,7 +117,6 @@ describe("startAnalysis deduplication", () => {
     await vi.waitFor(() => expect(passes).toHaveLength(2));
 
     expect(snapshotOf("game-a").status).toBe("analyzing");
-    expect(snapshotOf("game-a").error).toBeNull();
     passes[1]!.finish();
   });
 });
@@ -166,7 +164,6 @@ describe("startAnalysis replacement", () => {
     await flush();
 
     expect(snapshotOf("game-b").status).toBe("analyzing");
-    expect(snapshotOf("game-b").error).toBeNull();
     passes[1]!.finish();
   });
 });

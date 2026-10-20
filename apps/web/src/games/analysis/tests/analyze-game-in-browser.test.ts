@@ -45,15 +45,18 @@ function mockEngine() {
   return engines;
 }
 
-/** Runs one pass and records every ply it published, as it publishes. */
+/** Runs one pass, recording every ply it published and how many updates
+ * it took — a stored report arrives in one, a search one per ply. */
 function collect(game: GameAnalysisInput) {
   const seen: GradedPly[] = [];
+  const updates: number[] = [];
   const task = run(() =>
-    analyzeGameInBrowser(game, (ply) => {
-      seen.push(ply);
+    analyzeGameInBrowser(game, (plies) => {
+      updates.push(plies.length);
+      seen.push(...plies);
     }),
   );
-  return { seen, task };
+  return { seen, updates, task };
 }
 
 function input(gameId = "game-1") {
@@ -70,13 +73,15 @@ function answerEveryPosition(engine: ScriptedEngine): void {
 describe("analyzeGameInBrowser", () => {
   it("streams one classified GradedPly per ply, in order", async () => {
     const engines = mockEngine();
-    const { seen, task } = collect(input());
+    const { seen, updates, task } = collect(input());
 
     await vi.waitFor(() => expect(engines).toHaveLength(1));
     answerEveryPosition(engines[0]!);
 
     await task;
     expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
+    // One update per ply while the engine is actually searching.
+    expect(updates).toEqual([1, 1]);
     expect(openBrowserEngineSession).toHaveBeenCalledTimes(1);
   });
 
@@ -121,15 +126,17 @@ describe("analyzeGameInBrowser", () => {
     await expect(task).rejects.toBe(boom);
   });
 
-  it("republishes a stored report without ever touching the engine", async () => {
+  it("hands a stored report over whole, without ever touching the engine", async () => {
     mockEngine();
     const stored = [aGradedPly(1), aGradedPly(2)];
     await saveReport("game-1", stored);
 
-    const { seen, task } = collect(input());
+    const { seen, updates, task } = collect(input());
     await task;
 
     expect(seen).toEqual(stored);
+    // One update, not one per ply: there is no progress to animate.
+    expect(updates).toEqual([2]);
     expect(openBrowserEngineSession).not.toHaveBeenCalled();
   });
 

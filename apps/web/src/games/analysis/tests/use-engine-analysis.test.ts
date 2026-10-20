@@ -68,6 +68,22 @@ describe("useEngineAnalysis", () => {
     await vi.waitFor(() => expect(result.current.status).toBe("done"));
   });
 
+  it("re-renders once for a whole report, however many plies it holds", async () => {
+    // What reopening an analyzed game looks like: the report arrives in
+    // one update, so there is no progress to animate through.
+    const passes = scriptedPasses();
+    const { result, renderCount } = renderAnalysis("hook-stored");
+
+    start("hook-stored");
+    await vi.waitFor(() => expect(passes).toHaveLength(1));
+    const beforeReport = renderCount();
+
+    act(() => passes[0]!.publish(aGradedPly(1), aGradedPly(2), aGradedPly(3)));
+
+    expect(result.current.graded.map((ply) => ply.ply)).toEqual([1, 2, 3]);
+    expect(renderCount() - beforeReport).toBe(1);
+  });
+
   it("reads idle again when pointed at a different game", async () => {
     const passes = scriptedPasses();
     const { result, rerender } = renderAnalysis("hook-switch-a");

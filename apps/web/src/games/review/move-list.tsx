@@ -8,7 +8,7 @@ import type { GradedPly, MoveCategory } from "../analysis/index.ts";
 import type { ReplayMove } from "./game-record.ts";
 import { CATEGORY_TEXT_TONE } from "./move-presentation.ts";
 import { gradeAtPly } from "./review-model.ts";
-import { useMoveListReview } from "./use-analysis-panel-review.ts";
+import { useGameReview } from "./use-game-review.ts";
 
 export interface MoveListProps {
   /** Grades in ply order — shorter than the game while the run streams. */
@@ -45,7 +45,9 @@ function scoresheetRows(moves: readonly ReplayMove[]): ScoresheetRow[] {
 
 /** Cells are real buttons for keyboard reach. */
 export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
-  const { moves, currentPly, onSelectPly } = useMoveListReview();
+  const moves = useGameReview((state) => state.moves);
+  const currentPly = useGameReview((state) => state.ply);
+  const onSelectPly = useGameReview((state) => state.goToPly);
 
   const rows = scoresheetRows(moves);
 

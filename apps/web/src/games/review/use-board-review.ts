@@ -50,7 +50,7 @@ export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
   const ply = useGameReview((state) => state.ply);
   const inVariation = useGameReview((state) => state.variation !== null);
   const variationMove = useGameReview(selectVariationMove);
-  const variationScore = useGameReview((state) => state.variationEvaluation?.score);
+  const variationScore = useGameReview((state) => state.variationEvaluation);
   const gameMove = useGameReview(selectGameMove);
   const showingSan = useGameReview(selectShowingSan);
   const preview = useGameReview((state) => state.preview);

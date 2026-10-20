@@ -59,12 +59,6 @@ export interface Variation {
   cursor: number;
 }
 
-/** What the engine said about one position, and which position that was. */
-export interface VariationEvaluation {
-  fen: string;
-  score: GradedPly["evalAfter"];
-}
-
 export interface ReviewData {
   /** The game, as it arrived. Never written to. */
   readonly moves: readonly ReplayMove[];
@@ -74,13 +68,13 @@ export interface ReviewData {
   ply: number;
   variation: Variation | null;
   /**
-   * Tagged with the position the engine actually searched. The bar may
-   * keep showing this number while a newer FEN is still being searched,
-   * and `fen` is what says which position it belongs to — so "not yet
-   * known" never reads as known. Null outside a variation, which is what
-   * restores the report's own evaluation.
+   * The last number the engine gave for a position of this line. The bar
+   * keeps showing it while a newer FEN is still being searched, rather
+   * than blanking — `review-store.ts` is what refuses an answer about a
+   * position that is no longer on the board. Null outside a variation,
+   * which is what restores the report's own evaluation.
    */
-  variationEvaluation: VariationEvaluation | null;
+  variationEvaluation: GradedPly["evalAfter"] | null;
   /** The engine's move someone asked to see, as SAN. */
   preview: string | null;
 }

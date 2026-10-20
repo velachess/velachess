@@ -46,14 +46,14 @@ export function useVariationEvaluation(store: ReviewStore): void {
   useEffect(() => {
     if (fen === null) return;
 
-    let cancelled = false;
     const evaluator = (evaluatorRef.current ??= openPositionEvaluator());
     const evaluation = run(() => evaluator.evaluate(fen));
 
     evaluation.then(
-      (raw) => {
-        if (!cancelled) store.getState().variationEvaluated(fen, raw.score);
-      },
+      // The store refuses an answer about a position that is no longer on
+      // the board, so a result that beats its own `halt()` is caught
+      // there rather than by a flag here.
+      (raw) => store.getState().variationEvaluated(fen, raw.score),
       () => {
         // `SearchSuperseded` when a newer position took the engine, or a
         // real engine failure: neither has a number to show, and neither
@@ -61,11 +61,8 @@ export function useVariationEvaluation(store: ReviewStore): void {
       },
     );
 
-    return () => {
-      cancelled = true;
-      // `halt()` hands back a lazy handle: the task is interrupted only
-      // once that handle is consumed, and consuming it rejects.
-      void evaluation.halt().catch(() => {});
-    };
+    // `halt()` hands back a lazy handle: the task is interrupted only
+    // once that handle is consumed, and consuming it rejects.
+    return () => void evaluation.halt().catch(() => {});
   }, [fen, store]);
 }

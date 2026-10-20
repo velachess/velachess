@@ -3,7 +3,8 @@ import { useLingui } from "@lingui/react";
 
 import { MoveNav } from "@velachess/ui/chess/move-nav";
 
-import { useReplayControlsReview } from "./use-analysis-panel-review.ts";
+import { selectCanGoBack, selectCanGoForward } from "./review-model.ts";
+import { useGameReview } from "./use-game-review.ts";
 
 const CONTROLS_COPY = {
   previous: msg`Previous move`,
@@ -30,7 +31,10 @@ const CONTROLS_COPY = {
 export function ReplayControls() {
   const { i18n } = useLingui();
 
-  const { canGoBack, canGoForward, previous, next } = useReplayControlsReview();
+  const canGoBack = useGameReview(selectCanGoBack);
+  const canGoForward = useGameReview(selectCanGoForward);
+  const previous = useGameReview((state) => state.previous);
+  const next = useGameReview((state) => state.next);
 
   return (
     <MoveNav

@@ -134,10 +134,7 @@ describe("playing a variation", () => {
     pending.answer();
     await flush();
 
-    expect(store.getState().variationEvaluation).toEqual({
-      fen: AFTER_E4,
-      score: { cp: -500 },
-    });
+    expect(store.getState().variationEvaluation).toEqual({ cp: -500 });
   });
 
   it("plays on, alternating sides by the rules", async () => {
@@ -172,7 +169,7 @@ describe("playing a variation", () => {
     await flush();
 
     expect(first.wasHalted()).toBe(true);
-    expect(store.getState().variationEvaluation?.score).toEqual({ cp: 2 });
+    expect(store.getState().variationEvaluation).toEqual({ cp: 2 });
   });
 
   it("refuses an answer about a position that is no longer on the board", async () => {
@@ -189,6 +186,63 @@ describe("playing a variation", () => {
     });
 
     expect(store.getState().variationEvaluation).toBeNull();
+  });
+
+  it("drops an answer that arrives after the line left that position", async () => {
+    // The window the hook used to guard with a `cancelled` flag: the
+    // search settles after its own cleanup ran, with the screen still
+    // mounted. The store is what refuses it.
+    const first = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
+    const second = makeControllableEval({ score: { cp: 2 }, bestMove: "g1f3" });
+    evaluate.mockImplementationOnce(first.run).mockImplementationOnce(second.run);
+
+    const store = openReview();
+    play(store, "e2", "e4");
+    play(store, "e7", "e5");
+    first.answer();
+    await flush();
+
+    expect(store.getState().variationEvaluation).toBeNull();
+  });
+
+  it("drops an answer that arrives after the variation was left entirely", async () => {
+    const pending = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
+    evaluate.mockImplementation(pending.run);
+
+    const store = openReview();
+    play(store, "e2", "e4");
+    // Back to the real game: nothing supersedes the search, it is simply
+    // about a position nobody is looking at any more.
+    act(() => store.getState().goToPly(1));
+    pending.answer();
+    await flush();
+
+    expect(store.getState().variation).toBeNull();
+    expect(store.getState().variationEvaluation).toBeNull();
+  });
+
+  it("re-asks for the position the line walked back onto, ignoring the halted search", async () => {
+    // A -> B -> A. The first search was halted when the line moved on, so
+    // it never delivers even though the engine eventually answers it; the
+    // number on screen comes from the search the walk back started.
+    const first = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
+    const rest = makeControllableEval({ score: { cp: 1 }, bestMove: "e7e5" });
+    evaluate.mockImplementationOnce(first.run).mockImplementation(rest.run);
+
+    const store = openReview();
+    play(store, "e2", "e4");
+    play(store, "e7", "e5");
+    act(() => store.getState().previous());
+    expect(selectFen(store.getState())).toBe(AFTER_E4);
+
+    first.answer();
+    await flush();
+    expect(first.wasHalted()).toBe(true);
+    expect(store.getState().variationEvaluation).toBeNull();
+
+    rest.answer();
+    await flush();
+    expect(store.getState().variationEvaluation).toEqual({ cp: 1 });
   });
 
   it("keeps the variation when the engine fails, rather than losing the moves", async () => {
