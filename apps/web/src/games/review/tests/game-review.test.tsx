@@ -41,10 +41,15 @@ vi.mock("../../analysis/index.ts", async (importOriginal) => ({
 }));
 const { openPositionEvaluator } = await import("../../analysis/index.ts");
 
-/** The staged run: every ply graded, with one blunder at Nc6 (ply 4). */
+/**
+ * The staged run: every ply graded, with one blunder at Nc6 (ply 4).
+ * Its `bestMove` has to be legal in the position that ply is about —
+ * the insight card reads the FEN from the replay, and would render no
+ * suggestion for a move that cannot be played there.
+ */
 const gradedPlies = () =>
-  GAME_SANS.map((san, index) =>
-    aGradedPly(index + 1, { san, category: index === 3 ? "blunder" : "good" }),
+  Array.from({ length: GAME_SANS.length }, (_, index) =>
+    aGradedPly(index + 1, index === 3 ? { category: "blunder", bestMove: "g7g6" } : {}),
   );
 
 /** Matches a move button by its SAN and the NAG glyph the grade adds. */
@@ -256,14 +261,20 @@ describe("game analysis", () => {
   it("shows the moves even while the engine is still working", async () => {
     // An empty run: it opens and closes with nothing graded, so this
     // pins that the board and move list never wait on the engine.
-    await openGame([]);
+    const { user } = await openGame([]);
 
     expect(await screen.findByRole("button", { name: /Qxf7#/ })).toBeInTheDocument();
+
+    // The report counts from zero rather than standing in for itself —
+    // a placeholder swapped for the table later moves every row.
+    await user.click(screen.getByRole("tab", { name: "Report" }));
+    const row = (await screen.findByText("Blunder")).closest("div");
+    expect(row).toHaveTextContent(/0.*Blunder.*0/);
   });
 
   it("keeps progress up while the rest of the game is still being graded", async () => {
     const moves = gradedPlies();
-    moves[0] = aGradedPly(1, { san: GAME_SANS[0]!, category: "blunder" });
+    moves[0] = aGradedPly(1, { category: "blunder" });
     // The rest of the game doesn't arrive within this test — the run is
     // demonstrably still in progress, not finished short.
     vi.mocked(analyzeGameInBrowser).mockImplementation(
@@ -279,6 +290,9 @@ describe("game analysis", () => {
       name: (c) => c.includes("e4") && c.includes("??"),
     });
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
+    // 1 of 7, as a whole percent — the bar moves with the count, it is
+    // not just spinning.
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "14");
   }, 20_000);
 
   it("shows a contextual analysis status when analysis fails", async () => {

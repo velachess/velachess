@@ -145,10 +145,12 @@ the engine's side-to-move score happens once, in
   `EngineSessionHandle`, `SearchSuperseded`, `EngineSessionDisposed`,
   `openBrowserEngineSession`, `checkEngineCapability`
 - `apps/web/src/games/analysis/index.ts` → `startAnalysis`,
-  `useEngineAnalysis`, `openPositionEvaluator`, plus the graded-game read
-  model (`gradeAtPly`, `summarize`, `evalCurve`, `whiteShareOf`,
-  `progressPercent`, `bestMoveSan`, `sideOfPly`, `moveNumberOf`) and the
-  `@velachess/analysis` vocabulary it re-exports
+  `useEngineAnalysis`, `openPositionEvaluator`, and the
+  `@velachess/analysis` vocabulary it re-exports (`GradedPly`,
+  `MoveCategory`, `MOVE_CATEGORIES`, `WhitePovScore`, `scoreToWinChance`)
+- `apps/web/src/games/review/` → reading that result: `gradeAtPly`
+  (`review-model.ts`), score text, tones and labels
+  (`move-presentation.ts`), UCI→SAN and board squares (`board-view.ts`)
 - `apps/web/src/games/analysis/` internals → `analysisStore`,
   `analyzeGameInBrowser`, `cachedPositionEvaluator`
 - `apps/web/src/games/review/index.ts` → `loadGameReview`, the route

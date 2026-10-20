@@ -86,7 +86,7 @@ describe("analyzeGameInBrowser", () => {
     engines[0]!.queueGoResponse(goLines(10, "g1f3"));
 
     await task;
-    expect(seen.map((ply) => ply.san)).toEqual(["e4", "e5"]);
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
     expect(openBrowserEngineSession).toHaveBeenCalledTimes(1);
   });
 
@@ -163,7 +163,7 @@ describe("analyzeGameInBrowser", () => {
     engines[0]!.queueGoResponse(goLines(10, "g1f3"));
 
     await task;
-    expect(seen.map((ply) => ply.san)).toEqual(["e4", "e5"]);
+    expect(seen.map((ply) => ply.ply)).toEqual([1, 2]);
     expect(engines[0]!.goCallCount).toBe(2);
   });
 });

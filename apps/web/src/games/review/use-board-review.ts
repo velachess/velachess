@@ -10,18 +10,14 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
-import type { LegalDestination, MoveSquares } from "@velachess/chess";
+import { squaresOfUci, type LegalDestination, type MoveSquares } from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
-import { gradeAtPly, type GradedPly } from "../analysis/index.ts";
+import type { GradedPly } from "../analysis/index.ts";
 import { legalTargetsAt, squaresOfSanAt, suggestedArrow } from "./board-view.ts";
+import { badgeAt, evaluationOf, showingLabel } from "./move-presentation.ts";
 import {
-  badgeAt,
-  bestMoveSquares,
-  evaluationOf,
-  showingLabel,
-} from "./move-presentation.ts";
-import {
+  gradeAtPly,
   selectFen,
   selectGameMove,
   selectShowingSan,
@@ -76,7 +72,10 @@ export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
     // best move and a previewed arrow would all be about a position that
     // is no longer on screen.
     badges: inVariation ? undefined : badgeAt(lastMove?.to, playedGrade?.category),
-    bestMove: inVariation ? undefined : bestMoveSquares(positionGrade),
+    bestMove:
+      inVariation || !positionGrade?.bestMove
+        ? undefined
+        : (squaresOfUci(positionGrade.bestMove) ?? undefined),
     suggestedMove: inVariation
       ? undefined
       : (suggestedArrow(gameMove?.fenBefore, preview) ?? undefined),

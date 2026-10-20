@@ -65,11 +65,12 @@ The one direction that matters is that **Review consumes Analysis and
 Analysis knows nothing of Review** — analysis produces and interprets
 evaluations, review decides what a person sees. A rule holds Analysis to
 it (`games-analysis-depends-on-no-sibling-domain`), so a formatter or a
-badge can never drift into the domain that runs the engine. That same
-split is why `analysis/graded-game.ts` holds the reading of a graded game
-(`summarize`, `evalCurve`, `gradeAtPly`) while `review/move-presentation.ts`
-and `review/board-view.ts` hold what reaches the screen (score text,
-badges, arrows, which seat the board faces).
+badge can never drift into the domain that runs the engine. Analysis
+hands over `GradedPly[]`; Review reads it — `review/review-model.ts`
+looks a ply up, `review/move-presentation.ts` and `review/board-view.ts`
+turn what it finds into what reaches the screen (score text, badges,
+arrows, which seat the board faces), and a count only one screen shows
+stays in that screen.
 
 Two files sit at the root, both for the same reason: more than one domain
 needs the exact same fact, and the alternative is one domain importing

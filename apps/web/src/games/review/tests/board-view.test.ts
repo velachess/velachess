@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { legalTargetsAt, seatIdentityOf, seatOf, suggestedArrow } from "../board-view.ts";
+import {
+  legalTargetsAt,
+  sanOfUciAt,
+  seatIdentityOf,
+  seatOf,
+  suggestedArrow,
+} from "../board-view.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -116,5 +122,24 @@ describe("legalTargetsAt", () => {
 
   it("stays quiet on a position it cannot set up, rather than throwing", () => {
     expect(legalTargetsAt("not a fen", "e2")).toEqual([]);
+  });
+});
+
+describe("sanOfUciAt", () => {
+  it("turns the engine's UCI answer into notation a person reads", () => {
+    expect(sanOfUciAt(START, "g1f3")).toBe("Nf3");
+  });
+
+  it("goes quiet rather than throwing on a position it cannot set up", () => {
+    // The played move still has to render; only the suggestion drops.
+    expect(sanOfUciAt("not a fen", "g1f3")).toBeNull();
+  });
+
+  it("goes quiet on a move that is not legal in the position", () => {
+    expect(sanOfUciAt(START, "e7e5")).toBeNull();
+  });
+
+  it("goes quiet when the engine named no move at all", () => {
+    expect(sanOfUciAt(START, "")).toBeNull();
   });
 });

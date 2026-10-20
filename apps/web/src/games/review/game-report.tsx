@@ -5,28 +5,33 @@ import { Item, ItemContent, ItemMedia, ItemTitle } from "@velachess/ui/component
 import { BookOpen } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
-import {
-  MOVE_CATEGORIES,
-  type MoveCategory,
-  type SideBreakdown,
-} from "../analysis/index.ts";
-import { CATEGORY_LABELS } from "./move-presentation.ts";
+import { sideOfPly } from "@velachess/chess";
+
+import { MOVE_CATEGORIES, type GradedPly, type MoveCategory } from "../analysis/index.ts";
+import { CATEGORY_LABELS, CATEGORY_TEXT_TONE } from "./move-presentation.ts";
 
 const REPORT_COPY = {
   unknownOpening: msg`Opening not recognised`,
 } as const;
 
-/** The theme's severity tokens, mirroring `engine_category` in the database. */
-const CATEGORY_TONE: Record<MoveCategory, string> = {
-  best: "text-move-ok",
-  good: "text-move-ok",
-  inaccuracy: "text-move-inaccuracy",
-  mistake: "text-move-mistake",
-  blunder: "text-move-blunder",
-};
+type CategoryCounts = Record<MoveCategory, number>;
+
+function emptyCounts(): CategoryCounts {
+  return { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
+}
+
+/** Split by side because the interesting number is *yours*. */
+function summarize(moves: readonly GradedPly[]) {
+  const breakdown = { white: emptyCounts(), black: emptyCounts() };
+  for (const move of moves) {
+    breakdown[sideOfPly(move.ply)][move.category] += 1;
+  }
+  return breakdown;
+}
 
 export interface GameReportProps {
-  breakdown: SideBreakdown;
+  /** Grades in ply order — shorter than the game while the run streams. */
+  graded: readonly GradedPly[];
   whiteName: string;
   blackName: string;
   openingName: string | null;
@@ -34,13 +39,14 @@ export interface GameReportProps {
 }
 
 export function GameReport({
-  breakdown,
+  graded,
   whiteName,
   blackName,
   openingName,
   openingEco,
 }: GameReportProps) {
   const { i18n } = useLingui();
+  const breakdown = summarize(graded);
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -78,7 +84,10 @@ export function GameReport({
                 {i18n.number(breakdown.white[category])}
               </dd>
               <dt
-                className={cn("text-center text-sm font-medium", CATEGORY_TONE[category])}
+                className={cn(
+                  "text-center text-sm font-medium",
+                  CATEGORY_TEXT_TONE[category],
+                )}
               >
                 {i18n._(CATEGORY_LABELS[category])}
               </dt>

@@ -12,6 +12,20 @@ import { playMove, positionFromFen, sideToMoveOf } from "@velachess/chess";
 import type { GradedPly } from "../analysis/index.ts";
 import { fenAtPly, type ReplayMove } from "./game-record.ts";
 
+/**
+ * The grade on one ply, if the run has reached it. Grades are published
+ * in ply order, so the array is a prefix of the game; the ply is checked
+ * rather than trusted, so a mismatch reads as ungraded instead of
+ * handing back a different move's grade.
+ */
+export function gradeAtPly(
+  graded: readonly GradedPly[],
+  ply: number,
+): GradedPly | undefined {
+  const move = graded[ply - 1];
+  return move?.ply === ply ? move : undefined;
+}
+
 export const REPLAY_NAVIGATION = {
   START: "start",
   MOVE: "move",

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { aGradedPly } from "../../../test/games.ts";
 import type { ReplayMove } from "../game-record.ts";
 import {
+  gradeAtPly,
   REPLAY_NAVIGATION,
   selectCanGoBack,
   selectCanGoForward,
@@ -109,5 +111,23 @@ describe("the engine's move someone asked to see", () => {
 
     store.getState().next();
     expect(store.getState().preview).toBeNull();
+  });
+});
+
+describe("gradeAtPly", () => {
+  const graded = [aGradedPly(1), aGradedPly(2)];
+
+  it("answers with the verdict on that ply, counting from one", () => {
+    expect(gradeAtPly(graded, 1)?.ply).toBe(1);
+    expect(gradeAtPly(graded, 2)?.ply).toBe(2);
+  });
+
+  it("has nothing to say about a ply the engine has not reached", () => {
+    expect(gradeAtPly(graded, 3)).toBeUndefined();
+    expect(gradeAtPly(graded, 9)).toBeUndefined();
+  });
+
+  it("refuses an entry whose ply does not match, rather than guessing", () => {
+    expect(gradeAtPly([aGradedPly(3)], 1)).toBeUndefined();
   });
 });

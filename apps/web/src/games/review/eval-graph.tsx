@@ -6,8 +6,8 @@ import { EvaluationChart } from "@velachess/ui/charts/evaluation-chart";
 import type { EvaluationPoint } from "@velachess/ui/charts/evaluation-chart";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 
-import type { EvalPoint, MoveCategory } from "../analysis/index.ts";
-import { badgeForCategory } from "./move-presentation.ts";
+import type { GradedPly, MoveCategory } from "../analysis/index.ts";
+import { CATEGORY_BADGE, whiteShareOf } from "./move-presentation.ts";
 
 /**
  * What the graph marks.
@@ -25,8 +25,7 @@ const MARKED_CATEGORIES: ReadonlySet<MoveCategory> = new Set([
 ]);
 
 function graphToneOf(category: MoveCategory): BadgeTone | undefined {
-  if (!MARKED_CATEGORIES.has(category)) return undefined;
-  return badgeForCategory(category) ?? undefined;
+  return MARKED_CATEGORIES.has(category) ? CATEGORY_BADGE[category] : undefined;
 }
 
 const GRAPH_COPY = {
@@ -35,7 +34,8 @@ const GRAPH_COPY = {
 } as const;
 
 export interface EvalGraphProps {
-  points: EvalPoint[];
+  /** Grades in ply order — shorter than the game while the run streams. */
+  graded: readonly GradedPly[];
   /** The axis, which is not the data: pinning it stops the curve
    * rescaling on every chunk while the analysis streams in. */
   totalPlies: number;
@@ -47,14 +47,14 @@ export interface EvalGraphProps {
 
 /** Winning chances, not centipawns: cp is unbounded and one mate score flattens every other move. `domain` is fixed to avoid the same distortion. */
 export function EvalGraph({
-  points,
+  graded,
   totalPlies,
   selectedPly,
   onSelectPly,
 }: EvalGraphProps) {
   const { i18n } = useLingui();
 
-  if (points.length === 0) {
+  if (graded.length === 0) {
     // Skeleton, not an empty state: same height as the curve it becomes, so nothing shifts.
     return (
       <Skeleton
@@ -64,22 +64,21 @@ export function EvalGraph({
     );
   }
 
-  // Build evaluation points, toned only where the move went wrong.
+  // Plies the run has not reached yet hold the last known share, so the
+  // curve ends flat instead of dropping to the floor while it streams.
+  const pending = whiteShareOf(graded.at(-1)!.evalAfter);
+
+  // Toned only where the move went wrong.
   const evaluationPoints: EvaluationPoint[] = Array.from(
-    { length: Math.max(totalPlies, points.length) },
+    { length: Math.max(totalPlies, graded.length) },
     (_, index) => {
-      const point = points[index];
-      if (!point) {
-        return {
-          ply: index + 1,
-          value: points.at(-1)?.winChance ?? 0.5,
-        };
-      }
+      const move = graded[index];
+      if (!move) return { ply: index + 1, value: pending };
 
       return {
-        ply: point.ply,
-        value: point.winChance,
-        tone: graphToneOf(point.category),
+        ply: move.ply,
+        value: whiteShareOf(move.evalAfter),
+        tone: graphToneOf(move.category),
       };
     },
   );

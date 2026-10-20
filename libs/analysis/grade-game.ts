@@ -11,16 +11,19 @@ import { classifyMove } from "./classify-move.ts";
 import type { MoveCategory } from "./move-category.ts";
 import type { PositionEvaluation, WhitePovScore } from "./score.ts";
 
+/**
+ * What one move was worth. The move's own identity — its notation and
+ * the position it was played from — belongs to the replayed game, which
+ * every consumer already has: these line up by `ply`.
+ */
 export interface GradedPly {
   /** 1-indexed. */
   ply: number;
-  /** FEN before the move. */
-  fen: string;
-  san: string;
   evalBefore: WhitePovScore;
   evalAfter: WhitePovScore;
-  /** Engine's preferred move at `fen`, UCI. */
-  bestMove: string;
+  /** The engine's choice at the position this move was played from,
+   * UCI. Null when the engine named none. */
+  bestMove: string | null;
   category: MoveCategory;
   winChanceLoss: number;
 }
@@ -47,11 +50,9 @@ export function classifyPly(
 
   return {
     ply,
-    fen: played.fenBefore,
-    san: played.san,
     evalBefore: current.score,
     evalAfter: next.score,
-    bestMove: current.bestMove ?? "",
+    bestMove: current.bestMove,
     category,
     winChanceLoss,
   };

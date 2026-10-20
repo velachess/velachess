@@ -30,9 +30,9 @@ does not restate it.
   them too.
 - `games/` is four domains and two shared files. Review consumes Analysis;
   Analysis never imports Review, `import` or `list`
-  (`games-analysis-depends-on-no-sibling-domain`). Analysis interprets
-  evaluations — `analysis/graded-game.ts` — and Review decides what a
-  person sees — `review/move-presentation.ts`, `review/board-view.ts`. A
+  (`games-analysis-depends-on-no-sibling-domain`). Analysis produces
+  `GradedPly[]` and Review reads it — `review/review-model.ts`,
+  `review/move-presentation.ts`, `review/board-view.ts`. A
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every

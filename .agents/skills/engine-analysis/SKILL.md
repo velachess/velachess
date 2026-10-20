@@ -38,8 +38,9 @@ Keep four concerns separate, and do not let one reach into another:
   replacing the pass under way; the variation's position changing) have
   one owner each.
 - The domain's `index.ts` is what the review screen sees: `startAnalysis`,
-  `useEngineAnalysis`, `openPositionEvaluator` and the read model in
-  `graded-game.ts`. Analysis never imports `review/`.
+  `useEngineAnalysis`, `openPositionEvaluator` and the `@velachess/analysis`
+  vocabulary it re-exports. It hands over `GradedPly[]` and nothing else —
+  reading that result is Review's. Analysis never imports `review/`.
 
 Asynchronous lifecycle is Effection. Infra's session is a resource, so
 leaving the scope that opened it quits the engine and terminates the
