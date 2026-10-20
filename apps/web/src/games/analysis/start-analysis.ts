@@ -3,6 +3,10 @@
  * whole-game pass, decides which pass the store still answers for, and
  * turns what the engine publishes into snapshots.
  *
+ * Two separate questions, two separate owners. Whether a pass exists for
+ * a game is `active`'s; what the screen shows is the snapshot's. They
+ * used to be answered by reading one from the other.
+ *
  * It owns no scheduling, because there is none to own: the pass runs on
  * its own engine session and competes with nothing. The one cancellation
  * it performs is replacing one game's pass with another's, and halting
@@ -23,6 +27,10 @@ import {
 
 interface Pass {
   readonly gameId: string;
+  /** Whether this game still needs grading. Read only by `startAnalysis`,
+   * to answer "is there already a pass for this game?" — which is a
+   * question about the run, not about what the screen is showing. */
+  state: "running" | "done" | "failed";
   /** Set in the same synchronous step the pass starts in. */
   halt: (() => void) | null;
 }
@@ -43,11 +51,10 @@ function publish(pass: Pass, next: (held: AnalysisSnapshot) => AnalysisSnapshot)
  * screen does not, because nothing here is called on unmount.
  */
 export function startAnalysis(input: GameAnalysisInput): void {
-  const held = snapshotOf(input.gameId);
-  if (active?.gameId === input.gameId && held.status !== "error") return;
+  if (active?.gameId === input.gameId && active.state !== "failed") return;
 
   const previous = active;
-  const pass: Pass = { gameId: input.gameId, halt: null };
+  const pass: Pass = { gameId: input.gameId, state: "running", halt: null };
   active = pass;
   setAnalysis(input.gameId, { status: "analyzing", graded: [] });
   // After `active` moved, so the replaced pass can no longer write,
@@ -67,11 +74,15 @@ export function startAnalysis(input: GameAnalysisInput): void {
   pass.halt = () => void task.halt().catch(() => {});
 
   void task.then(
-    () => publish(pass, (snapshot) => ({ ...snapshot, status: "done" })),
+    () => {
+      pass.state = "done";
+      publish(pass, (snapshot) => ({ ...snapshot, status: "done" }));
+    },
     (error: unknown) => {
       // A replaced pass ends by being halted, and `publish` already
       // refuses a pass that is no longer active — so anything that gets
       // through here is a real failure, not a cancellation.
+      pass.state = "failed";
       console.error("Browser analysis failed", error);
       publish(pass, (snapshot) => ({ ...snapshot, status: "error" }));
     },
