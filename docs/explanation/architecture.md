@@ -173,7 +173,7 @@ document, and it extends to cross-vertical infrastructure too: there is
 no `shared/` grab-bag, only more verticals named for what they do, each
 with an `index.ts` as its public surface. As areas grow, organize within
 them by user behavior
-(`games/import/`, `games/request-analysis/`) rather than by
+(`games/import/`, `games/review/`) rather than by
 technical kind. Presentation primitives stay in `libs/ui`. A thin wrapper
 around a third-party package (`zod`, `hono/client`, `@tanstack/react-query`)
 lives in `src/libs/` — never business logic, never a second `shared/` under

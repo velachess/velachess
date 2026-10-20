@@ -21,12 +21,17 @@ src/
   backend-status/ backend-availability state and the banner that shows it
   chess-sounds/   move-sound preference, mapping and playback
   i18n/           locale resolution and catalogue activation
-  games/          everything you do to games
-    import/         connect an account and pull games in
-    import-pgn/     paste or upload a PGN
+  games/          everything you do to games, as four domains
+    analysis/       Stockfish in the browser: produce evaluations and read them
+      game/           grade a whole game, ply by ply
+      position/       search one FEN
+    review/         walk a game, understand its analysis, try a variation
+    import/         get games in
+      accounts/       connect a provider account and keep it synced
+      pgn/            paste or upload a PGN
     list/           filter and page owned games
-    open-game/      load the playable game record and review it on the board
-    browser-analysis/ request-analysis/ view-analysis/
+    game-query-keys.ts  the prefixes the game caches hang off
+    game-sources.ts     what each source is called and the mark that stands for it
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -35,9 +40,38 @@ src/
   router.tsx      router construction; route-error.tsx sits beside it
 ```
 
-Importing and analysis are things you do _to games_, so they nest under
-`games/` rather than sitting beside it — the folder says what the behavior
-belongs to, not merely that it exists.
+Importing, analysing and reviewing are things you do _to games_, so they
+nest under `games/` rather than sitting beside it — the folder says what
+the behavior belongs to, not merely that it exists.
+
+Inside `games/` the four domains are the product's four capabilities, and
+each one's `index.ts` is the only thing a route, a sibling vertical or the
+test harness may import; dependency-cruiser enforces it
+(`games-domain-index-only`). A sub-slice (`analysis/game/`,
+`import/pgn/`) is internal to its domain: its own `index.ts` is a contract
+toward the rest of that domain, not toward the app.
+
+The one direction that matters is that **Review consumes Analysis and
+Analysis knows nothing of Review** — analysis produces and interprets
+evaluations, review decides what a person sees. A rule holds Analysis to
+it (`games-analysis-depends-on-no-sibling-domain`), so a formatter or a
+badge can never drift into the domain that runs the engine. That same
+split is why `analysis/graded-game.ts` holds the reading of a graded game
+(`summarize`, `evalCurve`, `gradeAtPly`) while `review/move-presentation.ts`
+and `review/board-view.ts` hold what reaches the screen (score text,
+badges, arrows, which seat the board faces).
+
+Two files sit at the root, both for the same reason: more than one domain
+needs the exact same fact, and the alternative is one domain importing
+another for it. `game-query-keys.ts` holds the React Query prefixes —
+`list` and `review` read those caches, `import` invalidates them when
+games land, and an invalidation only works if the write spells the key
+exactly as the read does. `game-sources.ts` holds each source's name and
+mark — the table, the breadcrumb, the connect form's tabs and the
+connections list all show them, and three separate maps had already
+drifted into disagreeing about whether a PGN file gets a mark at all.
+`import` builds its form metadata on top of that one, rather than
+carrying a second copy of the name and icon.
 
 A slice owns its data (`queries.ts`), its screen, its constants and its
 tests. It never positions itself on the page — it returns content, and the
@@ -78,8 +112,18 @@ once, at the edge, inside the slice.
   `validateSearch` and a zod schema; every field `.catch()`es a default,
   because that schema runs before any component exists and a throw there
   blanks the screen instead of showing an unfiltered list.
-- **Zustand** — client-only state that outlives a screen: the selected
-  import source, and (persisted) which accounts this device imported.
+- **Zustand** — client-only state, in two shapes that differ by lifetime
+  rather than by library. A module-level store (`create`) holds what
+  outlives every screen: a preference someone chose (sound, locale, the
+  selected import source, and — persisted — which accounts this device
+  imported) or work this device is doing, where browser analysis keeps
+  grading with nothing mounted. A store built per instance (`createStore`
+  from `zustand/vanilla`) holds what belongs to one screen but to several
+  components inside it: the review's ply, its variation and the
+  evaluation that came back for it. Components reach a per-instance store
+  through a domain facade — `games/review/use-game-review.ts` — rather
+  than through zustand, so the library can be replaced without touching a
+  screen.
 - **`useState`** — what dies with the component (text being typed).
 
 Derive instead of storing: the active nav item comes from the pathname.
@@ -128,7 +172,7 @@ is a mutation that only asks: `POST /accounts/:id/sync` per account in
 parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
 when the requests settle so the server's `syncStatus` / `activeSyncId` drive
 the "Syncing…" state on every screen and after a reload. Landing is announced,
-not polled: `games/import/sync-events.ts` keeps the session's one
+not polled: `games/import/accounts/sync-events.ts` keeps the session's one
 `GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
 and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
 `games` and `accounts` — the payload is never read. The stream is a signal,

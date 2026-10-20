@@ -6,9 +6,9 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { gameOutcomeFor, type GameOutcome } from "@velachess/chess";
 import { Badge } from "@velachess/ui/components/badge";
 import type { DataTableFeatures } from "@velachess/ui/components/data-table";
-import { ChessComIcon, LichessIcon, FileText } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
+import { GAME_SOURCES } from "../game-sources.ts";
 import type { Game } from "./queries.ts";
 
 const GAMES_COLUMNS_COPY = {
@@ -27,13 +27,6 @@ const GAMES_COLUMNS_COPY = {
   correspondence: msg`Correspondence`,
   playedWhite: msg`You played white`,
   playedBlack: msg`You played black`,
-} as const;
-
-/** Platform names are proper nouns — not translated. */
-export const PLATFORMS = {
-  chess_com: { icon: ChessComIcon, label: "Chess.com" },
-  lichess: { icon: LichessIcon, label: "Lichess" },
-  pgn: { icon: FileText, label: "PGN" },
 } as const;
 
 /**
@@ -103,13 +96,12 @@ export function gamesColumns({ translate, formatDate, timeClassLabel }: ColumnDe
       id: "source",
       cell: ({ row }) => {
         const game = row.original;
-        const platform = PLATFORMS[game.source];
-        const Icon = platform.icon;
+        const { Icon, label } = GAME_SOURCES[game.source];
         const playedWhite = game.perspective !== "black";
 
         return (
           <span className="flex items-center gap-2 text-muted-foreground">
-            <Icon className="size-4" aria-label={platform.label} />
+            <Icon className="size-4" aria-label={label} />
             <span
               aria-label={translate(
                 playedWhite

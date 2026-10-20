@@ -5,20 +5,45 @@ description: Change or review VelaChess Stockfish execution, engine sessions, UC
 
 # Work on engine analysis
 
-Keep two concerns separate:
+Keep three concerns separate, and do not let one reach into another:
 
-- `libs/infra/engine` owns UCI transport and session mechanics, used by both
-  `ChildProcessTransport` (no production caller, retained for tests/local
-  use) and `WorkerTransport` (the browser).
-- `libs/analysis` owns the pure algorithm (`process-analysis/analyze-game.ts`)
-  and score normalization/classification at its module root. No
-  persistence, no queue, no HTTP route — analysis runs entirely in
-  `apps/web/src/games/browser-analysis/` (Stockfish WASM in a Web Worker),
-  and a result lives only in that session's React Query cache.
+- `libs/infra/engine` owns UCI transport, session lifetime, and evaluation
+  reliability — the silence watchdog, the grace period, and retrying on a
+  fresh session (`engine-evaluator.ts`). Transports are
+  `useChildProcessTransport` (no production caller, retained for tests and
+  local use) and `useWorkerTransport` (the browser). It returns the
+  engine's own vocabulary and never imports a business module.
+- `libs/analysis` owns which positions to evaluate, what the answers mean,
+  and nothing about how the engine is driven. The engine reaches it only
+  through the `PositionEvaluator` dependency it declares, so this module
+  depends on neither `@velachess/infra-engine` nor a cache.
+- `apps/web/src/games/analysis/` composes the two, owns the IndexedDB
+  caches and the side-to-move → white-POV conversion, and schedules which
+  lane gets the one Worker (`engine-manager.ts`). Its two lanes are its
+  two sub-slices: `game/` grades a whole game, `position/` searches one
+  FEN. Inside the domain, `analysis-store.ts` only stores snapshots and
+  notifies React — it imports neither Effection nor the manager — and
+  `game/start-analysis.ts` is the one module that knows both. Keep it that
+  way: a ply travels up by synchronous callback, and the two cancellations
+  (interactive preempting background; a new game replacing the pass under
+  way) have one owner each.
+- The domain's `index.ts` is what the review screen sees: `startAnalysis`,
+  `useEngineAnalysis`, `evaluatePosition` and the read model in
+  `graded-game.ts`. The scheduler itself is private — a caller asks for an
+  evaluation and does not choose a lane. Analysis never imports `review/`.
 
-Prefer Stockfish/UCI primitives over local schedulers, polling, timeouts, or
-retry frameworks. Keep classification pure and reproducible from its
-explicit inputs.
+Asynchronous lifecycle is Effection. A session is a resource, so leaving
+the scope that opened it quits the engine and terminates the Worker;
+cancelling is halting the task that started the work, and the handle that
+halts it settles only once teardown has finished. Do not add an
+`AbortController`, a settled-promise handoff, an epoch counter, or a second
+queue beside it — and keep Promises and native events at the external
+boundaries that genuinely need them (React Query's `streamFn`, a Worker's
+`message` event).
+
+Prefer Stockfish/UCI and Effection primitives over local schedulers,
+polling, timeouts, or retry frameworks. Keep classification pure and
+reproducible from its explicit inputs.
 
 Trace score point of view explicitly across UCI, normalization,
 classification, and presentation. Preserve mate as a distinct score shape.

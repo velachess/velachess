@@ -110,7 +110,7 @@ owns across all sources, ownership read straight off `games.user_id`.
 
 All import paths fetch or parse, normalize, and persist. None of them run
 Stockfish. Analysis has no endpoint here: it runs entirely in the browser
-(Stockfish WASM, `apps/web/src/games/browser-analysis/`), with no
+(Stockfish WASM, `apps/web/src/games/analysis/`), with no
 persistence and no server/worker leg — see `docs/reference/analysis.md`.
 
 ## Sync events

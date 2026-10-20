@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { ImportGames } from "../../games/import/import-games.tsx";
+import { ConnectAccount } from "../../games/import/index.ts";
 import { z } from "../../libs/zod.ts";
 
 /** Lives inside `_app`: importing writes the signed-in user's tracked account, and the API 401s anyone else. */
@@ -24,7 +24,7 @@ function ImportRoute() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center p-6">
-      <ImportGames {...(redirect ? { redirectTo: redirect } : {})} />
+      <ConnectAccount {...(redirect ? { redirectTo: redirect } : {})} />
     </div>
   );
 }

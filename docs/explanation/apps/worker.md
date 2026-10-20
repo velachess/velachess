@@ -26,7 +26,7 @@ settlement either.
   what follows sync.
 
 No engine runs here. Analysis executes entirely in the browser (Stockfish
-WASM, `apps/web/src/games/browser-analysis/`) — see `docs/reference/analysis.md`.
+WASM, `apps/web/src/games/analysis/`) — see `docs/reference/analysis.md`.
 
 ## Lifecycle
 

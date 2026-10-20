@@ -5,11 +5,12 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
+    "@velachess/fixtures": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-engine": "workspace:*",
-    "@velachess/fixtures": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
     "drizzle-orm": "^0.45.2",
+    "effection": "^4.2.0",
     "stockfish": "^19.0.0"
   },
   "type": "module",

@@ -24,6 +24,7 @@
     "@velachess/infra-engine": "workspace:*",
     "@velachess/ui": "workspace:*",
     "better-auth": "1.7.7",
+    "effection": "^4.2.0",
     "event-source-plus": "^0.1.15",
     "hono": "^4.13.13",
     "idb": "^8.0.4",
