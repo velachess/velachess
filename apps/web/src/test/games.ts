@@ -1,3 +1,5 @@
+import { parsePgn, replayMainline, type ReplayedGame } from "@velachess/chess";
+
 import type { GradedPly } from "../games/analysis/index.ts";
 import type { Game } from "../games/list/index.ts";
 
@@ -46,4 +48,10 @@ export function aGradedPly(ply: number, overrides: Partial<GradedPly> = {}): Gra
     winChanceLoss: 0.01,
     ...overrides,
   };
+}
+
+/** The one interpretation a screen or a pass would be handed, from the
+ * same `libs/chess` call production uses. */
+export function aReplay(pgn: string = GAME_PGN): ReplayedGame {
+  return replayMainline(parsePgn(pgn)[0]!).unwrap();
 }

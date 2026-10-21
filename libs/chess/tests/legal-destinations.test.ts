@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  legalDestinations,
-  legalMoveBetween,
-  squaresOfSan,
-  squaresOfUci,
-} from "../moves.ts";
+import { legalDestinations, playMove, squaresOfSan, squaresOfUci } from "../moves.ts";
 import { positionFromFen } from "../position.ts";
 
 /**
@@ -62,27 +57,26 @@ describe("legalDestinations", () => {
     expect(at(enPassant, "e5")).toContainEqual({ square: "f6", isCapture: true });
   });
 
-  it("offers castling where chessops puts it: the rook's square", () => {
-    // chessops encodes castling as the king taking its own rook, so the
-    // destination is h1 and not g1. Written down rather than translated,
-    // because `legalMoveBetween` normalises a drag to g1 into this same
-    // move — the library owns both ends of that mapping.
+  it("offers castling on the square the king lands on, not the rook's", () => {
+    // chessops encodes castling as the king taking its own rook (e1h1).
+    // A board draws where the king goes, and that is also the square a
+    // person drags to — so the dot has to say g1.
     const canCastle = "4k3/8/8/8/8/8/8/4K2R w K - 0 1";
 
-    expect(squares(canCastle, "e1")).toContain("h1");
+    expect(squares(canCastle, "e1")).toContain("g1");
+    expect(squares(canCastle, "e1")).not.toContain("h1");
   });
 
-  it("accepts the king dragged to g1 as that castling move", () => {
+  it("does not call castling a capture, though the rook's square is occupied", () => {
     const canCastle = "4k3/8/8/8/8/8/8/4K2R w K - 0 1";
-    const position = positionFromFen(canCastle).unwrap();
 
-    expect(legalMoveBetween(position, "e1", "g1")).not.toBeNull();
+    expect(at(canCastle, "e1")).toContainEqual({ square: "g1", isCapture: false });
   });
 
   it("refuses a move that is not legal, however plausible", () => {
     const position = positionFromFen(START).unwrap();
 
-    expect(legalMoveBetween(position, "e2", "e5")).toBeNull();
+    expect(playMove(position, "e2", "e5")).toBeNull();
   });
 
   it("collapses a promotion into one square", () => {
@@ -101,10 +95,73 @@ describe("legalDestinations", () => {
     expect(squares(START, "z9")).toEqual([]);
   });
 
-  it("offers the other side's own destinations too — not only pos.turn's", () => {
-    // White to move, but asking about a black pawn: exploring what black
-    // could have played here instead needs its hints too.
-    expect(squares(START, "e7")).toEqual(["e5", "e6"]);
+  it("offers nothing for the side that is not to move", () => {
+    // White to move, asking about a black pawn. Drawing dots here would
+    // promise a move `playMove` then refuses.
+    expect(squares(START, "e7")).toEqual([]);
+  });
+});
+
+/**
+ * The contract between the dots and the drag.
+ *
+ * Every square the board offers has to be one the move accepts, and the
+ * other way round. These drifted apart once already: destinations were
+ * computed for either side while the move only ever allowed the side to
+ * play, so the board drew dots on pieces it then refused to move.
+ */
+function playsEverythingOffered(fen: string, from: string) {
+  const offered = squares(fen, from);
+  const accepted = offered.filter(
+    (to) => playMove(positionFromFen(fen).unwrap(), from, to) !== null,
+  );
+  return { offered, accepted };
+}
+
+describe("what is offered is what is accepted", () => {
+  it("holds for White's pieces", () => {
+    const { offered, accepted } = playsEverythingOffered(START, "e2");
+
+    expect(offered).not.toEqual([]);
+    expect(accepted).toEqual(offered);
+  });
+
+  it("holds for Black's pieces, on Black's turn", () => {
+    const { offered, accepted } = playsEverythingOffered(blackToMove(START), "e7");
+
+    expect(offered).toEqual(["e5", "e6"]);
+    expect(accepted).toEqual(offered);
+  });
+
+  it("offers neither side's pieces when it is not their turn", () => {
+    expect(squares(START, "e7")).toEqual([]);
+    expect(squares(blackToMove(START), "e2")).toEqual([]);
+  });
+
+  it("holds for a capture", () => {
+    const takes = "4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1";
+    const { offered, accepted } = playsEverythingOffered(takes, "e4");
+
+    expect(offered).toContain("d5");
+    expect(accepted).toEqual(offered);
+    expect(playMove(positionFromFen(takes).unwrap(), "e4", "d5")?.san).toBe("exd5");
+  });
+
+  it("holds for castling, both sides and both wings", () => {
+    const both = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+
+    for (const [fen, from, wings] of [
+      [both, "e1", { g1: "O-O", c1: "O-O-O" }],
+      [blackToMove(both), "e8", { g8: "O-O", c8: "O-O-O" }],
+    ] as const) {
+      const { offered, accepted } = playsEverythingOffered(fen, from);
+      expect(accepted).toEqual(offered);
+
+      for (const [square, san] of Object.entries(wings)) {
+        expect(offered).toContain(square);
+        expect(playMove(positionFromFen(fen).unwrap(), from, square)?.san).toBe(san);
+      }
+    }
   });
 });
 

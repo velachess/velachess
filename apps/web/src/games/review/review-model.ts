@@ -7,10 +7,10 @@
  * the notation all come from there.
  */
 import type { MoveSquares } from "@velachess/chess";
-import { playMove, positionFromFen, sideToMoveOf } from "@velachess/chess";
+import { playMove, positionFromFen, type ReplayedMove } from "@velachess/chess";
 
 import type { GradedPly } from "../analysis/index.ts";
-import { fenAtPly, type ReplayMove } from "./game-record.ts";
+import { fenAtPly } from "./game-record.ts";
 
 /**
  * The grade on one ply, if the run has reached it. Grades are published
@@ -33,13 +33,13 @@ export const REPLAY_NAVIGATION = {
 
 type ReplayNavigationEvent =
   | { type: typeof REPLAY_NAVIGATION.START }
-  | { type: typeof REPLAY_NAVIGATION.MOVE; move: ReplayMove };
+  | { type: typeof REPLAY_NAVIGATION.MOVE; move: ReplayedMove };
 
 export type ReplayNavigation = (event: ReplayNavigationEvent) => void;
 
 /** All a review needs of the game it is a review of. */
 export interface ReviewGame {
-  moves: readonly ReplayMove[];
+  moves: readonly ReplayedMove[];
   startFen: string;
 }
 
@@ -61,7 +61,7 @@ export interface Variation {
 
 export interface ReviewData {
   /** The game, as it arrived. Never written to. */
-  readonly moves: readonly ReplayMove[];
+  readonly moves: readonly ReplayedMove[];
   readonly startFen: string;
 
   /** One half-move. 0 is the position before anyone moved. */
@@ -128,7 +128,7 @@ export function selectCanGoForward(state: ReviewData): boolean {
 }
 
 /** The real game's move at the ply on screen; absent at the start. */
-export function selectGameMove(state: ReviewData): ReplayMove | undefined {
+export function selectGameMove(state: ReviewData): ReplayedMove | undefined {
   return state.moves[state.ply - 1];
 }
 
@@ -201,9 +201,7 @@ export function playVariationMove(
 ): Variation | null {
   const fen = selectFen(state);
   const played = playMove(positionFromFen(fen).unwrap(), from, to);
-  // The rules allow moving either side's piece from a given position; a
-  // variation is a game being played, so it is the turn's to move.
-  if (!played || played.mover !== sideToMoveOf(fen)) return null;
+  if (!played) return null;
 
   const kept = state.variation
     ? state.variation.moves.slice(0, state.variation.cursor)

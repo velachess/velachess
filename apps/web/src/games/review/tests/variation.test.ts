@@ -3,6 +3,7 @@ import { call, ensure, withResolvers, type Operation } from "effection";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PositionEvaluation } from "@velachess/analysis";
+import type { ReplayedMove } from "@velachess/chess";
 
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
@@ -10,21 +11,22 @@ vi.mock("../../analysis/index.ts", async (importOriginal) => ({
 }));
 
 import { openPositionEvaluator } from "../../analysis/index.ts";
-import type { ReplayMove } from "../game-record.ts";
 import {
   selectCanGoBack,
   selectCanGoForward,
   selectFen,
   selectShowingSan,
 } from "../review-model.ts";
+import { aReplay } from "../../../test/games.ts";
 import { createReviewStore, type ReviewStore } from "../review-store.ts";
 import { useVariationEvaluation } from "../use-variation-evaluation.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 
-/** A one-move game, so there is a real ply to navigate back onto. */
-const moves: ReplayMove[] = [{ ply: 1, san: "e4", fenBefore: START, fenAfter: AFTER_E4 }];
+/** A one-move game, so there is a real ply to navigate back onto —
+ * replayed by production's own `libs/chess` call. */
+const moves: readonly ReplayedMove[] = aReplay("1. e4 *").moves;
 
 /**
  * A controllable stand-in for `evaluatePosition`: never settles until the

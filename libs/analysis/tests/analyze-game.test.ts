@@ -44,9 +44,13 @@ function* useStockfishEvaluator(depth: number): Operation<PositionEvaluator> {
 /** Everything `analyzeGame` published, in the order it arrived. */
 function* collect(evaluator: PositionEvaluator, pgn: string): Operation<GradedPly[]> {
   const published: GradedPly[] = [];
-  yield* analyzeGame(parsePgn(pgn)[0]!, evaluator, (position) => {
-    published.push(position);
-  });
+  yield* analyzeGame(
+    replayMainline(parsePgn(pgn)[0]!).unwrap(),
+    evaluator,
+    (position) => {
+      published.push(position);
+    },
+  );
   return published;
 }
 
@@ -90,12 +94,33 @@ describe("analyzeGame (real Stockfish)", () => {
     ).rejects.toBe(boom);
   });
 
-  it("rejects a game whose mainline is not legal", async () => {
-    await expect(
-      run(function* () {
-        yield* collect(stubEvaluator(), "1. e4 e5 2. Qxf7# *");
-      }),
-    ).rejects.toThrow(/illegal move/);
+  it("credits a castle the engine also chose", async () => {
+    // chessops encodes castling as king-takes-own-rook (e1h1); an engine
+    // names the king's step (e1g1). If the replay carried the former, no
+    // castle could ever be the engine's move.
+    const pgn =
+      '[Event "C"]\n[FEN "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"]\n[SetUp "1"]\n\n1. O-O *\n';
+    const replay = replayMainline(parsePgn(pgn)[0]!).unwrap();
+    expect(replay.moves[0]?.uci).toBe("e1g1");
+
+    const published = await run(function* () {
+      return yield* collect(
+        { evaluate: () => call(() => ({ score: { cp: 0 }, bestMove: "e1g1" })) },
+        pgn,
+      );
+    });
+
+    expect(published[0]?.category).toBe("best");
+  });
+
+  it("grades the legal prefix of a game that goes illegal part-way", async () => {
+    // Same policy the import applies: a game with at least one legal move
+    // is a game, and the part that replayed is what the board shows.
+    const published = await run(function* () {
+      return yield* collect(stubEvaluator(), "1. e4 e5 2. Qxf7# *");
+    });
+
+    expect(published.map((position) => position.ply)).toEqual([1, 2]);
   });
 
   it("publishes nothing for a game with no moves", async () => {

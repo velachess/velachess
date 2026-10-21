@@ -2,10 +2,9 @@ import { cn } from "@velachess/ui/lib/utils";
 import { ScrollArea } from "@velachess/ui/components/scroll-area";
 
 import { PieceIcon, pieceKindOf } from "@velachess/ui/chess/piece-icon";
-import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
 
+import type { ReplayedMove } from "@velachess/chess";
 import type { GradedPly, MoveCategory } from "../analysis/index.ts";
-import type { ReplayMove } from "./game-record.ts";
 import { CATEGORY_TEXT_TONE } from "./move-presentation.ts";
 import { gradeAtPly } from "./review-model.ts";
 import { useGameReview } from "./use-game-review.ts";
@@ -19,8 +18,8 @@ export interface MoveListProps {
 
 interface ScoresheetRow {
   number: number;
-  white?: ReplayMove;
-  black?: ReplayMove;
+  white?: ReplayedMove;
+  black?: ReplayedMove;
 }
 
 /**
@@ -29,15 +28,15 @@ interface ScoresheetRow {
  * from a FEN, at any move number and with Black to play, and its first
  * row then has no White move at all.
  */
-function scoresheetRows(moves: readonly ReplayMove[]): ScoresheetRow[] {
+function scoresheetRows(moves: readonly ReplayedMove[]): ScoresheetRow[] {
   const rows: ScoresheetRow[] = [];
 
   for (const move of moves) {
-    const number = moveNumberOf(move.fenBefore);
+    const number = move.moveNumber;
     const last = rows.at(-1);
     const row = last?.number === number ? last : { number };
     if (row !== last) rows.push(row);
-    row[sideToMoveOf(move.fenBefore)] = move;
+    row[move.side] = move;
   }
 
   return rows;
@@ -88,7 +87,7 @@ export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
 }
 
 interface MoveCellProps {
-  move: ReplayMove | undefined;
+  move: ReplayedMove | undefined;
   graded: readonly GradedPly[];
   currentPly: number;
   onSelectPly: (ply: number) => void;
@@ -111,11 +110,7 @@ function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
         currentPly === move.ply && "bg-primary/15",
       )}
     >
-      <PieceIcon
-        kind={pieceKindOf(move.san)}
-        side={sideToMoveOf(move.fenBefore)}
-        className="text-sm"
-      />
+      <PieceIcon kind={pieceKindOf(move.san)} side={move.side} className="text-sm" />
       <span className="truncate">{move.san}</span>
       <MoveGlyph category={category} />
     </button>

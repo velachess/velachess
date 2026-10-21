@@ -1,67 +1,19 @@
 /**
- * Moves — the actual "is this legal, and what are all the legal ones"
- * surface. This is the core of the RULES premise: who validates
- * lance/legalidade.
+ * Moves — legality, and the two notations a board and an engine need.
+ * chessops decides every rule here; this file exists for the three things
+ * it does not answer: whether a destination captures, where a castling
+ * king actually lands, and applying a move without mutating the position.
  */
 
-import type { Context, Position } from "chessops/chess";
+import type { Position } from "chessops/chess";
 import { castlingSide, normalizeMove } from "chessops/chess";
-import { SquareSet } from "chessops/squareSet";
-import {
-  type Color,
-  type DropMove,
-  isDrop,
-  isNormal,
-  type Move,
-  type NormalMove,
-  type Role,
-} from "chessops/types";
+import { isNormal, type Move, type NormalMove, type Role } from "chessops/types";
 import { makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
+import { makeFen } from "chessops/fen";
 import { makeSan, parseSan } from "chessops/san";
 
-import { makeFen } from "./fen.ts";
-
-export { isDrop, isNormal, castlingSide };
-export type { DropMove, Move, NormalMove };
-
-/**
- * UCI is what engines speak and SAN is what people read, so a caller
- * holding an engine's answer needs both directions. Re-exported as-is —
- * chessops already gets this right.
- */
-export { makeUci, parseUci };
-
-const PROMOTION_ROLES: readonly Role[] = ["queen", "rook", "bishop", "knight"];
-
-/**
- * Every legal move in the position (or from one square, if given), with a
- * separate entry per promotion choice. chessops' own `dests`/`allDests`
- * return only destination squares — a pawn reaching the last rank is one
- * destination, not four moves — so this is the one place that expansion
- * needs to happen, rather than every caller redoing it.
- */
-export function legalMoves(pos: Position, square?: number, ctx?: Context): Move[] {
-  const dests =
-    square === undefined
-      ? pos.allDests(ctx)
-      : new Map([[square, pos.dests(square, ctx)]]);
-
-  const moves: Move[] = [];
-  for (const [from, destinations] of dests) {
-    const isPawn = pos.board.getRole(from) === "pawn";
-
-    for (const to of destinations) {
-      if (isPawn && SquareSet.backranks().has(to)) {
-        for (const promotion of PROMOTION_ROLES) {
-          moves.push({ from, to, promotion });
-        }
-      } else {
-        moves.push({ from, to });
-      }
-    }
-  }
-  return moves;
-}
+export { castlingSide, isNormal, parseUci };
+export type { Move };
 
 /** A square a piece may legally reach, and what it would do there. */
 export interface LegalDestination {
@@ -73,47 +25,44 @@ export interface LegalDestination {
 
 /**
  * Where the piece on `square` may legally go — legal, not pseudo-legal;
- * chessops resolves pins/check/castling/en passant. Promotions collapse to
- * one entry per destination square. Works for either side's piece, not
- * only `pos.turn` — same reasoning as `playMove`: a caller exploring what
- * the other side could have played needs its hints too, not just the
- * side whose turn it technically is.
+ * `pos.dests` resolves pins, check, castling and en passant, and answers
+ * empty for a piece whose turn it is not.
+ *
+ * Two things `dests` leaves to the caller. It names castling on the
+ * rook's square, because that is how chessops encodes the move — a board
+ * has to show the square the king lands on, which is also the one a
+ * person drags to. And it does not say whether landing somewhere takes
+ * a piece, which a board draws differently.
  */
 export function legalDestinations(pos: Position, square: string): LegalDestination[] {
   const from = parseSquare(square);
   if (from === undefined) return [];
-  const piece = pos.board.get(from);
-  if (!piece) return [];
 
-  const working = piece.color === pos.turn ? pos : outOfTurn(pos, piece.color);
+  return [...pos.dests(from)].map((to) => {
+    const landing = castlingTarget(pos, { from, to });
+    // Castling is never a capture, however occupied the rook's square is.
+    if (landing !== null) return { square: makeSquare(landing), isCapture: false };
 
-  const seen = new Map<string, LegalDestination>();
-  for (const move of legalMoves(working, from)) {
-    if (!isNormal(move)) continue;
-    const name = makeSquare(move.to);
-    seen.set(name, {
-      square: name,
-      // Occupancy answers ordinary captures; en passant lands on an empty
-      // square and still takes a pawn, which `pos.board` alone would miss.
-      isCapture: working.board.get(move.to) !== undefined || isEnPassant(working, move),
-    });
-  }
-  return [...seen.values()];
+    return {
+      square: makeSquare(to),
+      isCapture: pos.board.get(to) !== undefined || isEnPassant(pos, from, to),
+    };
+  });
 }
 
 /** A pawn changing file onto an empty square has taken one in passing. */
-function isEnPassant(pos: Position, move: NormalMove): boolean {
-  if (pos.board.getRole(move.from) !== "pawn") return false;
-  const changedFile = makeSquare(move.from)[0] !== makeSquare(move.to)[0];
-  return changedFile && pos.board.get(move.to) === undefined;
+function isEnPassant(pos: Position, from: number, to: number): boolean {
+  if (pos.board.getRole(from) !== "pawn") return false;
+  const changedFile = makeSquare(from)[0] !== makeSquare(to)[0];
+  return changedFile && pos.board.get(to) === undefined;
 }
 
 /**
- * A move as chessops means it, or null if illegal here — the one gate before
- * playing anything. Uses `normalizeMove` because chessops encodes castling as
- * king-takes-own-rook (`e1h1`), not the `g1` a person drags to.
+ * A move as chessops means it, or null if illegal here — the one gate
+ * before playing anything. `normalizeMove` is what lets a person drag the
+ * king to g1 when chessops encodes castling as king-takes-own-rook.
  */
-export function legalMoveBetween(
+function legalMoveBetween(
   pos: Position,
   from: string,
   to: string,
@@ -131,26 +80,20 @@ export function legalMoveBetween(
   return pos.isLegal(move) ? move : null;
 }
 
-/** The result of actually playing a move, not just checking it. */
+/** The result of actually playing a move, not just checking it. A caller
+ * wanting the move in UCI has `uciOf`; nothing has, so it is not here. */
 export interface PlayedMove {
   fen: string;
   san: string;
-  uci: string;
-  /** The color of the piece that moved — `pos.turn` when the move was
-   * played in turn, the other side when exploring what it could have
-   * played instead (see `playMove`). */
-  mover: Color;
 }
 
 /**
- * Validates and applies one move from `from` to `to`, without mutating
- * `pos`. Accepts a move for either side, not only `pos.turn` — exploring
- * "what the other side could have played here instead" needs the same
- * legality rules, just evaluated as if it were that side's move. Promotion
- * defaults to queen — no picker in this app yet, but the parameter stays
- * real so a future caller (a puzzle trainer, say) can override it.
- * Returns null on an illegal move or an empty `from` square, same
- * contract as `legalMoveBetween`.
+ * Validates and applies one move, without mutating `pos`. Only the side
+ * to move may play: `pos.dests` offers nothing to the other one, so
+ * accepting its moves would mean a board that takes what it never
+ * offered. Promotion defaults to queen — no picker in this app yet, but
+ * the parameter stays real so a future caller can override it. Null on an
+ * illegal move, same contract as the legality gate it runs.
  */
 export function playMove(
   pos: Position,
@@ -158,41 +101,21 @@ export function playMove(
   to: string,
   promotion: Role = "queen",
 ): PlayedMove | null {
-  const square = parseSquare(from);
-  const piece = square === undefined ? undefined : pos.board.get(square);
-  if (!piece) return null;
-
-  const working = piece.color === pos.turn ? pos : outOfTurn(pos, piece.color);
-
   // chessops' isLegal rejects any move whose `promotion` doesn't match
   // "is this actually a pawn landing on the back rank" — so a `queen`
   // default can't be passed unconditionally. Try with it first (only a
   // genuine promotion can succeed), fall back without it for everything
   // else.
   const move =
-    legalMoveBetween(working, from, to, promotion) ?? legalMoveBetween(working, from, to);
+    legalMoveBetween(pos, from, to, promotion) ?? legalMoveBetween(pos, from, to);
   if (!move) return null;
 
   // makeSan clones internally and must run before the position is played.
-  const san = makeSan(working, move);
-  const uci = makeUci(move);
-
-  const next = working.clone();
+  const san = makeSan(pos, move);
+  const next = pos.clone();
   next.play(move);
 
-  return { fen: makeFen(next.toSetup()), san, uci, mover: piece.color };
-}
-
-/**
- * A copy of `pos` with the given side to move instead — en passant
- * cleared, since that right belongs to whichever side just moved and
- * doesn't carry over to a hypothetical move by the other side.
- */
-function outOfTurn(pos: Position, color: Color): Position {
-  const flipped = pos.clone();
-  flipped.turn = color;
-  flipped.epSquare = undefined;
-  return flipped;
+  return { fen: makeFen(next.toSetup()), san };
 }
 
 /** A move as the two squares a board draws between. */
@@ -212,26 +135,40 @@ export function squaresOfUci(uci: string): MoveSquares | null {
 }
 
 /**
+ * Where the king actually lands when castling. chessops encodes castling
+ * as king-takes-own-rook (e1 → h1); a board draws the king's two-square
+ * step, and so does every engine's UCI — which is what makes this the one
+ * rule behind both `squaresOfSan` and `uciOf`.
+ */
+function castlingTarget(pos: Position, move: NormalMove): number | null {
+  const side = castlingSide(pos, move);
+  if (!side) return null;
+
+  const G_FILE = 6;
+  const C_FILE = 2;
+  return (side === "h" ? G_FILE : C_FILE) + 8 * (move.to >> 3);
+}
+
+/**
  * Squares a SAN move touches; requires the position since SAN leaves the
  * origin implicit (e.g. which knight `Nf3` means depends on the board).
- * Castling comes back as the king's own two-square step (O-O → g1), not the
- * king-takes-own-rook encoding chessops uses internally — drawing wants the
- * square the king lands on, which is also what an engine's UCI would name.
  */
 export function squaresOfSan(pos: Position, san: string): MoveSquares | null {
   const move = parseSan(pos, san);
   if (!move || !isNormal(move)) return null;
 
-  const side = castlingSide(pos, move);
-  if (side) {
-    const G_FILE = 6;
-    const C_FILE = 2;
-    const kingFile = side === "h" ? G_FILE : C_FILE;
-    return {
-      from: makeSquare(move.from),
-      to: makeSquare(kingFile + 8 * (move.to >> 3)),
-    };
-  }
+  const to = castlingTarget(pos, move) ?? move.to;
+  return { from: makeSquare(move.from), to: makeSquare(to) };
+}
 
-  return { from: makeSquare(move.from), to: makeSquare(move.to) };
+/**
+ * UCI as an engine speaks it, which is not always what `makeUci` returns:
+ * a castle has to read `e1g1`, or comparing a played move against the
+ * engine's `bestmove` never matches and no castle is ever the best move.
+ */
+export function uciOf(pos: Position, move: Move): string {
+  if (!isNormal(move)) return makeUci(move);
+
+  const to = castlingTarget(pos, move);
+  return to === null ? makeUci(move) : makeUci({ ...move, to });
 }

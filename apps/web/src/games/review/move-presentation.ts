@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
-import { moveNumberOf, sideToMoveOf } from "@velachess/chess";
+import type { ReplayedMove } from "@velachess/chess";
 
 import type { MoveCategory, WhitePovScore } from "../analysis/index.ts";
 import { scoreToWinChance } from "../analysis/index.ts";
@@ -105,13 +105,13 @@ export function badgeAt(
  */
 export function showingLabel(
   san: string | null,
-  fenBefore: string | undefined,
+  move: ReplayedMove | undefined,
   inVariation: boolean,
   start: string,
 ): string {
   if (!san) return start;
-  if (inVariation || !fenBefore) return san;
+  if (inVariation || !move) return san;
 
-  const suffix = sideToMoveOf(fenBefore) === "white" ? "." : "…";
-  return `${moveNumberOf(fenBefore)}${suffix} ${san}`;
+  const suffix = move.side === "white" ? "." : "…";
+  return `${move.moveNumber}${suffix} ${san}`;
 }

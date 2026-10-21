@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { ReplayedMove } from "@velachess/chess";
+
 import { aGradedPly } from "../../../test/games.ts";
-import type { ReplayMove } from "../game-record.ts";
 import {
   gradeAtPly,
   REPLAY_NAVIGATION,
@@ -21,9 +22,14 @@ import { createReviewStore } from "../review-store.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-const moves: ReplayMove[] = [1, 2, 3].map((ply) => ({
+// Synthetic FENs on purpose: navigation is array arithmetic, and no
+// assertion here reads a position.
+const moves: ReplayedMove[] = [1, 2, 3].map((ply) => ({
   ply,
   san: `move-${ply}`,
+  uci: "e2e4",
+  side: ply % 2 === 1 ? "white" : "black",
+  moveNumber: Math.ceil(ply / 2),
   fenBefore: `before-${ply}`,
   fenAfter: `after-${ply}`,
 }));

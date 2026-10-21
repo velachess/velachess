@@ -6,7 +6,7 @@
  * on each platform, see providers/chess-com.ts and providers/lichess.ts).
  */
 
-import { emptyHeaders, parsePgn } from "@velachess/chess";
+import { emptyHeaders, isPlayableGame, parsePgn, replayMainline } from "@velachess/chess";
 
 import { movetextHash } from "./hash.ts";
 import { openingNameFrom } from "./opening.ts";
@@ -74,13 +74,18 @@ export function normalizeGame(
   // an empty headers map and an empty mainline. That, not an empty array,
   // is the real "nothing here" signal.
   const game = games[0];
-  if (!game || game.headers.size === 0) {
+  // `isPlayableGame` is the one statement of what counts as a game, and it
+  // needs the replay — so the movetext is interpreted here, once, rather
+  // than again through `hasPlayableGame`. A game that goes illegal part-way
+  // is kept: the legal prefix is what gets shown and analysed.
+  const replay = game && replayMainline(game);
+  if (!game || !replay?.isOk || !isPlayableGame(game.headers, replay.value)) {
     return {
       scope: "game",
       ref: meta.externalId ?? "pgn",
       reason: "parse-error",
       retryable: false,
-      detail: "PGN text contained no parseable game",
+      detail: "PGN text contained no playable game",
     };
   }
 

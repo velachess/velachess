@@ -6,7 +6,7 @@
  * walking a line reuses a single Worker instead of starting one per FEN,
  * and `dispose()` is final.
  */
-import { sideToMoveOf } from "@velachess/chess";
+import { parseFen } from "@velachess/chess";
 import {
   toWhitePov,
   type PositionEvaluation,
@@ -28,8 +28,11 @@ export function positionEvaluationOf(
   fen: string,
   search: CompletedSearch,
 ): PositionEvaluation {
+  // `unwrap` on purpose: every FEN reaching here was written by
+  // `makeFen`, so a malformed one is a bug worth hearing about rather
+  // than a score silently flipped to the wrong side.
   const score = search.lastInfo
-    ? toWhitePov(search.lastInfo.score, sideToMoveOf(fen))
+    ? toWhitePov(search.lastInfo.score, parseFen(fen).unwrap().turn)
     : {};
   return {
     score,

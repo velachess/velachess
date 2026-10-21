@@ -6,7 +6,7 @@ import type { GradedPly } from "@velachess/analysis";
 import { useEngineSession } from "@velachess/infra-engine";
 
 import { call, run } from "../../../libs/effection.ts";
-import { aGradedPly } from "../../../test/games.ts";
+import { aGradedPly, aReplay } from "../../../test/games.ts";
 import { getReport, resetAnalysisDbForTests, saveReport } from "../analysis-db.ts";
 import {
   analyzeGameInBrowser,
@@ -60,7 +60,7 @@ function collect(game: GameAnalysisInput) {
 }
 
 function input(gameId = "game-1") {
-  return { gameId, rawPgn: TWO_PLY_PGN };
+  return { gameId, replay: aReplay(TWO_PLY_PGN) };
 }
 
 /** The three replies a full pass over `TWO_PLY_PGN` consumes. */

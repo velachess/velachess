@@ -4,13 +4,13 @@ vi.mock("../analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 
-import { aGradedPly } from "../../../test/games.ts";
+import { aGradedPly, aReplay } from "../../../test/games.ts";
 import { IDLE_ANALYSIS, snapshotOf } from "../analysis-store.ts";
 import { resetAnalysisForTests, startAnalysis } from "../start-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
 
-const GAME_A = { gameId: "game-a", rawPgn: "pgn-a" };
-const GAME_B = { gameId: "game-b", rawPgn: "pgn-b" };
+const GAME_A = { gameId: "game-a", replay: aReplay() };
+const GAME_B = { gameId: "game-b", replay: aReplay() };
 
 beforeEach(() => {
   resetAnalysisForTests();
