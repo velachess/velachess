@@ -5,7 +5,7 @@ vi.mock("../analyze-game-in-browser.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 
-import { aGradedPly } from "../../../test/games.ts";
+import { aGradedPly, aReplay } from "../../../test/games.ts";
 import { resetAnalysisForTests, startAnalysis } from "../start-analysis.ts";
 import { useEngineAnalysis } from "../use-engine-analysis.ts";
 import { scriptedPasses } from "./scripted-pass.ts";
@@ -33,7 +33,7 @@ beforeEach(() => {
 
 function start(gameId: string) {
   act(() => {
-    startAnalysis({ gameId, rawPgn: "pgn" });
+    startAnalysis({ gameId, replay: aReplay() });
   });
 }
 

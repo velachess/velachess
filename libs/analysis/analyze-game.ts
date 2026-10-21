@@ -3,10 +3,13 @@
  * a time. The engine arrives as a `PositionEvaluator` — this module
  * decides *which* positions to evaluate and what the answers mean, and
  * never owns a session, a worker, a watchdog or a cache.
+ *
+ * The game arrives already replayed, so nothing here parses a PGN. A game
+ * whose mainline went illegal part-way is graded up to that point, which
+ * is the same prefix the board shows.
  */
 
-import type { Game, PgnNodeData, Position, ReplayedMove } from "@velachess/chess";
-import { replayMainline } from "@velachess/chess";
+import type { ReplayedGame } from "@velachess/chess";
 import type { Operation } from "effection";
 
 import { classifyPly, terminalScoreOf, type GradedPly } from "./grade-game.ts";
@@ -36,15 +39,12 @@ export interface PositionEvaluator {
  * very last one when the game ended there, since a terminal position's
  * score comes from the rules, not a search.
  */
-export function fensToEvaluate(replay: {
-  moves: ReplayedMove[];
-  finalPosition: Position;
-}): string[] {
+export function fensToEvaluate(replay: ReplayedGame): string[] {
   const firstMove = replay.moves[0];
   if (!firstMove) return [];
 
   const fens = [firstMove.fenBefore, ...replay.moves.map((move) => move.fenAfter)];
-  if (replay.finalPosition.isEnd()) fens.pop();
+  if (replay.terminal) fens.pop();
   return fens;
 }
 
@@ -55,13 +55,10 @@ export function fensToEvaluate(replay: {
  * hold a value that is already available synchronously.
  */
 export function* analyzeGame(
-  game: Game<PgnNodeData>,
+  replay: ReplayedGame,
   evaluator: PositionEvaluator,
   publish: PublishPly,
 ): Operation<void> {
-  const replay = replayMainline(game).unwrap();
-  if (!replay.legal) throw new Error("Game mainline contains an illegal move");
-
   const firstMove = replay.moves[0];
   if (!firstMove) return;
 
@@ -73,8 +70,8 @@ export function* analyzeGame(
     const isLast = i === total - 1;
 
     let next: PositionEvaluation;
-    if (isLast && replay.finalPosition.isEnd()) {
-      next = { score: terminalScoreOf(replay.finalPosition), bestMove: null };
+    if (isLast && replay.terminal) {
+      next = { score: terminalScoreOf(replay.terminal), bestMove: null };
     } else {
       next = yield* evaluator.evaluate(played.fenAfter);
     }

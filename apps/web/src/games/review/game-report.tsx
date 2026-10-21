@@ -5,10 +5,8 @@ import { Item, ItemContent, ItemMedia, ItemTitle } from "@velachess/ui/component
 import { BookOpen } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { sideToMoveOf } from "@velachess/chess";
-
+import type { ReplayedMove } from "@velachess/chess";
 import { MOVE_CATEGORIES, type GradedPly, type MoveCategory } from "../analysis/index.ts";
-import type { ReplayMove } from "./game-record.ts";
 import { CATEGORY_LABELS, CATEGORY_TEXT_TONE } from "./move-presentation.ts";
 
 const REPORT_COPY = {
@@ -27,12 +25,12 @@ function emptyCounts(): CategoryCounts {
  * start from a FEN with Black to move, and counting plies would then
  * credit every grade to the wrong player.
  */
-function summarize(graded: readonly GradedPly[], moves: readonly ReplayMove[]) {
+function summarize(graded: readonly GradedPly[], moves: readonly ReplayedMove[]) {
   const breakdown = { white: emptyCounts(), black: emptyCounts() };
 
   for (const grade of graded) {
     const played = moves[grade.ply - 1];
-    if (played) breakdown[sideToMoveOf(played.fenBefore)][grade.category] += 1;
+    if (played) breakdown[played.side][grade.category] += 1;
   }
 
   return breakdown;
@@ -42,7 +40,7 @@ export interface GameReportProps {
   /** Grades in ply order — shorter than the game while the run streams. */
   graded: readonly GradedPly[];
   /** The replayed game, which is what says who played each ply. */
-  moves: readonly ReplayMove[];
+  moves: readonly ReplayedMove[];
   whiteName: string;
   blackName: string;
   openingName: string | null;

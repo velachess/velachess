@@ -15,15 +15,16 @@ import { gameQuery, type ReplayableGame } from "./game-record.ts";
  * so there is nothing to keep two copies of in sync.
  */
 const analyzeInBrowser = createClientOnlyFn((game: ReplayableGame) => {
-  startAnalysis({ gameId: game.id, rawPgn: game.rawPgn });
+  startAnalysis({ gameId: game.id, replay: game });
 });
 
 export async function loadGameReview(
   queryClient: QueryClientType,
   gameId: string,
 ): Promise<void> {
-  // Awaited because the movetext has to be in hand before the engine can
-  // be pointed at it; swallowed because the screen reads this same query
+  // Awaited because the replay has to be in hand before the engine can
+  // be pointed at it — this query is the one interpretation of the PGN,
+  // and the pass below reads it rather than parsing again; swallowed because the screen reads this same query
   // and is what tells a person their game could not be read, rather than
   // the router's error boundary replacing the review with a generic
   // failure.

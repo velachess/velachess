@@ -1,16 +1,14 @@
 /**
- * A validated, legal chess position — pieces, turn, castling rights,
- * en passant target. `Chess` is chessops' standard-rules implementation of
- * the abstract `Position`.
+ * A validated, legal chess position. `Chess` is chessops' standard-rules
+ * implementation of the abstract `Position` — and the only variant this
+ * app constructs, so a Chess960 game gets no castling.
  */
 
 import { Result } from "@badrap/result";
-import { Chess, type Context, IllegalSetup, PositionError } from "chessops/chess";
+import { Chess, type PositionError } from "chessops/chess";
 import { type FenError, parseFen } from "chessops/fen";
 
-export { Chess, type Context, IllegalSetup, PositionError };
 export type { Position } from "chessops/chess";
-export type { Outcome } from "chessops/types";
 
 /**
  * FEN string straight to a validated position, in one call — parseFen only

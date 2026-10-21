@@ -4,8 +4,7 @@
  * the evaluations and calls in here.
  */
 
-import type { Position, ReplayedMove } from "@velachess/chess";
-import { makeUci, sideToMoveOf } from "@velachess/chess";
+import type { Outcome, ReplayedMove } from "@velachess/chess";
 
 import { classifyMove } from "./classify-move.ts";
 import type { MoveCategory } from "./move-category.ts";
@@ -28,9 +27,8 @@ export interface GradedPly {
   winChanceLoss: number;
 }
 
-export function terminalScoreOf(finalPosition: Position): WhitePovScore {
-  const outcome = finalPosition.outcome();
-  if (outcome?.winner) return { mate: outcome.winner === "white" ? 1 : -1 };
+export function terminalScoreOf(terminal: Outcome): WhitePovScore {
+  if (terminal.winner) return { mate: terminal.winner === "white" ? 1 : -1 };
   return { cp: 0 };
 }
 
@@ -40,12 +38,12 @@ export function classifyPly(
   current: PositionEvaluation,
   next: PositionEvaluation,
 ): GradedPly {
-  const mover = sideToMoveOf(played.fenBefore);
+  const mover = played.side;
   const { category, winChanceLoss } = classifyMove({
     before: current.score,
     after: next.score,
     mover,
-    wasEngineBest: current.bestMove !== null && current.bestMove === makeUci(played.move),
+    wasEngineBest: current.bestMove !== null && current.bestMove === played.uci,
   });
 
   return {

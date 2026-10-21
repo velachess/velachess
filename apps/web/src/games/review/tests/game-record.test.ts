@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { fenAtPly, type ReplayMove } from "../game-record.ts";
+import type { ReplayedMove } from "@velachess/chess";
+import { fenAtPly } from "../game-record.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-const move = (ply: number, san: string): ReplayMove => ({
+// Synthetic FENs on purpose: `fenAtPly` indexes an array, it does not
+// read a position.
+const move = (ply: number, san: string): ReplayedMove => ({
   ply,
   san,
+  uci: "e2e4",
+  side: ply % 2 === 1 ? "white" : "black",
+  moveNumber: Math.ceil(ply / 2),
   fenBefore: `before-${ply}`,
   fenAfter: `after-${ply}`,
 });

@@ -4,7 +4,9 @@ import { isSyncFailure, normalizeGame } from "@velachess/infra-platforms";
 import {
   CHESS_COM_ARCHIVE_MONTH,
   FOOLS_MATE_PGN,
+  ILLEGAL_MOVE_PGN,
   LICHESS_GAME_PGN,
+  NO_LEGAL_MOVES_PGN,
 } from "@velachess/fixtures";
 
 describe("normalizeGame — real Chess.com sample", () => {
@@ -126,6 +128,28 @@ describe("normalizeGame — malformed input", () => {
       externalUrl: null,
     });
     expect(isSyncFailure(result)).toBe(true);
+  });
+
+  it("refuses a game whose movetext never produced a legal move", () => {
+    // The acceptance policy lives in `libs/chess` and applies here, at the
+    // trust boundary — not only in the import form.
+    const result = normalizeGame(NO_LEGAL_MOVES_PGN, {
+      origin: "pgn",
+      externalId: null,
+      externalUrl: null,
+    });
+
+    expect(isSyncFailure(result)).toBe(true);
+  });
+
+  it("keeps a game that goes illegal part-way, as the policy says", () => {
+    const result = normalizeGame(ILLEGAL_MOVE_PGN, {
+      origin: "pgn",
+      externalId: null,
+      externalUrl: null,
+    });
+
+    expect(isSyncFailure(result)).toBe(false);
   });
 });
 

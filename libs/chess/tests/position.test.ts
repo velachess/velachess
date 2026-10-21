@@ -7,7 +7,9 @@ import {
 } from "@velachess/fixtures";
 import { describe, expect, it } from "vitest";
 
-import { makeFen, positionFromFen } from "@velachess/chess";
+import { makeFen } from "chessops/fen";
+
+import { positionFromFen } from "@velachess/chess";
 
 describe("positionFromFen", () => {
   it("parses and validates a legal position", () => {

@@ -109,11 +109,10 @@ describe("legalTargetsAt", () => {
     ]);
   });
 
-  it("offers the side that is not to move too — a variation decides the turn, this does not", () => {
-    expect(legalTargetsAt(START, "e7").map((target) => target.square)).toEqual([
-      "e5",
-      "e6",
-    ]);
+  it("offers nothing for the side that is not to move", () => {
+    // The board must not draw a dot the move then refuses: a variation is
+    // a game being played, and it is White's turn.
+    expect(legalTargetsAt(START, "e7")).toEqual([]);
   });
 
   it("has nothing to offer from an empty square", () => {
