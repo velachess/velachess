@@ -10,7 +10,7 @@ import { castlingSide, normalizeMove } from "chessops/chess";
 import { isNormal, type Move, type NormalMove, type Role } from "chessops/types";
 import { makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
 import { makeFen } from "chessops/fen";
-import { makeSan, parseSan } from "chessops/san";
+import { makeSanAndPlay, parseSan } from "chessops/san";
 
 export { castlingSide, isNormal, parseUci };
 export type { Move };
@@ -110,10 +110,11 @@ export function playMove(
     legalMoveBetween(pos, from, to, promotion) ?? legalMoveBetween(pos, from, to);
   if (!move) return null;
 
-  // makeSan clones internally and must run before the position is played.
-  const san = makeSan(pos, move);
+  // One clone, not two: `makeSan` is `makeSanAndPlay` on a clone of its
+  // own, so playing our copy and naming the move are the same step. The
+  // position handed in is never touched.
   const next = pos.clone();
-  next.play(move);
+  const san = makeSanAndPlay(next, move);
 
   return { fen: makeFen(next.toSetup()), san };
 }
