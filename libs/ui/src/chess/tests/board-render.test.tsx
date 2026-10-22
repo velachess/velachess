@@ -32,7 +32,7 @@ const knightTargets = (from: string) => (from === "b1" ? KNIGHT_OPENINGS : []);
 
 /** The library renders `id="chessboard-square-<name>"` per square. */
 const squareAt = (container: HTMLElement, name: string) =>
-  container.querySelector(`#chessboard-square-${name}`);
+  container.querySelector<HTMLElement>(`#chessboard-square-${name}`);
 
 /** The inline style of the div our `squareRenderer` returns — where every
  * fill this component paints actually lands. */
@@ -42,24 +42,22 @@ const fillAt = (container: HTMLElement, name: string) =>
 const badgeAt = (container: HTMLElement, name: string) =>
   squareAt(container, name)?.querySelector('[data-slot="square-badge"]') ?? null;
 
-const clickPiece = (container: HTMLElement, id: string) => {
-  const piece = container.querySelector(`#chessboard-piece-${id}`);
-  // Fails here, clearly, if the library's id scheme ever changes — instead
-  // of a click silently doing nothing and the next assertion reading like
-  // a timing flake it is not.
-  expect(piece).not.toBeNull();
+/** Throws rather than asserting: it narrows the element for the click
+ * below, and says which id went missing if the library renames one —
+ * instead of a click silently doing nothing and the next assertion
+ * reading like a timing flake it is not. */
+const clickOn = (element: HTMLElement | null, what: string) => {
+  if (!element) throw new Error(`${what} is not on the board`);
   act(() => {
-    (piece as HTMLElement).click();
+    element.click();
   });
 };
 
-const clickSquare = (container: HTMLElement, name: string) => {
-  const square = squareAt(container, name);
-  expect(square).not.toBeNull();
-  act(() => {
-    (square as HTMLElement).click();
-  });
-};
+const clickPiece = (container: HTMLElement, id: string) =>
+  clickOn(container.querySelector<HTMLElement>(`#chessboard-piece-${id}`), id);
+
+const clickSquare = (container: HTMLElement, name: string) =>
+  clickOn(squareAt(container, name), name);
 
 // react-chessboard's first mount is real DOM work over 64 squares, and a
 // cold/throttled CI runner has occasionally pushed this past the default

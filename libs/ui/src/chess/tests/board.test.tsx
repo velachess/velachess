@@ -45,20 +45,24 @@ interface CapturedOptions {
     opacity: number;
   };
   clearArrowsOnPositionChange: boolean;
-  squareRenderer: (args: { square: string; children?: ReactNode }) => ReactElement;
+  squareRenderer: (args: {
+    square: string;
+    children?: ReactNode;
+  }) => ReactElement<{ style?: SquareFill }>;
   onPieceDrop: (args: { sourceSquare: string; targetSquare: string | null }) => boolean;
   onPieceDrag: (args: { square: string }) => void;
 }
 
 let captured: CapturedOptions;
 
+interface SquareFill {
+  backgroundImage?: string;
+  backgroundColor?: string;
+}
+
 /** The fill the renderer puts on a square, read where it is applied. */
-function fillAt(square: string): { backgroundImage?: string; backgroundColor?: string } {
-  const rendered = captured.squareRenderer({ square });
-  return (
-    (rendered.props as { style?: { backgroundImage?: string; backgroundColor?: string } })
-      .style ?? {}
-  );
+function fillAt(square: string): SquareFill {
+  return captured.squareRenderer({ square }).props.style ?? {};
 }
 
 // Only the component is stubbed. The module's own constants stay real,
