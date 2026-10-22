@@ -12,10 +12,8 @@
  */
 
 import { Chessboard, defaultArrowOptions } from "react-chessboard";
-import type { Arrow } from "react-chessboard";
-import { useState } from "react";
-import type { LegalDestination } from "@velachess/chess";
-import type { CSSProperties } from "react";
+import type { Arrow, SquareHandlerArgs } from "react-chessboard";
+import { useState, type CSSProperties } from "react";
 
 import { cn } from "../lib/utils.ts";
 import {
@@ -48,22 +46,36 @@ const ARROW_GEOMETRY = {
   ...defaultArrowOptions,
   arrowLengthReducerDenominator: 4,
   // Well under the library's 0.65. An arrow is an annotation laid over
-  // the position, so the pieces it crosses have to stay readable
-  // through it, and two arrows that cross should not stack into a
-  // third, darker shape. Per-arrow weight still rides in the colours
-  // third, darker shape.
+  // the position, so the pieces it crosses have to stay readable through
+  // it, and two arrows that cross should not stack into a darker third.
   opacity: 0.45,
-} as const;
+} satisfies typeof defaultArrowOptions;
 
 export type BoardSide = "white" | "black";
 
 export interface BoardMove {
   from: string;
-  /** null when a piece is dropped off the board. */
-  to: string | null;
+  to: string;
 }
 
-/** A line the engine offers, in squares rather than UCI. */
+/**
+ * A square the caller says a piece may reach, and whether landing there
+ * takes a piece — the board draws the two differently.
+ *
+ * Declared here rather than imported: legality is the caller's, and this
+ * package knows nothing of chess rules or of `@velachess/chess`.
+ */
+export interface BoardDestination {
+  square: string;
+  isCapture: boolean;
+}
+
+/**
+ * Two squares to draw between — a highlight or an arrow, depending on
+ * which prop carries it. Shaped like `BoardMove` and kept apart from it
+ * on purpose: this one travels in, as something to show, and a move
+ * travels out, as something the caller has to rule on.
+ */
 export interface BoardArrow {
   from: string;
   to: string;
@@ -100,7 +112,7 @@ export interface BoardProps {
    * whether a move captures, which en passant makes a rule question and
    * not a "is the square occupied" one.
    */
-  legalTargetsOf?: ((square: string) => readonly LegalDestination[]) | undefined;
+  legalTargetsOf?: ((square: string) => readonly BoardDestination[]) | undefined;
   /**
    * Animate piece movement. Off while stepping through a replay: the
    * next keypress arrives before any easing curve finishes, and a
@@ -181,18 +193,7 @@ export function Board({
    * touch screen offers comfortably. It goes through `onMove` like a drop
    * does, so legality is still decided once, by the caller.
    */
-  function selectOrMove({
-    piece,
-    square,
-  }: {
-    piece: unknown;
-    square: string | null;
-  }): void {
-    if (!square) {
-      setPicked(null);
-      return;
-    }
-
+  function selectOrMove({ piece, square }: SquareHandlerArgs): void {
     const reachable = selected
       ? legalTargetsOf?.(selected)?.some((target) => target.square === square)
       : false;
@@ -263,6 +264,9 @@ export function Board({
           },
           onPieceDrop: ({ sourceSquare, targetSquare }) => {
             setPicked(null);
+            // A piece let go outside the board is never a move, so the
+            // caller is never asked about one.
+            if (!targetSquare) return false;
             return onMove?.({ from: sourceSquare, to: targetSquare }) ?? false;
           },
         }}

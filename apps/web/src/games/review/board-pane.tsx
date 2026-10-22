@@ -69,7 +69,7 @@ export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) 
           bestMove={board.bestMove}
           suggestedMove={board.suggestedMove}
           badges={board.badges}
-          onMove={({ from, to }) => (to ? board.playMove(from, to) : false)}
+          onMove={({ from, to }) => board.playMove(from, to)}
           legalTargetsOf={board.legalTargetsOf}
           className="max-w-none flex-1"
         />

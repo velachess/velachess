@@ -171,7 +171,15 @@ it("reports a drop as from/to and returns the caller's verdict", () => {
 
 it("rejects the drop when nobody is listening", () => {
   render(<Board fen={START} />);
+  expect(captured.onPieceDrop({ sourceSquare: "e2", targetSquare: "e4" })).toBe(false);
+});
+
+it("never asks about a piece let go outside the board", () => {
+  const onMove = vi.fn().mockReturnValue(true);
+  render(<Board fen={START} onMove={onMove} />);
+
   expect(captured.onPieceDrop({ sourceSquare: "e2", targetSquare: null })).toBe(false);
+  expect(onMove).not.toHaveBeenCalled();
 });
 
 // A badge sits on its square's top-right corner. Where that corner is the
