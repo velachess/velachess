@@ -30,10 +30,7 @@ export const TIME_CLASS_CEILINGS: Record<Exclude<TimeClass, "classical">, number
   rapid: 1500,
 };
 
-export function estimatedSeconds(
-  initialSeconds: number,
-  incrementSeconds: number,
-): number {
+function estimatedSeconds(initialSeconds: number, incrementSeconds: number): number {
   return initialSeconds + ESTIMATED_MOVES * incrementSeconds;
 }
 

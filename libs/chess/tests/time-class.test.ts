@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { estimatedSeconds, TIME_CLASSES, timeClassOf } from "@velachess/chess";
+import { ESTIMATED_MOVES, TIME_CLASSES, timeClassOf } from "@velachess/chess";
 
 describe("time class", () => {
   it("names the four classes, in ascending duration", () => {
@@ -15,8 +15,10 @@ describe("time class", () => {
   });
 
   it("estimates duration as the clock plus forty increments", () => {
-    expect(estimatedSeconds(60, 3)).toBe(180);
-    expect(estimatedSeconds(600, 0)).toBe(600);
+    expect(ESTIMATED_MOVES).toBe(40);
+    // 60 + 40 x 3 is 180, the bullet ceiling; one increment less is not.
+    expect(timeClassOf(60, 3)).toBe("blitz");
+    expect(timeClassOf(60, 2)).toBe("bullet");
   });
 
   it("buckets by estimated duration", () => {

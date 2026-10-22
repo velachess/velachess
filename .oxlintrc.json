@@ -237,17 +237,6 @@
       }
     },
     {
-      "files": [
-        "libs/infra/engine/session.ts",
-        "libs/infra/engine/transport-worker.ts",
-        "libs/infra/engine/tests/fake-transport.ts"
-      ],
-      "rules": {
-        "no-await-in-loop": "off",
-        "unicorn/require-post-message-target-origin": "off"
-      }
-    },
-    {
       "files": ["libs/infra/db/**/*.ts"],
       "rules": {
         "no-restricted-imports": [

@@ -69,10 +69,6 @@ export function parseInfoLine(line: string): EngineUpdate | null {
 }
 
 export function parseBestMoveLine(line: string): BestMove | null {
-  const groups = line.match(/^bestmove (?<move>\S+)(?: ponder (?<ponder>\S+))?/)?.groups;
-  const move = groups?.["move"];
-  if (!move) return null;
-
-  const ponder = groups["ponder"];
-  return ponder ? { move, ponder } : { move };
+  const move = line.match(/^bestmove (?<move>\S+)/)?.groups?.["move"];
+  return move ? { move } : null;
 }
