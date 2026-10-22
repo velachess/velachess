@@ -76,3 +76,8 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
     if (warmId) await boss.deleteJob(name, warmId);
   }
 }
+
+export async function queuesExist(boss: PgBoss) {
+  const names = Object.values(QUEUES);
+  return (await boss.getQueues(names)).length === names.length;
+}

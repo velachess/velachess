@@ -113,12 +113,14 @@ describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
     expect(second.status).not.toBe(429);
   });
 
-  it("leaves the liveness probe alone", async () => {
-    // /health sits above the gate and outside every policy on purpose: a
+  it("leaves the health probes alone", async () => {
+    // /health/* sits above the gate and outside every policy on purpose: a
     // probe that can be throttled is a probe that lies during an incident.
     for (let i = 0; i < POLICIES.import.max + 5; i++) {
-      const response = await harness.app.request("/health");
-      expect(response.status).toBe(200);
+      for (const path of ["/health/live", "/health/ready"]) {
+        const response = await harness.app.request(path);
+        expect(response.status, path).toBe(200);
+      }
     }
   });
 });
@@ -180,7 +182,7 @@ describe("the request edge", () => {
   });
 
   it("sends the baseline security headers on every answer", async () => {
-    for (const path of ["/health", "/games"]) {
+    for (const path of ["/health/live", "/games"]) {
       const response = await harness.app.request(path, {
         headers: { cookie: user.cookie },
       });
@@ -224,7 +226,7 @@ describe("CORS", () => {
   });
 
   it("never widens to a wildcard", async () => {
-    const response = await harness.app.request("/health", {
+    const response = await harness.app.request("/health/live", {
       headers: { origin: ORIGIN },
     });
     expect(response.headers.get("access-control-allow-origin")).not.toBe("*");
@@ -235,7 +237,7 @@ describe("what sits above the session gate", () => {
   it("is exactly health, the spec, and Better Auth", async () => {
     // Anything else answering without a cookie would be a route mounted
     // above the gate by accident — the failure this test exists to catch.
-    for (const path of ["/health", "/config", "/openapi.json"]) {
+    for (const path of ["/health/live", "/health/ready", "/config", "/openapi.json"]) {
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(200);
     }

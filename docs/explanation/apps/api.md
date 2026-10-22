@@ -12,7 +12,8 @@ documented operation in both directions.
 The order in `src/server.ts` is part of the security and availability contract:
 
 1. request context, CORS, body limits, and CSRF protection;
-2. public system endpoints (`/health`, `/config`, `/openapi.json`);
+2. public system endpoints (`/health/live`, `/health/ready`, `/config`,
+   `/openapi.json`);
 3. Better Auth's `/auth/*` handler;
 4. session resolution for every product route;
 5. user-keyed API rate limiting and cost-specific limits;
@@ -22,6 +23,17 @@ Health and documentation remain available without a database-backed session.
 The sign-in capability endpoint exposes booleans only. Better Auth owns its own
 routes and throttling; the general API limiter sits after session resolution so
 its key is the authenticated user.
+
+## Health
+
+`GET /health/live` checks nothing. `GET /health/ready` runs `database`
+(`select 1`), `migrations` (the latest bundled migration is recorded in
+`drizzle.__drizzle_migrations`, drizzle's own rule) and `queue` (pg-boss
+finds the `sync` queues) in parallel: `200` when all pass, `503` otherwise.
+A check that has not answered after two seconds is reported as `timeout`;
+the reason for a failure is logged, never returned. Redis is not checked:
+the rate limiter fails open. Both routes sit above the session gate and the
+limiter, so a probe is never refused.
 
 ## Rate limiting
 

@@ -35,7 +35,8 @@ the only place transport concerns belong.
 ## Composition root files
 
 `src/composition/<module>.ts` — one file per business module that needs
-wiring (currently `accounts`, `games`, `user`). Each exports one
+wiring (currently `accounts`, `games`, `user`), plus `health`, which
+builds the readiness checks `GET /health/ready` runs. Each exports one
 `build<Module>Deps(...)` function per route handler that adapts real infra
 (`deps.db`, `deps.syncQueue`, ...) and other modules'
 `index.ts` capabilities into the exact narrow dependency shape that
