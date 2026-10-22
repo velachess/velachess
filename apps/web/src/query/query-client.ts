@@ -8,12 +8,7 @@ import {
   reportUnauthorized,
 } from "../api/index.ts";
 import { recordInfrastructureFailure } from "../backend-status/index.ts";
-import {
-  MutationCache,
-  QueryCache,
-  QueryClient,
-  type Query,
-} from "../libs/react-query.ts";
+import { MutationCache, QueryCache, QueryClient } from "../libs/react-query.ts";
 
 function handleApiError(error: unknown) {
   const apiError = normalizeApiError(error);
@@ -43,21 +38,6 @@ function reportUnexpectedApiError(error: unknown) {
   console.error("Unexpected API failure", error);
 }
 
-/**
- * Not every query is a request. `meta.engine` marks the ones whose work
- * runs on this device — Stockfish — so a failed search is reported as
- * what it is instead of being normalized into an API error and counted
- * against a backend that was never asked.
- */
-function handleQueryError(error: unknown, query: Query<unknown, unknown, unknown>) {
-  if (query.meta?.["engine"] === true) {
-    console.error("Browser analysis failed", error);
-    return;
-  }
-
-  handleApiError(error);
-}
-
 export function createQueryClient() {
   return new QueryClient({
     // A request that fails on infrastructure raises the banner, and nothing
@@ -66,7 +46,16 @@ export function createQueryClient() {
     // on every navigation, so any healthy endpoint would hide a backend that
     // is still broken for everything else. The reload the banner asks for is
     // the reset.
-    queryCache: new QueryCache({ onError: handleQueryError }),
+    queryCache: new QueryCache({
+      // Not every query is a request. `meta.engine` marks the ones whose
+      // work runs on this device — Stockfish — and a search that fails
+      // reaches its own screen through `isError`, so there is nothing
+      // global to do with it and nothing to normalize it into.
+      onError: (error, query) => {
+        if (query.meta?.["engine"] === true) return;
+        handleApiError(error);
+      },
+    }),
     mutationCache: new MutationCache({ onError: handleApiError }),
     defaultOptions: {
       queries: {

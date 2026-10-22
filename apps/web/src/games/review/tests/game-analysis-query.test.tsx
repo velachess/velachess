@@ -249,17 +249,24 @@ describe("gameAnalysisQuery", () => {
     await vi.waitFor(() => expect(readCache(queryClient)?.isComplete).toBe(true));
   });
 
-  it("reports a failing engine as a local failure, not as a broken backend", async () => {
+  it("hands a failing engine to its own screen, and to nothing global", async () => {
     const reported = vi.spyOn(console, "error").mockImplementation(() => {});
     const pass = stagedPass();
     const boom = new Error("Engine failed twice evaluating something");
 
     const screen = mountConsumer(queryClient);
     await vi.waitFor(() => expect(pass.started).toBe(1));
-    pass.fail(boom);
 
-    await vi.waitFor(() => expect(screen.result.current.isError).toBe(true));
-    expect(reported).toHaveBeenCalledWith("Browser analysis failed", boom);
+    await act(async () => {
+      pass.fail(boom);
+      await vi.waitFor(() => expect(screen.result.current.isError).toBe(true));
+    });
+
+    // The consumer is where it lands: `meta.engine` keeps it out of the
+    // API error path, so nothing reports it, nothing is normalized into
+    // an `ApiError`, and the backend is never blamed for a search.
+    expect(screen.result.current.error).toBe(boom);
+    expect(reported).not.toHaveBeenCalled();
     expect(getBackendStatus()).toBe("available");
   });
 });
