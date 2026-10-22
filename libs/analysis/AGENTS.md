@@ -54,9 +54,10 @@ the adapter passes an engine score positionally and never names the type.
 types `PositionEvaluator`, `PublishPly`, `GradedPly`,
 `PositionEvaluation`, `WhitePovScore`, `MoveCategory`.
 
-Cross-module dependencies: `@velachess/chess` (including `makeUci`, the
-one `Move` → UCI encoder, and `sideToMoveOf`) and `effection` for
-`Operation`. `@velachess/infra-engine` is a devDependency for the one
+Cross-module dependencies: `@velachess/chess` — types only in production
+(`ReplayedGame`, `ReplayedMove`, `Outcome`), because the replay handed in
+already answered every question about a position, including each move's
+UCI and the side that played it — and `effection` for `Operation`. `@velachess/infra-engine` is a devDependency for the one
 test that grades a real game with a real Stockfish process.
 
 Depended on by `apps/web` (reached directly through this module's

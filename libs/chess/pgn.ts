@@ -1,8 +1,8 @@
 /**
- * PGN — parsing, writing, the game tree, and comment annotations
- * ([%clk], [%eval], [%csl]/[%cal]). chessops' own parser produces a tree
- * of syntactically valid moves, not necessarily legal ones (its own words);
- * `replayMainline` below is the one place that gap gets closed.
+ * PGN — parsing, and the one replay of a game's mainline. chessops' own
+ * parser produces a tree of syntactically valid moves, not necessarily
+ * legal ones (its own words); `replayMainline` below is the one place that
+ * gap gets closed.
  */
 
 import { Result } from "@badrap/result";
