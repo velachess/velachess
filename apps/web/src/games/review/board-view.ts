@@ -53,11 +53,10 @@ export function seatIdentityOf(
 
 /** Wraps `squaresOfSan` to take a FEN instead of a parsed position, reusing its validation rather than naive slicing. */
 export function squaresOfSanAt(fen: string, san: string): MoveSquares | null {
-  try {
-    return squaresOfSan(positionFromFen(fen).unwrap(), san);
-  } catch {
-    return null;
-  }
+  return positionFromFen(fen).unwrap(
+    (position) => squaresOfSan(position, san),
+    () => null,
+  );
 }
 
 /** Engine's move as an arrow, not a played position — keeps the board showing the choice the player faced. */
@@ -70,11 +69,10 @@ export function suggestedArrow(
 
 /** Drag hints for the position on screen. Wraps `legalDestinations` to take a FEN, same as `squaresOfSanAt`. */
 export function legalTargetsAt(fen: string, square: string): readonly LegalDestination[] {
-  try {
-    return legalDestinations(positionFromFen(fen).unwrap(), square);
-  } catch {
-    return [];
-  }
+  return positionFromFen(fen).unwrap(
+    (position) => legalDestinations(position, square),
+    () => [],
+  );
 }
 
 /**
@@ -84,12 +82,12 @@ export function legalTargetsAt(fen: string, square: string): readonly LegalDesti
  * suggestion — hence the legality check.
  */
 export function sanOfUciAt(fen: string, uci: string): string | null {
-  try {
-    const position = positionFromFen(fen).unwrap();
-    const move = parseUci(uci);
-    if (!move || !position.isLegal(move)) return null;
-    return makeSan(position, move);
-  } catch {
-    return null;
-  }
+  return positionFromFen(fen).unwrap(
+    (position) => {
+      const move = parseUci(uci);
+      if (!move || !position.isLegal(move)) return null;
+      return makeSan(position, move);
+    },
+    () => null,
+  );
 }

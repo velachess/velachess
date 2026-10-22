@@ -48,12 +48,11 @@ function replay(rawPgn: string): ReplayedGame {
   const [game] = parsePgn(rawPgn);
   if (!game) return UNREADABLE;
 
-  try {
-    return replayMainline(game).unwrap();
-  } catch {
-    // Unreadable movetext is still a game with a header worth showing.
-    return UNREADABLE;
-  }
+  // Unreadable movetext is still a game with a header worth showing.
+  return replayMainline(game).unwrap(
+    (replayed) => replayed,
+    () => UNREADABLE,
+  );
 }
 
 /** A ply is one half-move. Ply 0 is the position before anyone moved. */
