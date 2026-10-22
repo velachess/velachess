@@ -1,10 +1,12 @@
+import { fileURLToPath } from "node:url";
+
 import { max, sql } from "drizzle-orm";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { bigint, pgSchema } from "drizzle-orm/pg-core";
 
 import type { Database } from "./client.ts";
 
-const migrationsFolder = new URL("./migrations", import.meta.url).pathname;
+const migrationsFolder = fileURLToPath(new URL("./migrations", import.meta.url));
 
 const appliedMigrations = pgSchema("drizzle").table("__drizzle_migrations", {
   createdAt: bigint("created_at", { mode: "number" }),

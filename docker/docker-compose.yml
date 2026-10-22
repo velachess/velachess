@@ -117,12 +117,13 @@ services:
       DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
       WORKER_ANALYSIS_CONCURRENCY: "4"
       ANALYSIS_DEPTH: "12"
+      WORKER_HEALTH_PORT: ${WORKER_HEALTH_PORT:-3003}
     healthcheck:
       test:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:3003/health/live').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+        - "fetch('http://127.0.0.1:' + process.env.WORKER_HEALTH_PORT + '/health/live').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 3
