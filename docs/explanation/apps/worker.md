@@ -36,9 +36,7 @@ retry, DLQs, expiration + heartbeat, send-path warm-up) → the `sync`
 `boss.work` registration, awaited, so a handler that cannot register
 kills the process instead of logging "consuming" over a dead one.
 Once it is registered, `serveLiveness` (`src/liveness.ts`) answers
-`GET /health/live` on `WORKER_HEALTH_PORT` (default `3001`) — process up,
-consumers registered, nothing else checked; compose's worker healthcheck
-calls it. SIGTERM/SIGINT → `worker.stop()` (`boss.stop({ graceful: true })`:
+`GET /health/live` on `WORKER_HEALTH_PORT` (default `3003`). SIGTERM/SIGINT → `worker.stop()` (`boss.stop({ graceful: true })`:
 in-flight jobs finish, new fetches stop), then the liveness probe closes,
 then exit. Its image recipe lives in `apps/worker/Dockerfile`
 (same base recipe as the api's, different command); the global composition

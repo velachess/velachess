@@ -26,19 +26,14 @@ its key is the authenticated user.
 
 ## Health
 
-`GET /health/live` touches nothing: `200` means the process is up and its
-event loop answers. `GET /health/ready` runs three checks in parallel —
-`database` (`select 1`), `migrations` (the latest bundled migration is
-recorded in `drizzle.__drizzle_migrations`, the rule `drizzle-kit migrate`
-itself uses) and `queue` (pg-boss, over its own pool, finds the `sync`
-queues) — and answers `200` when all pass, `503` otherwise. Each check is
-cut off after two seconds and reported as `ok`, `failed` or `timeout` with
-its latency; the reason is logged, never returned. Redis is not a check: the
-rate limiter fails open, so an instance without it still serves.
-
-The checks are wired in `src/composition/health.ts` and arrive as
-`ApiDeps.readinessChecks`. Both routes sit above the session gate and the
-limiter: a probe that can be refused is a probe that lies during an incident.
+`GET /health/live` checks nothing. `GET /health/ready` runs `database`
+(`select 1`), `migrations` (the latest bundled migration is recorded in
+`drizzle.__drizzle_migrations`, drizzle's own rule) and `queue` (pg-boss
+finds the `sync` queues) in parallel: `200` when all pass, `503` otherwise.
+A check that has not answered after two seconds is reported as `timeout`;
+the reason for a failure is logged, never returned. Redis is not checked:
+the rate limiter fails open. Both routes sit above the session gate and the
+limiter, so a probe is never refused.
 
 ## Rate limiting
 

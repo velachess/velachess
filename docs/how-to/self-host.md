@@ -123,14 +123,11 @@ curl -fsS http://localhost:3000/health/ready      # {"status":"ready",...}
 curl -is  http://localhost:3000/games | head -1   # HTTP/1.1 401 — the gate holds
 ```
 
-`/health/live` answers `200` while the API process is up and checks
-nothing else. `/health/ready` answers `200` only when Postgres is
-reachable, every bundled migration is applied and the queue exists, and
-`503` otherwise; each check reports `ok`, `failed` or `timeout` with its
-latency, never an error message. Both are unauthenticated and outside the
-rate limiter, so point an orchestrator or uptime monitor at them. The
-worker serves its own `GET /health/live` on `WORKER_HEALTH_PORT` (default
-`3001`), inside the container only; compose's healthchecks use both.
+`/health/live` answers `200` while the API process is up. `/health/ready`
+answers `200` when Postgres, migrations and the queue are ready, `503`
+otherwise. Both are unauthenticated; point an orchestrator or uptime monitor
+at them. The worker serves `GET /health/live` on `WORKER_HEALTH_PORT`
+(default `3003`) inside its container.
 
 A restart now logs `first-user bootstrap … status: skipped,
 reason: users-exist` (or `not-configured` once step 6 is done) — both

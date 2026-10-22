@@ -77,9 +77,7 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   }
 }
 
-export async function queuesExist(boss: PgBoss): Promise<boolean> {
-  const queues = await Promise.all(
-    Object.values(QUEUES).map((name) => boss.getQueue(name)),
-  );
-  return queues.every((queue) => queue !== null);
+export async function queuesExist(boss: PgBoss) {
+  const names = Object.values(QUEUES);
+  return (await boss.getQueues(names)).length === names.length;
 }

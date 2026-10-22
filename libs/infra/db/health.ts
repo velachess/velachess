@@ -10,17 +10,20 @@ const appliedMigrations = pgSchema("drizzle").table("__drizzle_migrations", {
   createdAt: bigint("created_at", { mode: "number" }),
 });
 
-export async function pingDatabase(db: Database): Promise<boolean> {
+export async function pingDatabase(db: Database) {
   await db.execute(sql`select 1`);
   return true;
 }
 
-export async function migrationsApplied(db: Database): Promise<boolean> {
-  const latest = Math.max(
+export function latestBundledMigration() {
+  return Math.max(
     ...readMigrationFiles({ migrationsFolder }).map(
       (migration) => migration.folderMillis,
     ),
   );
+}
+
+export async function migrationsApplied(db: Database, latest: number) {
   const [row] = await db
     .select({ applied: max(appliedMigrations.createdAt) })
     .from(appliedMigrations);

@@ -15,7 +15,7 @@ const workerLogger = logger.child({ component: "worker" });
 const databaseUrl = process.env["DATABASE_URL"];
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
-const healthPort = Number(process.env["WORKER_HEALTH_PORT"] ?? "3001");
+const healthPort = Number(process.env["WORKER_HEALTH_PORT"] ?? "3003");
 if (!Number.isInteger(healthPort) || healthPort < 1 || healthPort > 65535) {
   throw new Error("WORKER_HEALTH_PORT must be an integer between 1 and 65535");
 }

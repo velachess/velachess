@@ -1,6 +1,7 @@
-import { createServer, type Server } from "node:http";
+import { once } from "node:events";
+import { createServer } from "node:http";
 
-export function serveLiveness(port: number): Promise<Server> {
+export async function serveLiveness(port: number) {
   const server = createServer((request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.method === "GET" && request.url === "/health/live") {
@@ -10,11 +11,6 @@ export function serveLiveness(port: number): Promise<Server> {
     response.writeHead(404).end(JSON.stringify({ error: "not found" }));
   });
 
-  return new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, () => {
-      server.off("error", reject);
-      resolve(server);
-    });
-  });
+  await once(server.listen(port), "listening");
+  return server;
 }

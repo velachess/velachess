@@ -10,7 +10,11 @@ const checkSchema = z.object({
 
 const readinessSchema = z.object({
   status: z.enum(["ready", "not_ready"]),
-  checks: z.record(z.string(), checkSchema),
+  checks: z.object({
+    database: checkSchema,
+    migrations: checkSchema,
+    queue: checkSchema,
+  }),
 });
 
 export type Readiness = z.infer<typeof readinessSchema>;
@@ -51,7 +55,7 @@ const readyRoute = createRoute({
 
 export function healthRoutes(deps: HealthDeps) {
   return new OpenAPIHono<ApiEnv>({ defaultHook })
-    .openapi(liveRoute, (c) => c.json({ status: "ok" as const }, 200))
+    .openapi(liveRoute, (c) => c.json({ status: "ok" }, 200))
     .openapi(readyRoute, async (c) => {
       const readiness = await deps.ready();
       if (readiness.status === "ready") return c.json(readiness, 200);
