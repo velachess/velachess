@@ -11,6 +11,7 @@ import type { Database, SyncNotifications } from "@velachess/infra-db";
 import type { SyncQueue } from "@velachess/infra-queue";
 import type { FileStore } from "@velachess/infra-storage";
 
+import type { ReadinessChecks } from "./composition/health.ts";
 import type { Redis } from "./redis.ts";
 
 /**
@@ -45,6 +46,8 @@ export interface ApiDeps {
   syncNotifications: SyncNotifications;
   /** Avatar bytes — the only binary this app stores. */
   files: FileStore;
+  /** What GET /health/ready runs. */
+  readinessChecks: ReadinessChecks;
   /** Read-through fetching for GET /games. Tests inject a fixture. */
   sync?: SyncDeps;
 }

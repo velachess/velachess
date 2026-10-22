@@ -49,10 +49,6 @@ async function handleApi(route: Route) {
     await fulfillJson(route, session);
     return;
   }
-  if (method === "GET" && pathname === "/api/health") {
-    await fulfillJson(route, { ok: true });
-    return;
-  }
   if (method === "GET" && pathname === "/api/accounts") {
     await fulfillJson(route, [account]);
     return;

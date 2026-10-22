@@ -71,7 +71,7 @@ function largeArchiveFetch(count: number): typeof fetch {
 
 describe("api routes", () => {
   it("health and validation basics", async () => {
-    expect((await owner.request("/health")).status).toBe(200);
+    expect((await owner.request("/health/live")).status).toBe(200);
     expect(
       (await owner.request("/accounts", json({ platform: "nope", username: "" }))).status,
     ).toBe(400);

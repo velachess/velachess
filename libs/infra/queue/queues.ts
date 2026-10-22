@@ -76,3 +76,10 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
     if (warmId) await boss.deleteJob(name, warmId);
   }
 }
+
+export async function queuesExist(boss: PgBoss): Promise<boolean> {
+  const queues = await Promise.all(
+    Object.values(QUEUES).map((name) => boss.getQueue(name)),
+  );
+  return queues.every((queue) => queue !== null);
+}

@@ -1,5 +1,3 @@
-import { http, HttpResponse } from "msw";
-
 import { accountsHandlers } from "./accounts.ts";
 import { authHandlers } from "./auth.ts";
 import { gamesHandlers } from "./games.ts";
@@ -15,7 +13,6 @@ import { syncEventsHandlers } from "./sync-events.ts";
  * it instead of hidden in shared setup.
  */
 export const handlers = [
-  http.get("/api/health", () => HttpResponse.json({ ok: true })),
   ...authHandlers,
   ...gamesHandlers,
   ...accountsHandlers,

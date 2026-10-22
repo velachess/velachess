@@ -27,7 +27,7 @@ describe("API error classification", () => {
       vi.fn(() => Promise.reject(cause)),
     );
 
-    await expect(parseResponse(api.health.$get())).rejects.toMatchObject({
+    await expect(parseResponse(api.health.live.$get())).rejects.toMatchObject({
       cause,
       name: "NetworkError",
     });
