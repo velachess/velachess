@@ -224,6 +224,7 @@ export function Board({
   // re-implementing the board.
   const [selected, setSelected] = useState<string | null>(null);
   const hints = hintsOf(showLegalMoves === "off" ? null : selected, legalTargetsOf);
+  const highlights = squaresOf(lastMove);
 
   /**
    * Click to move: pick a piece, then click where it goes.
@@ -278,10 +279,6 @@ export function Board({
           allowDragging: interactive && onMove !== undefined,
           lightSquareStyle: BOARD_STYLE.light,
           darkSquareStyle: BOARD_STYLE.dark,
-          // The last move still goes here: it is painted before any
-          // renderer runs, and the library merges it into the square's own
-          // background rather than the child this component returns.
-          squareStyles: squaresOf(lastMove),
           // Three gestures reach the same selection, because all three
           // are how people pick a piece: dragging it, clicking it, and
           // clicking a square that happens to hold one. Wiring only the
@@ -306,17 +303,17 @@ export function Board({
           // on move 12 is still hanging there on move 13.
           allowDrawingArrows: true,
           clearArrowsOnPositionChange: true,
-          // `squareStyles` is only read by the library's own square div,
-          // and a `squareRenderer` replaces it outright — the source is
-          // `squareRenderer?.(…) || <div style={{…squareStyles[id]}} />`.
-          // Since we render badges, nothing was ever consuming the hints,
-          // so they have to be applied here by hand.
+          // Every square fill goes here, never through `squareStyles`:
+          // the library reads that option only on the div a renderer
+          // replaces — `squareRenderer?.(…) || <div style={{…squareStyles[id]}} />`
+          // — and badges mean there is always a renderer. The hint wins
+          // the overlap, so a piece picked up off the last move looks it.
           squareRenderer: ({ square, children }) => {
             const tone = badges?.[square];
             return (
               <div
                 className="relative flex h-full w-full items-center justify-center"
-                style={hints[square]}
+                style={{ ...highlights[square], ...hints[square] }}
               >
                 {children}
                 {tone !== undefined && (

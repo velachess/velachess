@@ -14,7 +14,7 @@ import { squaresOfUci, type LegalDestination, type MoveSquares } from "@velaches
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
 import type { GradedPly } from "../analysis/index.ts";
-import { legalTargetsAt, squaresOfSanAt, suggestedArrow } from "./board-view.ts";
+import { legalTargetsAt, suggestedArrow } from "./board-view.ts";
 import { badgeAt, evaluationOf, showingLabel } from "./move-presentation.ts";
 import {
   gradeAtPly,
@@ -59,8 +59,7 @@ export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
   // The move just played, and the choice facing whoever is to move now.
   const playedGrade = gradeAtPly(graded, ply);
   const positionGrade = gradeAtPly(graded, ply + 1);
-  const lastMove =
-    variationMove ?? (gameMove ? squaresOfSanAt(gameMove.fenBefore, gameMove.san) : null);
+  const lastMove = variationMove ?? (gameMove ? squaresOfUci(gameMove.uci) : null);
 
   return {
     fen,

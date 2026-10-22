@@ -12,6 +12,7 @@ import { useGameReview } from "./use-game-review.ts";
 export interface MoveListProps {
   /** Grades in ply order — shorter than the game while the run streams. */
   graded: readonly GradedPly[];
+  moves: readonly ReplayedMove[];
   whiteName: string;
   blackName: string;
 }
@@ -43,8 +44,7 @@ function scoresheetRows(moves: readonly ReplayedMove[]): ScoresheetRow[] {
 }
 
 /** Cells are real buttons for keyboard reach. */
-export function MoveList({ graded, whiteName, blackName }: MoveListProps) {
-  const moves = useGameReview((state) => state.moves);
+export function MoveList({ graded, moves, whiteName, blackName }: MoveListProps) {
   const currentPly = useGameReview((state) => state.ply);
   const onSelectPly = useGameReview((state) => state.goToPly);
 

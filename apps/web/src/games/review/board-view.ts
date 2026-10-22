@@ -52,7 +52,7 @@ export function seatIdentityOf(
 }
 
 /** Wraps `squaresOfSan` to take a FEN instead of a parsed position, reusing its validation rather than naive slicing. */
-export function squaresOfSanAt(fen: string, san: string): MoveSquares | null {
+function squaresOfSanAt(fen: string, san: string): MoveSquares | null {
   return positionFromFen(fen).unwrap(
     (position) => squaresOfSan(position, san),
     () => null,
@@ -67,7 +67,7 @@ export function suggestedArrow(
   return fen && san ? squaresOfSanAt(fen, san) : null;
 }
 
-/** Drag hints for the position on screen. Wraps `legalDestinations` to take a FEN, same as `squaresOfSanAt`. */
+/** Drag hints for the position on screen. Wraps `legalDestinations` to take a FEN, same as `suggestedArrow` does. */
 export function legalTargetsAt(fen: string, square: string): readonly LegalDestination[] {
   return positionFromFen(fen).unwrap(
     (position) => legalDestinations(position, square),

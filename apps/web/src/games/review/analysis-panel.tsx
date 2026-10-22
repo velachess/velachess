@@ -116,6 +116,7 @@ export function AnalysisPanel({
           )}
           <MoveList
             graded={graded}
+            moves={game.moves}
             whiteName={game.whiteName}
             blackName={game.blackName}
           />

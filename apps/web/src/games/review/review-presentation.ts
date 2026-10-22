@@ -8,7 +8,7 @@
 import { resolveGamePerspective } from "@velachess/chess";
 
 import { flairImageOf } from "../import/index.ts";
-import { seatIdentityOf, seatOf, type Seat } from "./board-view.ts";
+import { seatIdentityOf, type Seat } from "./board-view.ts";
 import type { ReplayableGame } from "./game-record.ts";
 
 /** What seating a board needs of the game it is showing. */
@@ -78,13 +78,14 @@ export function reviewPlayersOf(
   usernames: readonly string[],
   formatRating: (rating: number) => string,
 ): ReviewPlayers {
-  const orientation = seatOf(game, usernames);
+  const mySeat = resolveGamePerspective(game, usernames);
+  const orientation = mySeat ?? "white";
   const white = playerSeatOf(game, "white", formatRating);
   const black = playerSeatOf(game, "black", formatRating);
 
   return {
     orientation,
-    mySeat: resolveGamePerspective(game, usernames),
+    mySeat,
     top: orientation === "white" ? black : white,
     bottom: orientation === "white" ? white : black,
   };

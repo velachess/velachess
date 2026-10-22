@@ -154,7 +154,6 @@ describe("playing a variation", () => {
     const { variation } = store.getState();
     expect(variation?.moves.map((move) => move.san)).toEqual(["e4", "e5", "Nf3"]);
     expect(variation?.cursor).toBe(3);
-    expect(variation?.originPly).toBe(0);
   });
 
   it("supersedes the evaluation under way, and only the last one lands", async () => {

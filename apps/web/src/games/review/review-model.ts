@@ -52,7 +52,6 @@ interface VariationMove {
 
 /** A line played from one ply of the real game. One line, not a tree. */
 export interface Variation {
-  originPly: number;
   moves: VariationMove[];
   /** 1-based: how many of the line's moves are on the board. Never 0 — a
    * variation with nothing shown is the game itself. */
@@ -208,7 +207,6 @@ export function playVariationMove(
     : [];
 
   return {
-    originPly: state.variation?.originPly ?? state.ply,
     moves: [...kept, { move: { from, to }, san: played.san, fen: played.fen }],
     cursor: kept.length + 1,
   };

@@ -55,6 +55,19 @@ it("paints a legal destination once a piece is picked up", () => {
   expect(squareAt(container, "a3")?.innerHTML).toContain("radial-gradient");
 }, 10_000);
 
+it("lights both squares of the last move", () => {
+  const { container } = render(<Board fen={START} />);
+  expect(squareAt(container, "e2")?.innerHTML).not.toContain("--board-highlight");
+
+  const { container: lit } = render(
+    <Board fen={START} lastMove={{ from: "e2", to: "e4" }} />,
+  );
+
+  expect(squareAt(lit, "e2")?.innerHTML).toContain("--board-highlight");
+  expect(squareAt(lit, "e4")?.innerHTML).toContain("--board-highlight");
+  expect(squareAt(lit, "d2")?.innerHTML).not.toContain("--board-highlight");
+}, 10_000);
+
 it("renders a square for every one of the sixty-four", () => {
   // Cheap smoke test that the library mounted at all: without it a
   // silently broken render would make the assertion above pass by

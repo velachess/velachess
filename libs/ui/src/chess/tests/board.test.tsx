@@ -34,7 +34,6 @@ interface CapturedOptions {
   darkSquareNotationStyle: { color: string };
   lightSquareStyle: { backgroundColor: string };
   darkSquareStyle: { backgroundColor: string };
-  squareStyles: Record<string, { backgroundColor?: string; backgroundImage?: string }>;
   arrows: CapturedArrow[] | undefined;
   arrowOptions: {
     arrowLengthReducerDenominator: number;
@@ -51,19 +50,27 @@ interface CapturedOptions {
 
 let captured: CapturedOptions;
 
+interface SquareFill {
+  backgroundImage?: string;
+  backgroundColor?: string;
+}
+
 /**
- * The hint painted on a square, read where it is actually applied.
+ * Every fill a square carries, read where it is actually applied.
  *
  * Not `squareStyles`: the library only reads that on its own square div,
  * and a `squareRenderer` replaces that div — so asserting there passed
  * while nothing rendered.
  */
-function hintAt(square: string): string | undefined {
+function fillAt(square: string): SquareFill {
   const rendered = captured.squareRenderer({ square });
-  const style = (
-    rendered.props as { style?: { backgroundImage?: string; backgroundColor?: string } }
-  ).style;
-  return style?.backgroundImage ?? style?.backgroundColor;
+  return (rendered.props as { style?: SquareFill }).style ?? {};
+}
+
+/** The hint alone: a dot or ring is an image, a selection is a colour. */
+function hintAt(square: string): string | undefined {
+  const fill = fillAt(square);
+  return fill.backgroundImage ?? fill.backgroundColor;
 }
 
 // Only the component is stubbed. The module's own constants stay real,
@@ -93,8 +100,9 @@ it("passes the position, orientation and themed squares down", () => {
 it("lights both squares of the last move", () => {
   render(<Board fen={START} lastMove={{ from: "e2", to: "e4" }} />);
 
-  expect(captured.squareStyles["e2"]!.backgroundColor).toBe("var(--board-highlight)");
-  expect(captured.squareStyles["e4"]!.backgroundColor).toBe("var(--board-highlight)");
+  expect(fillAt("e2").backgroundColor).toBe("var(--board-highlight)");
+  expect(fillAt("e4").backgroundColor).toBe("var(--board-highlight)");
+  expect(fillAt("d2")).toEqual({});
 });
 
 it("asks the library for notation rather than drawing it", () => {
@@ -263,7 +271,8 @@ it("leaves a board with no hint source unmarked", () => {
 
   act(() => captured.onPieceDrag({ square: "b1" }));
 
-  expect(Object.keys(captured.squareStyles)).toEqual([]);
+  expect(fillAt("b1")).toEqual({});
+  expect(fillAt("a3")).toEqual({});
 });
 
 /**
