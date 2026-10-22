@@ -37,11 +37,8 @@ type ReplayNavigationEvent =
 
 export type ReplayNavigation = (event: ReplayNavigationEvent) => void;
 
-/**
- * All a review needs of the game it is a review of. It is a parameter, not
- * state: the replay belongs to `gameQuery`, and copying it into a snapshot
- * would make the same fact answerable from two places.
- */
+/** All a review needs of the game it is a review of, as a parameter —
+ * the replay is `gameQuery`'s, never a copy in this state. */
 export interface ReviewGame {
   moves: readonly ReplayedMove[];
   startFen: string;
@@ -67,8 +64,7 @@ export interface ReviewData {
   /** One half-move. 0 is the position before anyone moved. */
   ply: number;
   variation: Variation | null;
-  /** Someone asked to see the engine's move for the ply on screen. The
-   * move itself is the report's — this is only the asking. */
+  /** The asking only — the move itself is the report's. */
   showBestMove: boolean;
 }
 

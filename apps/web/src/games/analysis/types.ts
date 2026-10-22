@@ -1,10 +1,7 @@
 /**
- * What an analysis is made of, and what identifies one.
- *
- * Every shape here is either the engine's or `@velachess/analysis`'s —
- * `EngineUpdate`, `GradedPly`, `PositionEvaluation` are imported, never
- * restated. What this file adds is the event stream a whole-game pass
- * produces and the accumulated reading a consumer keeps.
+ * What an analysis is made of, and what identifies one. The engine's and
+ * `@velachess/analysis`'s shapes are imported, never restated: this file
+ * adds the event stream a pass produces and the reading it folds into.
  */
 import { POLICY_VERSION, type GradedPly } from "@velachess/analysis";
 import type { EngineUpdate } from "@velachess/infra-engine";
@@ -45,11 +42,7 @@ export interface GameAnalysisInput {
   replay: ReplayedGame;
 }
 
-/**
- * The search in progress, carrying the position it is about. A reading
- * this provisional is never graded; it exists so a screen can show that
- * the engine is working and how deep it has gone.
- */
+/** The search in progress. A reading this provisional is never graded. */
 interface LiveEvaluation {
   /** The 1-indexed ply whose grade this search unblocks. */
   ply: number;
@@ -57,9 +50,7 @@ interface LiveEvaluation {
   update: EngineUpdate;
 }
 
-/** What a pass reports, named once: the union below is derived from
- * these, so a consumer matching on a name cannot spell one that does not
- * exist. */
+/** Named once: the union below is derived from these. */
 export const ANALYSIS_EVENT = {
   POSITION_UPDATE: "position-update",
   PLY_GRADED: "ply-graded",

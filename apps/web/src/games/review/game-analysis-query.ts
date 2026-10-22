@@ -1,20 +1,15 @@
 /**
  * The analysis of one game, as React Query sees it: a stream of events
- * from `games/analysis` folded into one accumulating reading.
- *
- * The cache is the accumulator — `experimental_streamedQuery` writes
- * every chunk through `setQueryData`, so progress belongs to the query
- * and not to a store beside it. Each consumer subscribes with the
- * `select` that names what it draws, which is what keeps a graded ply
- * from re-rendering the board and a deepening search from re-rendering
- * the scoresheet.
+ * from `games/analysis` folded into one accumulating reading. The cache
+ * is the accumulator — `experimental_streamedQuery` writes every chunk
+ * through `setQueryData` — and each consumer subscribes with the
+ * `select` that names what it draws.
  *
  * Leaving the screen does not stop the pass: `streamFn` never reads
  * `context.signal`, and React Query only cancels an observer-less fetch
- * whose signal was consumed. The pass therefore runs to its end, keeps
- * filling this cache, and persists its report — which also means
- * `cancelQueries()` is not an interrupt here and must never be offered as
- * one. The Worker is released when the stream ends, in `analyze.ts`.
+ * whose signal was consumed. So the pass runs to its end, keeps filling
+ * this cache and persists its report — and `cancelQueries()` is not an
+ * interrupt here, which it must never be offered as.
  */
 import {
   analyzeGameInBrowser,
@@ -32,21 +27,13 @@ import type { ReplayedGame } from "@velachess/chess";
 import type { ReplayableGame } from "./game-record.ts";
 import { gradeAtPly } from "./review-model.ts";
 
-/**
- * What an analysis needs of a game: which game it is, and the replay it
- * grades. Narrower than `ReplayableGame` because nothing here reads a
- * player, a rating or a result — and a test can then build one without
- * inventing the rest of an HTTP payload.
- */
+/** Which game it is, and the replay it grades — all an analysis reads. */
 export type AnalysedGame = Pick<ReplayableGame, "id"> & ReplayedGame;
 
 const EMPTY_ANALYSIS: GameAnalysis = { graded: [], live: null, isComplete: false };
 
-/**
- * A provisional reading is replaced, never kept: `live` is one search's
- * current depth, and it is cleared the moment that search produces a
- * grade, so it can never be read as belonging to the next position.
- */
+/** A provisional reading is replaced, never kept, and cleared by the
+ * grade it was working toward. */
 function reduceAnalysis(analysis: GameAnalysis, event: AnalysisEvent): GameAnalysis {
   if (event.type === ANALYSIS_EVENT.POSITION_UPDATE) {
     return { ...analysis, live: event.live };
@@ -65,9 +52,8 @@ function reduceAnalysis(analysis: GameAnalysis, event: AnalysisEvent): GameAnaly
 
 export function gameAnalysisQuery(game: AnalysedGame) {
   return queryOptions({
-    // The identity of the answer, not just of the game: a report graded
-    // by another engine build, depth or policy is a different report,
-    // and the stored one is gated on the same three values.
+    // The identity of the answer, not just of the game: the stored
+    // report is gated on the same three values.
     queryKey: [...gameAnalysisQueryKey, game.id, ANALYSIS_IDENTITY],
     queryFn: experimental_streamedQuery({
       streamFn: () => analyzeGameInBrowser({ gameId: game.id, replay: game }),
@@ -89,8 +75,7 @@ export function selectGraded(analysis: GameAnalysis): readonly GradedPly[] {
   return analysis.graded;
 }
 
-/** What the board draws of the report: the move just played, and the
- * choice facing whoever is to move now. */
+/** The move just played, and the choice facing whoever is to move. */
 export interface BoardGrades {
   played: GradedPly | undefined;
   position: GradedPly | undefined;

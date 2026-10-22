@@ -47,10 +47,9 @@ export function createQueryClient() {
     // is still broken for everything else. The reload the banner asks for is
     // the reset.
     queryCache: new QueryCache({
-      // Not every query is a request. `meta.engine` marks the ones whose
-      // work runs on this device — Stockfish — and a search that fails
-      // reaches its own screen through `isError`, so there is nothing
-      // global to do with it and nothing to normalize it into.
+      // `meta.engine` marks a query whose work runs on this device: a
+      // failed search reaches its own screen through `isError`, so there
+      // is nothing global to do with it and nothing to normalize it into.
       onError: (error, query) => {
         if (query.meta?.["engine"] === true) return;
         handleApiError(error);

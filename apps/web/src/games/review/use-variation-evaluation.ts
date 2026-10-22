@@ -1,17 +1,12 @@
 /**
  * The engine's answer for the position a variation is showing: asked for
- * here, cancelled here, and held here for as long as it is on screen.
+ * here, cancelled here, and held here rather than in the review's state.
  *
  * The session is this review's: opened by the first position that needs
  * it, kept while someone keeps walking the line — so one Worker answers
  * every position instead of one per FEN — and disposed when the screen
  * goes away. Nothing else may dispose it, and the whole-game pass has a
  * session of its own that this one neither waits for nor interrupts.
- *
- * This is Position Evaluation on its own: exploring a line asks for one
- * position and never starts a whole-game analysis or reads its report.
- * The answer is this hook's, not the review store's — it is the engine's
- * output, so it belongs with whoever shows it.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -31,18 +26,14 @@ async function settledEvaluation(search: PositionSearch) {
   return step.value;
 }
 
-/** An answer carries the position it is about, which is the whole of the
- * staleness rule: it is shown for that FEN and for no other. */
+/** An answer carries the position it is about: it is shown for that FEN
+ * and for no other. */
 interface Answered {
   fen: string;
   score: WhitePovScore;
 }
 
-/**
- * `fen` is the position on the board, or null when the game's own is —
- * and null is also the answer then, which is what restores the report's
- * reading.
- */
+/** `fen` is the position on the board, or null when the game's own is. */
 export function useVariationEvaluation(fen: string | null): WhitePovScore | null {
   const evaluatorRef = useRef<PositionEvaluator | null>(null);
   const [answered, setAnswered] = useState<Answered | null>(null);
@@ -79,9 +70,7 @@ export function useVariationEvaluation(fen: string | null): WhitePovScore | null
 
     void settledEvaluation(search).then(
       (settled) => {
-        // A result that beats its own cancellation would otherwise land
-        // on top of a newer position's: only the search still being
-        // waited on may answer.
+        // A result that beat its own cancellation is not this position's.
         if (asked) setAnswered({ fen, score: settled.score });
       },
       () => {
@@ -97,8 +86,5 @@ export function useVariationEvaluation(fen: string | null): WhitePovScore | null
     };
   }, [fen]);
 
-  // Derived rather than cleared: a number belongs to one position, so
-  // leaving the line or moving along it shows the report's reading again
-  // until this line's own search answers.
   return answered?.fen === fen ? answered.score : null;
 }

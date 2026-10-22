@@ -1,13 +1,10 @@
 /**
  * Producing and reading evaluations. Stockfish WASM runs here and nowhere
- * else in the app; everything this domain offers is either a search it
- * schedules or a reading of what a search produced.
+ * else in the app, and a whole game is an `AsyncIterable` of events —
+ * who starts it and accumulates it is not this module's business.
  *
- * A whole game is an `AsyncIterable` of events — React Query is what
- * starts it, accumulates it and hands it to a screen, and nothing in here
- * knows that. The graded-move vocabulary comes from `@velachess/analysis`,
- * the module that computes it: this app runs that same policy in the
- * browser, so there is nothing to mirror and one import site for it.
+ * The graded-move vocabulary comes from `@velachess/analysis`, the module
+ * that computes it, so there is nothing to mirror and one import site.
  */
 export { MOVE_CATEGORIES, scoreToWinChance } from "@velachess/analysis";
 export type { GradedPly, MoveCategory, WhitePovScore } from "@velachess/analysis";

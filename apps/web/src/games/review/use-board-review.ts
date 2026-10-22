@@ -79,9 +79,6 @@ export function useBoardReview(game: ReplayableGame): BoardReview {
       inVariation || !positionGrade?.bestMove
         ? undefined
         : (squaresOfUci(positionGrade.bestMove) ?? undefined),
-    // The engine's move at the position this one was played from, which
-    // is what `playedGrade.bestMove` is — asked for, rather than drawn
-    // over every move like `bestMove` above.
     suggestedMove:
       inVariation || !showBestMove || !playedGrade?.bestMove
         ? undefined

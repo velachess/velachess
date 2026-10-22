@@ -21,11 +21,8 @@ import { createStockfishEvaluator } from "../position/stockfish.ts";
 import type { PositionEvaluator } from "../position/evaluate.ts";
 import { ANALYSIS_EVENT, type AnalysisEvent, type GameAnalysisInput } from "../types.ts";
 
-/**
- * Re-publishes a search's `info` lines as events and hands back what it
- * settled on, so the caller reads one position with `yield*` and a grade
- * is only ever built from a completed search.
- */
+/** One position, as events — the return value is the completed search a
+ * grade may be built from. */
 async function* searchPosition(
   evaluator: PositionEvaluator,
   fen: string,
@@ -49,11 +46,10 @@ async function* searchPosition(
  * Grades every ply, emitting each one the moment it is decided. One
  * search per position: the evaluation after a move is the evaluation
  * before the next one, and a game that ended on its final move takes
- * that move's score from the rules instead of searching a position with
- * nothing to search.
+ * that move's score from the rules rather than a search.
  *
- * A game whose mainline went illegal part-way is graded up to that point,
- * which is the same prefix the board shows.
+ * A mainline that went illegal part-way is graded up to that point,
+ * which is the prefix the board shows.
  */
 export async function* analyzeGame(
   replay: ReplayedGame,
@@ -98,19 +94,17 @@ export async function* analyzeGameInBrowser(
   try {
     for await (const event of analyzeGame(input.replay, evaluator)) {
       // Stored before it is announced, so a consumer that stops reading
-      // on hearing the news still leaves the report behind. A half-graded
-      // game is never stored: a failing search throws before this event
-      // is ever reached.
+      // on hearing the news still leaves the report behind. A failing
+      // search throws before this event, so a half-graded game is never
+      // stored.
       if (event.type === ANALYSIS_EVENT.COMPLETED) {
         await saveReport(input.gameId, event.graded);
       }
       yield event;
     }
   } finally {
-    // A consumer that stops reading early still releases the Worker —
-    // after the search in flight answers, which the engine's own
-    // watchdog bounds. The immediate stop is `PositionSearch.cancel`,
-    // and the whole-game pass has no caller that needs it.
+    // A consumer that stops reading early releases the Worker too, after
+    // the search in flight answers — the engine's watchdog bounds that.
     await evaluator.dispose();
   }
 }

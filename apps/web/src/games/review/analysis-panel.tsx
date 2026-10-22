@@ -69,8 +69,6 @@ export function AnalysisPanel({ game }: AnalysisPanelProps) {
   const goToPly = useGameReview((state) => state.goToPly);
   const revealBestMove = useGameReview((state) => state.revealBestMove);
 
-  // The axis the curve and the bar are drawn against, read from the
-  // replay rather than subscribed to: a game's length never changes.
   const totalPlies = game.moves.length;
 
   return (

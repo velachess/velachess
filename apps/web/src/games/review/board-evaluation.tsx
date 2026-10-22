@@ -21,16 +21,10 @@ export interface BoardEvaluationProps {
 }
 
 /**
- * The bar beside the board, and the owner of the engine session behind a
- * variation's number.
- *
- * Its own component because it is the only thing that reads an
- * interactive evaluation: a line being explored produces an answer every
- * few hundred milliseconds, and reading that where the board reads its
- * grades would redraw 64 squares for a number drawn beside them.
- *
- * A variation's own evaluation wins over the report's for the same ply —
- * the board is showing that line, not the game.
+ * The bar beside the board. Its own component because a line being
+ * explored answers every few hundred milliseconds, and reading that
+ * where the board reads its grades would redraw 64 squares for a number
+ * drawn beside them.
  */
 export function BoardEvaluation({ game, orientation }: BoardEvaluationProps) {
   const { i18n } = useLingui();
