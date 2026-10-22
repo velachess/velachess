@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { createRequire } from "node:module";
 
-import { parsePgn, replayMainline } from "@velachess/chess";
+import { parseFen, parsePgn, replayMainline } from "@velachess/chess";
 import {
   useEngineEvaluator,
   useEngineSession,
@@ -32,7 +32,7 @@ function* useStockfishEvaluator(depth: number): Operation<PositionEvaluator> {
   return {
     *evaluate(fen: string) {
       const search = yield* engine.evaluate(fen);
-      const pov = fen.includes(" w ") ? "white" : "black";
+      const pov = parseFen(fen).unwrap().turn;
       return {
         score: search.lastInfo ? toWhitePov(search.lastInfo.score, pov) : {},
         bestMove: search.bestMove.move === "(none)" ? null : search.bestMove.move,
