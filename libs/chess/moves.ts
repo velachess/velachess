@@ -1,14 +1,15 @@
 /**
  * Moves — legality, and the two notations a board and an engine need.
  * chessops decides every rule here; this file exists for the three things
- * it does not answer: whether a destination captures, where a castling
- * king actually lands, and applying a move without mutating the position.
+ * it does not answer: whether a destination captures, which of its two
+ * castling notations a board and an engine read, and applying a move
+ * without mutating the position.
  */
 
 import type { Position } from "chessops/chess";
 import { castlingSide, normalizeMove } from "chessops/chess";
 import { isNormal, type Move, type NormalMove, type Role } from "chessops/types";
-import { makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
+import { kingCastlesTo, makeSquare, makeUci, parseSquare, parseUci } from "chessops/util";
 import { makeFen } from "chessops/fen";
 import { makeSanAndPlay, parseSan } from "chessops/san";
 
@@ -136,18 +137,16 @@ export function squaresOfUci(uci: string): MoveSquares | null {
 }
 
 /**
- * Where the king actually lands when castling. chessops encodes castling
- * as king-takes-own-rook (e1 → h1); a board draws the king's two-square
- * step, and so does every engine's UCI — which is what makes this the one
- * rule behind both `squaresOfSan` and `uciOf`.
+ * The castling square a board draws and an engine speaks, or null when the
+ * move is not castling. chessops encodes castling as king-takes-own-rook
+ * (e1 → h1) and names the king's landing square separately
+ * (`kingCastlesTo`); choosing the second over the first is the one rule
+ * behind both `squaresOfSan` and `uciOf`.
  */
 function castlingTarget(pos: Position, move: NormalMove): number | null {
   const side = castlingSide(pos, move);
   if (!side) return null;
-
-  const G_FILE = 6;
-  const C_FILE = 2;
-  return (side === "h" ? G_FILE : C_FILE) + 8 * (move.to >> 3);
+  return kingCastlesTo(pos.turn, side);
 }
 
 /**
