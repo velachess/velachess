@@ -89,14 +89,11 @@ describe("parseInfoLine", () => {
 });
 
 describe("parseBestMoveLine", () => {
-  it("parses a bestmove with ponder", () => {
-    expect(parseBestMoveLine("bestmove e2e4 ponder e7e6")).toEqual({
-      move: "e2e4",
-      ponder: "e7e6",
-    });
+  it("reads the move past a ponder suggestion, which is not kept", () => {
+    expect(parseBestMoveLine("bestmove e2e4 ponder e7e6")).toEqual({ move: "e2e4" });
   });
 
-  it("parses a bestmove without ponder", () => {
+  it("parses a bestmove on its own", () => {
     expect(parseBestMoveLine("bestmove e2e4")).toEqual({ move: "e2e4" });
   });
 

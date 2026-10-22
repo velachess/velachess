@@ -26,10 +26,11 @@ export interface EngineUpdate {
   time?: number;
 }
 
-/** A parsed `bestmove` line. `move` is `"(none)"` when there's no legal move. */
+/** A parsed `bestmove` line. `move` is `"(none)"` when there's no legal
+ * move. The engine's `ponder` suggestion is not kept: nothing here sends
+ * `ponderhit`, and `Ponder` is never set. */
 export interface BestMove {
   move: string;
-  ponder?: string;
 }
 
 export interface EngineOption {

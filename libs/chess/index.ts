@@ -41,7 +41,6 @@ export { gameOutcomeFor } from "./game-result.ts";
 export type { GameOutcome, GameResult } from "./game-result.ts";
 export {
   ESTIMATED_MOVES,
-  estimatedSeconds,
   TIME_CLASS_CEILINGS,
   TIME_CLASSES,
   timeClassOf,
