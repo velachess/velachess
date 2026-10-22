@@ -65,28 +65,8 @@ export function badgeEdgesOf(
   return { right: file === edges.file, top: rank === edges.rank };
 }
 
-/**
- * Arrow colours, as strings the library hands to SVG.
- *
- * `arrowOptions.opacity` is board-wide, so a per-arrow weight has to ride
- * inside the colour itself. `color-mix` against `transparent` is how a
- * custom property gets an alpha without being decomposed into channels.
- */
-function withAlpha(color: string, percent: number): string {
-  return `color-mix(in oklab, ${color} ${percent}%, transparent)`;
-}
-
 /** The engine's first choice: full strength, so it reads as the answer. */
 export const ARROW_BEST = cssVar(TOKEN.gradeOk);
-
-/**
- * The move that was played and should not have been.
- *
- * Drawn in the blunder tone rather than a colour of its own, so a wrong
- * move looks the same here as it does in the game report — one grade
- * vocabulary across both screens.
- */
-export const ARROW_PLAYED = cssVar(TOKEN.gradeBlunder);
 
 /**
  * A move someone asked to see, drawn apart from the grade ramp.
@@ -96,22 +76,6 @@ export const ARROW_PLAYED = cssVar(TOKEN.gradeBlunder);
  * and giving it a verdict colour would read as one.
  */
 export const ARROW_SUGGESTED = cssVar(TOKEN.suggested);
-
-/**
- * Alternative lines fade with their rank. Index 0 is the second line —
- * the best move is `ARROW_BEST` and never appears here.
- */
-const ALTERNATIVE_ALPHA_PERCENT = [55, 32] as const;
-
-export function arrowAlternativeColor(rankFromSecond: number): string {
-  const alpha =
-    ALTERNATIVE_ALPHA_PERCENT[rankFromSecond] ??
-    ALTERNATIVE_ALPHA_PERCENT[ALTERNATIVE_ALPHA_PERCENT.length - 1]!;
-  return withAlpha(cssVar(TOKEN.highlight), alpha);
-}
-
-/** How many lines we are willing to draw, best move included. */
-export const MAX_ARROWS = ALTERNATIVE_ALPHA_PERCENT.length + 1;
 
 export const BOARD_STYLE = {
   light: { backgroundColor: cssVar(TOKEN.lightSquare) },
