@@ -195,4 +195,9 @@ cannot disagree about what produced them.
   loader that starts a game's analysis
 - `apps/web/src/games/review/use-variation-evaluation.ts` → the one place
   a variation's position is searched, the one place that search is
-  cancelled, and the owner of the session behind both
+  cancelled, the owner of the session behind both, and the holder of the
+  answer — which is shown for the FEN it was asked about and for no
+  other, so a stale number cannot reach the bar. Mounted by
+  `review/board-evaluation.tsx`, which is the only consumer: reading it
+  where the board reads its grades would redraw 64 squares for a number
+  drawn beside them

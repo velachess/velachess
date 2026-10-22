@@ -7,10 +7,10 @@ import {
   BoardColumn,
   BoardStatus,
 } from "@velachess/ui/chess/board-stage";
-import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
 
+import { BoardEvaluation } from "./board-evaluation.tsx";
 import type { ReplayableGame } from "./game-record.ts";
 import type { PlayerSeat } from "./review-presentation.ts";
 import { useBoardReview } from "./use-board-review.ts";
@@ -18,7 +18,6 @@ import { useBoardReview } from "./use-board-review.ts";
 const BOARD_COPY = {
   /** A landmark's name is read aloud, so it is copy like any other. */
   region: msg`Board`,
-  evaluation: msg`Evaluation`,
 } as const;
 
 export interface BoardPaneProps {
@@ -51,12 +50,7 @@ export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
       />
 
       <div className={cn("flex items-stretch gap-2", BOARD_WIDTH)}>
-        <EvalBar
-          whiteShare={board.evaluation.whiteShare}
-          label={board.evaluation.label}
-          description={i18n._(BOARD_COPY.evaluation)}
-          orientation={orientation}
-        />
+        <BoardEvaluation game={game} orientation={orientation} />
         {/* Width only — the square belongs to `Board`. */}
         <Board
           fen={board.fen}

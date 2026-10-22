@@ -16,8 +16,7 @@ import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
-import { gradeAtPly } from "./review-model.ts";
-import { selectGameMove, selectTotalPlies } from "./review-model.ts";
+import { gradeAtPly, selectGameMove } from "./review-model.ts";
 import { useGameReview } from "./use-game-review.ts";
 
 const PANEL_COPY = {
@@ -65,11 +64,14 @@ export function AnalysisPanel({ game }: AnalysisPanelProps) {
   // nobody is looking at, so it is not shown at all rather than shown as
   // if it belonged to the move someone just played.
   const ply = useGameReview((state) => state.ply);
-  const totalPlies = useGameReview(selectTotalPlies);
-  const move = useGameReview(selectGameMove);
+  const move = useGameReview((state) => selectGameMove(state, game));
   const inVariation = useGameReview((state) => state.variation !== null);
   const goToPly = useGameReview((state) => state.goToPly);
-  const showBest = useGameReview((state) => state.showBest);
+  const revealBestMove = useGameReview((state) => state.revealBestMove);
+
+  // The axis the curve and the bar are drawn against, read from the
+  // replay rather than subscribed to: a game's length never changes.
+  const totalPlies = game.moves.length;
 
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>
@@ -108,7 +110,7 @@ export function AnalysisPanel({ game }: AnalysisPanelProps) {
             <MoveInsight
               move={move}
               graded={gradeAtPly(graded, ply)}
-              onShowBest={showBest}
+              onRevealBestMove={revealBestMove}
             />
           )}
           <MoveList
@@ -133,7 +135,7 @@ export function AnalysisPanel({ game }: AnalysisPanelProps) {
 
       <GameResult result={game.result} termination={game.termination} />
 
-      <ReplayControls />
+      <ReplayControls game={game} />
     </BoardPanel>
   );
 }

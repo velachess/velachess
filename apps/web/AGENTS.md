@@ -89,10 +89,20 @@ does not restate it.
   mounted. A store built per instance
   (`createStore` from `zustand/vanilla`, handed to consumers through one
   React context) holds what belongs to one screen but to more than one
-  component in it — today that is exactly `games/review/review-store.ts`.
-  Reach for the second only when a single `useState` would have to be
-  threaded through the tree as props; a third of these is a sign the
-  boundary was drawn wrong.
+  component in it — today that is exactly `games/review/review-store.ts`,
+  which holds the selected ply, the line someone is trying out and
+  whether they asked to see the engine's move, and nothing else. Reach
+  for the second only when a single `useState` would have to be threaded
+  through the tree as props; a third of these is a sign the boundary was
+  drawn wrong.
+- Two things never enter a store: data a query already owns, and a result
+  the engine produced. The game's own replay reaches
+  `games/review/review-model.ts` as a parameter (`selectFen(state, game)`)
+  rather than being copied into a snapshot, and a variation's evaluation
+  lives in the component that draws it
+  (`games/review/board-evaluation.tsx`, through
+  `use-variation-evaluation.ts`). A store holding either would make one
+  fact answerable from two places.
 - A per-instance store is reached through a domain facade, never
   directly: components import `use-game-review.ts`, not
   `review-store.ts` or `zustand`, so the state library can be replaced
@@ -111,7 +121,10 @@ does not restate it.
   a line of alternative moves played from one ply of the real game, and
   it is what the types, state and selectors are named after; an
   Evaluation is what Stockfish produced for a position. A variation gets
-  a number, never a grade — classification belongs to the report.
+  a number, never a grade — classification belongs to the report. That
+  number is transient: it is shown for the position it was asked about
+  and for no other, so it is held where it is drawn rather than in the
+  review's state.
 - Work a route exists to do starts in that route's `loader`, not in an
   effect inside the screen: `games/review/game-review-route.ts` resolves
   the movetext through the query cache and `prefetchQuery`s the analysis,

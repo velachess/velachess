@@ -25,7 +25,7 @@ import {
   type GradedPly,
 } from "../analysis/index.ts";
 import { experimental_streamedQuery, queryOptions } from "../../libs/react-query.ts";
-import { gameQueryKey } from "../game-query-keys.ts";
+import { gameAnalysisQueryKey } from "../game-query-keys.ts";
 
 import type { ReplayableGame } from "./game-record.ts";
 import { gradeAtPly } from "./review-model.ts";
@@ -58,7 +58,7 @@ export function gameAnalysisQuery(game: ReplayableGame) {
     // The identity of the answer, not just of the game: a report graded
     // by another engine build, depth or policy is a different report,
     // and the stored one is gated on the same three values.
-    queryKey: [...gameQueryKey, game.id, "analysis", ANALYSIS_IDENTITY],
+    queryKey: [...gameAnalysisQueryKey, game.id, ANALYSIS_IDENTITY],
     queryFn: experimental_streamedQuery({
       streamFn: () => analyzeGameInBrowser({ gameId: game.id, replay: game }),
       reducer: reduceAnalysis,

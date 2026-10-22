@@ -37,7 +37,11 @@ type ReplayNavigationEvent =
 
 export type ReplayNavigation = (event: ReplayNavigationEvent) => void;
 
-/** All a review needs of the game it is a review of. */
+/**
+ * All a review needs of the game it is a review of. It is a parameter, not
+ * state: the replay belongs to `gameQuery`, and copying it into a snapshot
+ * would make the same fact answerable from two places.
+ */
 export interface ReviewGame {
   moves: readonly ReplayedMove[];
   startFen: string;
@@ -58,24 +62,14 @@ export interface Variation {
   cursor: number;
 }
 
+/** What someone is doing in a review, and nothing else. */
 export interface ReviewData {
-  /** The game, as it arrived. Never written to. */
-  readonly moves: readonly ReplayedMove[];
-  readonly startFen: string;
-
   /** One half-move. 0 is the position before anyone moved. */
   ply: number;
   variation: Variation | null;
-  /**
-   * The last number the engine gave for a position of this line. The bar
-   * keeps showing it while a newer FEN is still being searched, rather
-   * than blanking — `review-store.ts` is what refuses an answer about a
-   * position that is no longer on the board. Null outside a variation,
-   * which is what restores the report's own evaluation.
-   */
-  variationEvaluation: GradedPly["evalAfter"] | null;
-  /** The engine's move someone asked to see, as SAN. */
-  preview: string | null;
+  /** Someone asked to see the engine's move for the ply on screen. The
+   * move itself is the report's — this is only the asking. */
+  showBestMove: boolean;
 }
 
 /** A change to apply, and what it announces once applied. */
@@ -84,16 +78,11 @@ export interface ReviewTransition {
   announce: ReplayNavigationEvent | null;
 }
 
-export function initialReviewState(game: ReviewGame): ReviewData {
-  return {
-    moves: game.moves,
-    startFen: game.startFen,
-    ply: 0,
-    variation: null,
-    variationEvaluation: null,
-    preview: null,
-  };
-}
+export const INITIAL_REVIEW: ReviewData = {
+  ply: 0,
+  variation: null,
+  showBestMove: false,
+};
 
 /** The variation's own position, when one is open. */
 export function variationFen(variation: Variation | null): string | null {
@@ -102,14 +91,8 @@ export function variationFen(variation: Variation | null): string | null {
 }
 
 /** The position on the board: the variation's when one is open, the game's otherwise. */
-export function selectFen(state: ReviewData): string {
-  return (
-    variationFen(state.variation) ?? fenAtPly(state.moves, state.startFen, state.ply)
-  );
-}
-
-export function selectTotalPlies(state: ReviewData): number {
-  return state.moves.length;
+export function selectFen(state: ReviewData, game: ReviewGame): string {
+  return variationFen(state.variation) ?? fenAtPly(game.moves, game.startFen, state.ply);
 }
 
 /**
@@ -122,13 +105,16 @@ export function selectCanGoBack(state: ReviewData): boolean {
   return state.ply > 0 || state.variation !== null;
 }
 
-export function selectCanGoForward(state: ReviewData): boolean {
-  return state.variation === null && state.ply < state.moves.length;
+export function selectCanGoForward(state: ReviewData, game: ReviewGame): boolean {
+  return state.variation === null && state.ply < game.moves.length;
 }
 
 /** The real game's move at the ply on screen; absent at the start. */
-export function selectGameMove(state: ReviewData): ReplayedMove | undefined {
-  return state.moves[state.ply - 1];
+export function selectGameMove(
+  state: ReviewData,
+  game: ReviewGame,
+): ReplayedMove | undefined {
+  return game.moves[state.ply - 1];
 }
 
 /** The variation's move on the board, when one is open. */
@@ -139,10 +125,10 @@ export function selectVariationMove(state: ReviewData): MoveSquares | null {
 }
 
 /** The notation of whichever move the board is showing. */
-export function selectShowingSan(state: ReviewData): string | null {
+export function selectShowingSan(state: ReviewData, game: ReviewGame): string | null {
   const { variation } = state;
   if (variation) return variation.moves[variation.cursor - 1]?.san ?? null;
-  return selectGameMove(state)?.san ?? null;
+  return selectGameMove(state, game)?.san ?? null;
 }
 
 /**
@@ -150,13 +136,17 @@ export function selectShowingSan(state: ReviewData): string | null {
  * nothing — a jump onto the ply already on screen, with no variation to
  * leave, is not navigation.
  */
-export function goToPlyState(state: ReviewData, target: number): ReviewTransition | null {
-  const ply = Math.min(Math.max(target, 0), state.moves.length);
+export function goToPlyState(
+  state: ReviewData,
+  game: ReviewGame,
+  target: number,
+): ReviewTransition | null {
+  const ply = Math.min(Math.max(target, 0), game.moves.length);
   if (ply === state.ply && state.variation === null) return null;
 
-  const move = state.moves[ply - 1];
+  const move = game.moves[ply - 1];
   return {
-    data: { ply, variation: null, variationEvaluation: null, preview: null },
+    data: { ply, variation: null, showBestMove: false },
     announce:
       ply === state.ply
         ? null
@@ -167,13 +157,19 @@ export function goToPlyState(state: ReviewData, target: number): ReviewTransitio
 }
 
 /** Blocked for as long as a variation is on the board. */
-export function nextReviewState(state: ReviewData): ReviewTransition | null {
+export function nextReviewState(
+  state: ReviewData,
+  game: ReviewGame,
+): ReviewTransition | null {
   if (state.variation) return null;
-  return goToPlyState(state, state.ply + 1);
+  return goToPlyState(state, game, state.ply + 1);
 }
 
 /** Down the variation first, one move at a time, then back into the game. */
-export function previousReviewState(state: ReviewData): ReviewTransition | null {
+export function previousReviewState(
+  state: ReviewData,
+  game: ReviewGame,
+): ReviewTransition | null {
   const { variation } = state;
 
   if (variation && variation.cursor > 1) {
@@ -183,9 +179,9 @@ export function previousReviewState(state: ReviewData): ReviewTransition | null 
     };
   }
   if (variation) {
-    return { data: { variation: null, variationEvaluation: null }, announce: null };
+    return { data: { variation: null }, announce: null };
   }
-  return goToPlyState(state, state.ply - 1);
+  return goToPlyState(state, game, state.ply - 1);
 }
 
 /**
@@ -195,10 +191,11 @@ export function previousReviewState(state: ReviewData): ReviewTransition | null 
  */
 export function playVariationMove(
   state: ReviewData,
+  game: ReviewGame,
   from: string,
   to: string,
 ): Variation | null {
-  const fen = selectFen(state);
+  const fen = selectFen(state, game);
   const played = playMove(positionFromFen(fen).unwrap(), from, to);
   if (!played) return null;
 

@@ -3,7 +3,7 @@ import { useLingui } from "@lingui/react";
 
 import { MoveNav } from "@velachess/ui/chess/move-nav";
 
-import { selectCanGoBack, selectCanGoForward } from "./review-model.ts";
+import { selectCanGoBack, selectCanGoForward, type ReviewGame } from "./review-model.ts";
 import { useGameReview } from "./use-game-review.ts";
 
 const CONTROLS_COPY = {
@@ -28,11 +28,16 @@ const CONTROLS_COPY = {
  * a no-op at `lg`, where the panel bounds its own scroll and this already
  * sits at its natural position.
  */
-export function ReplayControls() {
+export interface ReplayControlsProps {
+  /** Where the game ends, which is what Next stops at. */
+  game: ReviewGame;
+}
+
+export function ReplayControls({ game }: ReplayControlsProps) {
   const { i18n } = useLingui();
 
   const canGoBack = useGameReview(selectCanGoBack);
-  const canGoForward = useGameReview(selectCanGoForward);
+  const canGoForward = useGameReview((state) => selectCanGoForward(state, game));
   const previous = useGameReview((state) => state.previous);
   const next = useGameReview((state) => state.next);
 

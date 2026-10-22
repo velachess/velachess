@@ -17,9 +17,9 @@ import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
 import { useQuery } from "../../libs/react-query.ts";
 import { boardGradesAtPly, gameAnalysisQuery } from "./game-analysis-query.ts";
-import { legalTargetsAt, suggestedArrow } from "./board-view.ts";
+import { legalTargetsAt } from "./board-view.ts";
 import type { ReplayableGame } from "./game-record.ts";
-import { badgeAt, evaluationOf, showingLabel } from "./move-presentation.ts";
+import { badgeAt, showingLabel } from "./move-presentation.ts";
 import {
   selectFen,
   selectGameMove,
@@ -38,7 +38,6 @@ export interface BoardReview {
   playMove: (from: string, to: string) => boolean;
   legalTargetsOf: (square: string) => readonly LegalDestination[];
   lastMove: MoveSquares | undefined;
-  evaluation: { whiteShare: number; label: string };
   badges: Record<string, BadgeTone> | undefined;
   bestMove: MoveSquares | undefined;
   suggestedMove: MoveSquares | undefined;
@@ -49,14 +48,13 @@ export interface BoardReview {
 export function useBoardReview(game: ReplayableGame): BoardReview {
   const { i18n } = useLingui();
 
-  const fen = useGameReview(selectFen);
+  const fen = useGameReview((state) => selectFen(state, game));
   const ply = useGameReview((state) => state.ply);
   const inVariation = useGameReview((state) => state.variation !== null);
   const variationMove = useGameReview(selectVariationMove);
-  const variationScore = useGameReview((state) => state.variationEvaluation);
-  const gameMove = useGameReview(selectGameMove);
-  const showingSan = useGameReview(selectShowingSan);
-  const preview = useGameReview((state) => state.preview);
+  const gameMove = useGameReview((state) => selectGameMove(state, game));
+  const showingSan = useGameReview((state) => selectShowingSan(state, game));
+  const showBestMove = useGameReview((state) => state.showBestMove);
   const playMove = useGameReview((state) => state.playMove);
 
   // The move just played, and the choice facing whoever is to move now.
@@ -73,18 +71,21 @@ export function useBoardReview(game: ReplayableGame): BoardReview {
     playMove,
     legalTargetsOf: (square) => legalTargetsAt(fen, square),
     lastMove: lastMove ?? undefined,
-    evaluation: evaluationOf(variationScore ?? playedGrade?.evalAfter),
     // Nothing of the report is drawn over a variation: its badge, its
-    // best move and a previewed arrow would all be about a position that
+    // best move and a revealed arrow would all be about a position that
     // is no longer on screen.
     badges: inVariation ? undefined : badgeAt(lastMove?.to, playedGrade?.category),
     bestMove:
       inVariation || !positionGrade?.bestMove
         ? undefined
         : (squaresOfUci(positionGrade.bestMove) ?? undefined),
-    suggestedMove: inVariation
-      ? undefined
-      : (suggestedArrow(gameMove?.fenBefore, preview) ?? undefined),
+    // The engine's move at the position this one was played from, which
+    // is what `playedGrade.bestMove` is — asked for, rather than drawn
+    // over every move like `bestMove` above.
+    suggestedMove:
+      inVariation || !showBestMove || !playedGrade?.bestMove
+        ? undefined
+        : (squaresOfUci(playedGrade.bestMove) ?? undefined),
     showing: showingLabel(showingSan, gameMove, inVariation, i18n._(BOARD_COPY.start)),
   };
 }

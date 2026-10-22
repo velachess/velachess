@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useStore } from "zustand";
 
-import type { PositionEvaluation } from "@velachess/analysis";
+import type { PositionEvaluation, WhitePovScore } from "@velachess/analysis";
 import type { ReplayedMove } from "@velachess/chess";
 
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
@@ -16,6 +17,7 @@ import {
   selectCanGoForward,
   selectFen,
   selectShowingSan,
+  variationFen,
 } from "../review-model.ts";
 import { aReplay } from "../../../test/games.ts";
 import { createReviewStore, type ReviewStore } from "../review-store.ts";
@@ -27,6 +29,10 @@ const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 /** A one-move game, so there is a real ply to navigate back onto —
  * replayed by production's own `libs/chess` call. */
 const moves: readonly ReplayedMove[] = aReplay("1. e4 *").moves;
+
+/** Handed to the store once, and to every selector that needs it — the
+ * replay is React Query's, never the store's. */
+const game = { moves, startFen: START };
 
 /**
  * A controllable stand-in for one position's search: streams nothing,
@@ -91,10 +97,29 @@ async function flush() {
   });
 }
 
-function openReview(): ReviewStore {
-  const store = createReviewStore({ game: { moves, startFen: START } });
-  renderHook(() => useVariationEvaluation(store));
-  return store;
+/**
+ * A review with the evaluation hook mounted the way `board-evaluation.tsx`
+ * mounts it: the FEN in, the number out. The reading is attached to the
+ * store so a test can ask for both without threading two values around —
+ * it is the screen's two sources, not a third one.
+ */
+type MountedReview = ReviewStore & {
+  evaluation: () => WhitePovScore | null;
+  closeBar: () => void;
+};
+
+function mountBar(store: ReviewStore): MountedReview {
+  const bar = renderHook(() =>
+    useVariationEvaluation(useStore(store, (state) => variationFen(state.variation))),
+  );
+  return Object.assign(store, {
+    evaluation: () => bar.result.current,
+    closeBar: bar.unmount,
+  });
+}
+
+function openReview(): MountedReview {
+  return mountBar(createReviewStore({ game }));
 }
 
 const play = (store: ReviewStore, from: string, to: string) => {
@@ -130,7 +155,7 @@ describe("playing a variation", () => {
 
     expect(play(store, "e2", "e5")).toBe(false);
     expect(store.getState().variation).toBeNull();
-    expect(selectFen(store.getState())).toBe(START);
+    expect(selectFen(store.getState(), game)).toBe(START);
     expect(evaluate).not.toHaveBeenCalled();
   });
 
@@ -151,9 +176,9 @@ describe("playing a variation", () => {
     const store = openReview();
     expect(play(store, "e2", "e4")).toBe(true);
 
-    expect(selectFen(store.getState())).toBe(AFTER_E4);
-    expect(selectShowingSan(store.getState())).toBe("e4");
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
+    expect(selectShowingSan(store.getState(), game)).toBe("e4");
+    expect(store.evaluation()).toBeNull();
   });
 
   it("moves the bar once the engine answers, with no grade attached", async () => {
@@ -165,7 +190,7 @@ describe("playing a variation", () => {
     pending.answer();
     await flush();
 
-    expect(store.getState().variationEvaluation).toEqual({ cp: -500 });
+    expect(store.evaluation()).toEqual({ cp: -500 });
   });
 
   it("plays on, alternating sides by the rules", async () => {
@@ -199,23 +224,33 @@ describe("playing a variation", () => {
     await flush();
 
     expect(first.wasHalted()).toBe(true);
-    expect(store.getState().variationEvaluation).toEqual({ cp: 2 });
+    expect(store.evaluation()).toEqual({ cp: 2 });
   });
 
-  it("refuses an answer about a position that is no longer on the board", async () => {
-    const pending = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
-    evaluate.mockImplementation(pending.run);
+  it("walks a line faster than the engine answers, and shows only the last position's number", async () => {
+    const answers = [
+      makeControllableEval({ score: { cp: 1 }, bestMove: "e7e5" }),
+      makeControllableEval({ score: { cp: 2 }, bestMove: "g1f3" }),
+      makeControllableEval({ score: { cp: 3 }, bestMove: "b8c6" }),
+    ];
+    evaluate
+      .mockImplementationOnce(answers[0]!.run)
+      .mockImplementationOnce(answers[1]!.run)
+      .mockImplementationOnce(answers[2]!.run);
 
     const store = openReview();
     play(store, "e2", "e4");
+    play(store, "e7", "e5");
+    play(store, "g1", "f3");
 
-    // Straight past the hook, as a result resolving in the same tick the
-    // board moved would: the store is the one that decides.
-    act(() => {
-      store.getState().variationEvaluated("some other position", { cp: 999 });
-    });
+    // Every search answers, oldest first, after the board already moved
+    // three positions on.
+    for (const answer of answers) answer.answer();
+    await flush();
 
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(answers[0]!.wasHalted()).toBe(true);
+    expect(answers[1]!.wasHalted()).toBe(true);
+    expect(store.evaluation()).toEqual({ cp: 3 });
   });
 
   it("drops an answer that arrives after the line left that position", async () => {
@@ -232,7 +267,7 @@ describe("playing a variation", () => {
     first.answer();
     await flush();
 
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(store.evaluation()).toBeNull();
   });
 
   it("drops an answer that arrives after the variation was left entirely", async () => {
@@ -248,7 +283,7 @@ describe("playing a variation", () => {
     await flush();
 
     expect(store.getState().variation).toBeNull();
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(store.evaluation()).toBeNull();
   });
 
   it("re-asks for the position the line walked back onto, ignoring the halted search", async () => {
@@ -263,16 +298,16 @@ describe("playing a variation", () => {
     play(store, "e2", "e4");
     play(store, "e7", "e5");
     act(() => store.getState().previous());
-    expect(selectFen(store.getState())).toBe(AFTER_E4);
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
 
     first.answer();
     await flush();
     expect(first.wasHalted()).toBe(true);
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(store.evaluation()).toBeNull();
 
     rest.answer();
     await flush();
-    expect(store.getState().variationEvaluation).toEqual({ cp: 1 });
+    expect(store.evaluation()).toEqual({ cp: 1 });
   });
 
   it("keeps the variation when the engine fails, rather than losing the moves", async () => {
@@ -285,8 +320,8 @@ describe("playing a variation", () => {
     pending.reject(new Error("engine failed"));
     await flush();
 
-    expect(selectFen(store.getState())).toBe(AFTER_E4);
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
+    expect(store.evaluation()).toBeNull();
   });
 });
 
@@ -298,10 +333,10 @@ describe("navigating a variation", () => {
     const store = openReview();
     play(store, "e2", "e4");
 
-    expect(selectCanGoForward(store.getState())).toBe(false);
+    expect(selectCanGoForward(store.getState(), game)).toBe(false);
     act(() => store.getState().next());
     expect(store.getState().ply).toBe(0);
-    expect(selectFen(store.getState())).toBe(AFTER_E4);
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
   });
 
   it("walks back down the line one move at a time, re-asking for each position", async () => {
@@ -319,7 +354,7 @@ describe("navigating a variation", () => {
 
     act(() => store.getState().previous());
     expect(store.getState().variation?.cursor).toBe(1);
-    expect(selectFen(store.getState())).toBe(AFTER_E4);
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
     // Four searches: one per position shown, the walked-back one included.
     expect(evaluate).toHaveBeenCalledTimes(3);
   });
@@ -335,9 +370,9 @@ describe("navigating a variation", () => {
     act(() => store.getState().previous());
 
     expect(store.getState().variation).toBeNull();
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(store.evaluation()).toBeNull();
     expect(store.getState().ply).toBe(0);
-    expect(selectFen(store.getState())).toBe(START);
+    expect(selectFen(store.getState(), game)).toBe(START);
   });
 
   it("replaces the continuation when a move is played after walking back", () => {
@@ -367,7 +402,7 @@ describe("navigating a variation", () => {
     act(() => store.getState().goToPly(1));
 
     expect(store.getState().variation).toBeNull();
-    expect(store.getState().variationEvaluation).toBeNull();
+    expect(store.evaluation()).toBeNull();
     expect(store.getState().ply).toBe(1);
   });
 
@@ -375,13 +410,12 @@ describe("navigating a variation", () => {
     const pending = makeControllableEval({ score: { cp: 0 }, bestMove: null });
     evaluate.mockImplementation(pending.run);
 
-    const store = createReviewStore({ game: { moves, startFen: START } });
-    const { unmount } = renderHook(() => useVariationEvaluation(store));
+    const store = openReview();
     act(() => {
       store.getState().playMove("e2", "e4");
     });
 
-    unmount();
+    store.closeBar();
     await flush();
 
     expect(pending.wasHalted()).toBe(true);
@@ -425,13 +459,12 @@ describe("the engine session a review owns", () => {
     evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
-    const store = createReviewStore({ game: { moves, startFen: START } });
-    const { unmount } = renderHook(() => useVariationEvaluation(store));
+    const store = openReview();
     act(() => {
       store.getState().playMove("e2", "e4");
     });
 
-    unmount();
+    store.closeBar();
     await flush();
 
     expect(dispose).toHaveBeenCalledTimes(1);
@@ -441,15 +474,14 @@ describe("the engine session a review owns", () => {
     evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
-    const store = createReviewStore({ game: { moves, startFen: START } });
-    const first = renderHook(() => useVariationEvaluation(store));
+    const store = openReview();
     act(() => {
       store.getState().playMove("e2", "e4");
     });
-    first.unmount();
+    store.closeBar();
     await flush();
 
-    renderHook(() => useVariationEvaluation(store));
+    mountBar(store);
     act(() => {
       store.getState().playMove("e7", "e5");
     });

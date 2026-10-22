@@ -16,7 +16,6 @@ import { createReplayNavigation } from "./review-navigation.ts";
 import { AnalysisSkeleton, GameError } from "./review-skeleton.tsx";
 import { createReviewStore } from "./review-store.ts";
 import { ReviewStoreProvider } from "./use-game-review.ts";
-import { useVariationEvaluation } from "./use-variation-evaluation.ts";
 
 /**
  * Both the game and its analysis come from React Query — the first over
@@ -50,8 +49,6 @@ function ReviewScreen({ game }: { game: ReplayableGame }) {
   const [store] = useState(() =>
     createReviewStore({ game, onNavigate: createReplayNavigation(game) }),
   );
-
-  useVariationEvaluation(store);
 
   // Ignored while a form field has focus (react-hotkeys-hook default) —
   // an arrow key stepping the board while someone types elsewhere would

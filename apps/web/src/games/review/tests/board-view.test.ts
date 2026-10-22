@@ -3,13 +3,7 @@ import { describe, expect, it } from "vitest";
 import { squaresOfUci } from "@velachess/chess";
 
 import { aReplay } from "../../../test/games.ts";
-import {
-  legalTargetsAt,
-  sanOfUciAt,
-  seatIdentityOf,
-  seatOf,
-  suggestedArrow,
-} from "../board-view.ts";
+import { legalTargetsAt, sanOfUciAt, seatIdentityOf, seatOf } from "../board-view.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -71,36 +65,6 @@ describe("seatIdentityOf", () => {
     // there being no image at all, not by an empty src.
     expect(seatIdentityOf({ avatarUrl: null, flair: null })).toEqual({});
     expect(seatIdentityOf(undefined)).toEqual({});
-  });
-});
-
-/**
- * Showing the engine's move on the board.
- *
- * Naming a move and then making the person find it is asking them to do
- * the work the screen exists for.
- */
-describe("suggestedArrow", () => {
-  it("points from where the piece is to where the engine would put it", () => {
-    // An arrow, not the resulting position: the board keeps showing the
-    // choice the player faced, which is what the panel is describing.
-    expect(suggestedArrow(START, "e4")).toEqual({ from: "e2", to: "e4" });
-  });
-
-  it("shows nothing when nothing was asked for", () => {
-    expect(suggestedArrow(START, null)).toBeNull();
-  });
-
-  it("shows nothing at the start, where no move was played yet", () => {
-    // The squares come from the position the move was chosen in, and at
-    // ply zero there is no such position.
-    expect(suggestedArrow(undefined, "e4")).toBeNull();
-  });
-
-  it("refuses a move that does not fit the position", () => {
-    // A record drifted from its FEN would draw an arrow between squares
-    // that mean nothing.
-    expect(suggestedArrow(START, "Nf6")).toBeNull();
   });
 });
 

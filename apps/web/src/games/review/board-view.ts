@@ -1,11 +1,10 @@
-import type { LegalDestination, MoveSquares } from "@velachess/chess";
+import type { LegalDestination } from "@velachess/chess";
 import {
   legalDestinations,
   makeSan,
   parseUci,
   positionFromFen,
   resolveGamePerspective,
-  squaresOfSan,
 } from "@velachess/chess";
 
 // What the board shows: which way round it sits, who occupies each seat,
@@ -49,22 +48,6 @@ export function seatIdentityOf(
     ...(identity.avatarUrl !== null ? { avatarUrl: identity.avatarUrl } : {}),
     ...(identity.flair !== null ? { flair: identity.flair } : {}),
   };
-}
-
-/** Wraps `squaresOfSan` to take a FEN instead of a parsed position, reusing its validation rather than naive slicing. */
-function squaresOfSanAt(fen: string, san: string): MoveSquares | null {
-  return positionFromFen(fen).unwrap(
-    (position) => squaresOfSan(position, san),
-    () => null,
-  );
-}
-
-/** Engine's move as an arrow, not a played position — keeps the board showing the choice the player faced. */
-export function suggestedArrow(
-  fen: string | undefined,
-  san: string | null,
-): MoveSquares | null {
-  return fen && san ? squaresOfSanAt(fen, san) : null;
 }
 
 /** Drag hints for the position on screen. Wraps `legalDestinations` to take a FEN, same as `suggestedArrow` does. */

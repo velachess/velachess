@@ -1,21 +1,27 @@
 /**
- * One review instance's state and its actions. Every rule it applies
- * lives in `review-model.ts`; this file holds the state, reads it with
- * `get`, and writes what a transition decided with `set`.
+ * One review instance's state and its actions: the ply on screen, the line
+ * someone is trying out, and whether they asked to see the engine's move.
+ * Nothing else — the game itself and everything the engine produced are
+ * React Query's, and copying either here would make one fact answerable
+ * from two places.
  *
- * It runs nothing. It does not know about Effection, the Worker or the
- * scheduler — `use-variation-evaluation.ts` asks the engine and hands the
- * answer back through `variationEvaluated`.
+ * Every rule it applies lives in `review-model.ts`; this file holds the
+ * state, reads it with `get`, and writes what a transition decided with
+ * `set`. It runs nothing: no Effection, no Worker, no engine.
+ *
+ * The game is a closure, not state. It cannot go stale: a replay is this
+ * game's movetext, which never changes once imported, and the screen
+ * rebuilds the store for a different game (`key={gameId}` in
+ * `game-review.tsx`), so a refetch can only hand back the same answer.
  */
 import { createStore, type StoreApi } from "zustand/vanilla";
 
 import {
   goToPlyState,
-  initialReviewState,
+  INITIAL_REVIEW,
   nextReviewState,
   playVariationMove,
   previousReviewState,
-  variationFen,
   type ReplayNavigation,
   type ReviewData,
   type ReviewGame,
@@ -28,8 +34,9 @@ interface ReviewActions {
   previous: () => void;
   /** False when the position does not allow the move — nothing changes. */
   playMove: (from: string, to: string) => boolean;
-  variationEvaluated: (fen: string, score: ReviewData["variationEvaluation"]) => void;
-  showBest: (san: string) => void;
+  /** Draws the engine's move for the ply on screen. The move is read from
+   * the report; this only records that someone asked for it. */
+  revealBestMove: () => void;
 }
 
 export type ReviewState = ReviewData & ReviewActions;
@@ -51,29 +58,21 @@ export function createReviewStore({
     };
 
     return {
-      ...initialReviewState(game),
+      ...INITIAL_REVIEW,
 
-      goToPly: (ply) => apply(goToPlyState(get(), ply)),
-      next: () => apply(nextReviewState(get())),
-      previous: () => apply(previousReviewState(get())),
+      goToPly: (ply) => apply(goToPlyState(get(), game, ply)),
+      next: () => apply(nextReviewState(get(), game)),
+      previous: () => apply(previousReviewState(get(), game)),
 
       playMove(from, to) {
-        const variation = playVariationMove(get(), from, to);
+        const variation = playVariationMove(get(), game, from, to);
         if (!variation) return false;
 
         set({ variation });
         return true;
       },
 
-      variationEvaluated(fen, score) {
-        // An answer is only about the position it was asked for. The
-        // board may have moved on while the engine searched, and a number
-        // from a position nobody is looking at is not this position's.
-        if (variationFen(get().variation) !== fen) return;
-        set({ variationEvaluation: score });
-      },
-
-      showBest: (san) => set({ preview: san }),
+      revealBestMove: () => set({ showBestMove: true }),
     };
   });
 }
