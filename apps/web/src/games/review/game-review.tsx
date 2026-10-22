@@ -6,7 +6,6 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 import { BoardScreen } from "../../app-shell/board-screen.tsx";
 import { useQuery } from "../../libs/react-query.ts";
-import { useEngineAnalysis } from "../analysis/index.ts";
 import { useMyAccounts } from "../import/index.ts";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { BoardPane } from "./board-pane.tsx";
@@ -20,10 +19,14 @@ import { ReviewStoreProvider } from "./use-game-review.ts";
 import { useVariationEvaluation } from "./use-variation-evaluation.ts";
 
 /**
- * The game itself comes over HTTP through React Query; the analysis does
- * not, because it is computed on this device and its progress belongs
- * here rather than to a cache of server state. The route is what starts
- * it — see `game-review-route.ts`.
+ * Both the game and its analysis come from React Query — the first over
+ * HTTP, the second computed on this device and streamed into the cache
+ * by `game-analysis-query.ts`. The route is what starts the analysis;
+ * see `game-review-route.ts`.
+ *
+ * Nothing about the report is read here: each consumer subscribes to the
+ * part it draws, so a graded ply does not re-render the board and a
+ * deepening search does not re-render the panel.
  */
 export function GameReview() {
   // strict: false so it mounts under both the generated route tree and
@@ -36,10 +39,10 @@ export function GameReview() {
 
   // The key is load-bearing: the review's state belongs to *this* game,
   // and remounting resets it without an effect watching `gameId`.
-  return <ReviewScreen key={gameId} gameId={gameId} game={game.data} />;
+  return <ReviewScreen key={gameId} game={game.data} />;
 }
 
-function ReviewScreen({ gameId, game }: { gameId: string; game: ReplayableGame }) {
+function ReviewScreen({ game }: { game: ReplayableGame }) {
   const { i18n } = useLingui();
 
   // One store per review, built once: `key={gameId}` above is what
@@ -58,7 +61,6 @@ function ReviewScreen({ gameId, game }: { gameId: string; game: ReplayableGame }
   ]);
   useHotkeys("right", () => store.getState().next(), { preventDefault: true }, [store]);
 
-  const analysis = useEngineAnalysis(gameId);
   // The array itself, mapped where it is used: a selector that builds a
   // new array every render never compares equal, and zustand re-renders
   // until React gives up.
@@ -81,18 +83,13 @@ function ReviewScreen({ gameId, game }: { gameId: string; game: ReplayableGame }
         }
       >
         <BoardPane
-          graded={analysis.graded}
+          game={game}
           orientation={players.orientation}
           top={players.top}
           bottom={players.bottom}
         />
 
-        <AnalysisPanel
-          game={game}
-          graded={analysis.graded}
-          isAnalyzing={analysis.status === "analyzing"}
-          hasFailed={analysis.status === "error"}
-        />
+        <AnalysisPanel game={game} />
       </BoardScreen>
     </ReviewStoreProvider>
   );

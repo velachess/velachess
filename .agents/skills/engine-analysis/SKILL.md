@@ -13,10 +13,11 @@ Keep four concerns separate, and do not let one reach into another:
   `useChildProcessTransport` (no production caller, retained for tests and
   local use) and `useWorkerTransport` (the browser). It returns the
   engine's own vocabulary and never imports a business module.
-- `libs/analysis` owns which positions to evaluate, what the answers mean,
-  and nothing about how the engine is driven. The engine reaches it only
-  through the `PositionEvaluator` dependency it declares, so this module
-  depends on neither `@velachess/infra-engine` nor any storage.
+- `libs/analysis` owns what an evaluation means and nothing else: it is
+  pure, synchronous policy — `classifyPly`, `terminalScoreOf`,
+  `toWhitePov`, the win-chance curve and the categories. It has no engine
+  dependency, declared or otherwise, and no storage. Which positions to
+  search is the web slice's.
 - `apps/web/src/engine/` is the browser SDK: `createEngine()` hands
   out sessions, each owning one Stockfish Worker, creating it lazily,
   reusing it between searches, replacing a search in flight over UCI
@@ -27,22 +28,27 @@ Keep four concerns separate, and do not let one reach into another:
   list of what it created. Do not add one — two Workers running at once is
   the design, not a problem to schedule away.
 - `apps/web/src/games/analysis/` composes the rest, owns the one IndexedDB
-  store and the side-to-move → white-POV conversion. Its two lanes are two
-  flat files: `analyze-game-in-browser.ts` grades a whole game on a session
-  it owns for the length of the pass, `evaluate-position-in-browser.ts`
-  opens a disposable evaluator for single FENs whose owner is
-  `review/use-variation-evaluation.ts`. `analysis-db.ts` holds one finished
-  report per game and nothing else — no per-position cache, so an
-  interrupted pass starts over and a variation is never persisted. Inside
-  the domain, `analysis-store.ts` only stores snapshots and notifies React
-  — it imports no Effection — and `start-analysis.ts` is the one module
-  that knows both engine and store. Keep it that way: a ply travels up by
-  synchronous callback, and the two cancellations (a new game replacing the
-  pass under way; the variation's position changing) have one owner each.
-- The domain's `index.ts` is what the review screen sees: `startAnalysis`,
-  `useEngineAnalysis`, `openPositionEvaluator` and the `@velachess/analysis`
-  vocabulary it re-exports. It hands over `GradedPly[]` and nothing else —
-  reading that result is Review's. Analysis never imports `review/`.
+  store and the side-to-move → white-POV conversion. It is split by what
+  each part is about: `position/evaluate.ts` is the contract for one
+  position's search (`PositionSearch`, an async generator of
+  `EngineUpdate` returning the finished `PositionEvaluation`, plus
+  `cancel()`), `position/stockfish.ts` is the only adapter over the SDK
+  and the only place an Effection task becomes an async iterator, and
+  `game/analyze.ts` sequences a game into an
+  `AsyncIterable<AnalysisEvent>`. `analyzeGame` takes an injected
+  evaluator and owns no session; `analyzeGameInBrowser` is the composition
+  that reads the stored report, opens one evaluator, saves the finished
+  report once and disposes in `finally`. `analysis-db.ts` holds one
+  finished report per game and nothing else — no per-position cache, so an
+  interrupted pass starts over and a variation is never persisted.
+- The domain's `index.ts` is what the review screen sees:
+  `analyzeGameInBrowser`, `createStockfishEvaluator`, `ANALYSIS_IDENTITY`
+  and the `@velachess/analysis` vocabulary it re-exports. It hands over
+  events and `GradedPly`s and nothing else — reading that result is
+  Review's, through `review/game-analysis-query.ts`. Analysis never
+  imports `review/`, React, zustand or React Query.
+- Only a completed search grades a move. `position-update` exists so a
+  screen can show an engine working; `classifyPly` is never handed one.
 
 Asynchronous lifecycle is Effection. Infra's session is a resource, so
 leaving the scope that opened it quits the engine and terminates the

@@ -8,19 +8,33 @@
  * every position instead of one per FEN — and disposed when the review
  * goes away. Nothing else may dispose it, and the whole-game pass has a
  * session of its own that this one neither waits for nor interrupts.
+ *
+ * This is Position Evaluation on its own: exploring a line asks for one
+ * position and never starts a whole-game analysis or reads its report.
  */
 import { useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
-import { openPositionEvaluator, type OpenPositionEvaluator } from "../analysis/index.ts";
-import { run } from "../../libs/effection.ts";
+import {
+  createStockfishEvaluator,
+  type PositionEvaluator,
+  type PositionSearch,
+} from "../analysis/index.ts";
 
 import { variationFen } from "./review-model.ts";
 import type { ReviewStore } from "./review-store.ts";
 
+/** Only the finished search has a number worth showing, and the stream's
+ * return value is where it is — which `for await` would discard. */
+async function settledEvaluation(search: PositionSearch) {
+  let step = await search.next();
+  while (!step.done) step = await search.next();
+  return step.value;
+}
+
 export function useVariationEvaluation(store: ReviewStore): void {
   const fen = useStore(store, (state) => variationFen(state.variation));
-  const evaluatorRef = useRef<OpenPositionEvaluator | null>(null);
+  const evaluatorRef = useRef<PositionEvaluator | null>(null);
 
   /**
    * Cleared before it is disposed, so a remount opens a fresh evaluator
@@ -30,7 +44,7 @@ export function useVariationEvaluation(store: ReviewStore): void {
     () => () => {
       const evaluator = evaluatorRef.current;
       evaluatorRef.current = null;
-      if (evaluator) void run(() => evaluator.dispose()).catch(() => {});
+      if (evaluator) void evaluator.dispose().catch(() => {});
     },
     [],
   );
@@ -46,23 +60,21 @@ export function useVariationEvaluation(store: ReviewStore): void {
   useEffect(() => {
     if (fen === null) return;
 
-    const evaluator = (evaluatorRef.current ??= openPositionEvaluator());
-    const evaluation = run(() => evaluator.evaluate(fen));
+    const evaluator = (evaluatorRef.current ??= createStockfishEvaluator());
+    const search = evaluator.evaluate(fen);
 
-    evaluation.then(
+    void settledEvaluation(search).then(
       // The store refuses an answer about a position that is no longer on
-      // the board, so a result that beats its own `halt()` is caught
+      // the board, so a result that beats its own cancellation is caught
       // there rather than by a flag here.
-      (raw) => store.getState().variationEvaluated(fen, raw.score),
+      (evaluation) => store.getState().variationEvaluated(fen, evaluation.score),
       () => {
-        // `SearchSuperseded` when a newer position took the engine, or a
-        // real engine failure: neither has a number to show, and neither
-        // is a reason to throw away the moves someone played.
+        // A stop, a newer position that took the engine, or a real engine
+        // failure: none has a number to show, and none is a reason to
+        // throw away the moves someone played.
       },
     );
 
-    // `halt()` hands back a lazy handle: the task is interrupted only
-    // once that handle is consumed, and consuming it rejects.
-    return () => void evaluation.halt().catch(() => {});
+    return () => search.cancel();
   }, [fen, store]);
 }

@@ -5,18 +5,24 @@
  */
 import { createClientOnlyFn } from "@tanstack/react-start";
 
-import { startAnalysis } from "../analysis/index.ts";
 import type { QueryClientType } from "../../libs/react-query.ts";
+import { gameAnalysisQuery } from "./game-analysis-query.ts";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
 
 /**
  * Stockfish is a Web Worker, and a loader runs on the server too. The
  * body is dropped from the server bundle rather than guarded at runtime,
  * so there is nothing to keep two copies of in sync.
+ *
+ * `prefetchQuery` rather than `ensureQueryData`: it never rejects, so an
+ * engine this browser cannot run fails the analysis and not the
+ * navigation. The screen reads the same query and is what says so.
  */
-const analyzeInBrowser = createClientOnlyFn((game: ReplayableGame) => {
-  startAnalysis({ gameId: game.id, replay: game });
-});
+const analyzeInBrowser = createClientOnlyFn(
+  (queryClient: QueryClientType, game: ReplayableGame) => {
+    void queryClient.prefetchQuery(gameAnalysisQuery(game));
+  },
+);
 
 export async function loadGameReview(
   queryClient: QueryClientType,
@@ -33,8 +39,7 @@ export async function loadGameReview(
 
   // Nothing is awaited past here: the grading outlives the navigation
   // that started it, and must never hold one open. Everything else about
-  // the pass is `startAnalysis`'s — it picks up one already under way,
-  // replaces it when a different game is opened, and keeps going once
-  // this screen is gone.
-  analyzeInBrowser(game);
+  // the pass is the query's — it picks up one already under way, and
+  // keeps going once this screen is gone.
+  analyzeInBrowser(queryClient, game);
 }

@@ -1,5 +1,4 @@
 import { act, renderHook } from "@testing-library/react";
-import { call, ensure, withResolvers, type Operation } from "effection";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PositionEvaluation } from "@velachess/analysis";
@@ -7,10 +6,11 @@ import type { ReplayedMove } from "@velachess/chess";
 
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
-  openPositionEvaluator: vi.fn(),
+  createStockfishEvaluator: vi.fn(),
 }));
 
-import { openPositionEvaluator } from "../../analysis/index.ts";
+import { createStockfishEvaluator } from "../../analysis/index.ts";
+import type { PositionSearch } from "../../analysis/index.ts";
 import {
   selectCanGoBack,
   selectCanGoForward,
@@ -29,33 +29,62 @@ const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 const moves: readonly ReplayedMove[] = aReplay("1. e4 *").moves;
 
 /**
- * A controllable stand-in for `evaluatePosition`: never settles until the
- * test says so, and records whether it was halted instead — duplicated
- * locally per this codebase's test-helper convention.
+ * A controllable stand-in for one position's search: streams nothing,
+ * never settles until the test says so, and records whether it was
+ * cancelled instead — duplicated locally per this codebase's test-helper
+ * convention.
  */
 function makeControllableEval(result: PositionEvaluation) {
-  const engineAnswered = withResolvers<PositionEvaluation>();
-  let unwound = false;
+  let settle: (value: PositionEvaluation) => void;
+  let fail: (error: Error) => void;
+  const engineAnswered = new Promise<PositionEvaluation>((resolve, reject) => {
+    settle = resolve;
+    fail = reject;
+  });
+  let cancelled = false;
   let answered = false;
 
-  const run = vi.fn(function* (): Operation<PositionEvaluation> {
-    yield* ensure(() => {
-      unwound = true;
+  const run = vi.fn((): PositionSearch => {
+    // Per search, not per helper: cancelling one must not stop the engine
+    // from eventually answering the next search for the same position.
+    let stop: () => void;
+    const stopped = new Promise<never>((_, reject) => {
+      stop = () => reject(new Error("search cancelled"));
     });
-    const value = yield* engineAnswered.operation;
-    answered = true;
-    return value;
+    // Handled here too: a search cancelled while it was still streaming
+    // never reaches the race below.
+    void stopped.catch(() => {});
+    let halted = false;
+
+    async function* search() {
+      yield { depth: 4, multipv: 1, score: { cp: 0 }, pv: ["e2e4"] };
+      const value = await Promise.race([engineAnswered, stopped]);
+      // A cancelled search delivers nothing, even when the engine
+      // answered in the same tick — which is the engine session's own
+      // rule, duplicated here on purpose.
+      if (halted) throw new Error("search cancelled");
+      answered = true;
+      return value;
+    }
+
+    return Object.assign(search(), {
+      cancel: () => {
+        cancelled = true;
+        halted = true;
+        stop();
+      },
+    });
   });
 
   return {
     run,
-    answer: () => engineAnswered.resolve(result),
-    reject: (error: Error) => engineAnswered.reject(error),
-    wasHalted: () => unwound && !answered,
+    answer: () => settle(result),
+    reject: (error: Error) => fail(error),
+    wasHalted: () => cancelled && !answered,
   };
 }
 
-/** Lets Effection's scheduler and React's state updates settle. */
+/** Lets the engine's promises and React's state updates settle. */
 async function flush() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -81,18 +110,18 @@ const play = (store: ReviewStore, from: string, to: string) => {
  * so the double is split in two: `evaluate` is the search, and `dispose`
  * is the session going away.
  */
-const evaluate = vi.fn<(fen: string) => Operation<PositionEvaluation>>();
-const dispose = vi.fn<() => Operation<void>>(() => call(() => undefined));
+const evaluate = vi.fn<(fen: string) => PositionSearch>();
+const dispose = vi.fn<() => Promise<void>>(async () => {});
 
 beforeEach(() => {
-  vi.mocked(openPositionEvaluator).mockReturnValue({ evaluate, dispose });
+  vi.mocked(createStockfishEvaluator).mockReturnValue({ evaluate, dispose });
 });
 
 afterEach(() => {
-  vi.mocked(openPositionEvaluator).mockReset();
+  vi.mocked(createStockfishEvaluator).mockReset();
   evaluate.mockReset();
   dispose.mockReset();
-  dispose.mockImplementation(() => call(() => undefined));
+  dispose.mockImplementation(async () => {});
 });
 
 describe("playing a variation", () => {
@@ -363,7 +392,7 @@ describe("the engine session a review owns", () => {
   it("opens none until a position actually needs one", () => {
     openReview();
 
-    expect(openPositionEvaluator).not.toHaveBeenCalled();
+    expect(createStockfishEvaluator).not.toHaveBeenCalled();
   });
 
   it("answers every position of a line on the one it opened", () => {
@@ -377,7 +406,7 @@ describe("the engine session a review owns", () => {
     act(() => store.getState().previous());
 
     expect(evaluate).toHaveBeenCalledTimes(3);
-    expect(openPositionEvaluator).toHaveBeenCalledTimes(1);
+    expect(createStockfishEvaluator).toHaveBeenCalledTimes(1);
   });
 
   it("keeps it when the position changes — only the search is cancelled", () => {
@@ -425,6 +454,6 @@ describe("the engine session a review owns", () => {
       store.getState().playMove("e7", "e5");
     });
 
-    expect(openPositionEvaluator).toHaveBeenCalledTimes(2);
+    expect(createStockfishEvaluator).toHaveBeenCalledTimes(2);
   });
 });

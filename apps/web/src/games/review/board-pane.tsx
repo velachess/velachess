@@ -11,7 +11,7 @@ import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
 
-import type { GradedPly } from "../analysis/index.ts";
+import type { ReplayableGame } from "./game-record.ts";
 import type { PlayerSeat } from "./review-presentation.ts";
 import { useBoardReview } from "./use-board-review.ts";
 
@@ -22,8 +22,7 @@ const BOARD_COPY = {
 } as const;
 
 export interface BoardPaneProps {
-  /** Grades in ply order — shorter than the game while the run streams. */
-  graded: readonly GradedPly[];
+  game: ReplayableGame;
   orientation: "white" | "black";
   /** The seat you are not is on top. */
   top: PlayerSeat;
@@ -37,9 +36,9 @@ const BOARD_WIDTH = BOARD_STAGE_WIDTH;
 /** The strips sit beside the bar, so they start where the board starts. */
 const STRIP_INSET = "ps-6";
 
-export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) {
+export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
   const { i18n } = useLingui();
-  const board = useBoardReview(graded);
+  const board = useBoardReview(game);
 
   return (
     <BoardColumn label={i18n._(BOARD_COPY.region)}>

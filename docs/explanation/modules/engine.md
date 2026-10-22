@@ -113,6 +113,14 @@ It returns the engine's vocabulary (`lastInfo`, `bestMove`) and nothing
 else. White POV, classification and caching belong to whoever asked, which
 keeps this package free of any dependency on a business module.
 
+`evaluate(fen, onUpdate?)` forwards each `info` line as it arrives, in
+both the main loop and the post-`stop` drain, so a caller that wants to
+show a search deepening does not have to choose between the watchdog and
+the progress. The callback is the evaluator's only outward channel besides
+its return value; it decides nothing, and a search the caller has since
+replaced is filtered by the caller, not here (`apps/web/src/engine`'s
+session is what drops a superseded search's lines).
+
 ## Transport
 
 A transport is two things: `send(command)`, and `lines` — a single-consumer

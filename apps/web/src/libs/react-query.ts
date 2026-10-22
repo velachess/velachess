@@ -1,4 +1,5 @@
 export {
+  experimental_streamedQuery,
   MutationCache,
   QueryCache,
   QueryClient,
@@ -9,4 +10,4 @@ export {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-export type { QueryClient as QueryClientType } from "@tanstack/react-query";
+export type { Query, QueryClient as QueryClientType } from "@tanstack/react-query";

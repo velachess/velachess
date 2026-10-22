@@ -16,11 +16,10 @@ export interface ClassifyInput {
   wasEngineBest: boolean;
 }
 
-/** Mate-aware wrapper `analyzeGame`'s own eval-to-win-chance conversion
- * needs — a mate score maps to the ±1000cp ceiling, not a saturated ±1.
- * Exported from index.ts for apps/web/src/games/analysis/graded-game.ts, the
- * one consumer outside this module's graph — which is what makes this a
- * module-root policy rather than a file private to one slice. */
+/** Mate-aware: a mate score maps to the ±1000cp ceiling, not a saturated
+ * ±1. Exported from index.ts for the review screen, which reads a graded
+ * ply's score as a share — which is what makes this a module-root policy
+ * rather than a file private to one slice. */
 export function scoreToWinChance(score: {
   cp?: number | undefined;
   mate?: number | undefined;

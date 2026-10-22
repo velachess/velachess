@@ -73,16 +73,20 @@ does not restate it.
   through `Intl`. Run `pnpm --filter @velachess/web i18n:extract` after
   touching copy.
 - State has four owners and they don't overlap: React Query for anything
-  from the API, the URL for selection and filters, zustand for client-only
-  state, `useState` for what dies with the component. Derive rather than
-  store — no `useEffect` to keep two copies of the same fact in sync.
+  from the API — and for the analysis, which is computed on this device
+  but streamed into the same cache
+  (`games/review/game-analysis-query.ts`) — the URL for selection and
+  filters, zustand for client-only state, `useState` for what dies with
+  the component. Derive rather than store — no `useEffect` to keep two
+  copies of the same fact in sync, and nothing copied out of the query
+  cache into a store.
 - zustand covers two shapes, and the difference is the lifetime, not the
   library. A module-level store (`create`) holds what outlives every
   screen: a preference someone chose (`chess-sounds`, `i18n/locale-store`,
-  `import/accounts/source-store`) or work this device is doing
-  (`games/analysis/analysis-store.ts`, whose lifecycle
-  `analysis/start-analysis.ts` owns, and which deliberately keeps
-  grading with nothing mounted). A store built per instance
+  `import/accounts/source-store`). Progress of work this device is doing
+  is not one of them — the analysis used to have such a store and now
+  lives in the query cache, which keeps accumulating with nothing
+  mounted. A store built per instance
   (`createStore` from `zustand/vanilla`, handed to consumers through one
   React context) holds what belongs to one screen but to more than one
   component in it — today that is exactly `games/review/review-store.ts`.
@@ -94,6 +98,14 @@ does not restate it.
   `review-store.ts` or `zustand`, so the state library can be replaced
   without touching a screen. The facade is the React boundary and nothing
   else — no state of its own, no synchronizing effect, no task to run.
+- A query every part of a screen reads is subscribed to per consumer,
+  with the `select` that names what that consumer draws — never once at
+  the top and passed down. `games/review/game-analysis-query.ts` is the
+  worked example: the board subscribes to the two grades it draws and the
+  progress bar to the search in flight, so React Query's structural
+  sharing is what stops a deepening search from re-rendering
+  `react-chessboard`. `games/review/tests/board-renders.test.tsx` counts
+  that boundary.
 - Review / Variation / Evaluation are three different things and keep
   their own names. Review is the domain (`games/review`); a Variation is
   a line of alternative moves played from one ply of the real game, and
@@ -102,10 +114,12 @@ does not restate it.
   a number, never a grade — classification belongs to the report.
 - Work a route exists to do starts in that route's `loader`, not in an
   effect inside the screen: `games/review/game-review-route.ts` resolves
-  the movetext through the query cache and starts the analysis, so the
-  component renders already-triggered work instead of triggering it
-  after the fact. A loader runs on the server too, so anything that needs
-  a browser API goes through `createClientOnlyFn`.
+  the movetext through the query cache and `prefetchQuery`s the analysis,
+  so the component renders already-triggered work instead of triggering
+  it after the fact. `prefetchQuery` because it never rejects — work the
+  screen reports on must not fail a navigation. A loader runs on the
+  server too, so anything that needs a browser API goes through
+  `createClientOnlyFn`.
 - Structure enters a layout component through a slot, content through
   children. A screen returns content and never positions itself.
 - A form with validation uses `@tanstack/react-form` (`useForm`, `form.Field`,

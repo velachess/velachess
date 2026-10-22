@@ -4,8 +4,8 @@
  * when to give up on a session and search again on a fresh one.
  *
  * Nothing here knows what a score means. It returns the engine's own
- * vocabulary — the last `info` line and the `bestmove` — and leaves white
- * POV, classification and caching to whoever asked.
+ * vocabulary — every `info` line as it arrives and the `bestmove` — and
+ * leaves white POV, classification and caching to whoever asked.
  */
 
 import {
@@ -34,10 +34,17 @@ export interface CompletedSearch {
   bestMove: BestMove;
 }
 
+/** Each `info` line, as the engine produces it. The watchdog reads the
+ * same lines, so a search that reports progress is a search that is
+ * alive. */
+export type OnEngineUpdate = (update: EngineUpdate) => void;
+
 export interface EngineEvaluator {
   /** Searches `fen`, retrying once on a fresh session when the engine dies
-   * or goes silent. Throws when both attempts fail. */
-  evaluate(fen: string): Operation<CompletedSearch>;
+   * or goes silent. Throws when both attempts fail. A retry replays the
+   * position from scratch, so `onUpdate` sees the second attempt's lines
+   * too. */
+  evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch>;
   /** Hurries the in-flight search, the same way the silence watchdog
    * does. It still settles with an outcome, because a real UCI engine
    * answers `stop` with a bestmove — how long to wait for that is the
@@ -77,6 +84,7 @@ function* searchOnce(
   depth: number,
   silenceMs: number,
   graceMs: number,
+  onUpdate?: OnEngineUpdate,
 ): Operation<CompletedSearch | null> {
   session.setPosition(fen);
   const search = yield* session.search({ kind: "depth", depth });
@@ -93,7 +101,10 @@ function* searchOnce(
     ]);
 
     if (step.kind === "line") {
-      if (!step.result.done) continue;
+      if (!step.result.done) {
+        onUpdate?.(step.result.value);
+        continue;
+      }
       return completed(step.result.value);
     }
 
@@ -103,6 +114,7 @@ function* searchOnce(
         while (true) {
           const next = yield* search.next();
           if (next.done) return next.value;
+          onUpdate?.(next.value);
         }
       }),
       call(function* (): Operation<SearchOutcome | undefined> {
@@ -162,8 +174,15 @@ export function useEngineEvaluator(
     let holder = yield* openSessionHolder(owner, open);
 
     yield* provide({
-      *evaluate(fen: string): Operation<CompletedSearch> {
-        const first = yield* searchOnce(holder.session, fen, depth, silenceMs, graceMs);
+      *evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch> {
+        const first = yield* searchOnce(
+          holder.session,
+          fen,
+          depth,
+          silenceMs,
+          graceMs,
+          onUpdate,
+        );
         if (first) return first;
 
         // The retry budget is per call, not per evaluator: one failing
@@ -171,7 +190,14 @@ export function useEngineEvaluator(
         yield* holder.close();
         holder = yield* openSessionHolder(owner, open);
 
-        const second = yield* searchOnce(holder.session, fen, depth, silenceMs, graceMs);
+        const second = yield* searchOnce(
+          holder.session,
+          fen,
+          depth,
+          silenceMs,
+          graceMs,
+          onUpdate,
+        );
         if (!second) throw new Error(`Engine failed twice evaluating ${fen}`);
         return second;
       },

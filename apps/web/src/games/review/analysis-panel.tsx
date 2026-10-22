@@ -5,8 +5,11 @@ import { BoardPanel } from "@velachess/ui/chess/board-stage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import type { GradedPly } from "../analysis/index.ts";
+
+import { useQuery } from "../../libs/react-query.ts";
 import { AnalysisProgress } from "./analysis-progress.tsx";
 import { EvalGraph } from "./eval-graph.tsx";
+import { gameAnalysisQuery, selectGraded } from "./game-analysis-query.ts";
 import type { ReplayableGame } from "./game-record.ts";
 import { GameReport } from "./game-report.tsx";
 import { GameResult } from "./game-result.tsx";
@@ -29,9 +32,6 @@ const TABS = { move: "move", report: "report" } as const;
 
 export interface AnalysisPanelProps {
   game: ReplayableGame;
-  graded: readonly GradedPly[];
-  isAnalyzing: boolean;
-  hasFailed: boolean;
 }
 
 /**
@@ -51,13 +51,15 @@ export interface AnalysisPanelProps {
  * reading the report, where a move-by-move list is noise underneath a
  * summary — and the two then fought over one scroll region.
  */
-export function AnalysisPanel({
-  game,
-  graded,
-  isAnalyzing,
-  hasFailed,
-}: AnalysisPanelProps) {
+const NOTHING_GRADED: readonly GradedPly[] = [];
+
+export function AnalysisPanel({ game }: AnalysisPanelProps) {
   const { i18n } = useLingui();
+
+  // The grades that have landed, and nothing provisional: a deepening
+  // search redraws the bar inside `AnalysisProgress`, not this panel.
+  const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectGraded });
+  const graded = analysis.data ?? NOTHING_GRADED;
 
   // `inVariation`: the main line's verdict is then about a position
   // nobody is looking at, so it is not shown at all rather than shown as
@@ -80,12 +82,7 @@ export function AnalysisPanel({
         />
       </div>
 
-      <AnalysisProgress
-        graded={graded.length}
-        totalPlies={totalPlies}
-        isAnalyzing={isAnalyzing}
-        hasFailed={hasFailed}
-      />
+      <AnalysisProgress game={game} totalPlies={totalPlies} />
 
       {/*
         Each tab owns everything it needs, including its own scrolling.

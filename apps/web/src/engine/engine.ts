@@ -31,6 +31,7 @@ import {
   type CompletedSearch,
   type EngineEvaluator,
   type EngineSession,
+  type OnEngineUpdate,
 } from "@velachess/infra-engine";
 
 /**
@@ -60,8 +61,10 @@ export class EngineSessionDisposed extends Error {
 }
 
 export interface EngineSessionHandle {
-  /** Supersedes whatever this session has in flight. */
-  evaluate(fen: string): Operation<CompletedSearch>;
+  /** Supersedes whatever this session has in flight. `onUpdate` receives
+   * this search's `info` lines, and only while it is still the session's
+   * current one. */
+  evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch>;
   dispose(): Operation<void>;
 }
 
@@ -272,6 +275,7 @@ export function createEngine(deps: EngineDeps): Engine {
         evaluator: EngineEvaluator,
         search: Search,
         fen: string,
+        onUpdate?: OnEngineUpdate,
       ): Operation<CompletedSearch> {
         // Superseded while the Worker was opening: starting now would be
         // a search nobody is waiting for.
@@ -279,7 +283,14 @@ export function createEngine(deps: EngineDeps): Engine {
 
         const task = scope.run(function* (): Operation<Result<CompletedSearch>> {
           try {
-            return Ok(yield* evaluator.evaluate(fen));
+            // Guarded rather than detached on supersede: the search runs
+            // to its own end in this scope, and a line it produces after
+            // being replaced would otherwise read as the current one's.
+            return Ok(
+              yield* evaluator.evaluate(fen, (update) => {
+                if (!isSuperseded(search)) onUpdate?.(update);
+              }),
+            );
           } catch (error) {
             return Err(error);
           } finally {
@@ -311,7 +322,7 @@ export function createEngine(deps: EngineDeps): Engine {
       }
 
       return {
-        *evaluate(fen: string): Operation<CompletedSearch> {
+        *evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch> {
           assertNotDisposed();
 
           const previousSearch = latestSearch;
@@ -326,7 +337,7 @@ export function createEngine(deps: EngineDeps): Engine {
           if (isSuperseded(search)) throw new SearchSuperseded();
 
           const evaluator = yield* getOrOpenWorker();
-          return yield* executeSearch(evaluator, search, fen);
+          return yield* executeSearch(evaluator, search, fen, onUpdate);
         },
 
         *dispose(): Operation<void> {

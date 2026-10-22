@@ -15,9 +15,10 @@ provider fetch -> normalization -> game persistence -> list/open
 - manual import: `libs/games/import-pgn` parses and normalizes in-request, then
   saves.
 - list/open: `libs/games/list-games`, `libs/games/get-game`.
-- analysis: opening a game runs `apps/web/src/games/analysis/` against
-  `libs/analysis`'s pure `analyzeGame`, entirely client-side. No queue leg,
-  no server leg, no persisted row — a failed or stale analysis is a browser
+- analysis: opening a game streams `apps/web/src/games/analysis/`'s
+  `analyzeGameInBrowser` into React Query, grading each ply with
+  `libs/analysis`'s pure policy, entirely client-side. No queue leg, no
+  server leg, no persisted row — a failed or stale analysis is a browser
   problem, not a pipeline one.
 
 Import and refresh never run Stockfish.

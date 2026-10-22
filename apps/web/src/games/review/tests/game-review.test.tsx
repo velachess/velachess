@@ -1,5 +1,4 @@
 import { fireEvent, screen, within } from "@testing-library/react";
-import { call, suspend, type Operation } from "effection";
 import {
   afterAll,
   afterEach,
@@ -15,30 +14,33 @@ import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/arch
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
-import { resetAnalysisForTests } from "../../analysis/start-analysis.ts";
-import type { GradedPly } from "../../analysis/index.ts";
+import {
+  ANALYSIS_EVENT,
+  type AnalysisEvent,
+  type GradedPly,
+  type PositionSearch,
+} from "../../analysis/index.ts";
 import type { Game } from "../../list/index.ts";
 
 /**
  * The screen through the route, over HTTP for the game itself; the engine
- * is mocked at `analyzeGameInBrowser` — the same seam `start-analysis.ts`
- * runs — rather than at the Worker/UCI level, which `libs/infra/engine`
- * and `analyze-game-in-browser.test.ts` already cover.
+ * is mocked at `analyzeGameInBrowser` — the stream React Query consumes —
+ * rather than at the Worker/UCI level, which `libs/infra/engine` and
+ * `analysis/tests/analyze-in-browser.test.ts` already cover.
  */
 
-vi.mock("../../analysis/analyze-game-in-browser.ts", () => ({
+vi.mock("../../analysis/game/analyze.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
-const { analyzeGameInBrowser } =
-  await import("../../analysis/analyze-game-in-browser.ts");
+const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-// Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
-// same module, and only the interactive evaluator is stubbed.
+// Partial: the screen reaches the whole-game pass through this module as
+// well, and only the interactive evaluator is stubbed.
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
-  openPositionEvaluator: vi.fn(),
+  createStockfishEvaluator: vi.fn(),
 }));
-const { openPositionEvaluator } = await import("../../analysis/index.ts");
+const { createStockfishEvaluator } = await import("../../analysis/index.ts");
 
 /**
  * The staged run: every ply graded, with one blunder at Nc6 (ply 4).
@@ -58,18 +60,15 @@ const blunderButton = (content: string) =>
 const findBlunderButton = () => screen.findByRole("button", { name: blunderButton });
 
 /**
- * Publishes exactly these plies, as `analyzeGameInBrowser` would.
- * `finished: false` never returns — standing in for "the engine hasn't
- * finished the rest of the game yet" — and nothing has to be flushed
- * afterwards, because opening another game halts it.
+ * Streams exactly these plies, as `analyzeGameInBrowser` would.
+ * `finished: false` never ends — standing in for "the engine hasn't
+ * finished the rest of the game yet".
  */
 function plyPass(moves: GradedPly[], { finished = true }: { finished?: boolean } = {}) {
-  return function* (
-    _input: unknown,
-    publish: (plies: readonly GradedPly[]) => void,
-  ): Operation<void> {
-    for (const move of moves) publish([move]);
-    if (!finished) yield* suspend();
+  return async function* (): AsyncGenerator<AnalysisEvent> {
+    for (const grade of moves) yield { type: ANALYSIS_EVENT.PLY_GRADED, grade };
+    if (!finished) await new Promise<never>(() => {});
+    yield { type: ANALYSIS_EVENT.COMPLETED, graded: moves };
   };
 }
 
@@ -78,11 +77,11 @@ function stageAnalysis(moves: GradedPly[]): void {
 }
 
 function stageFailedAnalysis(): void {
-  vi.mocked(analyzeGameInBrowser).mockImplementation(() =>
-    call((): never => {
-      throw new Error("engine failed");
-    }),
-  );
+  // Throws where the pass would open the engine, before it has a stream
+  // to hand back — the shape an unusable browser really fails in.
+  vi.mocked(analyzeGameInBrowser).mockImplementation(() => {
+    throw new Error("engine failed");
+  });
 }
 
 const openGame = async (
@@ -101,9 +100,6 @@ describe("game analysis", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
   it("analyses the game on opening it", async () => {
@@ -360,13 +356,12 @@ describe("game analysis", () => {
   });
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
-    // Cancellation itself belongs to the pass (see
-    // `start-analysis.test.ts` and `analyze-game-in-browser.test.ts`);
-    // here the concern is purely the screen's: a stale run's partial
-    // result must never render as if it belonged to whatever game is
-    // open now. The first game's pass never grades anything and never
-    // ends on its own — opening the second game is what has to displace
-    // it, rather than the screen waiting behind it.
+    // The pass's own lifecycle is covered in
+    // `analysis/tests/analyze-in-browser.test.ts` and
+    // `game-analysis-query.test.ts`; here the concern is purely the
+    // screen's: a run that is still going must never render as if it
+    // belonged to whatever game is open now. The first game's pass never
+    // grades anything and never ends on its own.
     const first = aGame();
     addGames(first);
     vi.mocked(analyzeGameInBrowser).mockImplementation(plyPass([], { finished: false }));
@@ -396,9 +391,6 @@ describe("game breadcrumb", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
   /** Renders the game and hands back its last crumb: the page's own name, not the trail leading to it. */
@@ -536,9 +528,6 @@ describe("provider identity on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
   it("shows each player's own picture beside their name", async () => {
@@ -612,16 +601,28 @@ async function playOnBoard(
 const evaluationReads = () =>
   screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuetext");
 
+/** One variation search: a line of thinking, then the number. The bar
+ * reads what the search settled on, never a provisional update. */
+function scriptedSearch(evaluation: {
+  score: { cp: number };
+  bestMove: string;
+}): PositionSearch {
+  async function* search() {
+    yield { depth: 4, multipv: 1, score: evaluation.score, pv: [evaluation.bestMove] };
+    return evaluation;
+  }
+  return Object.assign(search(), { cancel: () => {} });
+}
+
 describe("a variation played on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    vi.mocked(openPositionEvaluator).mockReset();
-    vi.mocked(openPositionEvaluator).mockReturnValue({
-      evaluate: () => call(() => ({ score: { cp: -480 }, bestMove: "e7e5" })),
-      dispose: () => call(() => undefined),
+    vi.mocked(createStockfishEvaluator).mockReset();
+    vi.mocked(createStockfishEvaluator).mockReturnValue({
+      evaluate: () => scriptedSearch({ score: { cp: -480 }, bestMove: "e7e5" }),
+      dispose: async () => {},
     });
-    resetAnalysisForTests();
   });
 
   it("moves the bar to the variation's own evaluation", async () => {

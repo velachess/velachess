@@ -3,13 +3,11 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useEngineSession } from "@velachess/infra-engine";
-import type { CompletedSearch } from "@velachess/infra-engine";
+import type { CompletedSearch, EngineUpdate } from "@velachess/infra-engine";
 
-import { call, run } from "../../../libs/effection.ts";
-import {
-  openPositionEvaluator,
-  positionEvaluationOf,
-} from "../evaluate-position-in-browser.ts";
+import { call } from "../../../libs/effection.ts";
+import { createStockfishEvaluator, positionEvaluationOf } from "../position/stockfish.ts";
+import type { PositionSearch } from "../position/evaluate.ts";
 import {
   createScriptedEngine,
   goLines,
@@ -49,13 +47,25 @@ function mockEngine(onEngine?: (engine: ScriptedEngine) => void) {
   return engines;
 }
 
-/** One evaluator per test, closed however the test ends. */
+/** Every update the search streamed, and what it settled on. */
+async function drain(search: PositionSearch) {
+  const updates: EngineUpdate[] = [];
+  let step = await search.next();
+  while (!step.done) {
+    updates.push(step.value);
+    step = await search.next();
+  }
+  return { updates, evaluation: step.value };
+}
+
+/** One evaluator per test, disposed however the test ends. */
 function open() {
-  const evaluator = openPositionEvaluator();
+  const evaluator = createStockfishEvaluator();
   return {
     evaluator,
-    evaluate: (fen: string) => run(() => evaluator.evaluate(fen)),
-    close: () => run(() => evaluator.dispose()),
+    search: (fen: string) => evaluator.evaluate(fen),
+    evaluate: async (fen: string) => (await drain(evaluator.evaluate(fen))).evaluation,
+    close: () => evaluator.dispose(),
   };
 }
 
@@ -82,7 +92,7 @@ describe("positionEvaluationOf", () => {
   });
 });
 
-describe("openPositionEvaluator", () => {
+describe("createStockfishEvaluator", () => {
   it("searches the position and returns the engine's answer", async () => {
     // Queued before the search starts, so the reply is deterministic
     // rather than racing the session's own handshake.
@@ -142,11 +152,14 @@ describe("openPositionEvaluator", () => {
     const engines = mockEngine();
 
     const held = open();
-    const abandoned = held.evaluate(FEN);
+    const abandoned = held.search(FEN);
+    const reading = drain(abandoned).catch(() => null);
     await vi.waitFor(() => expect(engines).toHaveLength(1));
     // No reply queued: the search is in flight when the caller walks away.
-    await abandoned.halt().catch(() => {});
+    abandoned.cancel();
+    await reading;
 
+    expect(engines[0]!.sent).toContain("stop");
     expect(engines[0]!.closed).toBe(false);
     engines[0]!.queueGoResponse(goLines(12, "e7e5"));
     expect(await held.evaluate(AFTER_E4)).toEqual({
@@ -167,6 +180,47 @@ describe("openPositionEvaluator", () => {
 
     await held.close();
     expect(engines[0]!.closed).toBe(true);
+  });
+
+  it("streams every info line the search produced, then what it settled on", async () => {
+    mockEngine((engine) =>
+      engine.queueGoResponse([
+        "info depth 1 multipv 1 score cp 10 pv e2e4",
+        "info depth 2 multipv 1 score cp 15 pv e2e4 e7e5",
+        "bestmove e2e4",
+      ]),
+    );
+
+    const held = open();
+    const { updates, evaluation } = await drain(held.search(FEN));
+
+    expect(updates.map((update) => update.depth)).toEqual([1, 2]);
+    expect(updates.at(-1)?.pv).toEqual(["e2e4", "e7e5"]);
+    expect(evaluation).toEqual({ score: { cp: 15 }, bestMove: "e2e4" });
+    await held.close();
+  });
+
+  it("refuses to answer a search a newer position replaced", async () => {
+    const engines = mockEngine();
+    const held = open();
+
+    const abandoned = held.search(FEN);
+    const abandonedReading = drain(abandoned).then(
+      () => "answered",
+      () => "rejected",
+    );
+    await vi.waitFor(() => expect(engines).toHaveLength(1));
+
+    const current = drain(held.search(AFTER_E4));
+    await vi.waitFor(() => expect(engines[0]!.sent).toContain("stop"));
+    engines[0]!.queueGoResponse(goLines(-12, "e7e5"));
+
+    // Black to move, so the engine's own +(-12) is white's +12.
+    expect((await current).evaluation).toEqual({ score: { cp: 12 }, bestMove: "e7e5" });
+    // The replaced search answered too, over the same Worker — its answer
+    // is about a position nobody is looking at any more.
+    expect(await abandonedReading).toBe("rejected");
+    await held.close();
   });
 
   it("propagates an engine init failure", async () => {

@@ -1,7 +1,7 @@
 /**
  * The pure half of an analysis: given one evaluation per position, say what
- * each move was. No engine, no I/O, no async — `analyze-game.ts` sequences
- * the evaluations and calls in here.
+ * each move was. No engine, no I/O, no async — whoever sequences the
+ * evaluations calls in here, one ply at a time.
  */
 
 import type { Outcome, ReplayedMove } from "@velachess/chess";

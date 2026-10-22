@@ -2,10 +2,12 @@
  * Everything the board needs, already decided: `board-pane.tsx` reads
  * this and lays it out, rather than assembling it from the store.
  *
- * Granular selectors on purpose — `variation` and `variationEvaluation`
- * are replaced wholesale when they change, so a render happens when the
- * board actually looks different and not when some other part of the
- * review moved.
+ * Granular on purpose, on both sides. `variation` and
+ * `variationEvaluation` are replaced wholesale when they change, and the
+ * report is read through a `select` that names the two grades the board
+ * draws — so the board re-renders when it actually looks different, and
+ * not because the analysis reached some other move or deepened its
+ * search.
  */
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
@@ -13,11 +15,12 @@ import { useLingui } from "@lingui/react";
 import { squaresOfUci, type LegalDestination, type MoveSquares } from "@velachess/chess";
 import type { BadgeTone } from "@velachess/ui/chess/board-theme";
 
-import type { GradedPly } from "../analysis/index.ts";
+import { useQuery } from "../../libs/react-query.ts";
+import { boardGradesAtPly, gameAnalysisQuery } from "./game-analysis-query.ts";
 import { legalTargetsAt, suggestedArrow } from "./board-view.ts";
+import type { ReplayableGame } from "./game-record.ts";
 import { badgeAt, evaluationOf, showingLabel } from "./move-presentation.ts";
 import {
-  gradeAtPly,
   selectFen,
   selectGameMove,
   selectShowingSan,
@@ -43,7 +46,7 @@ export interface BoardReview {
   showing: string;
 }
 
-export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
+export function useBoardReview(game: ReplayableGame): BoardReview {
   const { i18n } = useLingui();
 
   const fen = useGameReview(selectFen);
@@ -57,8 +60,12 @@ export function useBoardReview(graded: readonly GradedPly[]): BoardReview {
   const playMove = useGameReview((state) => state.playMove);
 
   // The move just played, and the choice facing whoever is to move now.
-  const playedGrade = gradeAtPly(graded, ply);
-  const positionGrade = gradeAtPly(graded, ply + 1);
+  const grades = useQuery({
+    ...gameAnalysisQuery(game),
+    select: boardGradesAtPly(ply),
+  });
+  const playedGrade = grades.data?.played;
+  const positionGrade = grades.data?.position;
   const lastMove = variationMove ?? (gameMove ? squaresOfUci(gameMove.uci) : null);
 
   return {
