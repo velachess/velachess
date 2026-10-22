@@ -27,8 +27,18 @@ import {
 import { experimental_streamedQuery, queryOptions } from "../../libs/react-query.ts";
 import { gameAnalysisQueryKey } from "../game-query-keys.ts";
 
+import type { ReplayedGame } from "@velachess/chess";
+
 import type { ReplayableGame } from "./game-record.ts";
 import { gradeAtPly } from "./review-model.ts";
+
+/**
+ * What an analysis needs of a game: which game it is, and the replay it
+ * grades. Narrower than `ReplayableGame` because nothing here reads a
+ * player, a rating or a result — and a test can then build one without
+ * inventing the rest of an HTTP payload.
+ */
+export type AnalysedGame = Pick<ReplayableGame, "id"> & ReplayedGame;
 
 const EMPTY_ANALYSIS: GameAnalysis = { graded: [], live: null, isComplete: false };
 
@@ -53,7 +63,7 @@ function reduceAnalysis(analysis: GameAnalysis, event: AnalysisEvent): GameAnaly
   return { graded: event.graded, live: null, isComplete: true };
 }
 
-export function gameAnalysisQuery(game: ReplayableGame) {
+export function gameAnalysisQuery(game: AnalysedGame) {
   return queryOptions({
     // The identity of the answer, not just of the game: a report graded
     // by another engine build, depth or policy is a different report,

@@ -21,7 +21,7 @@ import {
   type GameAnalysis,
 } from "../../analysis/index.ts";
 import { gameAnalysisQuery, selectGraded } from "../game-analysis-query.ts";
-import type { ReplayableGame } from "../game-record.ts";
+import type { AnalysedGame } from "../game-analysis-query.ts";
 
 // The stream itself, staged: what `analyzeGameInBrowser` produces is
 // covered by `analysis/tests/`, and what this file owns is what React
@@ -31,8 +31,9 @@ vi.mock("../../analysis/game/analyze.ts", () => ({
 }));
 const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-/** The one game every case analyses — only its id and its replay matter. */
-const game = { id: "game-1", ...aReplay() } as ReplayableGame;
+/** The one game every case analyses: its id and its replay, which is all
+ * an analysis is handed. */
+const game: AnalysedGame = { id: "game-1", ...aReplay() };
 
 /**
  * A pass the test drives event by event, counting how many times it was
