@@ -16,11 +16,11 @@ import { ANALYSIS_EVENT, type AnalysisEvent } from "../../analysis/index.ts";
  * costs anything.
  */
 let boardRenders = 0;
-let suggestedMove: MoveSquares | undefined;
+let suggestedMove: MoveSquares | null | undefined;
 
 vi.mock("@velachess/ui/chess/board", () => ({
   Board: (props: {
-    suggestedMove?: MoveSquares | undefined;
+    suggestedMove?: MoveSquares | null | undefined;
     onMove?: (move: MoveSquares) => void;
   }) => {
     boardRenders += 1;
@@ -209,7 +209,7 @@ describe("the engine's move someone asked to see", () => {
       name: (content) => content.includes("e4") && content.includes("?!"),
     });
     await user.click(played);
-    expect(suggestedMove).toBeUndefined();
+    expect(suggestedMove).toBeNull();
 
     await user.click(
       screen.getByRole("button", { name: "Show the engine's move on the board" }),
@@ -219,7 +219,7 @@ describe("the engine's move someone asked to see", () => {
     expect(suggestedMove).toEqual({ from: "d2", to: "d4" });
 
     await user.click(screen.getByRole("button", { name: "Previous move" }));
-    expect(suggestedMove).toBeUndefined();
+    expect(suggestedMove).toBeNull();
   });
 
   it("leaves the board alone when a variation's evaluation lands", async () => {

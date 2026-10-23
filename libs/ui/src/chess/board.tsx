@@ -1,14 +1,6 @@
 /**
- * [UI] The board primitive — the only place that knows `react-chessboard`'s
- * `options` shape, so an upstream change costs one file.
- *
- * The rule for this file: if `ChessboardOptions` already does it, we
- * configure it. Notation, animation, orientation, arrows and the square
- * slot are all the library's own; hand-rolling any of them means two
- * layouts competing over the same grid.
- *
- * No chess rules here: the board reports a gesture, the caller decides
- * whether the move was legal.
+ * The only place that knows `react-chessboard`'s `options` shape. No chess
+ * rules: the board reports a gesture, the caller rules on it.
  */
 
 import { Chessboard, defaultArrowOptions } from "react-chessboard";
@@ -29,25 +21,14 @@ import { SquareBadge } from "./square-badge.tsx";
 import type { BadgeTone } from "./board-theme.ts";
 
 /**
- * Arrow geometry, so an arrow annotates the move without burying the
- * piece it lands on.
- *
- * The tail stays at the centre of the origin square, overlapping the
- * piece being moved: that overlap is what reads as "this piece goes
- * there". Pulling it back to the square's edge, as `arrowStartOffset`
- * does, leaves the arrow floating free of the piece it belongs to.
- *
- * The head is the only end worth trimming. The library's default stops
- * an eighth of a square short, which plants it over the destination
- * piece; a quarter back clears the silhouette and still lands the head
- * well inside the square.
+ * Only the head is trimmed: the library's eighth of a square plants it over
+ * the destination piece, where a quarter clears the silhouette.
  */
 const ARROW_GEOMETRY = {
   ...defaultArrowOptions,
   arrowLengthReducerDenominator: 4,
-  // Well under the library's 0.65. An arrow is an annotation laid over
-  // the position, so the pieces it crosses have to stay readable through
-  // it, and two arrows that cross should not stack into a darker third.
+  // Under the library's 0.65, so the pieces an arrow crosses stay readable
+  // and two crossing arrows do not stack into a third.
   opacity: 0.45,
 } satisfies typeof defaultArrowOptions;
 
@@ -58,23 +39,15 @@ export interface BoardMove {
   to: string;
 }
 
-/**
- * A square the caller says a piece may reach, and whether landing there
- * takes a piece — the board draws the two differently.
- *
- * Declared here rather than imported: legality is the caller's, and this
- * package knows nothing of chess rules or of `@velachess/chess`.
- */
+/** Declared here rather than imported: legality is the caller's. */
 export interface BoardDestination {
   square: string;
   isCapture: boolean;
 }
 
 /**
- * Two squares to draw between — a highlight or an arrow, depending on
- * which prop carries it. Shaped like `BoardMove` and kept apart from it
- * on purpose: this one travels in, as something to show, and a move
- * travels out, as something the caller has to rule on.
+ * Shaped like `BoardMove` but apart from it: this travels in as something
+ * to show, a move travels out as something to rule on.
  */
 export interface BoardArrow {
   from: string;
@@ -83,53 +56,30 @@ export interface BoardArrow {
 
 export interface BoardProps {
   fen: string;
-  /** Which side sits at the bottom. Defaults to white. */
+  /** Which side sits at the bottom. */
   orientation?: BoardSide;
-  /**
-   * Called when the user drops or clicks a piece onto a square. Return
-   * true if the move was accepted — false makes the piece snap back.
-   * Absent means the board is read-only.
-   */
+  /** True accepts the move, false snaps the piece back, and absent makes
+   * the board read-only. */
   onMove?: ((move: BoardMove) => boolean) | undefined;
-  /** The move that produced this position: both squares get lit. */
-  lastMove?: BoardArrow | undefined;
-  /** The engine's first choice, drawn at full strength. */
-  bestMove?: BoardArrow | undefined;
-  /**
-   * A move someone asked to see. Drawn apart from the grade colours,
-   * because it answers a question rather than judging what was played.
-   */
-  suggestedMove?: BoardArrow | undefined;
-  /** Marks keyed by square — a grade, or the book. */
+  lastMove?: BoardArrow | null | undefined;
+  bestMove?: BoardArrow | null | undefined;
+  /** Drawn apart from the grade colours: it answers a question rather than
+   * judging what was played. */
+  suggestedMove?: BoardArrow | null | undefined;
+  /** Marks keyed by square. */
   badges?: Readonly<Record<string, BadgeTone>> | undefined;
   /**
-   * Legal destinations from a square, already classified by whether they
-   * capture. Absent means no hints — a replay board is being read, not
-   * played, and marks on it would be noise.
-   *
-   * Asked of the caller rather than computed here: legality belongs to
-   * chessops, and this component knows only about squares. Including
-   * whether a move captures, which en passant makes a rule question and
-   * not a "is the square occupied" one.
+   * Asked of the caller because whether a move captures is a rule question
+   * en passant makes it, not an "is the square occupied" one. Absent means
+   * no hints.
    */
   legalTargetsOf?: ((square: string) => readonly BoardDestination[]) | undefined;
-  /**
-   * Animate piece movement. Off while stepping through a replay: the
-   * next keypress arrives before any easing curve finishes, and a
-   * queued animation reads as lag.
-   */
+  /** Off while stepping a replay, where the next keypress arrives before
+   * any easing curve finishes and a queued animation reads as lag. */
   animated?: boolean;
   className?: string;
 }
 
-/**
- * Where a picked-up piece may go, keyed by square.
- *
- * The library has no idea what chess is — it renders squares and reports
- * drags. Legality is ours, so the caller answers `legalTargetsOf` and
- * this only paints. Capture and quiet move get different shapes because
- * they are different offers.
- */
 function hintsOf(
   from: string | null,
   legalTargetsOf: BoardProps["legalTargetsOf"],
@@ -143,14 +93,14 @@ function hintsOf(
   return styles;
 }
 
-function squaresOf(move: BoardArrow | undefined): Record<string, CSSProperties> {
+function squaresOf(move: BoardArrow | null | undefined): Record<string, CSSProperties> {
   if (!move) return {};
   return { [move.from]: BOARD_STYLE.highlight, [move.to]: BOARD_STYLE.highlight };
 }
 
 function withArrows(
-  bestMove: BoardArrow | undefined,
-  suggestedMove: BoardArrow | undefined,
+  bestMove: BoardArrow | null | undefined,
+  suggestedMove: BoardArrow | null | undefined,
 ): { arrows?: Arrow[] } {
   const drawn: Arrow[] = [];
   if (suggestedMove) {
@@ -163,8 +113,8 @@ function withArrows(
   if (bestMove) {
     drawn.push({ startSquare: bestMove.from, endSquare: bestMove.to, color: ARROW_BEST });
   }
-  // Nothing to draw means no key at all, not an empty array — the
-  // library's own example treats "no arrows" as absence.
+  // No key rather than an empty array: the library treats "no arrows" as
+  // absence.
   return drawn.length > 0 ? { arrows: drawn } : {};
 }
 
@@ -180,19 +130,13 @@ export function Board({
   animated = true,
   className,
 }: BoardProps) {
-  // Scoped to the position it was made in: stepping to the next ply must
-  // not leave dots on a square nobody picked up there.
+  // Scoped to the position it was made in, so stepping leaves no dots.
   const [picked, setPicked] = useState<{ fen: string; square: string } | null>(null);
   const selected = picked?.fen === fen ? picked.square : null;
   const hints = hintsOf(selected, legalTargetsOf);
   const highlights = squaresOf(lastMove);
 
-  /**
-   * Click to move: pick a piece, then click where it goes. The second
-   * half of the same gesture drag already covers, and the only one a
-   * touch screen offers comfortably. It goes through `onMove` like a drop
-   * does, so legality is still decided once, by the caller.
-   */
+  /** Goes through `onMove` like a drop, so legality is decided once. */
   function selectOrMove({ piece, square }: SquareHandlerArgs): void {
     const reachable = selected
       ? legalTargetsOf?.(selected)?.some((target) => target.square === square)
@@ -207,9 +151,8 @@ export function Board({
   }
 
   return (
-    // The board is a grid of `aspect-ratio: 1` squares, so it is square
-    // whatever this says. `aspect-square` states that out loud — every
-    // height supplied from outside has been wrong so far.
+    // The grid is `aspect-ratio: 1` squares, so the board is square
+    // whatever this says.
     <div
       data-slot="board"
       className={cn("aspect-square w-full max-w-xl rounded-lg", className)}
@@ -224,30 +167,25 @@ export function Board({
           lightSquareStyle: BOARD_STYLE.light,
           darkSquareStyle: BOARD_STYLE.dark,
           onPieceDrag: ({ square }) => setPicked(square ? { fen, square } : null),
-          // `onSquareClick` alone: it fires for every square, occupied or
-          // not, and carries the piece. A piece renders inside its square
-          // and neither handler stops propagation, so also wiring
-          // `onPieceClick` made one click on a capture call `onMove` twice.
+          // `onSquareClick` alone fires for every square and carries the
+          // piece; wiring `onPieceClick` too made one click on a capture
+          // call `onMove` twice.
           onSquareClick: ({ piece, square }) => selectOrMove({ piece, square }),
           onPieceDragCancel: () => setPicked(null),
           showNotation: true,
           lightSquareNotationStyle: NOTATION_STYLE.onLight,
           darkSquareNotationStyle: NOTATION_STYLE.onDark,
-          // Spread rather than assigned: `exactOptionalPropertyTypes` makes
-          // an explicit `undefined` a different thing from an absent key,
-          // and `ChessboardOptions` asks for the key to be absent.
+          // Spread because `ChessboardOptions` wants the key absent, which
+          // `exactOptionalPropertyTypes` tells from undefined.
           ...withArrows(bestMove, suggestedMove),
           arrowOptions: ARROW_GEOMETRY,
-          // Right-drag arrows are the library's, and free. Clearing them
-          // on a position change matters here: without it a mark drawn
-          // on move 12 is still hanging there on move 13.
+          // Without clearing the library's right-drag arrows on a position
+          // change, a mark drawn on move 12 hangs on move 13.
           allowDrawingArrows: true,
           clearArrowsOnPositionChange: true,
-          // Every square fill goes here, never through `squareStyles`:
-          // the library reads that option only on the div a renderer
-          // replaces — `squareRenderer?.(…) || <div style={{…squareStyles[id]}} />`
-          // — and badges mean there is always a renderer. The hint wins
-          // the overlap, so a piece picked up off the last move looks it.
+          // Every square fill goes here, not `squareStyles`: the library
+          // reads that only on the div a renderer replaces, and badges mean
+          // there is always a renderer.
           squareRenderer: ({ square, children }) => {
             const tone = badges?.[square];
             return (
@@ -264,8 +202,6 @@ export function Board({
           },
           onPieceDrop: ({ sourceSquare, targetSquare }) => {
             setPicked(null);
-            // A piece let go outside the board is never a move, so the
-            // caller is never asked about one.
             if (!targetSquare) return false;
             return onMove?.({ from: sourceSquare, to: targetSquare }) ?? false;
           },

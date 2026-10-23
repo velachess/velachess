@@ -32,10 +32,10 @@ export interface BoardReview {
   /** False when the position does not allow the move — nothing changes. */
   playMove: (from: string, to: string) => boolean;
   legalTargetsOf: (square: string) => readonly LegalDestination[];
-  lastMove: MoveSquares | undefined;
+  lastMove: MoveSquares | null;
   badges: Record<string, BadgeTone> | undefined;
-  bestMove: MoveSquares | undefined;
-  suggestedMove: MoveSquares | undefined;
+  bestMove: MoveSquares | null;
+  suggestedMove: MoveSquares | null;
   /** What the board is showing, in words, for the live region. */
   showing: string;
 }
@@ -60,22 +60,25 @@ export function useBoardReview(game: ReplayableGame): BoardReview {
   const positionGrade = grades.data?.position;
   const lastMove = variationMove ?? (gameMove ? squaresOfUci(gameMove.uci) : null);
 
+  // Nothing of the report is drawn over a variation: it would be about a
+  // position no longer on screen.
+  const showsReport = !inVariation;
+  const revealsBestMove = showsReport && showBestMove;
+
   return {
     fen,
     playMove,
     legalTargetsOf: (square) => legalTargetsAt(fen, square),
-    lastMove: lastMove ?? undefined,
-    // Nothing of the report is drawn over a variation: it would be about
-    // a position no longer on screen.
-    badges: inVariation ? undefined : badgeAt(lastMove?.to, playedGrade?.category),
+    lastMove,
+    badges: showsReport ? badgeAt(lastMove?.to, playedGrade?.category) : undefined,
     bestMove:
-      inVariation || !positionGrade?.bestMove
-        ? undefined
-        : (squaresOfUci(positionGrade.bestMove) ?? undefined),
+      showsReport && positionGrade?.bestMove
+        ? squaresOfUci(positionGrade.bestMove)
+        : null,
     suggestedMove:
-      inVariation || !showBestMove || !playedGrade?.bestMove
-        ? undefined
-        : (squaresOfUci(playedGrade.bestMove) ?? undefined),
+      revealsBestMove && playedGrade?.bestMove
+        ? squaresOfUci(playedGrade.bestMove)
+        : null,
     showing: showingLabel(showingSan, gameMove, inVariation, i18n._(BOARD_COPY.start)),
   };
 }
