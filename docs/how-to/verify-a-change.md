@@ -13,6 +13,7 @@ pnpm fmt:check    # oxfmt
 pnpm knip         # unused files, exports and dependencies
 pnpm test         # unit and integration projects
 pnpm e2e          # cross-system acceptance flows
+pnpm e2e:analysis # the browser suite: real Stockfish, real IndexedDB
 pnpm build        # when apps/web or apps/site moved
 ```
 
@@ -54,6 +55,15 @@ project name — `server`, `root`, `web`, `ui`, and so on).
 
 `pnpm e2e` runs only `e2e/*.spec.ts`. These flows compose `apps/server` and
 `apps/worker` at the repository root because they belong to neither app.
+
+`pnpm e2e:analysis` is the other kind: Playwright drives a real Chromium over
+`e2e/analysis/`, with the app's own Stockfish WASM, its Workers and its
+IndexedDB, and only the HTTP the screens read staged in the browser. It needs no
+database and no API process — `vite dev` serves the engine assets it copies — and
+it runs in about 40 s. `pnpm exec playwright test --project=analysis-review -g
+"<name>"` runs one case, and a failure leaves a trace and a screenshot under
+`.playwright/test-results` (`pnpm exec playwright show-trace <path>`). The other
+Playwright project, `site-capture`, is the landing screenshot and stays manual.
 
 The `web` project renders screens: Testing Library drives them and MSW
 answers the network, so a test there exercises the app's own fetch rather

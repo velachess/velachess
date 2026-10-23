@@ -1,10 +1,9 @@
 import { expect, test as base, type Page, type Route } from "@playwright/test";
 
 import {
-  LANDING_GAME_ID,
   LANDING_PLAYER,
   landingGame,
-} from "../../apps/web/src/games/review/tests/fixtures/landing-game.ts";
+} from "../apps/web/src/games/review/tests/fixtures/landing-game.ts";
 
 const FIXED_NOW = "2026-08-21T12:00:00.000Z";
 
@@ -36,46 +35,61 @@ const account = {
   lastSyncError: null,
 };
 
+/** What the staged API routes on; every other field is passed through as
+ * the record the screen reads. */
+export type StagedGame = { readonly id: string } & Record<string, unknown>;
+
 async function fulfillJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({ json: body, status });
 }
 
-async function handleApi(route: Route) {
-  const request = route.request();
-  const { pathname } = new URL(request.url());
-  const method = request.method();
+function handleApi(games: readonly StagedGame[]) {
+  return async function handle(route: Route) {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const method = request.method();
 
-  if (method === "GET" && pathname === "/api/auth/get-session") {
-    await fulfillJson(route, session);
-    return;
-  }
-  if (method === "GET" && pathname === "/api/accounts") {
-    await fulfillJson(route, [account]);
-    return;
-  }
-  if (method === "GET" && pathname === "/api/games") {
-    await fulfillJson(route, { games: [landingGame], total: 1, page: 1, pageSize: 25 });
-    return;
-  }
-  if (method === "GET" && pathname === `/api/games/${LANDING_GAME_ID}`) {
-    await fulfillJson(route, landingGame);
-    return;
-  }
-  // The session's one SSE stream, opened by the `_app` layout. Nothing
-  // settles during a capture, so an empty stream is the whole of it.
-  //
-  // There is no analysis endpoint to stage: Stockfish runs in the browser,
-  // so this capture drives the real engine and the grades on screen are
-  // the ones it searched.
-  if (method === "GET" && pathname === "/api/syncs/events") {
-    await route.fulfill({ status: 200, contentType: "text/event-stream", body: "" });
-    return;
-  }
+    if (method === "GET" && pathname === "/api/auth/get-session") {
+      await fulfillJson(route, session);
+      return;
+    }
+    if (method === "GET" && pathname === "/api/accounts") {
+      await fulfillJson(route, [account]);
+      return;
+    }
+    if (method === "GET" && pathname === "/api/games") {
+      await fulfillJson(route, {
+        games,
+        total: games.length,
+        page: 1,
+        pageSize: 25,
+      });
+      return;
+    }
+    const game = games.find((staged) => pathname === `/api/games/${staged.id}`);
+    if (method === "GET" && game) {
+      await fulfillJson(route, game);
+      return;
+    }
+    // The session's one SSE stream, opened by the `_app` layout. Nothing
+    // settles here, so an empty stream is the whole of it.
+    //
+    // There is no analysis endpoint to stage: Stockfish runs in the browser,
+    // so these suites drive the real engine and the grades on screen are
+    // the ones it searched.
+    if (method === "GET" && pathname === "/api/syncs/events") {
+      await route.fulfill({ status: 200, contentType: "text/event-stream", body: "" });
+      return;
+    }
 
-  throw new Error(`Unexpected capture request: ${method} ${pathname}`);
+    throw new Error(`Unexpected staged request: ${method} ${pathname}`);
+  };
 }
 
-async function preparePage(page: Page) {
+export async function stageProduct(
+  page: Page,
+  games: readonly StagedGame[] = [landingGame],
+) {
   await page.addInitScript(
     ({ now, player }) => {
       Date.now = () => new Date(now).valueOf();
@@ -93,7 +107,7 @@ async function preparePage(page: Page) {
     },
     { now: FIXED_NOW, player: LANDING_PLAYER },
   );
-  await page.route((url) => url.pathname.startsWith("/api/"), handleApi);
+  await page.route((url) => url.pathname.startsWith("/api/"), handleApi(games));
 }
 
 async function settle(page: Page) {
@@ -111,7 +125,7 @@ export const test = base.extend<{ productPage: Page }>({
       if (message.type() === "error") errors.push(message.text());
     });
     page.on("pageerror", (error) => errors.push(error.message));
-    await preparePage(page);
+    await stageProduct(page);
     await use(page);
     expect(errors).toEqual([]);
   },

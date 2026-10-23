@@ -77,6 +77,30 @@ jobs:
       - name: Build
         run: pnpm build
 
+  # The browser one: a real Chromium running the app's own Stockfish WASM and
+  # IndexedDB. Only the HTTP the screen reads is staged, so it needs no
+  # service container, and `vite dev` is what copies the engine assets in.
+  analysis-e2e:
+    name: Analysis E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Analysis, review and engine lifecycle
+        run: pnpm e2e:analysis
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-analysis
+          path: .playwright/test-results
+          if-no-files-found: ignore
+
   # Races that need two real connections: locks and unique-index arbitration.
   # PGlite runs one connection, so these run against the Postgres the
   # compose file deploys.

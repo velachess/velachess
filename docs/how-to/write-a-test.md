@@ -48,7 +48,12 @@ directory (`tests/fixtures/landing-game-analysis.ts`); do not use `__fixtures__`
 
 Root `tests/` is only for repository-owned checks with no package owner. Root
 `e2e/` is only for `*.spec.ts` flows that compose multiple apps or libraries and
-verify VelaChess as a whole. Static import and dependency boundaries are not
+verify VelaChess as a whole: `e2e/*.spec.ts` is Vitest over `apps/server` and
+`apps/worker`, while `e2e/analysis/` and `e2e/capture/` are Playwright over a
+real browser and share the staged product in `e2e/staged-product.fixture.ts`.
+What belongs in the browser suite is what only a browser can answer — a Worker's
+lifetime, IndexedDB, a cancelled search — not behaviour a `web` jsdom test can
+already pin. Static import and dependency boundaries are not
 Vitest tests; `.dependency-cruiser.cjs` owns them through `pnpm architecture`.
 
 ## Backend
@@ -165,6 +170,7 @@ to each test.
 ```bash
 pnpm test                                   # unit and integration projects
 pnpm e2e                                    # only cross-app acceptance flows
+pnpm e2e:analysis                           # browser suite, real engine and IndexedDB
 pnpm exec vitest run --project server       # one backend project
 pnpm exec vitest run --project web          # apps/web
 ```

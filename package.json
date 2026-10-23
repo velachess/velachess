@@ -39,6 +39,7 @@
     "test": "turbo run test test:root",
     "test:watch": "vitest",
     "e2e": "vitest run --project e2e",
+    "e2e:analysis": "playwright test --project analysis-review",
     "site:capture": "playwright test --project site-capture",
     "site:lighthouse": "pnpm --filter @velachess/site lighthouse",
     "site:quality": "pnpm --filter @velachess/site build && pnpm --filter @velachess/site test && pnpm site:lighthouse"
