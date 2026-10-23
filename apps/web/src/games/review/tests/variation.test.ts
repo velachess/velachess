@@ -238,7 +238,8 @@ describe("playing a variation", () => {
 
   it("drops an answer that arrives after the line left that position", async () => {
     // The search settles after its own cleanup ran, with the screen still
-    // mounted, and the store is what refuses it.
+    // mounted, and the hook is what refuses it: the answer is paired with
+    // the FEN it was asked about.
     const first = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
     const second = makeControllableEval({ score: { cp: 2 }, bestMove: "g1f3" });
     evaluate.mockImplementationOnce(first.run).mockImplementationOnce(second.run);

@@ -571,6 +571,34 @@ function scriptedSearch(evaluation: {
   return Object.assign(search(), { cancel: () => {} });
 }
 
+interface SettledSearch {
+  score: { cp: number };
+  bestMove: string | null;
+}
+
+/** Thinks once, then answers whatever the caller resolves — or never,
+ * which is what the bar sees while a line is still being searched. */
+function drivenSearch(answer: () => Promise<SettledSearch>): PositionSearch {
+  async function* search() {
+    yield { depth: 4, multipv: 1, score: { cp: 0 }, pv: ["e2e4"] };
+    return await answer();
+  }
+  return Object.assign(search(), { cancel: () => {} });
+}
+
+const unansweredSearch = () => drivenSearch(() => new Promise<SettledSearch>(() => {}));
+
+/** A dead engine, which the hook reports the way it reports a stop: no
+ * number at all. */
+const failedSearch = () => drivenSearch(() => Promise.reject(new Error("engine died")));
+
+function stageSearches(search: () => PositionSearch): void {
+  vi.mocked(createStockfishEvaluator).mockReturnValue({
+    evaluate: search,
+    dispose: async () => {},
+  });
+}
+
 describe("a variation played on the board", () => {
   beforeEach(() => {
     deviceHasImported();
@@ -626,5 +654,42 @@ describe("a variation played on the board", () => {
 
     expect(screen.queryByText("The starting position.")).toBeNull();
     expect(screen.queryByText("Best was")).toBeNull();
+  });
+
+  it("claims no number while the line's own search has not answered", async () => {
+    stageSearches(unansweredSearch);
+    const { user } = await openGame(gradedPlies());
+
+    // The game's own move at this ply, from the report.
+    await user.click(await findBlunderButton());
+    await vi.waitFor(() => expect(evaluationReads()).toBe("0.1"));
+
+    await playOnBoard(user, "f1", "b5");
+
+    await vi.waitFor(() => expect(evaluationReads()).toBe("—"));
+  });
+
+  it("keeps claiming nothing as the line moves on without an answer", async () => {
+    stageSearches(unansweredSearch);
+    const { user } = await openGame(gradedPlies());
+    await user.click(await findBlunderButton());
+
+    await playOnBoard(user, "f1", "b5");
+    await playOnBoard(user, "a7", "a6");
+
+    expect(evaluationReads()).toBe("—");
+  });
+
+  it("claims no number when the line's search dies", async () => {
+    stageSearches(failedSearch);
+    const { user } = await openGame(gradedPlies());
+    await user.click(await findBlunderButton());
+
+    await playOnBoard(user, "f1", "b5");
+
+    // The moves stay on the board, and the bar stays silent rather than
+    // falling back on the game's number.
+    expect(await screen.findAllByText(/Bb5/)).not.toHaveLength(0);
+    await vi.waitFor(() => expect(evaluationReads()).toBe("—"));
   });
 });
