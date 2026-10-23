@@ -196,8 +196,16 @@ cannot disagree about what produced them.
 - `apps/web/src/games/review/use-variation-evaluation.ts` → the one place
   a variation's position is searched, the one place that search is
   cancelled, the owner of the session behind both, and the holder of the
-  answer — which is shown for the FEN it was asked about and for no
-  other, so a stale number cannot reach the bar. Mounted by
+  answer — which is paired with the FEN it was asked about, so a
+  superseded or late number is refused rather than returned. Mounted by
   `review/board-evaluation.tsx`, which is the only consumer: reading it
   where the board reads its grades would redraw 64 squares for a number
   drawn beside them
+- `apps/web/src/games/review/board-evaluation.tsx` → which of the two
+  readings the bar shows, decided by the position on the board rather than
+  by whichever answer happens to exist. On the game's own line it is the
+  report's `evalAfter` for the ply; in a variation it is that line's own
+  search and nothing else. A variation still waiting on its search — or
+  whose search failed, was cancelled or was superseded — reads as
+  unavailable (`UNKNOWN_EVALUATION` in `review/move-presentation.ts`),
+  because the report's number is about a position nobody is looking at

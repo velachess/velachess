@@ -70,6 +70,14 @@ export function whiteShareOf(score: WhitePovScore): number {
 
 const EVEN_SHARE = 0.5;
 const EVEN_LABEL = "0.0";
+const UNKNOWN_LABEL = "—";
+
+/** A position on the board that no evaluation answers for: the bar claims
+ * nothing rather than reading as even. */
+export const UNKNOWN_EVALUATION = {
+  whiteShare: EVEN_SHARE,
+  label: UNKNOWN_LABEL,
+};
 
 export function evaluationOf(score: WhitePovScore | undefined) {
   if (!score) return { whiteShare: EVEN_SHARE, label: EVEN_LABEL };
