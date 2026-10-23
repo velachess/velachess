@@ -3,7 +3,7 @@
  * engine score to that share is `@velachess/analysis`'s.
  */
 
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 
 import { cn } from "../lib/utils.ts";
 import type { BoardSide } from "./board.tsx";
@@ -32,19 +32,15 @@ export function EvalBar({
   orientation = "white",
   className,
 }: EvalBarProps) {
-  // Held rather than reset to even: a slide through the middle and back
-  // animates a reading nobody produced. Recorded after the paint it
-  // describes, so render stays pure.
-  const drawn = useRef(SHARE_EVEN);
-  const share =
-    whiteShare === null
-      ? drawn.current
-      : Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
+  const reading =
+    whiteShare === null ? null : Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
 
-  useEffect(() => {
-    drawn.current = share;
-  }, [share]);
+  // The fill a bar with no reading keeps: sliding to even and back would
+  // animate a number nobody produced.
+  const [lastReading, setLastReading] = useState(reading ?? SHARE_EVEN);
+  if (reading !== null && reading !== lastReading) setLastReading(reading);
 
+  const share = reading ?? lastReading;
   const whitePercent = share * PERCENT_MAX;
   const whiteAtBottom = orientation === "white";
   const whiteLeads = share >= SHARE_EVEN;
@@ -58,7 +54,7 @@ export function EvalBar({
       aria-valuemin={SHARE_MIN}
       aria-valuemax={SHARE_MAX}
       // The held fill is the previous position's, so it is not reported.
-      aria-valuenow={whiteShare === null ? undefined : share}
+      aria-valuenow={reading ?? undefined}
       aria-valuetext={label}
       aria-label={description}
       // `overflow-hidden` belongs to the fills: on the outer box it clipped
