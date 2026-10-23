@@ -72,10 +72,9 @@ const EVEN_SHARE = 0.5;
 const EVEN_LABEL = "0.0";
 const UNKNOWN_LABEL = "—";
 
-/** A position on the board that no evaluation answers for: the bar claims
- * nothing rather than reading as even. */
+/** A position nothing answers for: unavailable, not equal. */
 export const UNKNOWN_EVALUATION = {
-  whiteShare: EVEN_SHARE,
+  whiteShare: null,
   label: UNKNOWN_LABEL,
 };
 

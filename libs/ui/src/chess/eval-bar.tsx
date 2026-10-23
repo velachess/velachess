@@ -3,6 +3,8 @@
  * engine score to that share is `@velachess/analysis`'s.
  */
 
+import { useState } from "react";
+
 import { cn } from "../lib/utils.ts";
 import type { BoardSide } from "./board.tsx";
 
@@ -12,8 +14,8 @@ const SHARE_MAX = 1;
 const SHARE_EVEN = 0.5;
 
 export interface EvalBarProps {
-  /** 0–1. */
-  whiteShare: number;
+  /** 0–1, or null when nothing answers for the position on the board. */
+  whiteShare: number | null;
   /** Already formatted: `+1.4`, `−0.3`, `M3`. */
   label: string;
   /** Accessible name, translated by the caller. */
@@ -30,7 +32,17 @@ export function EvalBar({
   orientation = "white",
   className,
 }: EvalBarProps) {
-  const share = Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
+  // The fill a bar with no reading keeps: sliding to even and back would
+  // animate a number nobody produced.
+  const [lastShare, setLastShare] = useState(whiteShare ?? SHARE_EVEN);
+
+  const hasNewReading = whiteShare !== null && whiteShare !== lastShare;
+
+  if (hasNewReading) {
+    setLastShare(whiteShare);
+  }
+
+  const share = Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare ?? lastShare));
   const whitePercent = share * PERCENT_MAX;
   const whiteAtBottom = orientation === "white";
   const whiteLeads = share >= SHARE_EVEN;
@@ -43,7 +55,8 @@ export function EvalBar({
       role="meter"
       aria-valuemin={SHARE_MIN}
       aria-valuemax={SHARE_MAX}
-      aria-valuenow={share}
+      // The held fill is the previous position's, so it is not reported.
+      aria-valuenow={whiteShare === null ? undefined : share}
       aria-valuetext={label}
       aria-label={description}
       // `overflow-hidden` belongs to the fills: on the outer box it clipped
@@ -60,6 +73,7 @@ export function EvalBar({
         {/* Transition so a streaming analysis slides rather than jumps —
             the same reason the graph pins its axis. */}
         <div
+          data-slot="eval-bar-fill"
           className="bg-(--eval-white) transition-[height] duration-300 ease-out"
           style={{ height: `${whitePercent}%` }}
         />

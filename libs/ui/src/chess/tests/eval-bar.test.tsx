@@ -22,6 +22,9 @@ function renderBar(props: Partial<Parameters<typeof EvalBar>[0]> = {}) {
   );
 }
 
+const fillHeight = () =>
+  document.querySelector<HTMLElement>('[data-slot="eval-bar-fill"]')?.style.height;
+
 it("announces the share and the reading behind it", () => {
   renderBar({ whiteShare: 0.72, label: "+1.4" });
 
@@ -42,4 +45,34 @@ it("stays on the scale however extreme the share", () => {
 it("renders the reading, however long it is", () => {
   renderBar({ label: "−12.4" });
   expect(screen.getByText("−12.4")).toBeDefined();
+});
+
+it("holds the fill it last drew when nothing answers for the position", () => {
+  const { rerender } = renderBar({ whiteShare: 0.72, label: "+1.4" });
+  expect(fillHeight()).toBe("72%");
+
+  rerender(<EvalBar whiteShare={null} label="—" description={DESCRIPTION} />);
+
+  expect(fillHeight()).toBe("72%");
+  expect(screen.getByText("—")).toBeDefined();
+});
+
+it("announces no share while nothing answers, and the reading again once it does", () => {
+  const { rerender } = renderBar({ whiteShare: 0.72, label: "+1.4" });
+
+  rerender(<EvalBar whiteShare={null} label="—" description={DESCRIPTION} />);
+
+  const meter = screen.getByRole("meter", { name: DESCRIPTION });
+  expect(meter.getAttribute("aria-valuenow")).toBeNull();
+  expect(meter.getAttribute("aria-valuetext")).toBe("—");
+
+  rerender(<EvalBar whiteShare={0.2} label="−1.4" description={DESCRIPTION} />);
+
+  expect(meter.getAttribute("aria-valuenow")).toBe("0.2");
+  expect(fillHeight()).toBe("20%");
+});
+
+it("starts even when it has never had a share", () => {
+  renderBar({ whiteShare: null, label: "—" });
+  expect(fillHeight()).toBe("50%");
 });
