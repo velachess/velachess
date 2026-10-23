@@ -32,9 +32,8 @@ export function EvalBar({
   orientation = "white",
   className,
 }: EvalBarProps) {
-  // The fill the bar last drew. Without it an unavailable reading would
-  // animate to even and back as soon as the next one lands, and a 300ms
-  // slide through the middle reads as an evaluation of its own.
+  // Held rather than reset to even: a slide through the middle and back
+  // animates a reading nobody produced.
   const drawn = useRef(SHARE_EVEN);
   if (whiteShare !== null) {
     drawn.current = Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
@@ -53,8 +52,7 @@ export function EvalBar({
       role="meter"
       aria-valuemin={SHARE_MIN}
       aria-valuemax={SHARE_MAX}
-      // Held, not announced: the fill still on screen belongs to the
-      // previous position, so reporting it would make it this one's.
+      // The held fill is the previous position's, so it is not reported.
       aria-valuenow={whiteShare === null ? undefined : share}
       aria-valuetext={label}
       aria-label={description}

@@ -45,16 +45,12 @@ export function AnalysisProgress({ game, totalPlies }: AnalysisProgressProps) {
   const analysisQuery = gameAnalysisQuery(game);
   const analysis = useQuery({ ...analysisQuery, select: selectProgress });
 
-  // Reset, not refetch: a pristine entry is not a refetch to
-  // `experimental_streamedQuery`, so the new pass accumulates from its
-  // `initialValue` whatever that helper's `refetchMode` default becomes.
   const restartAnalysis = () => {
     void queryClient.resetQueries({ queryKey: analysisQuery.queryKey, exact: true });
   };
 
-  // Only a failed pass offers the restart: nothing reads the stream's
-  // abort signal, so resetting over a running one would leave two passes
-  // filling the same cache entry.
+  // Only a failed pass: nothing reads the stream's abort signal, so
+  // resetting over a running one would leave two filling one entry.
   if (analysis.isError) {
     return (
       <div className="shrink-0 border-b p-3">

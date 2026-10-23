@@ -98,8 +98,7 @@ function stagedPass() {
       failure = error;
       wake();
     },
-    /** What a restarted pass meets: the staged events replay from ply 1,
-     * and the engine no longer dies on them. */
+    /** A restarted pass replays the staged events and survives them. */
     recover() {
       failure = null;
     },
@@ -281,8 +280,6 @@ describe("gameAnalysisQuery", () => {
       await vi.waitFor(() => expect(screen.result.current.isError).toBe(true));
     });
 
-    // The failing pass released its stream on the way out, so the restart
-    // cannot be a second one running beside it.
     expect(pass.closed).toBe(1);
 
     pass.recover();
@@ -299,7 +296,7 @@ describe("gameAnalysisQuery", () => {
     const report = [aGradedPly(1), aGradedPly(2)];
     pass.complete(report);
 
-    // The new pass's report, not the failed one's grades plus this one's.
+    // One pass's report, not the failed one's grades plus this one's.
     await vi.waitFor(() => expect(screen.result.current.data).toEqual(report));
     expect(pass.started).toBe(2);
     expect(pass.closed).toBe(2);

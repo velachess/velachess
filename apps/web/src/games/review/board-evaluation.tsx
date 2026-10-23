@@ -17,12 +17,8 @@ const BAR_COPY = {
   evaluation: msg`Evaluation`,
 } as const;
 
-/**
- * One position, one number: the report answers for the game's own moves and
- * the engine for a line someone is trying out. A line waiting on its search
- * — or whose search failed, was cancelled or was superseded — has no number,
- * and the game's is about a position nobody is looking at.
- */
+/** The report answers for the game's own moves and the engine for a line
+ * someone is trying out; neither answers for the other's position. */
 function barReading(
   fen: string | null,
   variationScore: WhitePovScore | null,

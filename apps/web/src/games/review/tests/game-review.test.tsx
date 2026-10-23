@@ -559,25 +559,12 @@ async function playOnBoard(
 const evaluationReads = () =>
   screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuetext");
 
-/** One line of thinking, then the number the bar reads. */
-function scriptedSearch(evaluation: {
-  score: { cp: number };
-  bestMove: string;
-}): PositionSearch {
-  async function* search() {
-    yield { depth: 4, multipv: 1, score: evaluation.score, pv: [evaluation.bestMove] };
-    return evaluation;
-  }
-  return Object.assign(search(), { cancel: () => {} });
-}
-
 interface SettledSearch {
   score: { cp: number };
   bestMove: string | null;
 }
 
-/** Thinks once, then answers whatever the caller resolves — or never,
- * which is what the bar sees while a line is still being searched. */
+/** One line of thinking, then whatever the caller answers — or never. */
 function drivenSearch(answer: () => Promise<SettledSearch>): PositionSearch {
   async function* search() {
     yield { depth: 4, multipv: 1, score: { cp: 0 }, pv: ["e2e4"] };
@@ -586,10 +573,11 @@ function drivenSearch(answer: () => Promise<SettledSearch>): PositionSearch {
   return Object.assign(search(), { cancel: () => {} });
 }
 
+const scriptedSearch = (evaluation: SettledSearch) =>
+  drivenSearch(() => Promise.resolve(evaluation));
+
 const unansweredSearch = () => drivenSearch(() => new Promise<SettledSearch>(() => {}));
 
-/** A dead engine, which the hook reports the way it reports a stop: no
- * number at all. */
 const failedSearch = () => drivenSearch(() => Promise.reject(new Error("engine died")));
 
 function stageSearches(search: () => PositionSearch): void {
@@ -660,15 +648,12 @@ describe("a variation played on the board", () => {
     stageSearches(unansweredSearch);
     const { user } = await openGame(gradedPlies());
 
-    // The game's own move at this ply, from the report.
     await user.click(await findBlunderButton());
     await vi.waitFor(() => expect(evaluationReads()).toBe("0.1"));
 
     await playOnBoard(user, "f1", "b5");
 
     await vi.waitFor(() => expect(evaluationReads()).toBe("—"));
-    // The bar keeps the fill it had, and stops reporting it as a share:
-    // what is on screen is the previous position's.
     expect(
       screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuenow"),
     ).toBeNull();
@@ -692,8 +677,6 @@ describe("a variation played on the board", () => {
 
     await playOnBoard(user, "f1", "b5");
 
-    // The moves stay on the board, and the bar stays silent rather than
-    // falling back on the game's number.
     expect(await screen.findAllByText(/Bb5/)).not.toHaveLength(0);
     await vi.waitFor(() => expect(evaluationReads()).toBe("—"));
   });

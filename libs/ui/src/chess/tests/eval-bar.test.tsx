@@ -22,7 +22,6 @@ function renderBar(props: Partial<Parameters<typeof EvalBar>[0]> = {}) {
   );
 }
 
-/** The one thing the fill says in jsdom: how much of the bar White has. */
 const fillHeight = () =>
   document.querySelector<HTMLElement>('[data-slot="eval-bar-fill"]')?.style.height;
 
@@ -54,8 +53,6 @@ it("holds the fill it last drew when nothing answers for the position", () => {
 
   rerender(<EvalBar whiteShare={null} label="—" description={DESCRIPTION} />);
 
-  // Still the previous fill: sliding to even and back would animate a
-  // reading nobody produced.
   expect(fillHeight()).toBe("72%");
   expect(screen.getByText("—")).toBeDefined();
 });
