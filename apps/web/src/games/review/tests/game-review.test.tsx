@@ -75,6 +75,25 @@ function stageFailedAnalysis(): void {
   });
 }
 
+/** Fails until the test says the engine works, which is what a retry
+ * needs: an errored entry is already refetched once when the screen
+ * mounts, so a single staged failure never reaches the user. */
+function stageRecoverableAnalysis(moves: GradedPly[]) {
+  let failing = true;
+  const pass = plyPass(moves);
+
+  vi.mocked(analyzeGameInBrowser).mockImplementation(() => {
+    if (failing) throw new Error("engine failed");
+    return pass();
+  });
+
+  return {
+    recover() {
+      failing = false;
+    },
+  };
+}
+
 const openGame = async (
   moves?: GradedPly[],
   identities?: Parameters<typeof stageSeatIdentities>[1],
@@ -298,6 +317,32 @@ describe("game analysis", () => {
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
   });
+
+  it("analyses the game again when the failed pass is retried", async () => {
+    const game = aGame();
+    addGames(game);
+    const engine = stageRecoverableAnalysis(gradedPlies());
+    const { user } = await renderApp({ path: `/games/${game.id}` });
+
+    await screen.findByText("Couldn't load analysis.");
+    engine.recover();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await findBlunderButton()).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load analysis.")).toBeNull();
+  }, 35_000);
+
+  it("offers no retry while a pass is still streaming", async () => {
+    const game = aGame();
+    addGames(game);
+    vi.mocked(analyzeGameInBrowser).mockImplementation(
+      plyPass([aGradedPly(1)], { finished: false }),
+    );
+    await renderApp({ path: `/games/${game.id}` });
+
+    await screen.findByText("Analyzing move 1 of 7…");
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  }, 20_000);
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
     // A run still going must not render as the open game's. The first pass
