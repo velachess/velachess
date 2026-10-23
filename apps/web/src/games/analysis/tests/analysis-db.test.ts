@@ -7,13 +7,8 @@ import { POLICY_VERSION } from "@velachess/analysis";
 import { openDB } from "../../../libs/idb.ts";
 import { aGradedPly } from "../../../test/games.ts";
 import { ENGINE_BUILD } from "../../../engine/index.ts";
-import {
-  getReport,
-  resetAnalysisDbForTests,
-  saveReport,
-  type GameAnalysisReport,
-} from "../analysis-db.ts";
-import { ANALYSIS_DEPTH } from "../evaluate-position-in-browser.ts";
+import { getReport, resetAnalysisDbForTests, saveReport } from "../analysis-db.ts";
+import { ANALYSIS_DEPTH, type GameAnalysisReport } from "../types.ts";
 
 afterEach(async () => {
   vi.restoreAllMocks();

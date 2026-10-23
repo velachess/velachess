@@ -1,14 +1,9 @@
 // @vitest-environment node
 /**
- * The library's time-class filter, over HTTP with the real migrations.
- *
- * Written before the rule moves out of `@velachess/infra-platforms`, to
- * pin what the SQL predicate answers today: games are bucketed by
- * estimated duration (initial + 40 × increment), each boundary is an
- * exclusive upper bound, and a game with no clock belongs to no class at
- * all. Every expectation below is a written-out class, never one the
- * production rule computed — a single-sourced rule must not also
- * single-source its own expectation.
+ * What the SQL predicate answers: games bucketed by estimated duration
+ * (initial + 40 × increment), each boundary an exclusive upper bound, and a
+ * game with no clock in no class at all. Every expectation is written out
+ * rather than computed by the production rule.
  */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,9 +17,8 @@ type TimeClass = (typeof TIME_CLASSES)[number];
 type Outcome = "win" | "loss" | "draw";
 
 /**
- * One game per clock, each with its own first move: deduplication is
- * `(user, account, movetext hash)`, so nine games sharing one movetext
- * would land as one row and eight no-ops.
+ * Each with its own first move, because deduplication is `(user, account,
+ * movetext hash)` and nine games sharing a movetext land as one row.
  */
 const CLOCKS: { name: string; timeControl: string | null; firstMove: string }[] = [
   { name: "tc-60-0", timeControl: "60", firstMove: "e4" },
@@ -87,7 +81,8 @@ describe("GET /games?timeClass", () => {
   });
 
   it("counts the increment: 1+3 is blitz where 1+0 is bullet", async () => {
-    // Both start from a 60-second clock; only the increment separates them.
+    // Both start from a 60-second clock: only the increment separates
+    // them.
     expect(await namesIn(owner, "bullet")).toContain("tc-60-0");
     expect(await namesIn(owner, "blitz")).toContain("tc-60-3");
   });
@@ -111,11 +106,10 @@ describe("GET /games?timeClass", () => {
 });
 
 /**
- * Won, lost or drew — from the player's seat, not the scoresheet's. The
- * scoresheet says "1-0"; whether that is a win depends on which side the
- * player was, so the filter has to read the result and the resolved seat
- * together. Pinned here before the rule is consolidated, because the SQL
- * predicate is one of two independent expressions of it today.
+ * From the player's seat, not the scoresheet's: whether "1-0" is a win
+ * depends on which side they were, so the filter reads the result and the
+ * resolved seat together. The SQL predicate is one of two independent
+ * expressions of that rule.
  */
 const OUTCOME_PLAYER = "Outcome Player";
 
@@ -240,7 +234,7 @@ describe("GET /games?outcome", () => {
   });
 
   it("leaves a decided game with no resolved seat out of win and loss", async () => {
-    // Nobody can be said to have won it: the result is real, the seat is not.
+    // The result is real, the seat is not.
     expect(await labelsIn(player, "win")).not.toContain("decided-unattributed");
     expect(await labelsIn(player, "loss")).not.toContain("decided-unattributed");
   });
@@ -258,7 +252,7 @@ describe("GET /games?outcome", () => {
   });
 
   it("offers only the three decided outcomes as filter values", async () => {
-    // `unfinished` is a state a game can be in, not a filter the API takes.
+    // A state a game can be in, not a filter the API takes.
     const response = await player.request("/games?outcome=unfinished");
     expect(response.status).toBe(400);
   });

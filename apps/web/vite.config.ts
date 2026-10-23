@@ -17,14 +17,13 @@ const API_TARGET = process.env["VITE_API_TARGET"] ?? "http://localhost:3000";
 const ENGINE_FILES = ["stockfish-19-lite-single.js", "stockfish-19-lite-single.wasm"];
 
 /**
- * Copies the browser Stockfish engine's glue script + wasm binary from the
- * installed `stockfish` npm package into `public/engine/`, so Vite's normal
- * public-dir handling serves them unmodified in both dev and the production
- * build — co-located under the same basename the engine script expects when
- * it resolves its own `.wasm` path (swap `.js` for `.wasm`, same directory).
- * Runs in `config()` so it happens before either the dev server or the
- * build reads `public/`; a missing source file fails the config step
- * loudly instead of shipping a worker that can't load.
+ * Into `public/engine/`, so Vite's public-dir handling serves both
+ * unmodified, co-located under the basename the engine script expects when
+ * it resolves its own `.wasm` path.
+ *
+ * In `config()`, so it happens before the dev server or the build reads
+ * `public/` and a missing source file fails there rather than shipping a
+ * worker that cannot load.
  */
 function copyStockfishEngineAssets(): Plugin {
   return {
@@ -53,20 +52,18 @@ export default defineConfig({
     copyStockfishEngineAssets(),
     lingui(),
     tailwindcss(),
-    // Full client for now. Turning SSR on later is this flag, not a rewrite.
+    // Turning SSR on later is this flag, not a rewrite.
     tanstackStart({ spa: { enabled: true } }),
     linguiMacro,
     viteReact(),
   ],
   server: {
-    // Vite binds to localhost only by default — unreachable from outside
-    // a container (VS Code's Dev Container port forwarding needs a real
-    // listening interface, not the container's internal loopback).
+    // Vite binds to localhost only by default, which Dev Container port
+    // forwarding cannot reach: it needs a real listening interface.
     host: true,
-    // The browser only ever talks to this origin; /api is rewritten onto
-    // the API in dev. The Google OAuth return leg lands here too — the
-    // provider is configured with an explicit redirectURI under /api
-    // (libs/infra/auth/auth.ts), so it needs no second proxy rule.
+    // The browser only talks to this origin, and /api is rewritten onto the
+    // API in dev. The OAuth return leg lands here too, its explicit
+    // redirectURI being under /api, so it needs no second rule.
     proxy: {
       "/api": {
         target: API_TARGET,

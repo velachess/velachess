@@ -1,8 +1,4 @@
-/**
- * UCI protocol vocabulary — how long to search, what a position evaluation
- * looks like, what the engine settles on. No I/O, no process, no browser
- * globals — just shapes.
- */
+/** UCI protocol vocabulary. No I/O, no process, no browser globals. */
 
 export type GoMode =
   | { kind: "depth"; depth: number }
@@ -26,10 +22,10 @@ export interface EngineUpdate {
   time?: number;
 }
 
-/** A parsed `bestmove` line. `move` is `"(none)"` when there's no legal move. */
+/** `move` is `"(none)"` when there is no legal move. The `ponder`
+ * suggestion is not kept: nothing here sends `ponderhit`. */
 export interface BestMove {
   move: string;
-  ponder?: string;
 }
 
 export interface EngineOption {
@@ -37,9 +33,8 @@ export interface EngineOption {
   value: string | number | boolean;
 }
 
-/** What one completed search settled on. `bestMove` is null when the
- * transport's line stream ended before the engine answered — a dead
- * process or worker. */
+/** `bestMove` is null when the line stream ended before the engine
+ * answered — a dead process or worker. */
 export interface SearchOutcome {
   /** Last `info` line at `multipv 1`, absent when the engine said nothing. */
   lastInfo?: EngineUpdate;

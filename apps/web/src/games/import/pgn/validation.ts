@@ -6,8 +6,6 @@ import { z } from "../../../libs/zod.ts";
 
 export type Translate = (message: MessageDescriptor) => string;
 
-/** ChessBase-style: forced White or Black for the whole batch, or by name
- * matched against each game's own headers. */
 export const PARTICIPATION_MODES = {
   white: "white",
   black: "black",
@@ -17,20 +15,17 @@ export const PARTICIPATION_MODES = {
 export type ParticipationMode =
   (typeof PARTICIPATION_MODES)[keyof typeof PARTICIPATION_MODES];
 
-/**
- * Mirrors the server's `participation` shape 1:1 (apps/server/src/routes/
- * games.ts) so the two never drift silently.
- */
+/** Mirrors the server's `participation` shape (apps/server/src/routes/
+ * games.ts). */
 export type Participation =
   | { mode: typeof PARTICIPATION_MODES.white }
   | { mode: typeof PARTICIPATION_MODES.black }
   | { mode: typeof PARTICIPATION_MODES.byName; playerName: string };
 
 /**
- * The PGN field's own check — reuses the backend's own parser/legality
- * logic (`hasPlayableGame`, libs/chess) instead of a regex, so "looks like
- * PGN" never passes as "is a game". `superRefine` so an empty value reports
- * only `requiredMessage`, never both messages at once.
+ * Reuses `hasPlayableGame` rather than a regex, so "looks like PGN" never
+ * passes as "is a game". `superRefine`, so an empty value reports only
+ * `requiredMessage`.
  */
 function buildPgnSchema(
   translate: Translate,
@@ -59,15 +54,11 @@ export interface PgnImportCopy {
 }
 
 /**
- * The one schema the form validates against, raw fields in, `{ pgn,
- * participation }` out — the UI→domain shape change lives in `.transform`,
- * not in a parallel `toParticipation` helper the form has to stay in sync
- * with by hand. Used as a whole-form validator (`useForm`'s `onMount`/
- * `onChange`), so each issue's `path` routes it to its own `form.Field`
- * automatically (`@tanstack/form-core`'s `standardSchemaValidator`) — no
- * manual touched/invalid state. Per render: zod bakes error text in, so it
- * needs an active locale — same pattern as games/import/accounts/sources.ts's
- * `buildSchema(translate)`.
+ * Raw fields in, `{ pgn, participation }` out, so the shape change lives in
+ * `.transform` rather than a helper the form has to keep in sync. A
+ * whole-form validator, so each issue's `path` routes it to its own
+ * `form.Field`. Built per render because zod bakes the error text in and
+ * needs the active locale.
  */
 export function buildPgnImportFormSchema(translate: Translate, copy: PgnImportCopy) {
   return z

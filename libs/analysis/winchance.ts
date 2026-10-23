@@ -1,12 +1,9 @@
 /**
- * Centipawns (white POV) → win chance for white in [-1, 1]. Constants and
- * behavior match the reference implementation this module is validated
- * against (sources in docs/reference/analysis.md and this module's own
- * tests/lichess-reference.test.ts): cp is ceiled to ±1000 before the
- * curve, and a mate score maps to ±1000 cp — not to a saturated ±1.
- *
- * `winChance` is module-root-private (not exported from index.ts): its
- * only consumer is `classify-move.ts`'s `scoreToWinChance`.
+ * Centipawns in white POV to a win chance in [-1, 1]. The constants match
+ * the reference implementation this is validated against, in
+ * docs/reference/analysis.md and tests/lichess-reference.test.ts: cp is
+ * ceiled to ±1000 before the curve, and a mate maps to ±1000 cp rather
+ * than a saturated ±1.
  */
 
 const K = -0.00368208;

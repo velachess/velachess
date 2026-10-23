@@ -16,7 +16,7 @@ import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 import { dropSyncStreams, openSyncStreams } from "../../../../test/sync-stream.ts";
 
-/** Counts requests whose path starts with `prefix`, from the moment it is called. */
+/** Counts requests under `prefix` from the moment it is called. */
 function countRequests(prefix: string) {
   let count = 0;
   const listener = ({ request }: { request: Request }) => {
@@ -34,10 +34,8 @@ function countRequests(prefix: string) {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * The button asks; the worker syncs; the stream says when it landed. What
- * the button owes the person is honesty about those three moments: that
- * the request went through (or was too soon, or failed), that a sync is
- * still running, and the games themselves once they are in.
+ * The button asks, the worker syncs, the stream says when it landed, and
+ * the button owes the person honesty about all three.
  */
 describe("sync games button", () => {
   beforeEach(() => {
@@ -52,7 +50,7 @@ describe("sync games button", () => {
     await screen.findByText("already-here");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    // Running per the server's accounts, not this button's memory.
+    // Per the server's accounts, not this button's memory.
     expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
     expect(screen.queryByText("just-arrived")).not.toBeInTheDocument();
 
@@ -63,8 +61,8 @@ describe("sync games button", () => {
   });
 
   it("treats a cooldown as nothing to do, silently", async () => {
-    // The backend folds a cooling-down account out of its answer; there is
-    // nothing new to watch, so the button just returns to idle.
+    // The backend folds a cooling-down account out of its answer, so there
+    // is nothing new to watch.
     refuseRefreshFor(45);
 
     const { user } = await renderApp();
@@ -119,8 +117,8 @@ describe("sync games button", () => {
   });
 
   it("stays quiet for a sync nobody clicked this button for", async () => {
-    // An automatic sync (e.g. first-connect) the button never watched —
-    // its settlement still refreshes the data, but earns no toast.
+    // A sync the button never watched refreshes the data but earns no
+    // toast.
     const job = scheduleSync("account-1", "connect");
 
     await renderApp();
@@ -133,9 +131,8 @@ describe("sync games button", () => {
   });
 
   it("follows a sync the server was already running, from any screen", async () => {
-    // A reload mid-sync, or a sync started from settings: the accounts say
-    // one is on its way, and the button is disabled until the stream says
-    // it landed.
+    // A reload mid-sync: the accounts say one is on its way, and the button
+    // stays disabled until the stream says it landed.
     stageIncomingGames(aGame({ blackName: "just-arrived" }));
     const job = scheduleSync("account-1", "manual");
 
@@ -168,7 +165,7 @@ describe("the sync stream", () => {
     expect(connections.count).toBe(1);
 
     unmount();
-    // Closed with the wall: a stream ending now brings nobody back.
+    // A stream ending with the wall brings nobody back.
     dropSyncStreams();
     await sleep(50);
     expect(connections.count).toBe(1);
@@ -184,7 +181,7 @@ describe("the sync stream", () => {
     const library = countRequests("/api/games");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    // One POST, plus the accounts refresh once it settles.
+    // One POST, plus the refresh once it settles.
     await waitFor(() => expect(accounts.count).toBe(2));
 
     landSync(latestSync().id);
@@ -197,7 +194,7 @@ describe("the sync stream", () => {
     await waitFor(() => expect(accounts.count).toBe(5));
     landSync(latestSync().id, { fails: true });
     await waitFor(() => expect(accounts.count).toBe(6));
-    // A failed sync refreshes what it changed; it claims nothing.
+    // A failed sync refreshes what it changed and claims nothing.
     await waitFor(() => expect(library.count).toBe(afterFirst + 1));
     expect(sessions.count).toBe(0);
     [sessions, accounts, library].forEach((counter) => counter.stop());
@@ -264,7 +261,7 @@ describe("the sync stream", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     await sleep(50);
-    // The wall came down and took the stream with it: no retry loop.
+    // The wall took the stream with it: no retry loop.
     expect(connections.count).toBe(1);
     connections.stop();
   });

@@ -1,23 +1,21 @@
 /**
- * The API's ear on `sync_job_changed`: one LISTEN per process, fanned out
- * in memory to every open stream. A notification is a wake-up, not a
- * record — Postgres drops it for anyone not listening at that instant —
- * so this hands out ids to resolve against the row, never the row.
+ * One LISTEN per process, fanned out in memory to every open stream. A
+ * notification is a wake-up, not a record — Postgres drops it for anyone
+ * not listening at that instant — so this hands out ids to resolve against
+ * the row, never the row.
  *
- * `listen` is the only driver-facing seam: production passes postgres.js's
- * `sql.listen` (a dedicated connection that reconnects on its own and
- * re-issues LISTEN), the test harness passes PGlite's. Both resolve to the
- * unlisten.
+ * `listen` is the only driver-facing seam, resolving to the unlisten:
+ * production passes postgres.js's `sql.listen`, the test harness PGlite's.
  */
 
 import { SYNC_JOB_CHANGED_CHANNEL } from "./queries/sync-jobs.ts";
 
 export type SyncSignal =
-  /** A job settled; read it before believing anything about it. */
+  /** A job settled: read the row before believing anything about it. */
   | { kind: "changed"; syncId: string }
-  /** The listener was away and is back: whatever settled meanwhile was
-   * never announced, so every stream should end and let its client
-   * reconcile from the rows. */
+  /** The listener was away, so whatever settled meanwhile was never
+   * announced and every stream should end and let its client reconcile
+   * from the rows. */
   | { kind: "reset" };
 
 export type ListenToChannel = (
@@ -28,16 +26,15 @@ export type ListenToChannel = (
 ) => Promise<() => Promise<void>>;
 
 export interface SyncNotifications {
-  /** Resolves once the LISTEN is in place — boot waits on it, so an API
-   * that cannot hear the worker refuses to start rather than going quiet. */
+  /** Boot waits on it, so an API that cannot hear the worker refuses to
+   * start rather than going quiet. */
   ready: Promise<void>;
   subscribe(listener: (signal: SyncSignal) => void): () => void;
   close(): Promise<void>;
 }
 
-/** The id is a uuid column; a payload that is not one would only fail the
- * read. Anyone with NOTIFY rights could write it, so it is checked, not
- * trusted. */
+/** Anyone with NOTIFY rights can write the payload, so it is checked
+ * rather than trusted. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function createSyncNotifications(listen: ListenToChannel): SyncNotifications {

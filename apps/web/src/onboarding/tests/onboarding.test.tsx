@@ -16,11 +16,9 @@ import { renderApp } from "../../test/render.tsx";
 import { server } from "../../test/server.ts";
 
 /**
- * The first minute of a new account, over the real app.
- *
  * The overlay is mounted by the `_app` layout, so these render ordinary
- * screens and assert what covers them — which is the behaviour: an
- * account with no games is in setup, wherever it happened to land.
+ * screens and assert what covers them: an account with no games is in
+ * setup, wherever it landed.
  */
 
 describe("an account with no games", () => {
@@ -80,7 +78,7 @@ describe("an account with no games", () => {
 
   it("waits on an import already running when the page loads, and lets go once it lands", async () => {
     // A reload mid-import: the accounts say a sync is on its way, and the
-    // stream — not memory, not a poll — says when it has landed.
+    // stream, not memory or a poll, says when it landed.
     const account = accountIsTracked({ username: "looper" });
     stageIncomingGames(aGame({ whiteName: "looper", blackName: "magnuscarlsen" }));
     const job = scheduleSync(account.id, "connect");
@@ -103,11 +101,11 @@ describe("an account with no games", () => {
     stageIncomingGames(aGame({ whiteName: ME, blackName: "magnuscarlsen" }));
     await user.click(screen.getByRole("button", { name: "Import" }));
 
-    // Connecting schedules the first sync; the dialog waits on it.
+    // Connecting schedules the first sync, which the dialog waits on.
     expect(await screen.findByText("Reading your games")).toBeInTheDocument();
     landSync(latestSync().id);
 
-    // Nothing closes it — its reason to exist stops being true.
+    // Nothing closes it: its reason to exist stops being true.
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
   });
@@ -115,9 +113,8 @@ describe("an account with no games", () => {
 
 describe("an account that has onboarded before", () => {
   it("gets the empty library, not the tour, after disconnecting everything", async () => {
-    // The tour used to come back the moment somebody removed their last
-    // connection — the one state that looks identical to a brand-new
-    // account unless the server remembers.
+    // Removing the last connection looks identical to a brand-new account
+    // unless the server remembers.
     sessionActive({ ...TEST_USER, onboardedAt: "2026-01-01T00:00:00.000Z" });
 
     await renderApp({ path: "/games", emptyLibrary: true });
@@ -154,8 +151,7 @@ describe("an account that already has games", () => {
 
 describe("a backend that failed", () => {
   it("is not mistaken for a new account", async () => {
-    // Being told to import what you already imported reads as the app
-    // having lost your data.
+    // Being told to import what you already imported reads as lost data.
     server.use(http.get("/api/games", () => new HttpResponse(null, { status: 500 })));
 
     await renderApp({ path: "/games", emptyLibrary: true });

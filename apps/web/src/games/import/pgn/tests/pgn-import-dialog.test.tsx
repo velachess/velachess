@@ -8,10 +8,9 @@ import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 
 /**
- * The manual import, read the way its user would: a header action that
- * opens a form, ChessBase-style participation (White / Black / By name),
- * a receipt naming every pile, and rows that actually land in the library
- * underneath.
+ * Read the way its user would: a header action that opens a form,
+ * participation as White, Black or by name, a receipt naming every pile,
+ * and rows that land in the library underneath.
  */
 
 async function openDialog() {
@@ -22,7 +21,7 @@ async function openDialog() {
   return user;
 }
 
-/** Pasted, not typed: user.type reads bracket notation as keystrokes. */
+/** Pasted: `user.type` reads bracket notation as keystrokes. */
 const paste = (text: string) => {
   fireEvent.change(screen.getByLabelText("Or paste the moves"), {
     target: { value: text },
@@ -34,8 +33,8 @@ const MULTI_GAME_PGN = `[Event "First"]\n\n1. e4 e5 *\n\n[Event "Second"]\n\n1. 
 
 describe("pgn import", () => {
   beforeEach(() => {
-    // One row already in the library, so every test opens from a rendered
-    // list rather than an empty table.
+    // So every test opens from a rendered list rather than an empty
+    // table.
     addGames(aGame());
     stagePgnImport({ incoming: [aGame({ source: "pgn", blackName: "from-the-file" })] });
   });
@@ -81,10 +80,9 @@ describe("pgn import", () => {
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
-    // The receipt is not enough on its own — the refetched list must
-    // carry what landed.
+    // The receipt is not enough: the refetched list carries what landed.
     expect(await screen.findByText("from-the-file")).toBeInTheDocument();
-    // A successful import is also the one thing that closes the dialog.
+    // A successful import is the one thing that closes the dialog.
     expect(screen.queryByText("Import games from a PGN")).not.toBeInTheDocument();
   });
 
@@ -92,8 +90,8 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "By name" }));
-    // Submit once with nothing typed so the name field actually has an
-    // error to carry — switching away must clear it, not just hide it.
+    // Submit with nothing typed, so the name field has an error to carry:
+    // switching away clears it rather than hiding it.
     fireEvent.submit(screen.getByRole("button", { name: "Import" }).closest("form")!);
     expect(
       await screen.findByText(
@@ -107,7 +105,7 @@ describe("pgn import", () => {
     paste(VALID_PGN);
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
 
-    // Back to By name: a fresh, unvalidated field, not the old error.
+    // A fresh, unvalidated field rather than the old error.
     await user.click(screen.getByRole("button", { name: "By name" }));
     expect(screen.getByLabelText("Your name in these games")).toHaveValue("");
     expect(
@@ -127,7 +125,7 @@ describe("pgn import", () => {
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
-    // Picking White never shows the by-name field at all.
+    // Picking White never shows the by-name field.
     expect(screen.queryByLabelText("Your name in these games")).not.toBeInTheDocument();
   });
 
@@ -193,7 +191,7 @@ describe("pgn import", () => {
 
     paste(VALID_PGN);
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
-    // Clicking a disabled button is a no-op, so submit directly to surface the error.
+    // Clicking a disabled button is a no-op, so submit directly.
     fireEvent.submit(screen.getByRole("button", { name: "Import" }).closest("form")!);
 
     expect(

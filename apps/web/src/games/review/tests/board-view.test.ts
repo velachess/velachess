@@ -1,22 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  legalTargetsAt,
-  sanOfUciAt,
-  seatIdentityOf,
-  seatOf,
-  suggestedArrow,
-} from "../board-view.ts";
+import { squaresOfUci } from "@velachess/chess";
+
+import { aReplay } from "../../../test/games.ts";
+import { legalTargetsAt, sanOfUciAt, seatIdentityOf, seatOf } from "../board-view.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/**
- * Which seat the board faces.
- *
- * The stored perspective when the import resolved one, and the tracked
- * usernames when it did not. Defaulting to white put anyone who played
- * black behind the wrong pieces on every unlabelled game.
- */
+/** Defaulting to white put anyone who played black behind the wrong pieces
+ * on every unlabelled game. */
 describe("seatOf", () => {
   const game = { perspective: null, whiteName: "magnuscarlsen", blackName: "yurimutti" };
 
@@ -29,25 +21,16 @@ describe("seatOf", () => {
   });
 
   it("matches a username whatever its case", () => {
-    // Platforms echo back whatever casing the player typed.
     expect(seatOf(game, ["YuriMutti"])).toBe("black");
   });
 
   it("faces white when nothing identifies you", () => {
-    // A board has to face somewhere, and a game between two strangers
-    // has no seat of yours to take.
     expect(seatOf(game, ["someoneelse"])).toBe("white");
     expect(seatOf(game, [])).toBe("white");
   });
 });
 
-/**
- * What a seat shows from the identity its payload carried.
- *
- * The server resolves both players from a shared per-handle cache; here
- * a null means "unknown", and unknown means initials, never a broken
- * picture.
- */
+/** Unknown means initials, never a broken picture. */
 describe("seatIdentityOf", () => {
   it("carries the picture and flair a seat resolved to", () => {
     expect(
@@ -64,40 +47,10 @@ describe("seatIdentityOf", () => {
   });
 
   it("answers nothing for a seat nobody could resolve", () => {
-    // Nulls collapse to absence: an initials fallback is rendered by
-    // there being no image at all, not by an empty src.
+    // Nulls collapse to absence: the initials fallback renders on no image
+    // at all, not an empty src.
     expect(seatIdentityOf({ avatarUrl: null, flair: null })).toEqual({});
     expect(seatIdentityOf(undefined)).toEqual({});
-  });
-});
-
-/**
- * Showing the engine's move on the board.
- *
- * Naming a move and then making the person find it is asking them to do
- * the work the screen exists for.
- */
-describe("suggestedArrow", () => {
-  it("points from where the piece is to where the engine would put it", () => {
-    // An arrow, not the resulting position: the board keeps showing the
-    // choice the player faced, which is what the panel is describing.
-    expect(suggestedArrow(START, "e4")).toEqual({ from: "e2", to: "e4" });
-  });
-
-  it("shows nothing when nothing was asked for", () => {
-    expect(suggestedArrow(START, null)).toBeNull();
-  });
-
-  it("shows nothing at the start, where no move was played yet", () => {
-    // The squares come from the position the move was chosen in, and at
-    // ply zero there is no such position.
-    expect(suggestedArrow(undefined, "e4")).toBeNull();
-  });
-
-  it("refuses a move that does not fit the position", () => {
-    // A record drifted from its FEN would draw an arrow between squares
-    // that mean nothing.
-    expect(suggestedArrow(START, "Nf6")).toBeNull();
   });
 });
 
@@ -110,8 +63,7 @@ describe("legalTargetsAt", () => {
   });
 
   it("offers nothing for the side that is not to move", () => {
-    // The board must not draw a dot the move then refuses: a variation is
-    // a game being played, and it is White's turn.
+    // A variation is a game being played, and it is White's turn.
     expect(legalTargetsAt(START, "e7")).toEqual([]);
   });
 
@@ -130,7 +82,7 @@ describe("sanOfUciAt", () => {
   });
 
   it("goes quiet rather than throwing on a position it cannot set up", () => {
-    // The played move still has to render; only the suggestion drops.
+    // The played move still renders; only the suggestion drops.
     expect(sanOfUciAt("not a fen", "g1f3")).toBeNull();
   });
 
@@ -140,5 +92,61 @@ describe("sanOfUciAt", () => {
 
   it("goes quiet when the engine named no move at all", () => {
     expect(sanOfUciAt(START, "")).toBeNull();
+  });
+});
+
+/**
+ * `use-board-review.ts` reads the two lit squares off the replay's own UCI
+ * rather than parsing the position back out of a FEN. These are the cases
+ * where the notations disagree, or a suffix could be mistaken for a square.
+ */
+/**
+ * Kings and rooks only, and one game per side: after White castles short
+ * the rook covers f8, which makes Black's own short castle illegal.
+ */
+const castling = (turn: "w" | "b", movetext: string) =>
+  aReplay(
+    `[Event "C"]\n[SetUp "1"]\n[FEN "r3k2r/8/8/8/8/8/8/R3K2R ${turn} KQkq - 0 1"]\n\n${movetext}`,
+  ).moves[0]!;
+
+describe("the last move, as the replay already named it", () => {
+  it("lights the king's squares when castling short, not the rook's", () => {
+    // chessops encodes castling as king-takes-own-rook (e1h1), but a board
+    // draws the king's two-square step.
+    expect(squaresOfUci(castling("w", "1. O-O *").uci)).toEqual({ from: "e1", to: "g1" });
+    expect(squaresOfUci(castling("b", "1... O-O *").uci)).toEqual({
+      from: "e8",
+      to: "g8",
+    });
+  });
+
+  it("lights the king's squares when castling long", () => {
+    expect(squaresOfUci(castling("w", "1. O-O-O *").uci)).toEqual({
+      from: "e1",
+      to: "c1",
+    });
+    expect(squaresOfUci(castling("b", "1... O-O-O *").uci)).toEqual({
+      from: "e8",
+      to: "c8",
+    });
+  });
+
+  it("ignores a promotion suffix, which is not a square", () => {
+    const [promotion] = aReplay(
+      '[Event "C"]\n[SetUp "1"]\n[FEN "8/P6k/8/8/8/8/8/K7 w - - 0 1"]\n\n1. a8=Q *',
+    ).moves;
+
+    expect(promotion!.uci).toBe("a7a8q");
+    expect(squaresOfUci(promotion!.uci)).toEqual({ from: "a7", to: "a8" });
+  });
+
+  it("reads a game that starts from a position, with Black to play", () => {
+    const [first] = aReplay(
+      '[Event "C"]\n[SetUp "1"]\n[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 20"]\n\n20... Nf6 *',
+    ).moves;
+
+    expect(first!.side).toBe("black");
+    expect(first!.moveNumber).toBe(20);
+    expect(squaresOfUci(first!.uci)).toEqual({ from: "g8", to: "f6" });
   });
 });

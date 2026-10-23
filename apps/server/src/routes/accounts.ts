@@ -25,7 +25,6 @@ import {
   wireDateOrNull,
 } from "../validation.ts";
 
-/** `@velachess/accounts`' `ConnectOutcome.status` vocabulary. */
 const ACCOUNT_CONNECT_STATUS = {
   CONNECTED: "connected",
   PROVIDER_CONNECTED: "provider-connected",
@@ -33,30 +32,24 @@ const ACCOUNT_CONNECT_STATUS = {
   UNAVAILABLE: "unavailable",
 } as const;
 
-/** `@velachess/accounts`' `RequestSyncOutcome.status` vocabulary — local to
- * this file, the only one that branches on it. */
 const ACCOUNT_SYNC_STATUS = {
   NOT_FOUND: "not-found",
   TOO_SOON: "too-soon",
   ACCEPTED: "accepted",
 } as const;
 
-/** `@velachess/accounts`' `DisconnectOutcome.status` vocabulary. */
 const ACCOUNT_DISCONNECT_STATUS = {
   NOT_FOUND: "not-found",
   DELETED: "deleted",
 } as const;
 
-/** Repeated across both this file's 404s — one place to change the wording. */
 const ACCOUNT_NOT_FOUND_ERROR = "account not found";
 
-/** Mirrors `@velachess/infra-platforms`' `accountPlatformSchema` —
- * `routes-no-direct-infra` forbids importing it, so this is a hand-kept
- * copy, one per file instead of one per field; guarded by
+/** Mirrors `@velachess/infra-platforms`' `accountPlatformSchema`, which
+ * `routes-no-direct-infra` forbids importing; guarded by
  * `apps/server/tests/contracts.test.ts`. */
 export const ACCOUNT_PLATFORM = ["chess_com", "lichess"] as const;
-/** Mirrors `@velachess/accounts`' job-error vocabulary; guarded alongside
- * `ACCOUNT_PLATFORM`. */
+/** Guarded alongside `ACCOUNT_PLATFORM`. */
 export const SYNC_JOB_ERROR = ["not-found", "incomplete", "internal"] as const;
 
 const createAccountSchema = z.object({
@@ -64,12 +57,9 @@ const createAccountSchema = z.object({
   username: z.string().min(1),
 });
 
-/** What `POST /` actually returns — a narrowed projection of the account
- * row, not the row itself. `platform` mirrors `@velachess/accounts`'
- * `Platform` union exactly (was `z.string()` at first — a plain string
- * widened the RPC client's `account.platform` from a literal union to
- * `string`, breaking `apps/web`'s `SourceId`-typed callers; caught by the
- * RPC typecheck gate, fixed here). */
+/** `platform` is the literal union, not `z.string()`: a plain string
+ * widens the RPC client's `account.platform` and breaks `apps/web`'s
+ * `SourceId`-typed callers. */
 const accountSchema = z.object({
   id: z.string().uuid(),
   platform: z.enum(ACCOUNT_PLATFORM),
@@ -81,9 +71,8 @@ const accountSchema = z.object({
     .describe("The first sync job; null when the handle was already tracked"),
 });
 
-/** A different handle on a platform the caller already tracks — one
- * account per provider, so this refuses instead of overwriting. Carries
- * the existing connection's identity so the client can point at it. */
+/** Carries the existing connection's identity, so the client can point at
+ * the handle it refused to overwrite. */
 const providerConflictSchema = errorResponseSchema.extend({
   platform: z.enum(ACCOUNT_PLATFORM),
   username: z.string(),
@@ -121,8 +110,7 @@ const createAccountRoute = createRoute({
   },
 });
 
-/** Mirrors `@velachess/accounts`' `listAccounts` result — `lastSyncedAt`
- * travels as ISO text on the wire, not a `Date`. */
+/** `lastSyncedAt` travels as ISO text, not a `Date`. */
 const trackedAccountSchema = z.object({
   id: z.string().uuid(),
   platform: z.enum(ACCOUNT_PLATFORM),
@@ -138,9 +126,8 @@ const trackedAccountSchema = z.object({
     .describe("Why the newest job failed; cleared by the next success"),
 });
 
-/** Serializers, built from the documented schemas with `.extend()`: only
- * the timestamp is restated, so the rest cannot drift. See `wireDate` for
- * why the schema performs the conversion instead of the handler. */
+/** Only the timestamp is restated, so the rest cannot drift; see
+ * `wireDate`. */
 const trackedAccountWire = trackedAccountSchema.extend({
   lastSyncedAt: wireDateOrNull,
 });
@@ -207,8 +194,7 @@ const syncAccountRoute = createRoute({
   },
 });
 
-/** Mirrors `@velachess/accounts`' `GameWithStatus` — `playedAt` travels as
- * ISO text on the wire, not a `Date`. */
+/** `playedAt` travels as ISO text, not a `Date`. */
 const accountGameSchema = z.object({
   id: z.string().uuid(),
   whiteName: z.string(),
@@ -254,8 +240,6 @@ const deleteAccountRoute = createRoute({
   },
 });
 
-/** Narrow composed deps for this module's five slices — one field per
- * route, built by `apps/server/src/composition/accounts.ts`. */
 export interface AccountsRouteDeps {
   list: ListAccountsDeps;
   games: ListAccountGamesDeps;
@@ -268,11 +252,9 @@ export interface AccountsRouteDeps {
 export function accountsRoutes(deps: AccountsRouteDeps) {
   return (
     new OpenAPIHono<ApiEnv>({ defaultHook })
-      // Importing is a POST, and the only place a connection is created.
-      // Reads stopped writing ownership: the old flow let GET /games
-      // upsert the account and seize it, which is how one user's archive
-      // transferred to another. The handle is confirmed here, so a bad
-      // username fails in front of the person who typed it.
+      // The only place a connection is created: a GET that upserts the
+      // account can seize it, which is how one user's archive once
+      // transferred to another.
       .openapi(createAccountRoute, async (c) => {
         const { platform, username } = c.req.valid("json");
         const outcome = await importAccount(

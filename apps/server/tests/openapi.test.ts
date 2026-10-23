@@ -1,12 +1,9 @@
 // @vitest-environment node
 /**
- * Anti-drift: every route Hono has registered must exist in the served
- * OpenAPI document, and every documented path+method must be a real route.
- * Add a route without an `.openapi()` declaration (or vice versa) and this
- * fails. Unlike the old hand-written `openapi.ts`, the document itself is
- * generated from each route's `createRoute` — this test can no longer fail
- * because someone forgot to update a second file, only because a route is
- * missing a `createRoute`/`.openapi()` declaration entirely.
+ * Every route Hono has registered must exist in the served OpenAPI
+ * document, and every documented path and method must be a real route. The
+ * document is generated from each route's `createRoute`, so this can only
+ * fail on a route missing its declaration.
  */
 import { afterAll, beforeAll, expect, it } from "vitest";
 
@@ -36,7 +33,6 @@ afterAll(async () => {
 function registeredOperations(): Set<string> {
   const operations = new Set<string>();
   for (const route of harness.app.routes) {
-    // "ALL" is middleware, not a documented endpoint.
     if (route.method === "ALL") continue;
     const path = route.path.replace(/:([A-Za-z0-9_]+)/g, "{$1}");
     operations.add(`${route.method} ${path}`);
@@ -58,9 +54,8 @@ it("every registered route is documented, every documented route exists", () => 
   const registered = registeredOperations();
   const documented = documentedOperations();
 
-  // `doc31()` serves the document and doesn't declare itself in it — an
-  // OpenAPI spec routinely omits its own serving endpoint. `/docs` is the
-  // Swagger UI page reading that spec, not an API operation of its own.
+  // `doc31()` does not declare its own serving endpoint, and `/docs` is the
+  // Swagger UI page reading the spec rather than an API operation.
   registered.delete("GET /openapi.json");
   registered.delete("GET /docs");
 
@@ -81,7 +76,6 @@ it("GET /openapi.json serves the document", async () => {
 });
 
 it("a representative route's request and response schemas come from its own Zod schemas, not a hand-written duplicate", () => {
-  // POST /accounts — request body schema, generated from `createAccountSchema`.
   const post = spec.paths["/accounts"]?.["post"] as {
     requestBody: { content: { "application/json": { schema: JsonSchema } } };
     responses: { "201": { content: { "application/json": { schema: JsonSchema } } } };
@@ -93,7 +87,6 @@ it("a representative route's request and response schemas come from its own Zod 
   expect(body.properties?.["username"]?.type).toBe("string");
   expect(body.required).toEqual(expect.arrayContaining(["platform", "username"]));
 
-  // Response schema, generated from `accountSchema`.
   const response = post.responses["201"].content["application/json"].schema;
   expect(Object.keys(response.properties ?? {}).toSorted()).toEqual([
     "id",
@@ -114,10 +107,8 @@ interface JsonSchema {
   oneOf?: JsonSchema[];
 }
 
-/** A field "accepts null" under OpenAPI 3.1 / JSON Schema semantics when
- * its `type` is (or includes) `"null"`, or one of its `anyOf`/`oneOf`
- * branches is the bare `{ type: "null" }` schema — never via the
- * OpenAPI-3.0-only `nullable: true` keyword. */
+/** Under OpenAPI 3.1, through `type` or an `anyOf`/`oneOf` branch, never
+ * the 3.0-only `nullable: true`. */
 function acceptsNull(schema: JsonSchema): boolean {
   if (schema.nullable === true) return false;
   if (Array.isArray(schema.type) && schema.type.includes("null")) return true;
@@ -129,8 +120,6 @@ function acceptsNull(schema: JsonSchema): boolean {
 it("nullable fields use OpenAPI 3.1 / JSON Schema semantics, not OpenAPI 3.0's `nullable: true`", () => {
   expect(JSON.stringify(spec)).not.toContain('"nullable":true');
 
-  // openingName is nullable in the real type (`libs/games/list-games`) but
-  // was a required, non-null string in the old hand-written doc.
   const gamesGet = spec.paths["/games"]?.["get"] as {
     responses: { "200": { content: { "application/json": { schema: JsonSchema } } } };
   };
@@ -142,12 +131,10 @@ it("nullable fields use OpenAPI 3.1 / JSON Schema semantics, not OpenAPI 3.0's `
 });
 
 it("system routes are registered before the identity middleware", () => {
-  // Liveness and documentation must answer even when the db is down —
-  // their registration order IS the guarantee (middleware applies only
-  // to routes registered after it). The gate is found by handler name
-  // rather than by "the first ALL /*", because the edge middleware
-  // (headers, body limit, CSRF) is deliberately registered above these
-  // routes and would otherwise be mistaken for it.
+  // Registration order is the guarantee, middleware applying only to
+  // routes registered after it. The gate is found by handler name because
+  // the edge middleware above these routes would otherwise be mistaken for
+  // it.
   const order = harness.app.routes.map((r) => `${r.method} ${r.path} ${r.handler.name}`);
   const at = (needle: string) => order.findIndex((entry) => entry.includes(needle));
 
@@ -156,11 +143,10 @@ it("system routes are registered before the identity middleware", () => {
   expect(gate).toBeGreaterThan(at("GET /health/live"));
   expect(gate).toBeGreaterThan(at("GET /health/ready"));
   expect(gate).toBeGreaterThan(at("GET /openapi.json"));
-  // Signing in happens without a session, definitionally.
   expect(gate).toBeGreaterThan(at("ALL /auth/*"));
 
-  // And the limiter sits below the gate, because every policy is keyed by
-  // the userId the gate resolves — above it there would be nothing to key.
+  // Below the gate, because every policy is keyed by the userId it
+  // resolves.
   expect(at("rateLimited")).toBeGreaterThan(gate);
 
   // Unlike the checks above, this catches a route the list doesn't

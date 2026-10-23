@@ -13,7 +13,7 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/games/review/analysis-progress.tsx:11
+#: src/games/review/analysis-progress.tsx:14
 msgid "Preparing analysis…"
 msgstr ""
 
@@ -29,7 +29,7 @@ msgstr ""
 msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr ""
 
-#: src/games/review/game-crumb.tsx:14
+#: src/games/review/game-crumb.tsx:13
 msgid "{opponent} vs you"
 msgstr ""
 
@@ -42,7 +42,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/review/game-crumb.tsx:16
+#: src/games/review/game-crumb.tsx:15
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -50,7 +50,7 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:12
 #: src/settings/layout/navigation.ts:29
-#: src/test/routes.tsx:128
+#: src/test/routes.tsx:131
 msgid "Account"
 msgstr ""
 
@@ -62,15 +62,19 @@ msgstr ""
 msgid "An unexpected error interrupted this screen."
 msgstr ""
 
-#: src/games/review/analysis-progress.tsx:16
+#: src/games/review/analysis-progress.tsx:19
 msgid "Analyzing move {graded} of {total}…"
+msgstr ""
+
+#: src/games/review/analysis-progress.tsx:22
+msgid "Analyzing move {ply} of {total} — depth {depth}…"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:31
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
-#: src/test/routes.tsx:149
+#: src/test/routes.tsx:152
 msgid "Appearance"
 msgstr ""
 
@@ -90,11 +94,11 @@ msgstr ""
 msgid "Backend unavailable · Reload the page to try again"
 msgstr ""
 
-#: src/games/review/move-presentation.ts:57
+#: src/games/review/move-presentation.ts:41
 msgid "Best"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:33
+#: src/games/review/move-insight.tsx:28
 msgid "Best was"
 msgstr ""
 
@@ -110,11 +114,11 @@ msgstr ""
 msgid "Blitz"
 msgstr ""
 
-#: src/games/review/move-presentation.ts:61
+#: src/games/review/move-presentation.ts:45
 msgid "Blunder"
 msgstr ""
 
-#: src/games/review/board-pane.tsx:31
+#: src/games/review/board-pane.tsx:20
 msgid "Board"
 msgstr ""
 
@@ -145,7 +149,7 @@ msgstr ""
 msgid "Change your picture"
 msgstr ""
 
-#: src/games/import/accounts/sources.ts:58
+#: src/games/import/accounts/sources.ts:61
 msgid "Chess.com username"
 msgstr ""
 
@@ -192,7 +196,7 @@ msgstr ""
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:55
 #: src/settings/layout/navigation.ts:30
-#: src/test/routes.tsx:135
+#: src/test/routes.tsx:138
 msgid "Connections"
 msgstr ""
 
@@ -216,8 +220,8 @@ msgstr ""
 msgid "Couldn't finish syncing"
 msgstr ""
 
-#: src/games/review/analysis-progress.tsx:12
-#: src/games/review/game-review.tsx:33
+#: src/games/review/analysis-progress.tsx:15
+#: src/games/review/review-skeleton.tsx:11
 msgid "Couldn't load analysis."
 msgstr ""
 
@@ -321,16 +325,16 @@ msgstr ""
 msgid "Enter your password."
 msgstr ""
 
-#: src/games/import/accounts/sources.ts:12
+#: src/games/import/accounts/sources.ts:10
 msgid "Enter your username"
 msgstr ""
 
-#: src/games/review/board-pane.tsx:33
-#: src/games/review/move-insight.tsx:31
+#: src/games/review/board-pane.tsx:21
+#: src/games/review/move-insight.tsx:26
 msgid "Evaluation"
 msgstr ""
 
-#: src/games/review/eval-graph.tsx:33
+#: src/games/review/eval-graph.tsx:32
 msgid "Evaluation over the game"
 msgstr ""
 
@@ -345,7 +349,7 @@ msgstr ""
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
-#: src/test/routes.tsx:156
+#: src/test/routes.tsx:159
 msgid "Gameplay"
 msgstr ""
 
@@ -367,7 +371,7 @@ msgstr ""
 msgid "Games synced"
 msgstr ""
 
-#: src/games/review/move-presentation.ts:58
+#: src/games/review/move-presentation.ts:42
 msgid "Good"
 msgstr ""
 
@@ -424,7 +428,7 @@ msgstr ""
 msgid "Importing…"
 msgstr ""
 
-#: src/games/review/move-presentation.ts:59
+#: src/games/review/move-presentation.ts:43
 msgid "Inaccuracy"
 msgstr ""
 
@@ -436,39 +440,39 @@ msgstr ""
 msgid "Invalid PGN: no valid chess moves found."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:42
+#: src/games/review/move-insight.tsx:37
 msgid "is a blunder"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:41
+#: src/games/review/move-insight.tsx:36
 msgid "is a mistake"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:39
+#: src/games/review/move-insight.tsx:34
 msgid "is a solid move"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:40
+#: src/games/review/move-insight.tsx:35
 msgid "is an inaccuracy"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:38
+#: src/games/review/move-insight.tsx:33
 msgid "is the best move"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:50
+#: src/games/review/move-insight.tsx:45
 msgid "It changes who is winning."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:48
+#: src/games/review/move-insight.tsx:43
 msgid "It gives away a little of what the position was worth."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:49
+#: src/games/review/move-insight.tsx:44
 msgid "It hands over a real part of the advantage."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:47
+#: src/games/review/move-insight.tsx:42
 msgid "It keeps the position healthy without giving anything away."
 msgstr ""
 
@@ -483,15 +487,15 @@ msgstr ""
 #: src/routes/_app/settings/language-region.tsx:7
 #: src/settings/language-region/language-region-screen.tsx:18
 #: src/settings/layout/navigation.ts:31
-#: src/test/routes.tsx:142
+#: src/test/routes.tsx:145
 msgid "Language & region"
 msgstr ""
 
-#: src/games/import/accounts/sources.ts:14
+#: src/games/import/accounts/sources.ts:12
 msgid "Letters, numbers, hyphen and underscore only"
 msgstr ""
 
-#: src/games/import/accounts/sources.ts:66
+#: src/games/import/accounts/sources.ts:67
 msgid "Lichess username"
 msgstr ""
 
@@ -500,7 +504,7 @@ msgstr ""
 msgid "Light"
 msgstr ""
 
-#: src/games/review/game-review.tsx:32
+#: src/games/review/review-skeleton.tsx:10
 msgid "Loading the game…"
 msgstr ""
 
@@ -529,7 +533,7 @@ msgstr ""
 msgid "Manage your account and application preferences."
 msgstr ""
 
-#: src/games/review/move-presentation.ts:60
+#: src/games/review/move-presentation.ts:44
 msgid "Mistake"
 msgstr ""
 
@@ -537,15 +541,15 @@ msgstr ""
 msgid "More actions"
 msgstr ""
 
-#: src/games/review/analysis-panel.tsx:19
+#: src/games/review/analysis-panel.tsx:24
 msgid "Move"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:34
+#: src/games/review/move-insight.tsx:29
 msgid "Move insight"
 msgstr ""
 
-#: src/games/review/replay-controls.tsx:11
+#: src/games/review/replay-controls.tsx:12
 msgid "Move navigation"
 msgstr ""
 
@@ -562,12 +566,12 @@ msgid "Name"
 msgstr ""
 
 #: src/games/list/games-list.tsx:30
-#: src/games/review/replay-controls.tsx:13
+#: src/games/review/replay-controls.tsx:14
 #: src/onboarding/onboarding-dialog.tsx:22
 msgid "Next"
 msgstr ""
 
-#: src/games/review/replay-controls.tsx:10
+#: src/games/review/replay-controls.tsx:11
 msgid "Next move"
 msgstr ""
 
@@ -587,7 +591,7 @@ msgstr ""
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:29
+#: src/games/review/move-insight.tsx:24
 msgid "Not graded yet"
 msgstr ""
 
@@ -595,11 +599,11 @@ msgstr ""
 msgid "Not synced yet"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:46
+#: src/games/review/move-insight.tsx:41
 msgid "Nothing in the position was worth more."
 msgstr ""
 
-#: src/games/review/game-report.tsx:16
+#: src/games/review/game-report.tsx:13
 msgid "Opening not recognised"
 msgstr ""
 
@@ -647,7 +651,7 @@ msgstr ""
 msgid "Preferences"
 msgstr ""
 
-#: src/games/review/replay-controls.tsx:12
+#: src/games/review/replay-controls.tsx:13
 msgid "Prev"
 msgstr ""
 
@@ -655,7 +659,7 @@ msgstr ""
 msgid "Previous"
 msgstr ""
 
-#: src/games/review/replay-controls.tsx:9
+#: src/games/review/replay-controls.tsx:10
 msgid "Previous move"
 msgstr ""
 
@@ -701,7 +705,7 @@ msgstr ""
 msgid "Removing…"
 msgstr ""
 
-#: src/games/review/analysis-panel.tsx:20
+#: src/games/review/analysis-panel.tsx:25
 msgid "Report"
 msgstr ""
 
@@ -710,7 +714,7 @@ msgstr ""
 msgid "Result"
 msgstr ""
 
-#: src/games/review/analysis-panel.tsx:22
+#: src/games/review/analysis-panel.tsx:27
 msgid "Review"
 msgstr ""
 
@@ -742,11 +746,11 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:113
+#: src/test/routes.tsx:116
 msgid "Settings"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:32
+#: src/games/review/move-insight.tsx:27
 msgid "Show the engine's move on the board"
 msgstr ""
 
@@ -786,11 +790,11 @@ msgstr ""
 msgid "Something went wrong."
 msgstr ""
 
-#: src/games/review/board-pane.tsx:32
+#: src/games/review/use-board-review.ts:32
 msgid "Starting position"
 msgstr ""
 
-#: src/games/review/move-insight.tsx:28
+#: src/games/review/move-insight.tsx:23
 msgid "Step forward to walk through the game."
 msgstr ""
 
@@ -835,19 +839,19 @@ msgstr ""
 msgid "That image is too large. Choose one under 8 MB."
 msgstr ""
 
-#: src/games/import/accounts/sources.ts:13
+#: src/games/import/accounts/sources.ts:11
 msgid "That username is too long"
 msgstr ""
 
-#: src/games/review/eval-graph.tsx:34
+#: src/games/review/eval-graph.tsx:33
 msgid "The curve appears as the analysis lands."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:30
+#: src/games/review/move-insight.tsx:25
 msgid "The engine reaches this move shortly."
 msgstr ""
 
-#: src/games/review/move-insight.tsx:27
+#: src/games/review/move-insight.tsx:22
 msgid "The starting position."
 msgstr ""
 

@@ -3,23 +3,20 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import type { Database } from "../client.ts";
 import { users, type User } from "../schema.ts";
 
-/** Whether any user exists — the bootstrap module's own guard, not "this
- * email exists". */
 export async function countUsers(db: Database) {
   const [row] = await db.select({ n: count() }).from(users);
   return row?.n ?? 0;
 }
 
-/** Better Auth's own sign-up hard-codes emailVerified: false; the bootstrap
- * module corrects it for the operator-provisioned first user. */
+/** Better Auth's sign-up hard-codes `emailVerified: false`, which bootstrap
+ * corrects for the operator-provisioned first user. */
 export async function markEmailVerified(db: Database, userId: string) {
   await db.update(users).set({ emailVerified: true }).where(eq(users.id, userId));
 }
 
 /**
- * Stamps the end of onboarding, once. The `IS NULL` guard is what makes
- * it once: every later connection runs this and changes nothing, so the
- * date keeps saying when the person actually arrived.
+ * The `IS NULL` guard is what makes it once: every later connection runs
+ * this and changes nothing.
  */
 export async function markUserOnboarded(db: Database, userId: string): Promise<void> {
   await db
@@ -29,27 +26,18 @@ export async function markUserOnboarded(db: Database, userId: string): Promise<v
 }
 
 /**
- * The only writer of `users.image` in this repo — Better Auth writes it
- * once at user creation and never again. Both columns move together
- * because the pair is the state: an `image` without its source, or a
- * source without its `image`, is a row nothing can interpret.
- */
-/**
- * The two values `users.avatar_source` may hold, read off the column
- * itself — the `$type<>()` there is the one declaration. Exported because
- * `libs/user` checks its own `AvatarSource` against it (infra may not
- * depend on a business module, so the guard runs from that side). The
- * column has no DB constraint, so this type is the only thing standing
- * between a typo and a row nothing can interpret.
+ * Read off the column, whose `$type<>()` is the one declaration. Exported
+ * because `libs/user` checks its own `AvatarSource` against it, infra not
+ * being allowed to depend on a business module.
  */
 export type AvatarSource = NonNullable<User["avatarSource"]>;
 
 export async function writeAvatarState(
   db: Database,
   userId: string,
-  // Both fields are exactly their columns, so they are read off the model
-  // rather than restated. Still a two-field `next` and not the whole
-  // `User`: this is an update contract, not a row write.
+  // Two fields rather than the whole `User`: an update contract, not a row
+  // write. Both columns move together, because an `image` without its
+  // source is a row nothing can interpret.
   next: Pick<User, "image" | "avatarSource">,
 ) {
   await db
@@ -61,10 +49,9 @@ export async function writeAvatarState(
 let seq = 0;
 
 /**
- * A user row for TESTS. Production users are created by Better Auth
- * through sign-up — nothing in a request path calls this, and the
- * generated defaults exist so a fixture can say `createUser(db)` without
- * inventing an email that then collides with the second fixture's.
+ * For tests: production users come from Better Auth's sign-up, and no
+ * request path calls this. The generated defaults let a fixture say
+ * `createUser(db)` without inventing a colliding email.
  */
 export async function createUser(
   db: Database,
@@ -81,7 +68,7 @@ export async function createUser(
   return user!;
 }
 
-/** Race-safe get-or-create by email — for tests that need a stable user. */
+/** For tests that need a stable user. */
 export async function ensureUser(db: Database, email: string, displayName?: string) {
   await db
     .insert(users)

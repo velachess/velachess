@@ -24,7 +24,7 @@ import { testRouteTree } from "./routes.tsx";
 
 const ANY_PAGE = { color: null, outcome: null, timeClass: null, page: 1, pageSize: 1 };
 
-/** The providers `__root.tsx` gives every screen, in the same order — kept identical so this list can't drift from the app. */
+/** What `__root.tsx` gives every screen, in the same order. */
 function AppProviders({
   children,
   queryClient = createQueryClient(),
@@ -46,13 +46,16 @@ function AppProviders({
 }
 
 export interface RenderAppOptions {
-  /** Where memory history starts, search string included. */
+  /** Where memory history starts, search included. */
   path?: string;
-  /** Leave the library as the test staged it. By default an archive with no games gets one, so the first-run overlay stays out of screens that are not about it. */
+  /** Leaves the library as the test staged it. By default an empty archive
+   * gets one game, so the first-run overlay stays out of screens that are
+   * not about it. */
   emptyLibrary?: boolean;
 }
 
-/** Mounts the app at a route, for search params/navigation/guards. `router.load()` is awaited inside `act` so the caller gets the rendered screen, not pending. */
+/** `router.load()` is awaited inside `act`, so the caller gets the rendered
+ * screen rather than a pending one. */
 export async function renderApp(options: RenderAppOptions = {}) {
   if (options.emptyLibrary !== true && readArchive(ANY_PAGE).total === 0) {
     addGames(aGame());

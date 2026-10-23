@@ -38,10 +38,10 @@ import {
 const FIELD_NAME = "value" as const;
 
 export interface ConnectAccountProps {
-  /** Where to land once the games are in. Ignored when `onImported` is given. */
+  /** Ignored when `onImported` is given. */
   redirectTo?: string;
-  /** Called instead of navigating — for callers that already own the frame
-   * this sits in, like the onboarding dialog. */
+  /** Called instead of navigating, for a caller that already owns the frame
+   * this sits in. */
   onImported?: () => void;
   /** `bare` drops the card, for a caller whose container is the heading. */
   chrome?: "card" | "bare";
@@ -63,12 +63,10 @@ export function ConnectAccount({
   const source: ImportSource = IMPORT_SOURCES[sourceId];
   const sourceName = GAME_SOURCES[sourceId].label;
 
-  // One account per provider: the selected tab's platform already being
-  // tracked makes every username doomed, so the form gives way to a note
-  // naming the handle that holds the slot. Not an error state — the usual
-  // way to reach it is connecting successfully a moment earlier. A race
-  // (another tab/device connects first) answers a 409 carrying the same
-  // handle, which lands here too rather than in the failure alert.
+  // One account per provider, so a tracked platform makes every username
+  // doomed and the form gives way to a note naming the handle that holds
+  // the slot. Not an error state: the usual way here is having connected a
+  // moment earlier, and a race answers a 409 carrying the same handle.
   const connectedHandle: string | undefined =
     accounts.data?.find((account) => account.platform === sourceId)?.username ??
     (isProviderAlreadyConnectedError(importGames.error) &&
@@ -85,13 +83,13 @@ export function ConnectAccount({
       try {
         await importGames.mutateAsync(request);
       } catch {
-        // The mutation already holds the failure and the field below renders it;
-        // rethrowing here would leave the rejection unhandled.
+        // The mutation holds the failure and the field below renders it;
+        // rethrowing leaves the rejection unhandled.
         return;
       }
 
-      // The mutation already awaited its cache invalidation, so whatever
-      // happens next — dialog close or navigate — sees fresh data, not a stale frame.
+      // The mutation awaited its cache invalidation, so a close or a
+      // navigate sees fresh data rather than a stale frame.
       if (onImported) {
         onImported();
         return;
@@ -237,9 +235,8 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
   return null;
 }
 
-/** Plain, not destructive: this is what a connected platform looks like
- * at rest, and the most common way to see it is having just connected
- * successfully. Red belongs to an import that actually failed. */
+/** Plain, not destructive: this is a connected platform at rest, and red
+ * belongs to an import that failed. */
 function AlreadyConnectedNotice({
   username,
   platform,

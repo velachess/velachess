@@ -14,12 +14,9 @@ import {
 } from "../../test/handlers/auth.ts";
 
 /**
- * Who gets in, who does not, and what happens when the answer changes
- * mid-session.
- *
- * Every test drives the real screens through the real router: the guard
- * that runs is `_app`'s, the session comes from the same HTTP contract
- * the API publishes, and nothing is stubbed below the network. What a
+ * Every test drives the real screens through the real router: the guard is
+ * `_app`'s, the session comes from the HTTP contract the API publishes, and
+ * nothing is stubbed below the network. What a
  * test controls is what the *server* believes — `sessionActive()` /
  * `sessionInactive()` — never what the app remembers about itself, which
  * is exactly the thing that stopped being authoritative.
@@ -33,13 +30,10 @@ async function signIn(user: Awaited<ReturnType<typeof renderApp>>["user"]) {
 
 describe("the wall", () => {
   it("lets a signed-in person in whatever `onboardedAt` holds", async () => {
-    // Better Auth hands additional fields back as it stored them, and its
-    // client reviver only turns ISO-shaped strings into dates. Anything
-    // else used to reach `new Date(x).toISOString()`, which throws
-    // `RangeError` — the session lookup rejected, the guard read that as
-    // "backend unavailable", and a signed-in person landed on the login
-    // screen. The session asks only whether a stamp exists now, so there
-    // is no value left that can fail.
+    // Better Auth's client reviver only turns ISO-shaped strings into
+    // dates, and anything else used to reach `new Date(x).toISOString()`:
+    // a `RangeError` the guard read as "backend unavailable". The session
+    // asks only whether a stamp exists.
     sessionActive({ ...TEST_USER, onboardedAt: "not-a-date" });
     deviceHasImported();
 
@@ -55,8 +49,7 @@ describe("the wall", () => {
 
     expect(router.state.location.pathname).toBe("/login");
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
-    // Where they were going, kept for after they sign in — the whole
-    // location, search included, not just the path.
+    // The whole location, search included, for after they sign in.
     expect(router.state.location.search).toMatchObject({
       redirect: expect.stringContaining("/games") as unknown as string,
     });
@@ -84,8 +77,7 @@ describe("the wall", () => {
     sessionActive();
     deviceHasImported();
 
-    // A reload is a fresh router over the same server state, which is
-    // what this second render is.
+    // The second render is a fresh router over the same server state.
     await renderApp({ path: "/games" });
     const { router } = await renderApp({ path: "/games" });
 
@@ -101,8 +93,8 @@ describe("the wall", () => {
   });
 
   it("does not let a remembered chess account stand in for a session", async () => {
-    // The old authority, still in localStorage, now worth exactly
-    // nothing: it says which handle to show, not who is asking.
+    // What is still in localStorage says which handle to show, not who is
+    // asking.
     sessionInactive();
     deviceHasImported();
 
@@ -112,8 +104,7 @@ describe("the wall", () => {
   });
 
   it("keeps a signed-in visitor in, with no chess account selected", async () => {
-    // The inverse: identity is enough to be inside the app. The games
-    // screen offers the imports instead of bouncing anyone out.
+    // Identity alone is enough to be inside the app.
     sessionActive();
     resetDevice();
 
@@ -124,8 +115,8 @@ describe("the wall", () => {
   });
 
   it("does not leave a rejected promise when the session lookup fails", async () => {
-    // Not "signed out" — unanswered. The guard still has to produce a
-    // destination rather than a blank screen behind an error boundary.
+    // Unanswered, not signed out: the guard still has to produce a
+    // destination.
     sessionUnavailable();
 
     const { router } = await renderApp({ path: "/games" });
@@ -225,8 +216,8 @@ describe("signing in", () => {
 describe("what a sign-in outcome depends on", () => {
   it("succeeds even when the session endpoint is down — no follow-up fetch", async () => {
     sessionInactive();
-    // The session cache is seeded from the sign-in response itself, so a
-    // broken get-session cannot make a successful sign-in look failed.
+    // The session cache is seeded from the sign-in response, so a broken
+    // get-session cannot make a successful sign-in look failed.
     server.use(
       http.get("/api/auth/get-session", () =>
         HttpResponse.json({ message: "boom" }, { status: 500 }),
@@ -241,9 +232,8 @@ describe("what a sign-in outcome depends on", () => {
 
   it("reads a 401 without Better Auth's credential code as unavailability", async () => {
     sessionInactive();
-    // A proxy or an outage can also answer 401 — that is not proof the
-    // password was wrong, and saying so would send someone to re-type a
-    // correct one.
+    // A proxy or an outage answers 401 too, which is no proof the password
+    // was wrong.
     server.use(
       http.post("/api/auth/sign-in/email", () =>
         HttpResponse.json({ message: "upstream timeout" }, { status: 401 }),
@@ -274,8 +264,8 @@ describe("signing out", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
 
-    // And it was the server that forgot, not just this tab: the guard
-    // asks again on the way back in, and the answer is no.
+    // The server forgot, not just this tab: the guard asks again on the way
+    // back in.
     const second = await renderApp({ path: "/games" });
     expect(second.router.state.location.pathname).toBe("/login");
   });
@@ -289,18 +279,16 @@ describe("a session that ends mid-visit", () => {
     const { router, queryClient } = await renderApp({ path: "/games" });
     expect(router.state.location.pathname).toBe("/games");
 
-    // The cookie expired between one request and the next: whatever the
-    // session endpoint last said, the data endpoint says 401. Exactly
-    // the case where stale UI would keep showing somebody's games.
+    // The cookie expired between one request and the next, so whatever the
+    // session endpoint last said, the data endpoint says 401.
     server.use(
       http.get("/api/games", () =>
         HttpResponse.json({ error: "unauthorized" }, { status: 401 }),
       ),
     );
 
-    // The next request the screen makes, rather than a synthetic event:
-    // the 401 has to travel the real path — api client, query cache,
-    // the single owner in router.tsx — to prove that path exists.
+    // A real request rather than a synthetic event, so the 401 travels the
+    // api client, the query cache and router.tsx's single owner.
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ["games"] });
     });

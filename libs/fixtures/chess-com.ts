@@ -1,18 +1,11 @@
 /**
- * Chess.com Published-Data API response shapes.
+ * The shapes are faithful to the documented API; the players, ratings,
+ * links and timestamps are invented.
  *
- * The *shapes* are what matter and they are faithful to the documented
- * API: the archives index, a finished game, an in-progress daily game
- * (Chess.com omits `pgn` until it ends), and a variant game. The players,
- * ratings, links and timestamps are invented — a test fixture has no
- * business republishing a real person's games, and nothing here depends
- * on whose they are.
- *
- * The one detail that IS load-bearing: Chess.com's PGN never carries a
- * `[Variant]` tag, which is why the variant filter in the chess.com
- * provider reads `rules` from this JSON rather than from the PGN text.
- * The `[%clk ...]` annotations are written the way Chess.com writes them,
- * with no spaces inside the braces.
+ * Load-bearing: Chess.com's PGN carries no `[Variant]` tag, which is why
+ * the provider's variant filter reads `rules` from this JSON, and the
+ * `[%clk ...]` annotations are written as Chess.com writes them, with no
+ * spaces inside the braces.
  */
 
 const PLAYER = "test-player";
@@ -24,7 +17,7 @@ export const CHESS_COM_ARCHIVES_INDEX = {
   ],
 };
 
-/** Faithful headers and clock annotations; invented players. */
+/** Faithful headers and clock annotations, invented players. */
 const SAMPLE_GAME_PGN = `[Event "Live Chess"]
 [Site "Chess.com"]
 [Date "2024.01.01"]
@@ -53,15 +46,14 @@ export const CHESS_COM_ARCHIVE_MONTH = {
       rules: "chess",
       end_time: 1704133706,
     },
-    // In-progress daily game — Chess.com omits `pgn` until it finishes; a
-    // real, documented shape, not an error case.
+    // Chess.com omits `pgn` until a daily game finishes: a documented
+    // shape, not an error case.
     {
       url: "https://www.chess.com/game/daily/100000002",
       rules: "chess",
       end_time: 1704200000,
     },
-    // Variant game — filtered before normalization since Chess.com's PGN
-    // itself carries no [Variant] tag to filter on.
+    // Filtered before normalization, the PGN carrying no [Variant] tag.
     {
       url: "https://www.chess.com/game/live/100000003",
       pgn: SAMPLE_GAME_PGN,

@@ -1,16 +1,13 @@
 /**
- * RequestSync — ask for an account's archive to be brought up to date.
- *
- * Never fetches: it records a sync job and hands it to the queue, in one
- * transaction, so a job row never exists without its delivery or the other
- * way round. One active job per account — a repeat request gets the one
- * already running, before any cooldown is considered.
+ * Records a sync job and hands it to the queue in one transaction, so a job
+ * row never exists without its delivery or the other way round. One active
+ * job per account, so a repeat request gets the one already running, before
+ * any cooldown is considered.
  */
 import type { Database, SyncJob } from "@velachess/infra-db";
 import type { AccountPlatform } from "@velachess/infra-platforms";
 import { isActiveSyncStatus } from "../sync-status.ts";
 
-/** Database and a Drizzle transaction share this type in this codebase. */
 type Tx = Database;
 type Trigger = "connect" | "manual";
 
@@ -42,9 +39,8 @@ export interface RequestSyncDeps {
 }
 
 /**
- * How long an account rests between manual syncs, counted from its last
- * job. Both platforms answer 429 to bursts, and a refresh button is exactly
- * the control someone taps twice.
+ * Counted from the account's last job. Both platforms answer 429 to bursts,
+ * and a refresh button is the control someone taps twice.
  */
 const SYNC_COOLDOWN_SECONDS = 60;
 
@@ -58,8 +54,8 @@ export async function requestSync(
   userId: string,
   accountId: string,
 ): Promise<RequestSyncOutcome> {
-  // Scoped by owner: someone else's account answers not-found, the same as
-  // one that never existed.
+  // Someone else's account answers not-found, like one that never
+  // existed.
   const account = await deps.getTrackedAccountForUser(userId, accountId);
   if (!account) return { status: "not-found" };
 
@@ -70,10 +66,9 @@ export async function requestSync(
       if (await deps.isSyncDeliveryLive(tx, latest.id)) {
         return { status: "accepted", job: latest };
       }
-      // pg-boss finished this delivery without the worker recording it (a
-      // crash or a timeout on the last attempt). Only an operator's retry or
-      // redrive revives that state, and a revived delivery of a closed job
-      // does nothing, so closing it here cannot race a delivery.
+      // pg-boss finished the delivery without the worker recording it. Only
+      // an operator's retry revives that state, and a revived delivery of a
+      // closed job does nothing, so this cannot race one.
       await deps.abandonSyncJob(tx, latest.id);
     } else if (latest) {
       const elapsed = (Date.now() - latest.createdAt.getTime()) / 1000;
@@ -86,9 +81,9 @@ export async function requestSync(
       await deps.enqueueSync(tx, { id: job.id, accountId, platform: account.platform });
       return { status: "accepted", job };
     }
-    // A concurrent request won the insert: share its job. The insert waited
-    // for that commit, so the row is there — unless a disconnect took it in
-    // the same instant, which no answer here describes.
+    // A concurrent request won the insert, and this one waited for that
+    // commit, so the row is there unless a disconnect took it in the same
+    // instant — which no outcome here describes.
     const shared = await deps.lockLatestSyncJob(tx, accountId);
     if (!shared)
       throw new Error(`sync job for account ${accountId} vanished mid-request`);

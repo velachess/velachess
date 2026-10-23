@@ -1,11 +1,8 @@
 /**
- * The payloads below are trimmed copies of real responses, captured with
- * curl on 17/08/2026 (Lichess flair re-captured 23/08/2026 off
- * DrNykterstein, whose santa flair the earlier capture predated).
- * Invented fixtures would have missed the things that actually matter
- * here: that `country` is a link, that `location` is a different,
- * free-text field that does not agree with it, and that `flair` is an
- * asset id at the top level, not part of `profile`.
+ * Trimmed copies of real responses, captured on 17/08/2026 (the Lichess
+ * flair on 23/08/2026). Invented fixtures would have missed what matters:
+ * `country` is a link, `location` is free text that disagrees with it, and
+ * `flair` is an asset id at the top level rather than part of `profile`.
  */
 import { describe, expect, it } from "vitest";
 
@@ -16,8 +13,8 @@ import {
   fetchLichessProfile,
 } from "../providers/profile.ts";
 
-/** Narrows the union for field assertions — a failed ask fails loudly here
- * instead of producing misleading undefined-field mismatches below. */
+/** Narrows the union, so a failed ask fails here rather than as an
+ * undefined-field mismatch below. */
 function fetchedProfile(result: ProfileFetch) {
   if (result.status !== "fetched")
     throw new Error(`expected fetched, got ${result.status}`);
@@ -47,8 +44,7 @@ const CHESS_COM_REAL = {
   player_id: 461_825_478,
   username: "yurimutti",
   country: "https://api.chess.com/pub/country/BR",
-  // Declared as Brazil, sitting in Spain. The two disagree, and the flag
-  // follows `country`.
+  // Declared as Brazil, sitting in Spain: the flag follows `country`.
   location: "Spain",
   status: "basic",
 };
@@ -58,7 +54,6 @@ const LICHESS_REAL_EMPTY = {
   username: "yurimutti",
   perfs: { blitz: { games: 0, rating: 1500 } },
   url: "https://lichess.org/@/yurimutti",
-  // No `profile` key at all, and no image field anywhere.
 };
 
 const LICHESS_REAL_FLAIRED = {
@@ -92,13 +87,13 @@ describe("fetchChessComProfile", () => {
 
     expect(profile.avatarUrl).toBe(CHESS_COM_REAL.avatar);
     expect(profile.countryCode).toBe("BR");
-    // Chess.com has no flair concept — the field stays null for every account.
+    // Chess.com has no flair concept.
     expect(profile.flair).toBeNull();
   });
 
   it("does not mistake `location` for the country", async () => {
-    // The captured account declares BR and sits in Spain. Reading
-    // `location` would fly a Spanish flag over a Brazilian player.
+    // The account declares BR and sits in Spain, so reading `location`
+    // flies a Spanish flag over a Brazilian player.
     const profile = await fetchedChessCom(
       "yurimutti",
       respondWith({ ...CHESS_COM_REAL, country: undefined }),
@@ -117,8 +112,7 @@ describe("fetchChessComProfile", () => {
   });
 
   it("reports a 404 as a handle that does not exist, rather than throwing", async () => {
-    // A profile decorates a name; failing here would take the game down
-    // with it. Failed — not an empty answer — so cached identity stands;
+    // Failed rather than an empty answer, so cached identity stands, and
     // not-found, so connecting can refuse the handle.
     const result = await fetchChessComProfile("nobody", {
       fetch: respondWith(null, false),
@@ -158,8 +152,8 @@ describe("fetchLichessProfile", () => {
   });
 
   it("reads the flair off a real response, where it sits at the top level", async () => {
-    // Captured off DrNykterstein: `flair` is a sibling of `profile`, not
-    // inside it, and it is an asset id rather than an image URL.
+    // `flair` is a sibling of `profile`, and an asset id rather than an
+    // image URL.
     const profile = await fetchedLichess(
       "DrNykterstein",
       respondWith(LICHESS_REAL_FLAIRED),
@@ -176,7 +170,7 @@ describe("fetchLichessProfile", () => {
   });
 
   it("ignores a flag that is not a country code", async () => {
-    // Lichess also accepts region and custom flags like `_lichess`.
+    // Lichess accepts region and custom flags like `_lichess` too.
     const profile = await fetchedLichess(
       "someone",
       respondWith({ id: "someone", profile: { flag: "_lichess" } }),

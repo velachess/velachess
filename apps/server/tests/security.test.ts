@@ -1,11 +1,10 @@
 // @vitest-environment node
 /**
- * The edge every request crosses before a route sees it: secure headers,
- * a body ceiling, an origin check, and the per-user budgets.
+ * The edge every request crosses before a route sees it: secure headers, a
+ * body ceiling, an origin check, and the per-user budgets.
  *
- * All of it over the real harness app — the same middleware chain
- * production assembles, in the same order, because the order is most of
- * the security property.
+ * Over the real harness app, in the order production assembles it, because
+ * the order is most of the security property.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -26,16 +25,12 @@ afterAll(async () => {
   await harness.close();
 });
 
-/** A route that is cheap to call and cannot succeed — the limiter runs
- * before the handler, so a 404 past it is all these tests need. Callers
- * that care about the budget reuse one id; callers that don't, don't. */
+/** The limiter runs before the handler, so a 404 past it is all these
+ * tests need. Callers that care about the budget reuse one id. */
 const sync = (accountId: string = randomUUID()) => `/accounts/${accountId}/sync`;
 
-// The store is real Redis, not PGlite: unlike the Postgres limiter this
-// replaced, there is no embedded fallback, so these specific assertions
-// need `REDIS_URL` set — CI's Redis job runs them; a local `pnpm test`
-// without Redis running skips just this block (the store fails open, so
-// the rest of the suite is unaffected either way, see harness.ts).
+// The store has no embedded fallback, so these assertions need `REDIS_URL`.
+// Without it the store fails open and only this block skips (harness.ts).
 describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
   it("refuses past the policy's budget, and says when to come back", async () => {
     const limited = await harness.signUp("throttled@velachess.local");
@@ -54,33 +49,30 @@ describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
     expect(refused.status).toBe(429);
     if (refused.status !== 429) throw new Error("unreachable");
 
-    // The wait lives in the body as well as the header, because the SPA's
-    // client can only read the body of a rejection — same contract as the
-    // sync cooldown. Never 0: a client told to wait zero seconds retries
-    // immediately, which is the behaviour the refusal exists to prevent.
+    // In the body as well as the header, because the SPA's client can only
+    // read the body of a rejection. Never 0, which a client retries
+    // immediately.
     const body = await refused.json();
     expect(body.error).toBe("too many requests");
     expect(body.retryAfterSeconds).toBeGreaterThan(0);
     expect(body.retryAfterSeconds).toBeLessThanOrEqual(POLICIES.import.windowSeconds);
 
-    // And the header says the same number — two answers that disagree
-    // would teach clients to trust neither.
+    // The header says the same number: two that disagree teach clients to
+    // trust neither.
     expect(Number(refused.headers.get("retry-after"))).toBe(body.retryAfterSeconds);
   });
 
   it("is one budget per user, not one for the API", async () => {
-    // The previous user is over the import limit. A different session is
-    // unaffected: the key is the userId the session proved, so nobody can
-    // throttle anybody else.
+    // The previous user is over the import limit, and the key is the userId
+    // the session proved, so nobody can throttle anybody else.
     const other = await harness.signUp("unthrottled@velachess.local");
     const response = await other.app.request(sync(), { method: "POST" });
     expect(response.status).not.toBe(429);
   });
 
   it("holds across processes, because it lives in Redis", async () => {
-    // A second app over the same Redis stands in for a second API
-    // instance behind the load balancer. An in-memory counter would give
-    // this user a fresh budget here; a shared one does not.
+    // A second app over the same Redis stands in for a second API instance.
+    // An in-memory counter would hand this user a fresh budget.
     const second = createApp(harness.deps);
     const spender = await harness.signUp("shared@velachess.local");
     const accountId = randomUUID();
@@ -97,9 +89,8 @@ describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
   });
 
   it("budgets separately per account, so tracking several does not throttle the first", async () => {
-    // Keyed by (userId, accountId) — see server.ts's mount of
-    // POLICIES.import. A user syncing six accounts must get six full
-    // budgets, not one shared across all of them.
+    // Keyed by (userId, accountId), so a user syncing six accounts gets six
+    // budgets.
     const owner = await harness.signUp("multi-account@velachess.local");
     const first = randomUUID();
 
@@ -114,8 +105,8 @@ describe.skipIf(!process.env["REDIS_URL"])("rate limiting", () => {
   });
 
   it("leaves the health probes alone", async () => {
-    // /health/* sits above the gate and outside every policy on purpose: a
-    // probe that can be throttled is a probe that lies during an incident.
+    // Above the gate and outside every policy: a throttled probe lies
+    // during an incident.
     for (let i = 0; i < POLICIES.import.max + 5; i++) {
       for (const path of ["/health/live", "/health/ready"]) {
         const response = await harness.app.request(path);
@@ -147,9 +138,8 @@ describe("the request edge", () => {
   });
 
   it("rejects a cross-site form post carrying the session cookie", async () => {
-    // The shape of a real CSRF attempt: a form on another origin, posting
-    // with the browser's cookies attached. It is refused before the
-    // session is even looked up.
+    // A form on another origin posting with the browser's cookies, refused
+    // before the session is looked up.
     const response = await harness.app.request("/games/import", {
       method: "POST",
       headers: {
@@ -160,13 +150,12 @@ describe("the request edge", () => {
       body: "pgn=Stolen&playerName=looper",
     });
     expect(response.status).toBe(403);
-    // Never `{ error: "" }` — hono's csrf throws without a message.
+    // Never `{ error: "" }`: hono's csrf throws without a message.
     expect(await response.json()).toEqual({ error: "request rejected" });
   });
 
   it("rejects a cross-site request that declares no content type", async () => {
-    // A missing Content-Type is form-postable too, so it is checked the
-    // same way rather than waved through.
+    // A missing Content-Type is form-postable too.
     const response = await harness.app.request("/games/import", {
       method: "POST",
       headers: { origin: "https://evil.example", cookie: user.cookie },
@@ -188,7 +177,6 @@ describe("the request edge", () => {
       });
       expect(response.headers.get("x-content-type-options"), path).toBe("nosniff");
       expect(response.headers.get("referrer-policy"), path).toBeTruthy();
-      // No API answer should ever be framed.
       expect(response.headers.get("x-frame-options"), path).toBeTruthy();
     }
   });
@@ -205,8 +193,8 @@ describe("CORS", () => {
       },
     });
     expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
-    // Without this the browser drops the session cookie on a cross-origin
-    // request, and the deployment fails in a way that looks like "logged out".
+    // Without it the browser drops the session cookie cross-origin, and the
+    // deployment fails as "logged out".
     expect(response.headers.get("access-control-allow-credentials")).toBe("true");
     expect(response.headers.get("access-control-allow-headers")).toContain(
       "Content-Type",
@@ -218,8 +206,8 @@ describe("CORS", () => {
       method: "OPTIONS",
       headers: { origin: "https://evil.example", "access-control-request-method": "GET" },
     });
-    // Hono answers the preflight either way; what matters is that it never
-    // echoes an origin it was not told to trust, so the browser refuses.
+    // Hono answers the preflight either way; it must not echo an origin it
+    // was not told to trust.
     expect(response.headers.get("access-control-allow-origin")).not.toBe(
       "https://evil.example",
     );
@@ -235,20 +223,19 @@ describe("CORS", () => {
 
 describe("what sits above the session gate", () => {
   it("is exactly health, the spec, and Better Auth", async () => {
-    // Anything else answering without a cookie would be a route mounted
-    // above the gate by accident — the failure this test exists to catch.
+    // Anything else answering without a cookie is a route mounted above the
+    // gate by accident.
     for (const path of ["/health/live", "/health/ready", "/config", "/openapi.json"]) {
       const response = await harness.app.request(path);
       expect(response.status, path).toBe(200);
     }
 
-    // /config is public on purpose, so what it carries matters: capability
-    // flags, and nothing that could identify a person or a credential.
+    // Public, so it carries capability flags and nothing identifying.
     const config = await (await harness.app.request("/config")).json();
     expect(config).toEqual({ signInMethods: { password: true, google: false } });
 
-    // Auth answers without a session (that is what signing in is), but it
-    // is Better Auth answering, not one of our routes.
+    // Auth answers without a session, but that is Better Auth, not one of
+    // our routes.
     const session = await harness.app.request("/auth/get-session");
     expect(session.status).toBe(200);
     expect(await session.json()).toBeNull();

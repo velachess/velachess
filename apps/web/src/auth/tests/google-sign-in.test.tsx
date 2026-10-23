@@ -12,20 +12,18 @@ import {
 } from "../../test/handlers/auth.ts";
 
 /**
- * Signing in with Google, from the screen's side of the flow.
- *
- * The redirect itself is not testable here and should not be faked: jsdom
- * does not navigate, and a stubbed `location.assign` would prove only that
- * the stub was called. What the screen genuinely owns is everything around
- * the redirect — whether the button exists at all, what it asks the server
+ * The redirect itself is not testable and not faked: jsdom does not
+ * navigate, and a stubbed `location.assign` proves only that the stub was
+ * called. What the screen owns is everything around the redirect — whether
+ * the button exists at all, what it asks the server
  * for, and what the person sees when they come back without a session.
  */
 
 describe("the Google button", () => {
   it("is absent on an instance with no Google credentials", async () => {
     sessionInactive();
-    // The default: `GET /config` reports google: false, as a self-host
-    // without credentials does.
+    // `GET /config` reports google: false, as a self-host without
+    // credentials does.
     await renderApp({ path: "/login" });
 
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
@@ -46,7 +44,6 @@ describe("the Google button", () => {
     expect(
       await screen.findByRole("button", { name: "Continue with Google" }),
     ).toBeInTheDocument();
-    // Both methods, not one replacing the other.
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 
@@ -56,13 +53,13 @@ describe("the Google button", () => {
 
     await renderApp({ path: "/login" });
 
-    // The provider button creates the account on first use (implicit
-    // sign-up), so the copy stays neutral for both entry cases…
+    // The provider button creates the account on first use, so the copy
+    // stays neutral for both entry cases.
     expect(await screen.findByText("Continue to VelaChess")).toBeInTheDocument();
     expect(
       screen.getByText("Continue with Google or sign in with your account credentials."),
     ).toBeInTheDocument();
-    // …and never promises an email registration that does not exist.
+    // Never promises an email registration that does not exist.
     expect(screen.queryByText(/sign up|create account/i)).not.toBeInTheDocument();
   });
 
@@ -94,13 +91,13 @@ describe("the Google button", () => {
     await user.click(await screen.findByRole("button", { name: "Continue with Google" }));
 
     await waitFor(() => expect(body).toBeDefined());
-    // The provider, and where the person was headed — nothing else. No
-    // client id, no scopes, no state: those are the server's, and a
-    // client secret that reached this request would be a leak.
+    // The provider and the destination, nothing else: client id, scopes and
+    // state are the server's, and a secret reaching this request is a
+    // leak.
     expect(body).toMatchObject({ provider: "google", callbackURL: "/games" });
     expect(JSON.stringify(body)).not.toContain("secret");
-    // The failure leg keeps the destination too: cancelling consent must
-    // not cost the person where they were going.
+    // The failure leg keeps the destination: cancelling consent must not
+    // cost the person where they were going.
     expect(body).toMatchObject({
       errorCallbackURL: "/login?redirect=%2Fgames",
     });
@@ -121,7 +118,6 @@ describe("the Google button", () => {
     const { user } = await renderApp({ path: "/login" });
     await user.click(await screen.findByRole("button", { name: "Continue with Google" }));
 
-    // No `redirect` in the URL means the app's front door.
     await waitFor(() => expect(body).toMatchObject({ callbackURL: "/" }));
   });
 });
@@ -131,7 +127,7 @@ describe("coming back from Google without a session", () => {
     sessionInactive();
     signInMethodsAre({ google: true });
 
-    // `access_denied` is OAuth's own code for "the person said no".
+    // OAuth's own code for "the person said no".
     await renderApp({ path: "/login?error=access_denied" });
 
     expect(await screen.findByText("Google sign-in was cancelled.")).toBeInTheDocument();
@@ -141,9 +137,8 @@ describe("coming back from Google without a session", () => {
     sessionInactive();
     signInMethodsAre({ google: true });
 
-    // account_not_linked is Better Auth's code for an existing password
-    // account at that email — retrying Google never helps, so it must not
-    // get the generic "didn't complete, try again" copy.
+    // Better Auth's code for an existing password account at that email,
+    // where retrying Google never helps.
     await renderApp({ path: "/login?error=account_not_linked" });
 
     expect(

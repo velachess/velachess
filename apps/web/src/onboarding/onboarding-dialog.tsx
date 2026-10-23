@@ -28,13 +28,10 @@ const DIALOG_COPY = {
 } as const;
 
 /**
- * The tour, ending in the import that lets the app open.
- *
- * There is no way out: nothing opened it, no close button ends it, the
- * backdrop is inert and Escape does nothing. That is the point — the
- * screens behind it are empty until this finishes, and dismissing it
- * would only hide that. It disappears when the games arrive, because the
- * condition that mounts it stops being true.
+ * There is no way out: no close button, an inert backdrop and a swallowed
+ * Escape, because the screens behind it are empty until this finishes. It
+ * disappears when the games arrive, the condition that mounts it stopping
+ * being true.
  */
 export function OnboardingDialog({ syncing }: { syncing: boolean }) {
   const { i18n } = useLingui();
@@ -50,15 +47,11 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
         showCloseButton={false}
         className="sm:max-w-xl"
         onKeyDown={(event) => {
-          // Base UI closes on Escape by default. Nothing here is
-          // dismissible, so the key is swallowed rather than left to
-          // half-work.
+          // Base UI closes on Escape by default, and nothing here is
+          // dismissible.
           if (event.key === "Escape") event.preventDefault();
         }}
       >
-        {/* Three views, exclusive by construction: syncing wins, then a
-            tour step if there is one, and the import when the steps run
-            out. Each condition says which of the three it is. */}
         {syncing && <SyncingSlide />}
 
         {!syncing && current !== undefined && (
@@ -94,10 +87,8 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
                 <span
                   key={entry.id}
                   // Both states are the brand hue: `bg-muted` is a surface
-                  // token, so an inactive dot drawn with it sat a shade off
-                  // the dialog it sits on and read as switched off in both
-                  // themes. A tint of the same accent stays visible on
-                  // either background.
+                  // token, and an inactive dot drawn with it read as
+                  // switched off in both themes.
                   className={cn(
                     "size-2 rounded-full transition-colors",
                     index === step ? "bg-primary" : "bg-primary/30",
@@ -134,7 +125,7 @@ export function OnboardingDialog({ syncing }: { syncing: boolean }) {
   );
 }
 
-/** A pass is on its way; asking for another handle would be noise. */
+/** A pass is on its way, so asking for another handle would be noise. */
 function SyncingSlide() {
   const { i18n } = useLingui();
 

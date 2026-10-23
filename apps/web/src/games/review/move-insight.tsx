@@ -45,8 +45,8 @@ const EXPLANATIONS: Record<MoveCategory, MessageDescriptor> = {
   blunder: msg`It changes who is winning.`,
 };
 
-/** The badge's own vocabulary, which is not NAG: it stands for the
- * verdict rather than annotating the move, so every category has one. */
+/** Not NAG: it stands for the verdict rather than annotating the move, so
+ * every category has one. */
 const BADGE: Record<MoveCategory, { glyph: string; tone: string }> = {
   best: { glyph: "!", tone: "bg-move-ok" },
   good: { glyph: "✓", tone: "bg-move-ok" },
@@ -57,16 +57,14 @@ const BADGE: Record<MoveCategory, { glyph: string; tone: string }> = {
 
 export interface MoveInsightProps {
   move: ReplayedMove | undefined;
-  /** The engine's read of it, absent until the analysis reaches this ply. */
+  /** Absent until the analysis reaches this ply. */
   graded: GradedPly | undefined;
-  /**
-   * Show the engine's move on the board. Absent leaves the suggestion as
-   * text — a screen that cannot act on it should not offer a button.
-   */
-  onShowBest?: ((san: string) => void) | undefined;
+  /** Absent leaves the suggestion as text: a screen that cannot act on it
+   * should not offer a button. */
+  onRevealBestMove?: (() => void) | undefined;
 }
 
-export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
+export function MoveInsight({ move, graded, onRevealBestMove }: MoveInsightProps) {
   const { i18n } = useLingui();
 
   if (!move) {
@@ -129,7 +127,7 @@ export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
               {formatScore(graded.evalAfter)}
             </dd>
           </div>
-          <BestMove played={move.san} best={best} onShowBest={onShowBest} />
+          <BestMove played={move.san} best={best} onReveal={onRevealBestMove} />
         </dl>
       </ItemContent>
 
@@ -143,11 +141,11 @@ export function MoveInsight({ move, graded, onShowBest }: MoveInsightProps) {
 function BestMove({
   played,
   best,
-  onShowBest,
+  onReveal,
 }: {
   played: string;
   best: string | null;
-  onShowBest: ((san: string) => void) | undefined;
+  onReveal: (() => void) | undefined;
 }) {
   const { i18n } = useLingui();
 
@@ -157,7 +155,7 @@ function BestMove({
     <div className="flex items-center gap-1.5">
       <dt className="text-muted-foreground">{i18n._(INSIGHT_COPY.bestWas)}</dt>
       <dd className="font-medium">
-        <BestMoveValue best={best} onShowBest={onShowBest} />
+        <BestMoveValue best={best} onReveal={onReveal} />
       </dd>
     </div>
   );
@@ -165,14 +163,14 @@ function BestMove({
 
 function BestMoveValue({
   best,
-  onShowBest,
+  onReveal,
 }: {
   best: string;
-  onShowBest: ((san: string) => void) | undefined;
+  onReveal: (() => void) | undefined;
 }) {
   const { i18n } = useLingui();
 
-  if (!onShowBest) return best;
+  if (!onReveal) return best;
 
   return (
     <Button
@@ -180,7 +178,7 @@ function BestMoveValue({
       size="sm"
       className="text-primary h-auto p-0 font-semibold underline underline-offset-2"
       aria-label={i18n._(INSIGHT_COPY.showBest)}
-      onClick={() => onShowBest(best)}
+      onClick={onReveal}
     >
       {best}
     </Button>
@@ -188,8 +186,8 @@ function BestMoveValue({
 }
 
 /**
- * Redundant on purpose: colour at a glance, symbol without colour
- * vision, sentence for a screen reader — so the badge hides from one.
+ * Redundant on purpose: colour at a glance, symbol without colour vision,
+ * sentence for a screen reader, which is why the badge hides from one.
  */
 function GradeBadge({ category }: { category: MoveCategory }) {
   return (

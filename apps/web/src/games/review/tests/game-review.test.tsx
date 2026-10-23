@@ -1,5 +1,4 @@
 import { fireEvent, screen, within } from "@testing-library/react";
-import { call, suspend, type Operation } from "effection";
 import {
   afterAll,
   afterEach,
@@ -15,61 +14,52 @@ import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/arch
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
-import { resetAnalysisForTests } from "../../analysis/start-analysis.ts";
-import type { GradedPly } from "../../analysis/index.ts";
+import {
+  ANALYSIS_EVENT,
+  type AnalysisEvent,
+  type GradedPly,
+  type PositionSearch,
+} from "../../analysis/index.ts";
 import type { Game } from "../../list/index.ts";
 
 /**
- * The screen through the route, over HTTP for the game itself; the engine
- * is mocked at `analyzeGameInBrowser` — the same seam `start-analysis.ts`
- * runs — rather than at the Worker/UCI level, which `libs/infra/engine`
- * and `analyze-game-in-browser.test.ts` already cover.
+ * The screen through the route, with the engine mocked at
+ * `analyzeGameInBrowser` rather than at the Worker, which
+ * `libs/infra/engine` and `analysis/tests/` cover.
  */
 
-vi.mock("../../analysis/analyze-game-in-browser.ts", () => ({
+vi.mock("../../analysis/game/analyze.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
-const { analyzeGameInBrowser } =
-  await import("../../analysis/analyze-game-in-browser.ts");
+const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-// Partial: the screen uses `startAnalysis` and `useEngineAnalysis` from the
-// same module, and only the interactive evaluator is stubbed.
+// Partial: the screen reaches the whole-game pass through this module too,
+// so only the interactive evaluator is stubbed.
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
-  openPositionEvaluator: vi.fn(),
+  createStockfishEvaluator: vi.fn(),
 }));
-const { openPositionEvaluator } = await import("../../analysis/index.ts");
+const { createStockfishEvaluator } = await import("../../analysis/index.ts");
 
-/**
- * The staged run: every ply graded, with one blunder at Nc6 (ply 4).
- * Its `bestMove` has to be legal in the position that ply is about —
- * the insight card reads the FEN from the replay, and would render no
- * suggestion for a move that cannot be played there.
- */
+/** One blunder at Nc6 (ply 4), whose `bestMove` has to be legal there or
+ * the insight card renders no suggestion. */
 const gradedPlies = () =>
   Array.from({ length: GAME_SANS.length }, (_, index) =>
     aGradedPly(index + 1, index === 3 ? { category: "blunder", bestMove: "g7g6" } : {}),
   );
 
-/** Matches a move button by its SAN and the NAG glyph the grade adds. */
 const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
 const findBlunderButton = () => screen.findByRole("button", { name: blunderButton });
 
-/**
- * Publishes exactly these plies, as `analyzeGameInBrowser` would.
- * `finished: false` never returns — standing in for "the engine hasn't
- * finished the rest of the game yet" — and nothing has to be flushed
- * afterwards, because opening another game halts it.
- */
+/** `finished: false` never ends: the engine has not reached the rest of the
+ * game. */
 function plyPass(moves: GradedPly[], { finished = true }: { finished?: boolean } = {}) {
-  return function* (
-    _input: unknown,
-    publish: (plies: readonly GradedPly[]) => void,
-  ): Operation<void> {
-    for (const move of moves) publish([move]);
-    if (!finished) yield* suspend();
+  return async function* (): AsyncGenerator<AnalysisEvent> {
+    for (const grade of moves) yield { type: ANALYSIS_EVENT.PLY_GRADED, grade };
+    if (!finished) await new Promise<never>(() => {});
+    yield { type: ANALYSIS_EVENT.COMPLETED, graded: moves };
   };
 }
 
@@ -78,11 +68,11 @@ function stageAnalysis(moves: GradedPly[]): void {
 }
 
 function stageFailedAnalysis(): void {
-  vi.mocked(analyzeGameInBrowser).mockImplementation(() =>
-    call((): never => {
-      throw new Error("engine failed");
-    }),
-  );
+  // Throws before the pass has a stream to hand back, the shape an
+  // unusable browser fails in.
+  vi.mocked(analyzeGameInBrowser).mockImplementation(() => {
+    throw new Error("engine failed");
+  });
 }
 
 const openGame = async (
@@ -101,20 +91,13 @@ describe("game analysis", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
   it("analyses the game on opening it", async () => {
     const { user } = await openGame(gradedPlies());
 
-    // The blunder carries its glyph on the move itself, in the list the
-    // Move tab owns…
     expect(await findBlunderButton()).toBeInTheDocument();
 
-    // …and the report tallies it per player: one blunder, and it was
-    // Black's (ply 4 is Black's second move).
     await user.click(screen.getByRole("tab", { name: "Report" }));
 
     const row = (await screen.findByText("Blunder", {}, { timeout: 15_000 })).closest(
@@ -131,28 +114,17 @@ describe("game analysis", () => {
     await screen.findByText("Blunder", {}, { timeout: 15_000 });
     expect(screen.queryByRole("button", { name: blunderButton })).toBeNull();
 
-    // And it comes back with the tab, rather than being gone for good.
     await user.click(screen.getByRole("tab", { name: "Move" }));
     expect(await findBlunderButton()).toBeInTheDocument();
   }, 50_000);
-
-  // Not re-running the engine for an already-analyzed game is
-  // `staleTime: Infinity` on a React-Query-cached query — standard cache
-  // behavior, not custom logic — and isn't independently checked here:
-  // `renderApp` hands every call a fresh `QueryClient`, so two calls in
-  // one test can't observe cache reuse the way reopening a game in the
-  // same running app would.
 
   it("steps through the game", async () => {
     const { user } = await openGame(gradedPlies());
 
     const previous = await screen.findByRole("button", { name: "Previous move" });
     const next = screen.getByRole("button", { name: "Next move" });
-    // The move number lives in the row's `#` column now, so a move cell is
-    // found by its SAN alone.
     const firstMove = screen.getByRole("button", { name: /e4/ });
 
-    // Before the first move there is nothing to go back to.
     expect(previous).toBeDisabled();
 
     await user.click(next);
@@ -161,7 +133,6 @@ describe("game analysis", () => {
     await user.click(previous);
     expect(firstMove).toHaveAttribute("aria-pressed", "false");
 
-    // Jumping straight to a move works too — the list is navigation.
     await user.click(screen.getByRole("button", { name: /Qh5/ }));
     expect(screen.getByRole("button", { name: /Qh5/ })).toHaveAttribute(
       "aria-pressed",
@@ -170,31 +141,24 @@ describe("game analysis", () => {
   });
 
   it("moves the board with the move list", async () => {
-    // The board is the thing on this screen, and until now nothing
-    // asserted it. It could not be asserted: the squares are a grid of
-    // unnamed divs, so a person using a screen reader also heard nothing
-    // when they stepped. Both gaps were the same gap, and the live region
-    // that fixed one is what makes this readable.
+    // The squares are unnamed divs, so the live region is what makes the
+    // board readable.
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
 
-    // Scoped to the board: the insight card names the same move, and the
-    // question here is what the *board* is showing.
     const board = screen.getByRole("region", { name: "Board" });
     expect(within(board).getByText("Starting position")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Next move" }));
     expect(within(board).getByText("1. e4")).toBeInTheDocument();
 
-    // And jumping, not only stepping — the list is navigation.
     await user.click(screen.getByRole("button", { name: blunderButton }));
     expect(within(board).getByText("2… Nc6")).toBeInTheDocument();
   }, 30_000);
 
   it("shows the board from the seat you played", async () => {
-    // A game you played as Black is read from Black's side, and the
-    // opponent sits on top. Getting this backwards makes every position
-    // on the screen wrong in a way that looks deliberate.
+    // Backwards here makes every position wrong in a way that looks
+    // deliberate.
     const game = aGame({ perspective: "black", whiteName: "magnus", blackName: ME });
     addGames(game);
     stageAnalysis(gradedPlies());
@@ -215,8 +179,6 @@ describe("game analysis", () => {
       "href",
       "/games",
     );
-    // The date is left loose here: its exact rendering is pinned, at a
-    // timezone-safe hour, in the breadcrumb tests below.
     expect(within(nav).getAllByRole("link").at(-1)?.textContent).toMatch(
       /^gothamchess vs you · .+ · Chess\.com · 1-0$/,
     );
@@ -226,8 +188,6 @@ describe("game analysis", () => {
   }, 30_000);
 
   it("shows a contextual message when the game itself cannot be loaded", async () => {
-    // A hand-typed or stale id. The screen must not sit on a spinner
-    // forever, and must not blame the analysis for the game's absence.
     await renderApp({ path: "/games/does-not-exist" });
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
@@ -238,22 +198,18 @@ describe("game analysis", () => {
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
 
-    // At the start there is no move to explain, and the card says so
-    // rather than going blank.
     expect(screen.getByText("The starting position.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: blunderButton }));
 
-    // The verdict, the evaluation, and what should have been played —
-    // and the best move reads as SAN, not as the UCI the engine sent.
     expect(await screen.findByText("is a blunder")).toBeInTheDocument();
     expect(screen.getByText("Evaluation")).toBeInTheDocument();
     expect(screen.getByText("Best was")).toBeInTheDocument();
   }, 30_000);
 
   it("offers no suggestion when the report names no best move", async () => {
-    // A report written before `bestMove` became nullable stores "" for
-    // absent, and reports already in IndexedDB are still read back.
+    // Reports written before `bestMove` became nullable store "" and are
+    // still read back from IndexedDB.
     const moves = gradedPlies();
     moves[3] = aGradedPly(4, { category: "blunder", bestMove: "" });
     const { user } = await openGame(moves);
@@ -267,21 +223,16 @@ describe("game analysis", () => {
   it("says how the game ended", async () => {
     await openGame(gradedPlies());
 
-    // The platform's own wording is appended, not translated.
     expect(
       await screen.findByText("White · Victory · by resignation"),
     ).toBeInTheDocument();
   });
 
   it("shows the moves even while the engine is still working", async () => {
-    // An empty run: it opens and closes with nothing graded, so this
-    // pins that the board and move list never wait on the engine.
     const { user } = await openGame([]);
 
     expect(await screen.findByRole("button", { name: /Qxf7#/ })).toBeInTheDocument();
 
-    // The report counts from zero rather than standing in for itself —
-    // a placeholder swapped for the table later moves every row.
     await user.click(screen.getByRole("tab", { name: "Report" }));
     const row = (await screen.findByText("Blunder")).closest("div");
     expect(row).toHaveTextContent(/0.*Blunder.*0/);
@@ -290,8 +241,6 @@ describe("game analysis", () => {
   it("keeps progress up while the rest of the game is still being graded", async () => {
     const moves = gradedPlies();
     moves[0] = aGradedPly(1, { category: "blunder" });
-    // The rest of the game doesn't arrive within this test — the run is
-    // demonstrably still in progress, not finished short.
     vi.mocked(analyzeGameInBrowser).mockImplementation(
       plyPass([moves[0]!], { finished: false }),
     );
@@ -299,21 +248,16 @@ describe("game analysis", () => {
     addGames(game);
     await renderApp({ path: `/games/${game.id}` });
 
-    // One move graded, the run demonstrably unfinished — and the status
-    // says exactly where it is rather than only that it is working.
     await screen.findByRole("button", {
       name: (c) => c.includes("e4") && c.includes("??"),
     });
     expect(screen.getByText("Analyzing move 1 of 7…")).toBeInTheDocument();
-    // 1 of 7, as a whole percent — the bar moves with the count, it is
-    // not just spinning.
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "14");
   }, 20_000);
 
   it("reads a game that starts from a position, with Black to play", async () => {
-    // A PGN import can carry [SetUp]/[FEN], so ply 1 is not always
-    // White's: counting half-moves would credit every grade to the wrong
-    // player and number every move one too low.
+    // With [SetUp]/[FEN], ply 1 is not always White's, so counting
+    // half-moves credits every grade to the wrong player.
     const game = aGame({ whiteName: "white_player", blackName: "black_player" });
     addGames(game);
     stageMovetext(
@@ -332,19 +276,15 @@ describe("game analysis", () => {
     ]);
     const { user } = await renderApp({ path: `/games/${game.id}` });
 
-    // The scoresheet opens at move 2, with nothing in White's column.
     const nc6 = await screen.findByRole("button", {
       name: (c) => c.includes("Nc6") && c.includes("??"),
     });
     expect(nc6).toBeInTheDocument();
     expect(screen.getByText("2.")).toBeInTheDocument();
 
-    // The insight and the board's live region both name it as Black's
-    // move of move 2, not White's of move 1.
     await user.click(nc6);
     expect(await screen.findAllByText(/2… Nc6/)).not.toHaveLength(0);
 
-    // And the blunder is Black's, which is who actually played it.
     await user.click(screen.getByRole("tab", { name: "Report" }));
     const row = (await screen.findByText("Blunder")).closest("div");
     expect(row).toHaveTextContent(/0.*Blunder.*1/);
@@ -360,13 +300,8 @@ describe("game analysis", () => {
   });
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
-    // Cancellation itself belongs to the pass (see
-    // `start-analysis.test.ts` and `analyze-game-in-browser.test.ts`);
-    // here the concern is purely the screen's: a stale run's partial
-    // result must never render as if it belonged to whatever game is
-    // open now. The first game's pass never grades anything and never
-    // ends on its own — opening the second game is what has to displace
-    // it, rather than the screen waiting behind it.
+    // A run still going must not render as the open game's. The first pass
+    // never ends.
     const first = aGame();
     addGames(first);
     vi.mocked(analyzeGameInBrowser).mockImplementation(plyPass([], { finished: false }));
@@ -382,34 +317,21 @@ describe("game analysis", () => {
   }, 30_000);
 });
 
-/**
- * The last crumb names the game being read: who you played, when, where,
- * and how it ended. Each case reads the text off the trail the way a
- * person would, so a rule that drifts in the screen fails by name.
- *
- * Dates sit at midday UTC so the calendar day holds in any timezone a
- * developer's machine happens to be set to.
- */
+/** Dates sit at midday UTC, so the calendar day holds in any timezone. */
 describe("game breadcrumb", () => {
   const PLAYED_AT = "2026-08-22T12:00:00.000Z";
 
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
-  /** Renders the game and hands back its last crumb: the page's own name, not the trail leading to it. */
   const openCrumb = async (overrides: Partial<Game>) => {
     const game = aGame({ playedAt: PLAYED_AT, ...overrides });
     addGames(game);
     stageAnalysis(gradedPlies());
     const rendered = await renderApp({ path: `/games/${game.id}` });
     const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
-    // The trail's last link: both it and "Games" are `aria-current`, so the
-    // page itself is told apart by coming last.
     return { crumb: within(nav).getAllByRole("link").at(-1)!, ...rendered };
   };
 
@@ -443,10 +365,8 @@ describe("game breadcrumb", () => {
   });
 
   it("gives each source its own mark", async () => {
-    // The mark is decorative — the name stands right beside it — so it has
-    // no accessible handle to find it by; its markup is the only evidence.
-    // A PGN file carries one too: the library table marks it, and the trail
-    // reads from the same catalogue rather than deciding again.
+    // Decorative, so it has no accessible handle and its markup is the
+    // evidence.
     const icons: (string | undefined)[] = [];
     for (const source of ["chess_com", "lichess", "pgn"] as const) {
       const { crumb, unmount } = await openCrumb({ source });
@@ -491,8 +411,8 @@ describe("game breadcrumb", () => {
   });
 
   it("does not call anyone you when your seat is unknown", async () => {
-    // A PGN that names you on neither side. The board falls back to white
-    // so it has somewhere to start; the trail would be stating a fact.
+    // Named on neither side: the board starts at white, the trail says
+    // neither name is yours.
     const { crumb } = await openCrumb({
       perspective: null,
       whiteName: "magnus",
@@ -504,11 +424,8 @@ describe("game breadcrumb", () => {
   });
 });
 
-/**
- * Provider identity reaches the board: the game detail payload carries
- * each seat's provider picture — both players, tracked account or not —
- * and a seat nobody could resolve stays on initials.
- */
+/** Each seat's provider picture, and initials for a seat nobody could
+ * resolve. */
 describe("provider identity on the board", () => {
   const MY_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/461825478.test.jpg";
   const MY_FLAIR = "people.santa-claus-light-skin-tone";
@@ -516,8 +433,7 @@ describe("provider identity on the board", () => {
 
   beforeAll(() => {
     // jsdom loads no resources, so base-ui's Avatar waits forever on a
-    // preload that never fires and mounts no <img>. A loaded picture is
-    // what a real browser reports; make jsdom say the same.
+    // preload that never fires. Make it say what a browser reports.
     vi.stubGlobal(
       "Image",
       class {
@@ -536,9 +452,6 @@ describe("provider identity on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    // The game-id fixture restarts at `game-1` every test, so a pass the
-    // store still holds under that id would answer for a different game.
-    resetAnalysisForTests();
   });
 
   it("shows each player's own picture beside their name", async () => {
@@ -549,14 +462,11 @@ describe("provider identity on the board", () => {
 
     const board = await screen.findByRole("region", { name: "Board" });
 
-    // White by default — my strip sits at the bottom of the board region.
     const mine = within(board).getByText(ME).closest("div")!;
     expect(
       [...mine.querySelectorAll("img")].map((image) => image.getAttribute("src")),
     ).toEqual([MY_AVATAR, `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`]);
 
-    // The opponent was never connected; their identity came from the
-    // profile cache all the same.
     const theirs = within(board).getByText("gothamchess").closest("div")!;
     const sources = [...theirs.querySelectorAll("img")].map((image) =>
       image.getAttribute("src"),
@@ -575,8 +485,7 @@ describe("provider identity on the board", () => {
   });
 
   it("hides the flair when its asset fails to load", async () => {
-    // An asset that 404s must not leave a broken-image glyph where the
-    // decoration stood.
+    // A 404 must not leave a broken-image glyph.
     await openGame(gradedPlies(), { white: { flair: MY_FLAIR } });
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -589,13 +498,6 @@ describe("provider identity on the board", () => {
   });
 });
 
-/**
- * Trying a move out on the board.
- *
- * The board is a third-party widget whose squares carry no accessible
- * name — its own ids are the only handle a click has, which is why this
- * is the one place in the suite that reaches for the DOM directly.
- */
 /** Pick the piece up, then click where it goes — the board's own click-to-move. */
 async function playOnBoard(
   user: Awaited<ReturnType<typeof openGame>>["user"],
@@ -612,22 +514,32 @@ async function playOnBoard(
 const evaluationReads = () =>
   screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuetext");
 
+/** One line of thinking, then the number the bar reads. */
+function scriptedSearch(evaluation: {
+  score: { cp: number };
+  bestMove: string;
+}): PositionSearch {
+  async function* search() {
+    yield { depth: 4, multipv: 1, score: evaluation.score, pv: [evaluation.bestMove] };
+    return evaluation;
+  }
+  return Object.assign(search(), { cancel: () => {} });
+}
+
 describe("a variation played on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
-    vi.mocked(openPositionEvaluator).mockReset();
-    vi.mocked(openPositionEvaluator).mockReturnValue({
-      evaluate: () => call(() => ({ score: { cp: -480 }, bestMove: "e7e5" })),
-      dispose: () => call(() => undefined),
+    vi.mocked(createStockfishEvaluator).mockReset();
+    vi.mocked(createStockfishEvaluator).mockReturnValue({
+      evaluate: () => scriptedSearch({ score: { cp: -480 }, bestMove: "e7e5" }),
+      dispose: async () => {},
     });
-    resetAnalysisForTests();
   });
 
   it("moves the bar to the variation's own evaluation", async () => {
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
-    // Nothing has been played, so the bar reads level.
     expect(evaluationReads()).toBe("0.0");
 
     await playOnBoard(user, "e2", "e4");
@@ -644,16 +556,20 @@ describe("a variation played on the board", () => {
     expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
   });
 
-  it("leaves the line on Previous, back onto the game", async () => {
+  it("leaves the line on the scoresheet, with the controls frozen until then", async () => {
     const { user } = await openGame(gradedPlies());
-    await findBlunderButton();
+    const blunder = await findBlunderButton();
 
     await playOnBoard(user, "e2", "e4");
-    await user.click(screen.getByRole("button", { name: "Previous move" }));
 
-    expect(screen.getByText("The starting position.")).toBeInTheDocument();
-    // Back to the report's own reading for the position on screen.
-    await vi.waitFor(() => expect(evaluationReads()).toBe("0.0"));
+    // Neither button steps while a line is on the board.
+    expect(screen.getByRole("button", { name: "Previous move" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
+
+    await user.click(blunder);
+
+    expect(screen.getByRole("button", { name: "Previous move" })).toBeEnabled();
+    await vi.waitFor(() => expect(evaluationReads()).toBe("0.1"));
   });
 
   it("stops explaining the real game's move, which is not what is on screen", async () => {

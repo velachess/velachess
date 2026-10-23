@@ -1,8 +1,7 @@
 // @vitest-environment node
 /**
- * Route behavior over the real harness. Seeding uses application services
- * directly where the worker would normally act — the worker's own suite
- * and the e2e cover that side.
+ * Route behavior over the real harness. Seeding calls the modules directly
+ * where the worker would normally act.
  */
 import { randomUUID } from "node:crypto";
 
@@ -28,8 +27,7 @@ const json = (body: unknown): RequestInit => ({
 
 beforeAll(async () => {
   harness = await createApiHarness();
-  // Every request below is made as this signed-in user — the suite goes
-  // through the same session gate production does, never around it.
+  // Every request below goes through the session gate as this user.
   owner = (await harness.signUp("owner@api.test")).app;
 });
 
@@ -37,8 +35,8 @@ afterAll(async () => {
   await harness.close();
 });
 
-/** A one-month chess.com archive of `count` distinct legal games: each bit of a
- * game's index picks which knight pair makes a there-and-back trip. */
+/** `count` distinct legal games: each bit of a game's index picks which
+ * knight pair makes a there-and-back trip. */
 function largeArchiveFetch(count: number): typeof fetch {
   const bits = Math.ceil(Math.log2(count));
   const games = Array.from({ length: count }, (_, game) => {
@@ -82,12 +80,10 @@ describe("api routes", () => {
     const account = await parseResponse(
       owner.api.accounts.$post({ json: { platform: "chess_com", username: "Looper" } }),
     );
-    // The stored handle is case-folded, not whatever casing the caller sent.
     expect(account.username).toBe(LOOPER_USERNAME);
     accountId = account.id;
     if (!account.syncId) throw new Error("expected a first sync on a fresh connect");
 
-    // Connecting schedules the first sync; the archive arrives in the background.
     const scheduled = await parseResponse(owner.api.accounts.$get());
     expect(scheduled.find((entry) => entry.id === accountId)).toMatchObject({
       syncStatus: "queued",
@@ -110,8 +106,7 @@ describe("api routes", () => {
   });
 
   it("empty state: a new user has no games", async () => {
-    // A brand-new user, because the owner's world is no longer empty —
-    // its first sync filled the archive.
+    // A new user, the owner's first sync having filled its archive.
     const nobody = (await harness.signUp("empty@api.test")).app;
     const library = await parseResponse(nobody.api.games.$get({ query: {} }));
     expect(library.games).toEqual([]);
@@ -122,8 +117,8 @@ describe("api routes", () => {
     expect((await owner.request("/games?page=0")).status).toBe(400);
     expect((await owner.request("/games?outcome=nope")).status).toBe(400);
 
-    // The library lists every game the caller owns — synced accounts and
-    // manual imports together — without needing to name either.
+    // Synced accounts and manual imports together, without naming
+    // either.
     const library = await parseResponse(owner.api.games.$get({ query: {} }));
     expect(library.games).toHaveLength(2);
     expect(library.total).toBe(2);
@@ -134,8 +129,8 @@ describe("api routes", () => {
   });
 
   it("refreshing right after an import is rate limited, with Retry-After", async () => {
-    // The import's sync ran a moment ago. Both platforms answer 429 to
-    // bursts, and a refresh button is exactly the control someone taps twice.
+    // The import's sync ran a moment ago, and both platforms answer 429 to
+    // bursts.
     const tooSoon = await owner.api.accounts[":id"].sync.$post({
       param: { id: accountId },
     });
@@ -152,10 +147,8 @@ describe("api routes", () => {
   });
 
   it("GET /games/:id answers exactly the documented fields, nothing the row carries", async () => {
-    // The handler used to spread the whole slice result and patch two
-    // timestamps onto it, so any field the read later gained would ship
-    // undocumented. It parses through the response schema now, which
-    // strips what the contract does not name.
+    // The handler parses through its response schema, which strips what the
+    // contract does not name, rather than spreading the slice result.
     const body = (await (await owner.request(`/games/${queuedGameId}`)).json()) as Record<
       string,
       unknown
@@ -203,8 +196,7 @@ describe("api routes", () => {
   });
 
   it("accounts: the first connection that sticks ends onboarding, once", async () => {
-    // Read back through the session, which is exactly how the app learns
-    // it: a stamp nobody can see is a stamp that does nothing.
+    // Read back through the session, which is how the app learns it.
     const fresh = (await harness.signUp("onboarding@api.test")).app;
     const session = async () =>
       (await (await fresh.request("/auth/get-session")).json()) as {
@@ -217,15 +209,14 @@ describe("api routes", () => {
     const stamped = (await session()).user.onboardedAt;
     expect(stamped).not.toBeNull();
 
-    // Reconnecting the same handle must not move it: it records when they
-    // arrived, not when they last connected.
+    // It records when they arrived, not when they last connected.
     await fresh.request("/accounts", json({ platform: "chess_com", username: "looper" }));
     expect((await session()).user.onboardedAt).toBe(stamped);
   });
 
   it("accounts: one per provider — a different handle on a connected platform is refused with 409", async () => {
-    // Its own user: the suite's shared `owner` already has a chess_com
-    // connection from the very first test, and this must not disturb it.
+    // Its own user: the shared `owner` already has a chess_com
+    // connection.
     const solo = (await harness.signUp("one-provider@api.test")).app;
 
     const first = await parseResponse(
@@ -243,12 +234,10 @@ describe("api routes", () => {
       accountId: first.id,
     });
 
-    // The existing connection answers the same, untouched.
     const listed = await parseResponse(solo.api.accounts.$get());
     expect(listed.map((a) => a.id)).toEqual([first.id]);
 
-    // The exact same handle, differently cased, stays a plain idempotent
-    // re-import — not a conflict.
+    // The same handle, differently cased, stays an idempotent re-import.
     const again = await parseResponse(
       solo.api.accounts.$post({ json: { platform: "chess_com", username: "LOOPER" } }),
     );
@@ -267,7 +256,6 @@ describe("api routes", () => {
     const gamesBefore = await parseResponse(solo.api.games.$get({ query: {} }));
     expect(gamesBefore.total).toBeGreaterThan(0);
 
-    // Not this caller's account: 404, same as a missing id.
     expect(
       (await other.api.accounts[":id"].$delete({ param: { id: account.id } })).status,
     ).toBe(404);
@@ -277,18 +265,15 @@ describe("api routes", () => {
     ).toBe(204);
     expect(await (await solo.request("/accounts")).json()).toEqual([]);
 
-    // The games it imported go with it — the library no longer shows a
-    // disconnected account's archive.
+    // The games it imported go with it.
     const gamesAfter = await parseResponse(solo.api.games.$get({ query: {} }));
     expect(gamesAfter.total).toBe(0);
 
-    // Deleting again is the same not-found, not an error.
     expect(
       (await solo.request(`/accounts/${account.id}`, { method: "DELETE" })).status,
     ).toBe(404);
 
-    // The slot is free: reconnecting, even under a different handle,
-    // succeeds again.
+    // The slot is free, even for a different handle.
     const reconnected = await solo.request(
       "/accounts",
       json({ platform: "chess_com", username: "a_new_handle" }),
@@ -298,7 +283,8 @@ describe("api routes", () => {
 });
 
 describe("large archives", () => {
-  // ~22 bind parameters per game: 3,000 games in one INSERT pass Postgres's 65,535 cap.
+  // ~22 bind parameters per game, so 3,000 in one INSERT pass Postgres's
+  // 65,535 cap.
   it("connecting a chess.com account with 3,000 games in one month saves them all", async () => {
     const large = await createApiHarness({ fetch: largeArchiveFetch(3_000) });
     try {
@@ -323,8 +309,7 @@ async function connected(app: AuthedApp, username: string) {
   return { ...account, syncId: account.syncId };
 }
 
-/** A fetch that answers only once `release` is called — a delivery held
- * mid-fetch, the same shape `apps/worker/tests/worker.test.ts` uses. */
+/** Answers only once `release` is called: a delivery held mid-fetch. */
 function heldFetch(answer: typeof fetch) {
   let release!: () => void;
   const released = new Promise<void>((resolve) => (release = resolve));
@@ -343,8 +328,8 @@ describe("sync jobs", () => {
     const { app } = await harness.signUp("sync-202@api.test");
     const account = await connected(app, LOOPER_USERNAME);
 
-    // The connect job is still queued: requesting again returns it, before
-    // any cooldown is considered — and nothing was fetched on the way.
+    // The connect job is still queued, so requesting again returns it
+    // before any cooldown is considered.
     const [first, second] = await Promise.all([
       app.api.accounts[":id"].sync.$post({ param: { id: account.id } }),
       app.api.accounts[":id"].sync.$post({ param: { id: account.id } }),
@@ -359,8 +344,7 @@ describe("sync jobs", () => {
     const { app } = await harness.signUp("sync-all-active@api.test");
     const account = await connected(app, LOOPER_USERNAME);
 
-    // The connect job is still queued: the aggregate route hands back the
-    // very same job, not a new one — one account, one id, not two.
+    // The aggregate route hands back the same job: one account, one id.
     const response = await app.api.accounts.sync.$post();
     expect(response.status).toBe(202);
     expect(await response.json()).toEqual({ syncIds: [account.syncId] });
@@ -371,8 +355,7 @@ describe("sync jobs", () => {
     const account = await connected(app, LOOPER_USERNAME);
     await harness.runSync(account.syncId);
 
-    // Settled a moment ago: within the cooldown, so there is nothing new
-    // to watch — and nothing to tell apart from having no accounts at all.
+    // Within the cooldown, so there is nothing new to watch.
     const response = await app.api.accounts.sync.$post();
     expect(response.status).toBe(202);
     expect(await response.json()).toEqual({ syncIds: [] });
@@ -387,9 +370,8 @@ describe("sync jobs", () => {
   });
 
   it("disconnecting mid-sync waits for it instead of deadlocking, and leaves no orphan games", async () => {
-    // Only the connect job's own delivery (below) is held; the connect
-    // step's own handle confirmation is a separate call and still answers
-    // immediately.
+    // Only the delivery below is held: the connect step's handle
+    // confirmation is a separate call.
     const { app } = await harness.signUp("disconnect-mid-sync@api.test");
     const account = await connected(app, LOOPER_USERNAME);
 
@@ -397,23 +379,22 @@ describe("sync jobs", () => {
     const syncing = harness.runSync(account.syncId, held.held);
     await held.fetching;
 
-    // The job is genuinely running (not just queued) by the time this
-    // lands — markSyncRunning stamps it before the fetch call.
+    // Running rather than queued by now: markSyncRunning stamps the row
+    // before the fetch.
     const deleted = await app.api.accounts[":id"].$delete({
       param: { id: account.id },
     });
     expect(deleted.status).toBe(204);
 
     held.release();
-    // Resolves rather than deadlocking: the held delivery finishes
-    // against a row that's already gone, as a no-op.
+    // The held delivery finishes against a row that is already gone.
     await syncing;
 
     expect(
       (await app.api.accounts[":id"].games.$get({ param: { id: account.id } })).status,
     ).toBe(404);
-    // The first sync's games went with the account too — not even an
-    // orphan with its account nulled.
+    // The first sync's games went with the account, not even as
+    // orphans.
     const library = await parseResponse(app.api.games.$get({ query: {} }));
     expect(library.total).toBe(0);
   });
@@ -458,8 +439,8 @@ describe("sync jobs", () => {
   it("a job whose delivery pg-boss already ended is closed and replaced", async () => {
     const { app } = await harness.signUp("sync-stale@api.test");
     const account = await connected(app, LOOPER_USERNAME);
-    // The delivery ends without the worker recording it — as when the last
-    // attempt times out.
+    // The delivery ends without the worker recording it, as a timed-out
+    // last attempt does.
     await harness.boss.cancel(QUEUES.sync, account.syncId);
 
     const replaced = await parseResponse(
@@ -495,7 +476,7 @@ describe("sync jobs", () => {
 });
 
 describe("connecting a handle", () => {
-  // Profiles answer per handle: one exists, one does not, one provider hiccups.
+  // One handle exists, one does not, one hiccups.
   const providerFetch = (async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("/pub/player/ghost")) return new Response("", { status: 404 });
@@ -530,7 +511,7 @@ describe("connecting a handle", () => {
     const broken = await createApiHarness();
     try {
       const { app } = await broken.signUp("connect-no-queue@api.test");
-      // The queue refuses every send: the account must not commit without it.
+      // With every send refused, the account must not commit.
       await broken.pglite.exec("drop schema pgboss cascade");
 
       const response = await app.request(

@@ -99,7 +99,8 @@ describe("EngineSession.search", () => {
     expect(engine.sent).toContain("position fen fen-a");
     expect(engine.sent).toContain("go depth 12");
     expect(updates.map((update) => update.multipv)).toEqual([1, 2]);
-    expect(outcome.bestMove).toEqual({ move: "e2e4", ponder: "e7e5" });
+    // The ponder suggestion is read past, not kept.
+    expect(outcome.bestMove).toEqual({ move: "e2e4" });
     // The outcome carries the last multipv-1 line, not the last line seen.
     expect(outcome.lastInfo?.score).toEqual({ cp: 31 });
   });

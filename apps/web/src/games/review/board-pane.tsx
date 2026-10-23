@@ -7,39 +7,36 @@ import {
   BoardColumn,
   BoardStatus,
 } from "@velachess/ui/chess/board-stage";
-import { EvalBar } from "@velachess/ui/chess/eval-bar";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { cn } from "@velachess/ui/lib/utils";
 
-import type { GradedPly } from "../analysis/index.ts";
+import { BoardEvaluation } from "./board-evaluation.tsx";
+import type { ReplayableGame } from "./game-record.ts";
 import type { PlayerSeat } from "./review-presentation.ts";
 import { useBoardReview } from "./use-board-review.ts";
 
 const BOARD_COPY = {
   /** A landmark's name is read aloud, so it is copy like any other. */
   region: msg`Board`,
-  evaluation: msg`Evaluation`,
 } as const;
 
 export interface BoardPaneProps {
-  /** Grades in ply order — shorter than the game while the run streams. */
-  graded: readonly GradedPly[];
+  game: ReplayableGame;
   orientation: "white" | "black";
   /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
 }
 
-/** The strips align with the board, so they take the board's width — the
- * shared one, which every board screen in the app is sized by. */
+/** The strips align with the board, so they take its shared width. */
 const BOARD_WIDTH = BOARD_STAGE_WIDTH;
 
-/** The strips sit beside the bar, so they start where the board starts. */
+/** Beside the bar, so a strip starts where the board starts. */
 const STRIP_INSET = "ps-6";
 
-export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) {
+export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
   const { i18n } = useLingui();
-  const board = useBoardReview(graded);
+  const board = useBoardReview(game);
 
   return (
     <BoardColumn label={i18n._(BOARD_COPY.region)}>
@@ -52,12 +49,7 @@ export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) 
       />
 
       <div className={cn("flex items-stretch gap-2", BOARD_WIDTH)}>
-        <EvalBar
-          whiteShare={board.evaluation.whiteShare}
-          label={board.evaluation.label}
-          description={i18n._(BOARD_COPY.evaluation)}
-          orientation={orientation}
-        />
+        <BoardEvaluation game={game} orientation={orientation} />
         {/* Width only — the square belongs to `Board`. */}
         <Board
           fen={board.fen}
@@ -69,7 +61,7 @@ export function BoardPane({ graded, orientation, top, bottom }: BoardPaneProps) 
           bestMove={board.bestMove}
           suggestedMove={board.suggestedMove}
           badges={board.badges}
-          onMove={({ from, to }) => (to ? board.playMove(from, to) : false)}
+          onMove={({ from, to }) => board.playMove(from, to)}
           legalTargetsOf={board.legalTargetsOf}
           className="max-w-none flex-1"
         />

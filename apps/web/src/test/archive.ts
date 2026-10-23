@@ -2,7 +2,8 @@ import type { Game } from "../games/list/index.ts";
 import { ME, resetGameIds } from "./games.ts";
 import { announceSync } from "./sync-stream.ts";
 
-/** One player's archive, in memory. Filters/pages for real — production's filtering rules aren't imported, so both sides check independently. */
+/** One player's archive, in memory. It filters and pages for real, without
+ * importing production's rules, so both sides check independently. */
 
 type Platform = "chess_com" | "lichess";
 
@@ -20,7 +21,8 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
   lastSyncedAt: "2026-05-04T18:30:00.000Z",
 };
 
-/** What the detail read reports for one seat's provider identity — the server resolves it from a shared per-handle cache, tracked or not. */
+/** One seat's provider identity, which the server resolves from a shared
+ * per-handle cache. */
 export interface SeatProfile {
   avatarUrl: string | null;
   flair: string | null;
@@ -32,11 +34,9 @@ interface ArchiveState {
   account: ArchiveAccount;
   games: Game[];
   incoming: Game[];
-  /** Set when the server should answer the next refresh with 429. */
+  /** Set when the next refresh should answer 429. */
   refusesRefreshFor: number | null;
-  /** Per game — what the detail read reports for each seat's identity. */
   identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
-  /** Per game — the movetext the detail read reports, when not the default. */
   movetext: Map<string, string>;
   syncs: Map<string, SyncJob>;
 }
@@ -77,24 +77,22 @@ export function addGames(...games: Game[]): void {
   state.games.push(...games);
 }
 
-/** Games a refresh will pull in. A second refresh finds nothing. */
+/** A second refresh finds nothing. */
 export function stageIncomingGames(...games: Game[]): void {
   state.incoming.push(...games);
 }
 
-/** Makes the next refresh answer 429, as the cooldown does. */
+/** As the cooldown does. */
 export function refuseRefreshFor(seconds: number): void {
   state.refusesRefreshFor = seconds;
 }
 
-/** The game a detail read finds, or undefined for a 404. */
+/** Undefined means the detail read answers 404. */
 export function gameById(id: string): Game | undefined {
   return state.games.find((game) => game.id === id);
 }
 
-/** The movetext GET /games/:id answers for one game, when the default
- * Scholar's mate is not the game under test — a PGN that starts from a
- * position, say. */
+/** For when the default Scholar's mate is not the game under test. */
 export function stageMovetext(gameId: string, rawPgn: string): void {
   state.movetext.set(gameId, rawPgn);
 }
@@ -103,7 +101,7 @@ export function movetextOf(gameId: string): string | undefined {
   return state.movetext.get(gameId);
 }
 
-/** What the provider cache holds for this game's two seats. Absent sides stay on initials. */
+/** An absent side stays on initials. */
 export function stageSeatIdentities(
   gameId: string,
   seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },
@@ -114,7 +112,7 @@ export function stageSeatIdentities(
   });
 }
 
-/** Shaped exactly as GET /games/:id reports it. */
+/** Shaped as GET /games/:id reports it. */
 export function seatIdentityFields(gameId: string): {
   whiteIdentity: SeatProfile;
   blackIdentity: SeatProfile;

@@ -15,9 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown-menu.tsx";
 
-/** `setTheme`, wrapped in the circular view-transition reveal anchored to
- * whatever visible element `anchorRef` points at. Falls back to an
- * unanimated update where View Transitions aren't supported. */
+/** `setTheme` wrapped in the circular reveal anchored to `anchorRef`,
+ * falling back to an unanimated update without View Transitions. */
 function useAnimatedSetTheme(anchorRef: RefObject<HTMLElement | null>) {
   const { setTheme } = useTheme();
 
@@ -58,10 +57,9 @@ function useAnimatedSetTheme(anchorRef: RefObject<HTMLElement | null>) {
   };
 }
 
-/** The System/Light/Dark options, with no trigger of their own — embed
- * inside any `DropdownMenuContent` or `DropdownMenuSubContent`. `anchorRef`
- * is whatever visible element the caller wants the reveal to spread from
- * (its own trigger, or a submenu trigger). */
+/** The options with no trigger of their own, for embedding in any
+ * `DropdownMenuContent`. `anchorRef` is the element the reveal spreads
+ * from. */
 export function ThemeRadioItems({
   labels,
   anchorRef,
@@ -93,8 +91,8 @@ export function ThemeRadioItems({
   );
 }
 
-/** Self-contained trigger + menu for anywhere that isn't already inside
- * another menu (a page header, not an account dropdown). */
+/** Trigger and menu together, for anywhere not already inside another
+ * menu. */
 export function ThemeToggle({
   labels,
 }: {

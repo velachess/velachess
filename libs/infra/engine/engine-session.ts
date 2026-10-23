@@ -1,11 +1,8 @@
 /**
- * Ties a Transport to the UCI protocol: handshake, position, go/stop. One
- * session owns one underlying process/worker for the lifetime of the scope
- * that opened it — the handshake happens before the session is handed out,
- * and leaving that scope sends `quit` and closes the transport.
- *
- * This file knows nothing about watchdogs, retries or recovering a dead
- * engine; that is `engine-evaluator.ts`.
+ * One session owns one process for the lifetime of the scope that opened
+ * it: the handshake happens before the session is handed out, and leaving
+ * that scope sends `quit` and closes the transport. Watchdogs and retries
+ * are `engine-evaluator.ts`'s.
  */
 
 import {
@@ -34,11 +31,11 @@ const DEFAULT_HANDSHAKE_TIMEOUT_MS = 10_000;
 export interface EngineSession {
   setOption(option: EngineOption): void;
   setPosition(fen: string, moves?: string[]): void;
-  /** Each `info` line as it arrives; the stream's return value is what the
-   * search settled on. Only one search may be in flight at a time. */
+  /** The stream's return value is what the search settled on. Only one
+   * search may be in flight. */
   search(mode: GoMode): Stream<EngineUpdate, SearchOutcome>;
-  /** Asks the engine to stop early — the in-flight search still returns an
-   * outcome, because a real UCI engine answers `stop` with a bestmove. */
+  /** The in-flight search still returns an outcome, a real UCI engine
+   * answering `stop` with a bestmove. */
   stop(): void;
 }
 
@@ -84,9 +81,8 @@ export function useEngineSession(
 ): Operation<EngineSession> {
   return resource(function* (provide) {
     const transport = yield* open();
-    // Registered after the transport is open, so it unwinds before the
-    // transport's own teardown: the engine is told to quit while it can
-    // still hear it.
+    // Registered after the transport is open, so it unwinds first and the
+    // engine is told to quit while it can still hear it.
     yield* ensure(() => transport.send("quit"));
 
     yield* handshake(
@@ -112,9 +108,9 @@ export function useEngineSession(
         let lastInfo: EngineUpdate | undefined;
         let settled: SearchOutcome | undefined;
 
-        // A consumer that walks away mid-search (a watchdog giving up)
-        // leaves `searching` true on purpose: the session is no longer
-        // trustworthy and its owner is expected to discard it.
+        // A consumer that walks away mid-search leaves `searching` true on
+        // purpose: the session is no longer trustworthy and its owner is
+        // expected to discard it.
         const finish = (bestMove: SearchOutcome["bestMove"]): SearchOutcome => {
           searching = false;
           settled = lastInfo ? { lastInfo, bestMove } : { bestMove };

@@ -3,23 +3,11 @@
  * optimization, so every operation here degrades to "no storage" rather
  * than failing the analysis that asked for it.
  */
-import { POLICY_VERSION, type GradedPly } from "@velachess/analysis";
+import type { GradedPly } from "@velachess/analysis";
 
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from "../../libs/idb.ts";
-import { ENGINE_BUILD } from "../../engine/index.ts";
 
-import { ANALYSIS_DEPTH } from "./evaluate-position-in-browser.ts";
-
-/** Plain JSON, self-describing: the same document a backend would be
- * handed later, which is why what produced it travels with it instead of
- * living in the key. */
-export interface GameAnalysisReport {
-  gameId: string;
-  engineBuild: string;
-  depth: number;
-  policyVersion: number;
-  graded: GradedPly[];
-}
+import { ANALYSIS_IDENTITY, type GameAnalysisReport } from "./types.ts";
 
 interface AnalysisDbSchema extends DBSchema {
   report: { key: string; value: GameAnalysisReport };
@@ -55,20 +43,21 @@ export async function getReport(gameId: string): Promise<GameAnalysisReport | nu
   if (!stored) return null;
 
   const producedByThisBuild =
-    stored.engineBuild === ENGINE_BUILD &&
-    stored.depth === ANALYSIS_DEPTH &&
-    stored.policyVersion === POLICY_VERSION;
+    stored.engineBuild === ANALYSIS_IDENTITY.engineBuild &&
+    stored.depth === ANALYSIS_IDENTITY.depth &&
+    stored.policyVersion === ANALYSIS_IDENTITY.policyVersion;
 
   return producedByThisBuild ? stored : null;
 }
 
-export async function saveReport(gameId: string, graded: GradedPly[]): Promise<void> {
+export async function saveReport(
+  gameId: string,
+  graded: readonly GradedPly[],
+): Promise<void> {
   const report: GameAnalysisReport = {
     gameId,
-    engineBuild: ENGINE_BUILD,
-    depth: ANALYSIS_DEPTH,
-    policyVersion: POLICY_VERSION,
-    graded,
+    ...ANALYSIS_IDENTITY,
+    graded: [...graded],
   };
 
   try {

@@ -1,9 +1,8 @@
 // @vitest-environment node
 /**
- * Provider identity on game review: GET /games/:id carries BOTH seats'
- * picture or flair, resolved from a per-handle cache shared by every
- * user — asked for once, reused until stale, and never a reason for the
- * read to fail.
+ * GET /games/:id carries both seats' picture or flair from a per-handle
+ * cache shared by every user: asked for once, reused until stale, and never
+ * a reason for the read to fail.
  */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -25,16 +24,15 @@ const RIVAL_AVATAR =
 const LICHESS_FLAIR = "people.santa-claus-light-skin-tone";
 
 /**
- * The suite's chess.com fixtures plus the profile endpoints the review
- * read resolves through. Every profile attempt is counted — caching is
- * asserted by what stops being asked for, and a dead provider is
- * simulated rather than awaited (`setProfilesUp(false)`).
+ * Every profile attempt is counted, so caching is asserted by what stops
+ * being asked for, and a dead provider is simulated with
+ * `setProfilesUp(false)` rather than awaited.
  */
 function fakeSyncFetch() {
   const base = chessComFixtureFetch();
   let profilesUp = true;
-  /** 200 OK without an `avatar` key — the "answer says there is none" case,
-   * distinct from a failed request. */
+  /** 200 OK with no `avatar` key: an answer saying there is none, distinct
+   * from a failed request. */
   let avatarless = false;
   const profileRequests: string[] = [];
 
@@ -71,9 +69,8 @@ function fakeSyncFetch() {
         headers: { "content-type": "application/x-chess-pgn" },
       });
     }
-    // The lister archive — a second player whose games are against the
-    // same opponent, so a second user can own games without re-importing
-    // looper's rows (games dedup globally on source+externalId).
+    // A second player whose games are against the same opponent, so a
+    // second user owns games without re-importing looper's rows.
     if (url.endsWith("/player/lister/games/archives")) {
       return Response.json(LISTER_ARCHIVES_INDEX);
     }
@@ -91,8 +88,8 @@ function fakeSyncFetch() {
   };
 }
 
-/** Exactly `/pub/player/{name}` — the archives index lives one segment
- * deeper (`/pub/player/{name}/games/archives`) and must fall through. */
+/** Exactly `/pub/player/{name}`: the archives index lives one segment
+ * deeper and must fall through. */
 const CHESS_COM_PROFILE_URL = /^https:\/\/api\.chess\.com\/pub\/player\/[^/]+$/;
 
 const sync = fakeSyncFetch();
@@ -109,7 +106,6 @@ afterAll(async () => {
   await harness.close();
 });
 
-/** First game of the caller's library from one source — any will do for seat reads. */
 async function firstGameId(app: AuthedApp, source = "chess_com"): Promise<string> {
   const page = await parseResponse(app.api.games.$get({ query: {} }));
   const pick = page.games.find((game) => game.source === source);
@@ -138,14 +134,14 @@ describe("provider profile identity on game review", () => {
     if (!created.syncId) throw new Error("expected a first sync on a fresh connect");
     await harness.runSync(created.syncId);
 
-    // Connect-time warmed my handle; the opponent's is a cold miss here.
+    // Connect warmed my handle; the opponent's is a cold miss.
     const before = sync.profileRequests.length;
     const game = await firstGameId(owner);
     const body = await openGame(owner, game);
     expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
     expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
 
-    // Exactly the one opponent was worth a request — never a fan-out.
+    // One request for the one opponent, never a fan-out.
     expect(sync.profileRequests.slice(before)).toEqual(["chess_com:rival"]);
   });
 
@@ -160,9 +156,9 @@ describe("provider profile identity on game review", () => {
   });
 
   it("shares one cached profile between users", async () => {
-    // A second user tracks a DIFFERENT handle whose games are against the
-    // same opponent — their connect warms only their own handle, and the
-    // opponent's identity comes from the row the first user's open wrote.
+    // A second user tracks a different handle against the same opponent, so
+    // their connect warms only their own and the opponent comes from the row
+    // the first user's open wrote.
     const second = (await harness.signUp("colleague@api.test")).app;
     const connected = await connectAccount(second, "chess_com", "Lister");
     if (!connected.syncId) throw new Error("expected a first sync on a fresh connect");
@@ -171,11 +167,10 @@ describe("provider profile identity on game review", () => {
     const before = sync.profileRequests.length;
     const game = await firstGameId(second);
     const body = await openGame(second, game);
-    // The lister fixture's latest game is lister as black, rival as white.
     expect(body.whiteIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
     expect(body.blackIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
 
-    // The opponent was asked for exactly once across both users' opens.
+    // Once across both users' opens.
     expect(
       sync.profileRequests.filter((request) => request === "chess_com:rival"),
     ).toHaveLength(1);
@@ -183,8 +178,8 @@ describe("provider profile identity on game review", () => {
   });
 
   it("reconnecting a handle whose profile is already fresh asks nothing", async () => {
-    // Looper was warmed at this user's first connect; connecting again
-    // reuses that row instead of spending a request on it.
+    // Warmed at this user's first connect, so connecting again reuses that
+    // row.
     const before = sync.profileRequests.length;
     await connectAccount(owner, "chess_com", "Looper");
     expect(sync.profileRequests.slice(before)).toEqual([]);
@@ -199,15 +194,15 @@ describe("provider profile identity on game review", () => {
     const body = await openGame(owner, game);
     for (const seat of [body.whiteIdentity, body.blackIdentity]) {
       expect(seat.flair).toBe(LICHESS_FLAIR);
-      // Lichess has no profile pictures at all — the field exists and stays empty.
+      // Lichess has no profile pictures: the field exists and stays empty.
       expect(seat.avatarUrl).toBeNull();
     }
   });
 
   it("a failed ask keeps serving the stored identity", async () => {
-    // The cache holds real values from the tests above; an outage must age
-    // the refresh window without blanking them — and the response must say
-    // what the database kept, not what the outage produced.
+    // The cache holds real values from the tests above, so an outage ages
+    // the refresh window without blanking them and the response says what
+    // the database kept.
     sync.setProfilesUp(false);
     try {
       const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
@@ -223,9 +218,8 @@ describe("provider profile identity on game review", () => {
   });
 
   it("an entry past its refresh window is asked for again", async () => {
-    // The outage above re-stamped both rows while keeping their values —
-    // aging them past the window must ask again, and a healthy provider
-    // writes its answers through.
+    // The outage above re-stamped both rows, so aging them past the window
+    // asks again and a healthy provider writes through.
     const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
     await harness.db.update(providerProfiles).set({ fetchedAt: stale });
 
@@ -234,14 +228,12 @@ describe("provider profile identity on game review", () => {
     const body = await openGame(owner, game);
     expect(body.whiteIdentity.avatarUrl).toBe(CHESS_COM_AVATAR);
     expect(body.blackIdentity.avatarUrl).toBe(RIVAL_AVATAR);
-    // One request per seat, both seats asked.
     expect(sync.profileRequests.slice(before)).toHaveLength(2);
   });
 
   it("a successful answer with no avatar clears the stored one", async () => {
-    // Removal is a real event: once the provider answers OK without an
-    // avatar, the cached picture must go — unlike a failed ask, which
-    // preserves it. Initials until the player uploads one again.
+    // Removal is a real event, so an OK without an avatar clears the cached
+    // picture, unlike a failed ask.
     sync.setAvatarless(true);
     try {
       const stale = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);

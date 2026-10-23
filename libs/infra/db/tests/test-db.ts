@@ -1,8 +1,7 @@
 /**
- * Test database factory. Uses DATABASE_URL when present (docker-compose
- * Postgres); falls back to PGlite (in-process Postgres) so the suite runs
- * anywhere. Both paths apply the real migrations from ./migrations —
- * the schema under test is the schema that ships.
+ * DATABASE_URL when present, otherwise PGlite, so the suite runs anywhere.
+ * Both paths apply the real migrations, so the schema under test is the
+ * schema that ships.
  */
 
 import { PGlite } from "@electric-sql/pglite";
@@ -21,9 +20,8 @@ const migrationsFolder = new URL("../migrations", import.meta.url).pathname;
 
 export async function createTestDb(): Promise<{
   db: Database;
-  /** LISTEN on a channel, as the API does: postgres.js opens a connection
-   * of its own for it, PGlite listens on its one session. Resolves to the
-   * unlisten. */
+  /** As the API does: postgres.js opens its own connection, PGlite listens
+   * on its one session. Resolves to the unlisten. */
   listen: (
     channel: string,
     onNotify: (payload: string) => void,
@@ -55,10 +53,7 @@ export async function createTestDb(): Promise<{
   };
 }
 
-/**
- * Every owned row hangs from a user — games included, since ownership
- * became direct. Tests that don't care whose user it is still need one.
- */
+/** Every owned row hangs from a user, games included. */
 export async function createUserRow(db: Database): Promise<string> {
   const [user] = await db
     .insert(users)

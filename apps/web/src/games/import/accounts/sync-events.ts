@@ -6,14 +6,9 @@ import { gamesQueryKey } from "../../game-query-keys.ts";
 import { trackedAccountsQuery } from "./queries.ts";
 
 /**
- * Mirrors `@velachess/accounts`' `SYNC_SETTLED_EVENTS` — this app cannot
- * import that package at runtime (its slices pull in Postgres and
- * `node:crypto`, which a browser bundle cannot load), so the names are
- * duplicated here and held to the server's copy by
- * `tests/sync-events.test.ts`'s drift guard.
- *
- * Both answer the same question — "the server has new facts about this
- * sync" — and the payload adds nothing a refetch does not already bring.
+ * Mirrors `@velachess/accounts`' `SYNC_SETTLED_EVENTS`, which this app
+ * cannot import at runtime: its slices pull in Postgres and `node:crypto`.
+ * `tests/sync-events.test.ts` holds the copy to the server's.
  */
 export const SYNC_SETTLED_EVENT_NAMES = ["sync.completed", "sync.failed"] as const;
 const SETTLED_STATUS_BY_EVENT: Record<
@@ -34,7 +29,7 @@ export interface SettledSync {
 const settledListeners = new Set<(settled: SettledSync) => void>();
 
 /** Reuses `startSyncEvents`' one stream. A reconnection's catch-up
- * `refresh()` never reaches this — no precise ids to resolve against. */
+ * `refresh()` never reaches this: it has no precise ids. */
 export function onSyncSettled(listener: (settled: SettledSync) => void): () => void {
   settledListeners.add(listener);
   return () => settledListeners.delete(listener);
@@ -58,19 +53,17 @@ function parseSettled(message: SseMessage): SettledSync | null {
       status: SETTLED_STATUS_BY_EVENT[message.event],
     };
   } catch {
-    // A malformed frame still leaves `refresh()` to bring the data current;
-    // there is simply nothing precise to tell a watcher here.
+    // `refresh()` still brings the data current; there is just nothing
+    // precise to tell a watcher.
     return null;
   }
 }
 
 /**
- * The one stream the app keeps on `GET /syncs/events`. A sync runs in the
- * worker whatever the browser does; this only hears when one settles and
- * lets React Query refetch what that changed — the library and the
- * accounts. Nothing here is a record: the server announces what it saw
- * while listening, so every reconnection repairs the gap with the same
- * refetch, and the queries' own staleness covers the rest.
+ * A sync runs in the worker whatever the browser does; this only hears when
+ * one settles and lets React Query refetch what changed. Nothing here is a
+ * record: the server announces what it saw while listening, so every
+ * reconnection repairs the gap with the same refetch.
  *
  * Returns what stops it. Transport failures are the client's to retry
  * (exponential backoff, 30 s cap); only a 401 means something else — the
@@ -91,17 +84,15 @@ export function startSyncEvents(queryClient: QueryClientType): () => void {
       const settled = parseSettled(message);
       if (settled) settledListeners.forEach((listener) => listener(settled));
     },
-    // Fires for every response, failures included: only a stream that
-    // actually opened counts, and only the ones after the first mean a
-    // gap to repair.
+    // Fires for every response, failures included, so only a stream that
+    // opened counts, and only the ones after the first mean a gap.
     onResponse: ({ response }) => {
       const type = response.headers.get("content-type") ?? "";
       if (!response.ok || !type.includes("text/event-stream")) return;
       streams += 1;
       if (streams > 1) refresh();
     },
-    // A 401 is not a transport failure to retry: the session ended. Stop
-    // here, and let the app do what it does with that.
+    // A 401 is not a transport failure to retry: the session ended.
     onResponseError: ({ response }) => {
       if (response.status !== 401) return;
       controller.abort();

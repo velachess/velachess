@@ -20,15 +20,11 @@ export class InvalidResponseError extends ApiError {}
 export class UnauthorizedError extends ApiError {}
 
 /**
- * A 429 — the server refused because a budget ran out; the request would
- * have worked otherwise.
- *
- * Its own class because it wants the opposite reaction from every other
- * failure: "something broke" invites an immediate retry, which is exactly
- * what the refusal asked not to get. `retryAfterSeconds` comes from the
- * response BODY — the server writes it there because this client cannot
- * read a rejection's headers — and is `null` when a 429 arrives without
- * one.
+ * Its own class because a budget refusal wants the opposite reaction from
+ * every other failure: "something broke" invites the immediate retry the
+ * refusal asked not to get. `retryAfterSeconds` comes from the response
+ * body, which the server writes because this client cannot read a
+ * rejection's headers.
  */
 export class RateLimitedError extends ApiError {
   readonly retryAfterSeconds: number | null;
@@ -56,11 +52,8 @@ export function isRateLimitedError(error: unknown): error is RateLimitedError {
 }
 
 /**
- * A 409 on `POST /accounts` — the caller already tracks a different handle
- * on this provider. One account per provider per user, so this is a
- * refusal to overwrite, not an infrastructure failure: the fields carry
- * the existing connection's identity so the UI can point at it instead of
- * just saying "no".
+ * A refusal to overwrite rather than an infrastructure failure: the fields
+ * carry the existing connection's identity, so the UI can point at it.
  */
 export class ProviderAlreadyConnectedError extends ApiError {
   readonly platform: string;

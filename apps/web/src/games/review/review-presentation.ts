@@ -1,17 +1,10 @@
-/**
- * The two players, as a review screen shows them: which way the board
- * sits, who is in each seat, and which of them is you.
- *
- * Pure. Localising a rating is the caller's, which is the only part that
- * needs an i18n instance.
- */
+/** Pure: localising a rating is the caller's, needing an i18n instance. */
 import { resolveGamePerspective } from "@velachess/chess";
 
 import { flairImageOf } from "../import/index.ts";
-import { seatIdentityOf, seatOf, type Seat } from "./board-view.ts";
+import { seatIdentityOf, type Seat } from "./board-view.ts";
 import type { ReplayableGame } from "./game-record.ts";
 
-/** What seating a board needs of the game it is showing. */
 export type SeatedGame = Pick<
   ReplayableGame,
   | "perspective"
@@ -23,24 +16,20 @@ export type SeatedGame = Pick<
   | "blackIdentity"
 >;
 
-/** One seat as the strips beside the board show it. */
 export interface PlayerSeat {
   name: string;
-  /** Already localised — absent when the platform did not report one. */
+  /** Already localised, and absent when the platform reported none. */
   rating: string | undefined;
-  /** Provider identity of a resolvable handle; absent for everyone else. */
+  /** Of a resolvable handle; absent for everyone else. */
   avatarUrl: string | undefined;
   flair: string | undefined;
 }
 
 export interface ReviewPlayers {
   orientation: Seat;
-  /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
-  /** Null when nobody knows which seat is yours — "you" is a claim, so it
-   * needs evidence. The board still has to face somewhere; the trail
-   * does not. */
+  /** Null when nobody knows which seat is yours: "you" is a claim. */
   mySeat: Seat | null;
 }
 
@@ -49,9 +38,8 @@ export function usernamesOf(accounts: readonly { username: string }[]): string[]
 }
 
 /**
- * Identity rides with the game detail payload for BOTH seats — the server
- * resolves each handle from a shared profile cache, tracked account or
- * not.
+ * Identity rides with the detail payload for both seats, the server
+ * resolving each handle from a shared profile cache.
  */
 function playerSeatOf(
   game: SeatedGame,
@@ -68,7 +56,7 @@ function playerSeatOf(
     rating: rating === null ? undefined : formatRating(rating),
     avatarUrl: identity.avatarUrl,
     // The API carries the flair id; the address it is served from is
-    // presentation, resolved at the last moment before render.
+    // presentation.
     flair: identity.flair ? flairImageOf(identity.flair) : undefined,
   };
 }
@@ -78,13 +66,14 @@ export function reviewPlayersOf(
   usernames: readonly string[],
   formatRating: (rating: number) => string,
 ): ReviewPlayers {
-  const orientation = seatOf(game, usernames);
+  const mySeat = resolveGamePerspective(game, usernames);
+  const orientation = mySeat ?? "white";
   const white = playerSeatOf(game, "white", formatRating);
   const black = playerSeatOf(game, "black", formatRating);
 
   return {
     orientation,
-    mySeat: resolveGamePerspective(game, usernames),
+    mySeat,
     top: orientation === "white" ? black : white,
     bottom: orientation === "white" ? white : black,
   };

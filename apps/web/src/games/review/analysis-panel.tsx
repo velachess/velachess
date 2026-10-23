@@ -5,69 +5,58 @@ import { BoardPanel } from "@velachess/ui/chess/board-stage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import type { GradedPly } from "../analysis/index.ts";
+
+import { useQuery } from "../../libs/react-query.ts";
 import { AnalysisProgress } from "./analysis-progress.tsx";
 import { EvalGraph } from "./eval-graph.tsx";
+import { gameAnalysisQuery, selectGraded } from "./game-analysis-query.ts";
 import type { ReplayableGame } from "./game-record.ts";
 import { GameReport } from "./game-report.tsx";
 import { GameResult } from "./game-result.tsx";
 import { MoveInsight } from "./move-insight.tsx";
 import { MoveList } from "./move-list.tsx";
 import { ReplayControls } from "./replay-controls.tsx";
-import { gradeAtPly } from "./review-model.ts";
-import { selectGameMove, selectTotalPlies } from "./review-model.ts";
+import { gradeAtPly, selectGameMove } from "./review-model.ts";
 import { useGameReview } from "./use-game-review.ts";
 
 const PANEL_COPY = {
   move: msg`Move`,
   report: msg`Report`,
-  /** A landmark's name is read aloud, so it is copy like any other. */
+  /** A landmark's name is read aloud, so it is copy. */
   region: msg`Review`,
 } as const;
 
-/** Tab ids are keys, never copy — the label is translated, this is not. */
+/** Keys, not copy: the label is translated, these are not. */
 const TABS = { move: "move", report: "report" } as const;
 
 export interface AnalysisPanelProps {
   game: ReplayableGame;
-  graded: readonly GradedPly[];
-  isAnalyzing: boolean;
-  hasFailed: boolean;
 }
 
 /**
- * Everything that is not the board.
- *
- * The curve, the result and the controls are permanent — a long game
- * must never scroll the buttons out of reach. Between them sit two tabs
- * answering two different questions, each owning its own content and its
- * own scrolling:
- *
- *   Move    what happened here — verdict plus the scoresheet, which is
- *           the working surface while stepping through
- *   Report  how the game went — opening, the tally, and the way out
- *
- * The scoresheet used to live outside the tabs, on the argument that it
- * "must never be a click away". True while reading a move; false while
- * reading the report, where a move-by-move list is noise underneath a
- * summary — and the two then fought over one scroll region.
+ * The curve, the result and the controls are permanent, so a long game
+ * never scrolls the buttons out of reach, and the two tabs own their own
+ * scrolling.
  */
-export function AnalysisPanel({
-  game,
-  graded,
-  isAnalyzing,
-  hasFailed,
-}: AnalysisPanelProps) {
+const NOTHING_GRADED: readonly GradedPly[] = [];
+
+export function AnalysisPanel({ game }: AnalysisPanelProps) {
   const { i18n } = useLingui();
 
-  // `inVariation`: the main line's verdict is then about a position
-  // nobody is looking at, so it is not shown at all rather than shown as
-  // if it belonged to the move someone just played.
+  // The grades that landed and nothing provisional: a deepening search
+  // redraws `AnalysisProgress`, not this panel.
+  const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectGraded });
+  const graded = analysis.data ?? NOTHING_GRADED;
+
+  // In a variation the main line's verdict is about a position nobody is
+  // looking at, so it is not shown.
   const ply = useGameReview((state) => state.ply);
-  const totalPlies = useGameReview(selectTotalPlies);
-  const move = useGameReview(selectGameMove);
+  const move = useGameReview((state) => selectGameMove(state, game));
   const inVariation = useGameReview((state) => state.variation !== null);
   const goToPly = useGameReview((state) => state.goToPly);
-  const showBest = useGameReview((state) => state.showBest);
+  const revealBestMove = useGameReview((state) => state.revealBestMove);
+
+  const totalPlies = game.moves.length;
 
   return (
     <BoardPanel label={i18n._(PANEL_COPY.region)}>
@@ -80,12 +69,7 @@ export function AnalysisPanel({
         />
       </div>
 
-      <AnalysisProgress
-        graded={graded.length}
-        totalPlies={totalPlies}
-        isAnalyzing={isAnalyzing}
-        hasFailed={hasFailed}
-      />
+      <AnalysisProgress game={game} totalPlies={totalPlies} />
 
       {/*
         Each tab owns everything it needs, including its own scrolling.
@@ -111,11 +95,12 @@ export function AnalysisPanel({
             <MoveInsight
               move={move}
               graded={gradeAtPly(graded, ply)}
-              onShowBest={showBest}
+              onRevealBestMove={revealBestMove}
             />
           )}
           <MoveList
             graded={graded}
+            moves={game.moves}
             whiteName={game.whiteName}
             blackName={game.blackName}
           />
@@ -135,7 +120,7 @@ export function AnalysisPanel({
 
       <GameResult result={game.result} termination={game.termination} />
 
-      <ReplayControls />
+      <ReplayControls game={game} />
     </BoardPanel>
   );
 }

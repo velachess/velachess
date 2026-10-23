@@ -47,26 +47,20 @@ const AVATAR_COPY = {
   tooLarge: msg`That image is too large. Choose one under 8 MB.`,
 } as const;
 
-/** What the file input offers, and what a picked file is checked against —
- * one list, so the picker and the refusal cannot disagree. */
+/** One list, so the picker and the refusal cannot disagree. */
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"] as const;
 
 /**
- * A decode ceiling, not a payload one: the upload is bounded by the crop's
- * re-encode regardless. An 8 MP phone photo is ~4 MB, so this refuses the
- * 50 MP case that would lock the tab up in `loadImage` before the user
- * learns anything.
+ * A decode ceiling, not a payload one: the crop's re-encode bounds the
+ * upload anyway. This refuses the 50 MP case that would lock the tab up in
+ * `loadImage`.
  */
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
 
 /**
- * The picked file's own rules, with their messages, in one place — the
- * shape `games/import/accounts/sources.ts` uses for the same reason: a refusal and
- * the text explaining it should not be able to drift apart.
- *
- * `accept` on the input is a hint, not a gate. It filters the picker's
- * default view, a person can switch it to all files, and a drag-and-drop
- * bypasses it entirely, so the type check here is the real one.
+ * `accept` on the input is a hint, not a gate: it filters the picker's
+ * default view, which a person can switch, and a drop bypasses it, so the
+ * type check here is the real one.
  */
 const buildFileSchema = (translate: (message: MessageDescriptor) => string) =>
   z
@@ -77,11 +71,10 @@ const buildFileSchema = (translate: (message: MessageDescriptor) => string) =>
     )
     .refine((file) => file.size <= MAX_SOURCE_BYTES, translate(AVATAR_COPY.tooLarge));
 
-/** Kept under the API's own ceiling so the crop's quality stepping settles
- * the size here rather than the server refusing it. */
+/** Under the API's own ceiling, so the crop's quality stepping settles the
+ * size rather than the server refusing it. */
 const MAX_ENCODED_BYTES = 120 * 1024;
 
-/** Stable, because the label points at it by id. */
 const FILE_INPUT_ID = "avatar-file";
 
 export function AvatarField({ user }: { user: SessionUser }) {
@@ -97,11 +90,9 @@ export function AvatarField({ user }: { user: SessionUser }) {
   useTransientSuccess(remove.isSuccess, remove.reset);
 
   /**
-   * An object URL pins its File in memory until revoked, so the revoke is
-   * tied to the URL's own lifetime rather than to one exit path. Revoking
-   * in a close handler alone leaks twice: picking a second file replaces
-   * `source` without closing, and navigating away unmounts without
-   * closing. Cleanup runs with the previous value in both cases.
+   * An object URL pins its File until revoked, and a close handler alone
+   * leaks twice: picking a second file replaces `source` without closing,
+   * and navigating away unmounts without closing.
    */
   useEffect(() => {
     if (source === null) return;
@@ -116,8 +107,6 @@ export function AvatarField({ user }: { user: SessionUser }) {
   function pick(file: File | undefined) {
     if (!file) return;
 
-    // Checked before any decode, so a wrong file costs nothing and the
-    // message arrives immediately.
     const checked = buildFileSchema((message) => i18n._(message)).safeParse(file);
     if (!checked.success) {
       setRefusal(checked.error.issues[0]?.message ?? null);
@@ -131,13 +120,8 @@ export function AvatarField({ user }: { user: SessionUser }) {
   }
 
   /**
-   * One message at a time, resolved in priority order rather than as four
-   * independent conditions — two of them can be true at once, and stacked
-   * messages are what makes the block change height.
-   *
-   * The tones are the distinction that matters to the person reading: a
-   * refusal is a file they can swap, a failure is something that went
-   * wrong on our side.
+   * Priority order rather than four independent conditions: two can be true
+   * at once, and stacked messages change the block's height.
    */
   function currentFeedback(): {
     tone: "success" | "warning" | "error";
@@ -158,21 +142,15 @@ export function AvatarField({ user }: { user: SessionUser }) {
       await save.mutateAsync(cropped);
       closeDialog();
     } catch {
-      // Held by the mutation and rendered in the dialog; rethrowing would
-      // be an unhandled rejection. Branching on `save.isError` instead
-      // would read the previous render's value and close on failure.
+      // The mutation holds the error and the dialog renders it. Branching
+      // on `save.isError` would read the previous render and close on
+      // failure.
     }
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex max-w-sm items-center gap-3">
-        {/*
-          The whole avatar is the control, with the overlay as the hint
-          rather than a second target beside it. The actions live in a menu
-          because there are two of them and one is destructive — a bare
-          click would have to guess which.
-        */}
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

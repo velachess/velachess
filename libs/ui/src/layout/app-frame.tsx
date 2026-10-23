@@ -1,22 +1,21 @@
 /**
- * [UI/layout] Outermost frame — nav via the `nav` slot, content as
- * children. Responsive contract:
+ * Navigation through the `nav` slot, content as children:
  *   > 768px   nav rail 64 | content
- *   <= 768px  rail hidden; `navFallback` renders below the content, as a
- *             bottom bar — plain flex order, not fixed positioning
+ *   <= 768px  rail hidden, `navFallback` below the content as a bottom bar,
+ *             by flex order rather than fixed positioning
  */
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";
 
 export interface AppFrameProps {
-  /** Structural slot: the persistent navigation, hidden on small screens. */
+  /** The persistent navigation, hidden on small screens. */
   nav: React.ReactNode;
   /** Shown instead of `nav` below the rail breakpoint. */
   navFallback?: React.ReactNode;
-  /** Full-width strip above everything — sync warnings, offline notice. */
+  /** A full-width strip above everything. */
   banner?: React.ReactNode;
-  /** Label of the skip link — the app owns its words. */
+  /** Label of the skip link. */
   skipLabel?: string;
   children: React.ReactNode;
   className?: string;

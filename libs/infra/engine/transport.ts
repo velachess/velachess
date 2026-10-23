@@ -1,14 +1,11 @@
 /**
- * The one contract every environment implements differently. A transport
- * knows how to send a raw UCI command and yield the raw lines that come
- * back — nothing about what the lines mean.
+ * Sends a raw UCI command and yields the raw lines back, knowing nothing
+ * about what they mean.
  *
  * `lines` is a Subscription rather than a Stream because two consumers
- * would split the engine's replies between them unpredictably: there is
- * exactly one reader, and it is buffered from the moment the transport
- * opened, so a reply that arrives before anyone waits is not lost.
- * Closing is the opening resource's job, which is why there is no
- * `close()` here.
+ * would split the replies between them: there is one reader, buffered from
+ * the moment the transport opened, so a reply arriving before anyone waits
+ * is not lost. Closing is the opening resource's job.
  */
 
 import type { Operation, Subscription } from "effection";

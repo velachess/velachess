@@ -4,17 +4,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/utils.ts";
 
 /**
- * Selected must not look like hovered.
+ * Selected must not look like hovered: `aria-pressed:bg-muted` beside
+ * `hover:bg-muted` made a chosen filter look like whichever chip the
+ * pointer was over. Pressed takes the accent, which is legible at rest,
+ * and hover only deepens it.
  *
- * This was `aria-pressed:bg-muted` sitting beside `hover:bg-muted` — the
- * same colour for two different meanings, so a chosen filter looked
- * exactly like whichever chip the pointer happened to be over, and read
- * as unselected the moment the pointer left. The `data-[state=on]` next
- * to it did nothing at all: that is Radix's attribute, and this is Base
- * UI, which emits `aria-pressed` / `data-pressed`.
- *
- * Pressed now takes the accent — tint and text, plus the border on the
- * outline variant — which is legible at rest; hover only deepens it.
+ * Base UI emits `aria-pressed`/`data-pressed`; `data-[state=on]` is
+ * Radix's and does nothing here.
  */
 const PRESSED =
   "aria-pressed:bg-primary/10 aria-pressed:text-primary aria-pressed:hover:bg-primary/15 aria-pressed:hover:text-primary";
@@ -25,9 +21,9 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        // Repeated after the variant's own hover so tailwind-merge keeps
-        // the pressed rules last — a variant that re-states `hover:bg-*`
-        // would otherwise win the merge and wash the selection out.
+        // After the variant's own hover, so tailwind-merge keeps the pressed
+        // rules last and a re-stated `hover:bg-*` cannot wash the selection
+        // out.
         outline: `border border-input bg-transparent hover:bg-muted aria-pressed:border-primary ${PRESSED}`,
       },
       size: {

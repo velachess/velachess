@@ -1,6 +1,5 @@
-/** The loop harness: PGlite + real migrations + started pg-boss (queues
- * ensured) + advisory lock. Application, api, and worker suites all run
- * on this — one definition, three consumers. */
+/** PGlite, the real migrations, a started pg-boss and the advisory lock:
+ * one definition for the application, api and worker suites. */
 
 import type { PGlite } from "@electric-sql/pglite";
 
@@ -58,13 +57,12 @@ export async function createLoopHarness(): Promise<LoopHarness> {
   };
 }
 
-/** Raised per call, so the job just picked always outranks earlier picks. */
+/** Raised per call, so the job just picked outranks earlier ones. */
 let pickPriority = 1_000_000;
 
 /**
- * One sync job's delivery, fetched from pg-boss the way a worker gets it
- * (active, with a signal of its own), but picked by id: the job is moved
- * ahead of the queue first, so the fetch claims it and nothing else.
+ * Fetched from pg-boss the way a worker gets it, but picked by id: the job
+ * is moved ahead of the queue first, so the fetch claims it alone.
  */
 export async function deliverSyncJob(boss: PgBoss, id: string): Promise<Job> {
   pickPriority += 1;

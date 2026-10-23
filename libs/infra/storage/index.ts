@@ -1,13 +1,11 @@
 /**
- * [STORAGE] — bytes under one root on a filesystem. Owns the guarantee
- * that a key cannot escape the root and that a reader never sees a
- * half-written object.
+ * Bytes under one root, guaranteeing only that a key cannot escape it and
+ * that a reader never sees a half-written object. What a key means, what
+ * the bytes are and who may read them are the caller's.
  *
- * Refuses to own what a key means, what a byte sequence is, who may read
- * it, and anything HTTP. Callers decide all four; this library only moves
- * bytes. A cloud backend later is a second `create*Store` satisfying the
- * same function types a slice already declares — not an interface added
- * here now (see libs/infra/AGENTS.md).
+ * A cloud backend later is a second `create*Store` satisfying the function
+ * types a slice already declares, not an interface added here now (see
+ * libs/infra/AGENTS.md).
  */
 
 export * from "./files.ts";

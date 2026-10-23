@@ -1,8 +1,8 @@
 /**
- * Chess.com's Published-Data API — public, no auth. Sequential requests
- * only: parallel requests are documented to trigger 429s. Starts from the
- * real archives index rather than guessing a month window, so there's no
- * "just crossed a month boundary, archive looks empty" gap to patch around.
+ * Chess.com's Published-Data API: public, and sequential only, parallel
+ * requests being documented to trigger 429s. Starts from the real archives
+ * index rather than guessing a month window, so crossing a month boundary
+ * leaves no empty-looking archive.
  */
 
 import { z } from "zod";
@@ -11,24 +11,21 @@ import { isSyncFailure, normalizeGame } from "../normalize.ts";
 import type { FetchFn, NormalizedGame, SyncFailure, SyncResult } from "../schema.ts";
 
 /**
- * Where to resume this account's archive walk.
- *
- * A schema rather than a bare interface because the value round-trips
- * through a `jsonb` column that also holds Lichess's cursor: the column
- * cannot tell the two apart, so the reader has to. See
- * docs/explanation/data-boundaries.md.
+ * A schema rather than an interface because the value round-trips through a
+ * `jsonb` column that also holds Lichess's cursor, which the column cannot
+ * tell apart. See docs/explanation/data-boundaries.md.
  */
 export const chessComCursorSchema = z.object({
   /** "YYYY/MM" of the last archive month fully synced. */
   month: z.string(),
-  /** end_time (unix seconds) of the last game seen in that month. */
+  /** `end_time` in unix seconds of the last game seen that month. */
   lastEndTime: z.number(),
 });
 export type ChessComCursor = z.infer<typeof chessComCursorSchema>;
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{2,32}$/;
-/** Shared with lichess.ts: both providers' guidance is to identify the
- * client, and a block is easier to lift when there's contact info in it. */
+/** Both providers ask that the client identify itself, and a block is
+ * easier to lift with contact info in it. */
 export const USER_AGENT = "velachess-ingest (+https://github.com/yurimutti/velachess)";
 
 const archivesIndexSchema = z.object({ archives: z.array(z.string()) });
@@ -42,7 +39,8 @@ const gameSchema = z.object({
 
 const monthResponseSchema = z.object({ games: z.array(gameSchema) });
 
-/** A year of archives on a first sync — a single month leaves little to review; the cursor limits later syncs. */
+/** A single month leaves little to review; the cursor bounds later
+ * syncs. */
 const DEFAULT_BOOTSTRAP_MONTHS = 12;
 
 function monthOf(archiveUrl: string): string {
@@ -56,11 +54,9 @@ export async function fetchChessCom(
   opts: {
     fetch?: FetchFn;
     signal?: AbortSignal;
-    /** Fires once a month's games are fully normalized and the cursor is
-     * about to advance past it — never for a month that failed. Lets the
-     * caller persist progress before the next month's request, so a worker
-     * crash mid-walk resumes from the last checkpointed month instead of
-     * the whole pass's starting cursor. */
+    /** Fires once a month is fully normalized and never for one that
+     * failed, so a crash mid-walk resumes from the last checkpointed month
+     * rather than the pass's starting cursor. */
     onCheckpoint?: (
       cursor: ChessComCursor,
       monthGames: NormalizedGame[],
@@ -150,7 +146,7 @@ export async function fetchChessCom(
     let monthHadFailure = false;
 
     for (const game of monthParsed.data.games) {
-      // In-progress daily games have no `pgn` yet — not an error, just not ready.
+      // In-progress daily games have no `pgn` yet.
       if (!game.pgn) continue;
 
       if (game.rules !== "chess") {

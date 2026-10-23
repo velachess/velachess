@@ -1,8 +1,6 @@
 /**
- * Pasted or uploaded PGN — no sniffing, no auto-detection. This provider is
- * only ever invoked when the caller already knows it's a paste/upload
- * (every OSS project studied confirms this is a universal, explicit,
- * user-driven choice, never content-guessed).
+ * No sniffing: this provider runs only when the caller already knows it has
+ * a paste, which is always an explicit user choice.
  */
 
 import { isSyncFailure, normalizeGame } from "../normalize.ts";
@@ -10,9 +8,8 @@ import type { NormalizedGame, Perspective, SyncFailure, SyncResult } from "../sc
 import { splitPgnGames } from "../split.ts";
 
 /**
- * How the uploader identified themselves across the whole batch. "white"
- * and "black" apply to every game, no header check — the user is asserting
- * it, not describing it. "byName" keeps the original per-game header match.
+ * "white" and "black" apply to every game with no header check, the user
+ * asserting rather than describing; "byName" matches each game's headers.
  */
 export type Participation =
   | { mode: "white" }
@@ -23,7 +20,7 @@ export interface ImportPgnOptions {
   participation?: Participation | undefined;
 }
 
-/** Case-insensitive header match: PGN names are free text, not handles. */
+/** Case-insensitive: PGN names are free text, not handles. */
 function sideOf(game: NormalizedGame, playerName: string): Perspective | null {
   const name = playerName.trim().toLowerCase();
   if (!name) return null;
@@ -32,7 +29,7 @@ function sideOf(game: NormalizedGame, playerName: string): Perspective | null {
   return null;
 }
 
-/** Resolves perspective per game — forced modes skip the headers entirely. */
+/** A forced mode skips the headers entirely. */
 function resolveParticipation(
   game: NormalizedGame,
   participation: Participation,

@@ -9,7 +9,6 @@ import {
   selectCanGoBack,
   selectCanGoForward,
   selectFen,
-  selectTotalPlies,
 } from "../review-model.ts";
 import { createReviewStore } from "../review-store.ts";
 
@@ -34,18 +33,22 @@ const moves: ReplayedMove[] = [1, 2, 3].map((ply) => ({
   fenAfter: `after-${ply}`,
 }));
 
-const aReview = (onNavigate?: () => void) =>
-  createReviewStore({ game: { moves, startFen: START }, onNavigate });
+/** The game is the model's parameter, not the store's state — the same
+ * object the store was built with is what the selectors read. */
+const game = { moves, startFen: START };
+
+const aReview = (onNavigate?: () => void) => createReviewStore({ game, onNavigate });
 
 describe("review navigation", () => {
   it("opens at the starting position", () => {
     const state = aReview().getState();
 
     expect(state.ply).toBe(0);
-    expect(selectFen(state)).toBe(START);
-    expect(selectTotalPlies(state)).toBe(3);
+    expect(state.variation).toBeNull();
+    expect(state.showBestMove).toBe(false);
+    expect(selectFen(state, game)).toBe(START);
     expect(selectCanGoBack(state)).toBe(false);
-    expect(selectCanGoForward(state)).toBe(true);
+    expect(selectCanGoForward(state, game)).toBe(true);
   });
 
   it("announces explicit navigation, and nothing on creation", () => {
@@ -69,11 +72,11 @@ describe("review navigation", () => {
 
     store.getState().next();
     expect(store.getState().ply).toBe(1);
-    expect(selectFen(store.getState())).toBe("after-1");
+    expect(selectFen(store.getState(), game)).toBe("after-1");
 
     store.getState().previous();
     expect(store.getState().ply).toBe(0);
-    expect(selectFen(store.getState())).toBe(START);
+    expect(selectFen(store.getState(), game)).toBe(START);
   });
 
   it("stops at both ends instead of running past them", () => {
@@ -83,7 +86,7 @@ describe("review navigation", () => {
     expect(store.getState().ply).toBe(0);
 
     store.getState().goToPly(3);
-    expect(selectCanGoForward(store.getState())).toBe(false);
+    expect(selectCanGoForward(store.getState(), game)).toBe(false);
     store.getState().next();
     expect(store.getState().ply).toBe(3);
   });
@@ -112,11 +115,20 @@ describe("the engine's move someone asked to see", () => {
   it("is remembered until the board steps anywhere", () => {
     const store = aReview();
 
-    store.getState().showBest("d4");
-    expect(store.getState().preview).toBe("d4");
+    store.getState().revealBestMove();
+    expect(store.getState().showBestMove).toBe(true);
 
     store.getState().next();
-    expect(store.getState().preview).toBeNull();
+    expect(store.getState().showBestMove).toBe(false);
+  });
+
+  it("is dropped by a jump to another ply, where it would be about another move", () => {
+    const store = aReview();
+
+    store.getState().revealBestMove();
+    store.getState().goToPly(2);
+
+    expect(store.getState().showBestMove).toBe(false);
   });
 });
 

@@ -1,13 +1,9 @@
 /**
- * GetGame — open one game for review.
- *
- * The read that fills the review screen: the game row plus both seats'
- * provider identity, resolved from the `provider_profiles` cache. The
- * cache is keyed by the handle, not the connection — an opponent needs no
- * tracked account to have a face — and a miss (or a stale entry) fetches
- * that seat's profile once and writes it through, so only the first open
- * per handle per refresh window spends a provider request. Two seats of
- * one game are inherently bounded; imports never fan out here.
+ * Both seats' identity comes from the `provider_profiles` cache, keyed by
+ * the handle rather than the connection, so an opponent needs no tracked
+ * account to have a face. A miss or a stale entry fetches once and writes
+ * through, so only the first open per handle per refresh window spends a
+ * provider request.
  */
 import type { Game, ProviderSeat } from "@velachess/infra-db";
 import type { AccountPlatform, FetchFn } from "@velachess/infra-platforms";
@@ -18,9 +14,9 @@ import {
 } from "@velachess/infra-platforms";
 
 export interface SeatIdentity {
-  /** Provider profile picture. Null when unknown — initials stand in. */
+  /** Null when unknown, where initials stand in. */
   avatarUrl: string | null;
-  /** Lichess asset id decorating the name. Never an avatar. */
+  /** A Lichess asset id decorating the name, never an avatar. */
   flair: string | null;
 }
 
@@ -38,7 +34,7 @@ type UpsertProviderProfile = (
   seat: ProviderSeat,
   fetched: ProfileFetch,
 ) => Promise<{ avatarUrl: string | null; flair: string | null }>;
-/** Pure — a profile stays fresh for a fixed window from when it was fetched. */
+/** A profile stays fresh for a fixed window from when it was fetched. */
 type IsProfileFresh = (fetchedAt: Date) => boolean;
 
 export interface GetGameDeps {
@@ -46,16 +42,15 @@ export interface GetGameDeps {
   findProviderProfiles: FindProviderProfiles;
   upsertProviderProfile: UpsertProviderProfile;
   isProfileFresh: IsProfileFresh;
-  /** Composed once, at wiring time — the fixture a test harness reads
-   * through instead of the network. Never varies per call. */
+  /** Composed once at wiring time; never varies per call. */
   fetch?: FetchFn;
 }
 
 const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null };
 
-/** Ask the provider once. The fetchers fail soft by contract — a dead
- * provider answers `failed`, never throws — so an outage costs the
- * decoration, never the game. */
+/** The fetchers fail soft by contract, a dead provider answering `failed`
+ * rather than throwing, so an outage costs the decoration, not the
+ * game. */
 async function fetchProfile(seat: ProviderSeat, doFetch: FetchFn | undefined) {
   const opts = doFetch ? { fetch: doFetch } : {};
   return seat.platform === "chess_com"
@@ -63,9 +58,8 @@ async function fetchProfile(seat: ProviderSeat, doFetch: FetchFn | undefined) {
     : fetchLichessProfile(seat.username, opts);
 }
 
-/** Cache first; on miss or staleness, ask the provider once and serve
- * what the write-through actually kept — after a failed ask that is the
- * stored identity, not the emptiness the outage produced. */
+/** Serves what the write-through kept, which after a failed ask is the
+ * stored identity rather than the emptiness the outage produced. */
 async function resolveSeatIdentity(
   deps: GetGameDeps,
   seat: ProviderSeat,
@@ -90,7 +84,7 @@ export async function getGameForReview(
   const game = await deps.getGameForUser(userId, gameId);
   if (!game) return null;
 
-  // A pasted PGN has no provider behind it — nobody to ask, initials for both.
+  // A pasted PGN has no provider to ask.
   if (game.source !== "chess_com" && game.source !== "lichess") {
     return { ...game, whiteIdentity: NO_IDENTITY, blackIdentity: NO_IDENTITY };
   }
@@ -98,15 +92,15 @@ export async function getGameForReview(
   const whiteSeat: ProviderSeat = { platform: game.source, username: game.whiteName };
   const blackSeat: ProviderSeat = { platform: game.source, username: game.blackName };
   const rows = await deps.findProviderProfiles([whiteSeat, blackSeat]);
-  // Case-folded key on both sides: providers fold case, the cache must not fork on it.
+  // Case-folded on both sides: the cache must not fork on case.
   const rowOf = (seat: ProviderSeat): CachedProfile | null =>
     rows.find(
       (row) =>
         row.platform === seat.platform && row.username === seat.username.toLowerCase(),
     ) ?? null;
 
-  // Independent handles, resolved concurrently — one cold open waits one
-  // provider round trip, not two.
+  // Concurrently, so one cold open waits one provider round trip, not
+  // two.
   const [whiteIdentity, blackIdentity] = await Promise.all([
     resolveSeatIdentity(deps, whiteSeat, rowOf(whiteSeat)),
     resolveSeatIdentity(deps, blackSeat, rowOf(blackSeat)),

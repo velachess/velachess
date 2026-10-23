@@ -1,29 +1,26 @@
 /**
- * Execution-level mutual exclusion via Postgres session advisory locks.
- * The acquisition IS the check (pg_try_advisory_lock) — no separate
- * inspect step, no TOCTOU. Session locks die with the connection, so a
- * crashed executor never leaves a stale claim behind.
+ * The acquisition is the check, so there is no TOCTOU, and session locks
+ * die with the connection, so a crashed executor leaves no stale claim.
  */
 
 import postgres from "postgres";
 
 export interface LockExecutor {
-  /** Same generic shape PGlite and node-postgres expose — the row type
-   * flows through instead of being asserted at the call site. */
+  /** The shape PGlite and node-postgres both expose, so the row type flows
+   * through instead of being asserted at the call site. */
   query<T>(sql: string, params?: string[]): Promise<{ rows: T[] }>;
 }
 
 export interface ExecutionLock {
-  /** Null = someone alive holds it. Otherwise a release function that must
-   * run in the caller's finally. */
+  /** Null when someone alive holds it; otherwise a release the caller runs
+   * in its finally. */
   tryAcquire(key: string): Promise<(() => Promise<void>) | null>;
 }
 
 export function sessionAdvisoryLock(executor: LockExecutor): ExecutionLock {
-  // Session advisory locks are reentrant WITHIN a session, so two callers
-  // sharing one connection (same api process; PGlite's single session)
-  // would both "acquire". The in-process set closes that hole; the
-  // advisory lock covers cross-process/cross-connection exclusion.
+  // Session advisory locks are reentrant within a session, so two callers
+  // sharing one connection would both acquire. The set closes that hole;
+  // the advisory lock covers cross-connection exclusion.
   const heldInProcess = new Set<string>();
 
   return {
@@ -53,9 +50,8 @@ export function sessionAdvisoryLock(executor: LockExecutor): ExecutionLock {
 }
 
 /**
- * The `LockExecutor` over a dedicated postgres.js connection. Session locks
- * must outlive individual queries, so the connection is pinned (`max: 1`);
- * both the api and the worker need one of these, built from the same env.
+ * Session locks must outlive individual queries, so the connection is
+ * pinned with `max: 1`.
  */
 export function postgresLockExecutor(url: string): {
   lock: ExecutionLock;

@@ -8,6 +8,7 @@ import { openBrowserEngineSession } from "./browser-session.ts";
 import { createEngine } from "./engine.ts";
 
 export { ENGINE_BUILD } from "./engine-asset.ts";
+export type { EngineSessionHandle } from "./engine.ts";
 
 /** The app's engine: every session it hands out runs the vendored
  * Stockfish WASM build in a Worker of its own. */

@@ -16,8 +16,8 @@ type GameResponse = InferResponseType<(typeof api.games)[":id"]["$get"], 200>;
 export type ReplayableGame = GameResponse & ReplayedGame;
 
 /**
- * Parsing sits in the fetch, not the render: React Query caches the
- * result, so stepping never re-parses and the screen needs no memo.
+ * Parsing sits in the fetch, so React Query caches the result and stepping
+ * never re-parses.
  */
 export function gameQuery(gameId: string) {
   return queryOptions({
@@ -26,7 +26,6 @@ export function gameQuery(gameId: string) {
       const game = await parseResponse(api.games[":id"].$get({ param: { id: gameId } }));
       return { ...game, ...replay(game.rawPgn) };
     },
-    // Movetext never changes once imported.
     staleTime: Infinity,
   });
 }
@@ -39,24 +38,21 @@ const UNREADABLE: ReplayedGame = {
 };
 
 /**
- * The one interpretation of this game's PGN. `replayMainline` stops at the
- * first illegal move rather than throwing, so a game from the wild renders
- * as far as it is playable — and the analysis pass reads this same result
- * instead of parsing the movetext again.
+ * `replayMainline` stops at the first illegal move rather than throwing, so
+ * a game from the wild renders as far as it is playable, and the analysis
+ * pass reads this same result.
  */
 function replay(rawPgn: string): ReplayedGame {
   const [game] = parsePgn(rawPgn);
   if (!game) return UNREADABLE;
 
-  try {
-    return replayMainline(game).unwrap();
-  } catch {
-    // Unreadable movetext is still a game with a header worth showing.
-    return UNREADABLE;
-  }
+  return replayMainline(game).unwrap(
+    (replayed) => replayed,
+    () => UNREADABLE,
+  );
 }
 
-/** A ply is one half-move. Ply 0 is the position before anyone moved. */
+/** Ply 0 is the position before anyone moved. */
 export function fenAtPly(
   moves: readonly ReplayedMove[],
   startFen: string,

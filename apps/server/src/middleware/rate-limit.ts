@@ -1,11 +1,11 @@
 /**
- * Rate limiting for the application's own routes, keyed by the
- * authenticated `userId` — not applied to `/auth/*` (Better Auth throttles
- * that itself) and not by client IP, so there is no proxy header to trust.
+ * Keyed by the authenticated `userId` rather than by client IP, so there is
+ * no proxy header to trust, and never applied to `/auth/*`, which Better
+ * Auth throttles itself.
  *
- * Fixed window (`hono-rate-limiter`'s `RedisStore`): the window opens on a
- * subject's first request and resets in full when it ends; refusals do not
- * extend it. See docs/explanation/apps/api.md.
+ * A fixed window: it opens on a subject's first request and resets in full
+ * when it ends, and refusals do not extend it. See
+ * docs/explanation/apps/api.md.
  */
 import type { Context, Next } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
@@ -21,8 +21,8 @@ export interface RateLimitPolicy {
   windowSeconds: number;
 }
 
-/** One budget per shape of cost: a list read and an import request differ
- * by orders of magnitude, and import also spends someone else's quota. */
+/** A list read and an import request differ by orders of magnitude, and an
+ * import also spends someone else's quota. */
 export const POLICIES = {
   authenticated: { name: "api", max: 300, windowSeconds: 60 },
   import: { name: "import", max: 5, windowSeconds: 60 },
@@ -53,14 +53,14 @@ export function rateLimit(
         c.get("rateLimit").resetTime,
         policy.windowSeconds,
       );
-      // The SPA's client reads only the body of a rejection, so the wait goes
-      // in both; one computed value keeps them equal.
+      // The SPA's client reads only the body of a rejection, so one computed
+      // value goes in both and keeps them equal.
       c.header("Retry-After", String(retryAfter));
       return c.json({ error: "too many requests", retryAfterSeconds: retryAfter }, 429);
     },
   });
-  // Named so tests/openapi.test.ts can assert it is registered below the
-  // session gate; `rateLimiter(...)` returns an anonymous middleware.
+  // Named so tests/openapi.test.ts can assert its position below the session
+  // gate; `rateLimiter(...)` returns an anonymous middleware.
   return function rateLimited(c: Context<ApiEnv>, next: Next) {
     return limiter(c, next);
   };

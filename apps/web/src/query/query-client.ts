@@ -15,10 +15,9 @@ function handleApiError(error: unknown) {
 
   if (isCancelledError(apiError)) return;
 
-  // 401 is an authentication state, not a failure to report: the session
-  // ended (expired, revoked, signed out in another tab) and the app has
-  // to stop pretending otherwise. Announced here, decided elsewhere —
-  // see api/unauthorized.ts.
+  // A 401 is an authentication state, not a failure to report: the session
+  // ended and the app stops pretending otherwise. Announced here, decided
+  // in api/unauthorized.ts.
   if (isUnauthorizedError(apiError)) {
     reportUnauthorized();
     return;
@@ -40,13 +39,18 @@ function reportUnexpectedApiError(error: unknown) {
 
 export function createQueryClient() {
   return new QueryClient({
-    // A request that fails on infrastructure raises the banner, and nothing
-    // lowers it: no probe, no timer, no retry ladder. A later success can't
-    // be trusted to mean the outage ended — the session query alone refetches
-    // on every navigation, so any healthy endpoint would hide a backend that
-    // is still broken for everything else. The reload the banner asks for is
-    // the reset.
-    queryCache: new QueryCache({ onError: handleApiError }),
+    // An infrastructure failure raises the banner and nothing lowers it: a
+    // later success cannot be trusted to mean the outage ended, the session
+    // query alone refetching on every navigation. The reload the banner asks
+    // for is the reset.
+    queryCache: new QueryCache({
+      // `meta.engine` marks work that runs on this device, whose failure
+      // reaches its own screen through `isError`.
+      onError: (error, query) => {
+        if (query.meta?.["engine"] === true) return;
+        handleApiError(error);
+      },
+    }),
     mutationCache: new MutationCache({ onError: handleApiError }),
     defaultOptions: {
       queries: {

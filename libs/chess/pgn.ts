@@ -1,8 +1,6 @@
 /**
- * PGN — parsing, writing, the game tree, and comment annotations
- * ([%clk], [%eval], [%csl]/[%cal]). chessops' own parser produces a tree
- * of syntactically valid moves, not necessarily legal ones (its own words);
- * `replayMainline` below is the one place that gap gets closed.
+ * chessops' parser produces syntactically valid moves, not necessarily
+ * legal ones; `replayMainline` is where that gap gets closed.
  */
 
 import { Result } from "@badrap/result";
@@ -21,55 +19,40 @@ import type { Color, Outcome } from "chessops/types";
 import { uciOf } from "./moves.ts";
 import type { PositionError } from "chessops/chess";
 
-/** The PGN vocabulary consumers outside this package actually reach for:
- * parsing raw text, and the parsed game it produces. */
 export { emptyHeaders, parsePgn };
 export type { Game, PgnNodeData };
 
-/** One half-move of the mainline, as replayed. Everything the readers
- * need is here as plain data: nothing downstream re-reads a FEN to learn
- * whose turn it was or which move number this is. */
+/** Plain data, so nothing downstream re-reads a FEN to learn whose turn it
+ * was. */
 export interface ReplayedMove {
   /** 1-indexed. */
   readonly ply: number;
   readonly san: string;
   readonly uci: string;
   readonly side: Color;
-  /** The move number this half-move belongs to — "1. e4" and "1… e5"
-   * share one. Taken from the position, so a game starting from a FEN at
-   * move 20 numbers from 20. */
+  /** "1. e4" and "1… e5" share one, taken from the position, so a game
+   * starting from a FEN at move 20 numbers from 20. */
   readonly moveNumber: number;
   readonly fenBefore: string;
   readonly fenAfter: string;
 }
 
-/**
- * One game, interpreted once. Serializable and read-only by contract:
- * this is what the review screen and the analysis pass both consume, so
- * neither has to parse the PGN again, and no mutable chessops `Position`
- * escapes this module.
- */
+/** Serializable and read-only, so no mutable chessops `Position` escapes
+ * this module. */
 export interface ReplayedGame {
   /** Honours `[FEN]`/`[SetUp]`, and is correct even with no moves. */
   readonly startFen: string;
-  /** Mechanical: the whole mainline replayed. False means it stopped at
-   * an illegal move, and `moves` holds what came before. Not the same
-   * question as whether the game is worth keeping — see
-   * `isPlayableGame`. */
+  /** False means it stopped at an illegal move, with `moves` holding what
+   * came before. */
   readonly legal: boolean;
-  /** How the game ended *by the rules*, not by its `[Result]` header: a
-   * resignation has `[Result "1-0"]` and no terminal position. Null when
-   * play simply stopped. */
+  /** By the rules, not the `[Result]` header: a resignation has
+   * `[Result "1-0"]` and no terminal position. */
   readonly terminal: Outcome | null;
   readonly moves: readonly ReplayedMove[];
 }
 
-/**
- * Walks a parsed game's mainline, validating and playing each move against
- * the rules. Stops at the first move that isn't legal in the position it's
- * played in, rather than throwing — a game imported from the wild is data,
- * not something we get to assume is correct.
- */
+/** Stops at the first illegal move rather than throwing: a game from the
+ * wild is data, not something to assume correct. */
 export function replayMainline(
   game: Game<PgnNodeData>,
 ): Result<ReplayedGame, FenError | PositionError> {
@@ -85,8 +68,7 @@ export function replayMainline(
         legal = false;
         break;
       }
-      // Read before playing: `pos` is this move's own position, and
-      // `uciOf` needs it to recognise a castle.
+      // `uciOf` needs this move's own position to recognise a castle.
       const side = pos.turn;
       const moveNumber = pos.fullmoves;
       const uci = uciOf(pos, move);
@@ -112,14 +94,8 @@ export function replayMainline(
 }
 
 /**
- * Whether a game is worth keeping: it must carry headers and have played
- * at least one legal move. An illegal move further in does not disqualify
- * it — `legal: false` with a non-empty `moves` is still a game, and the
- * part that replayed is what gets shown and analysed.
- *
- * The one place this policy is written. `hasPlayableGame` applies it to
- * raw text; ingestion applies it to a game it has already parsed, so the
- * PGN is never interpreted twice in one operation.
+ * Headers and at least one legal move: an illegal move further in does not
+ * disqualify a game, since the part that replayed is what gets shown.
  */
 export function isPlayableGame(
   headers: Map<string, string>,
@@ -129,20 +105,15 @@ export function isPlayableGame(
 }
 
 /**
- * The one semantic "is this actually a game" check, shared by every layer
- * that must reject arbitrary or malformed text before it reaches
- * persistence: true iff the text parses into at least one game that played
- * at least one legal move. chessops' own parser accepts non-PGN text as a
- * single game with empty headers and an empty mainline (see
- * `normalizeGame`'s comment in libs/infra/platforms/normalize.ts) — that
- * case, and a thrown PgnError, both count as "no playable game".
+ * chessops accepts non-PGN text as a single game with empty headers and an
+ * empty mainline; that case and a thrown PgnError both count as "no
+ * playable game".
  */
 export function hasPlayableGame(pgn: string): boolean {
   let games: Game<PgnNodeData>[];
   try {
-    // Starting from emptyHeaders (not the 7-key default) is what makes an
-    // absent [Event] tag show up as headers.size === 0 below — same
-    // convention as normalizeGame in libs/infra/platforms/normalize.ts.
+    // emptyHeaders, not the 7-key default, so an absent [Event] tag shows
+    // up as headers.size === 0 below.
     games = parsePgn(pgn, emptyHeaders);
   } catch {
     return false;

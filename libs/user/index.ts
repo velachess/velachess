@@ -1,11 +1,8 @@
 /**
- * [USER] — the VelaChess person: who they are here and what they look
- * like. Owns first-user bootstrap and the profile avatar.
- *
- * Refuses to own the Better Auth mechanism and session resolution (that
- * is libs/infra/auth and apps/server/src/middleware/session.ts), and the
- * chess.com/Lichess handles a person tracks (that is libs/accounts — a
- * public handle is a data source, never identity).
+ * First-user bootstrap and the profile avatar. Not the Better Auth
+ * mechanism or session resolution, which are libs/infra/auth's and the
+ * session middleware's, and not the handles a person tracks, which are
+ * libs/accounts': a public handle is a data source, never identity.
  */
 
 export { AVATAR_MAX_BYTES } from "./avatar.ts";

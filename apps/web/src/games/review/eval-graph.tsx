@@ -10,13 +10,9 @@ import type { GradedPly, MoveCategory } from "../analysis/index.ts";
 import { CATEGORY_BADGE, whiteShareOf } from "./move-presentation.ts";
 
 /**
- * What the graph marks.
- *
- * The chart draws a dot wherever a point carries a tone, and this is
- * where the product decides which moves deserve one. A game is mostly
- * good and best moves; a dot on each turns an 80px strip into a row of
- * dots and buries the three that matter. The curve already shows every
- * move, and the scoresheet names them all.
+ * The chart draws a dot wherever a point carries a tone. A game is mostly
+ * good moves, so a dot on each buries the three that matter; the curve
+ * already shows every move and the scoresheet names them all.
  */
 const MARKED_CATEGORIES: ReadonlySet<MoveCategory> = new Set([
   "inaccuracy",
@@ -34,18 +30,18 @@ const GRAPH_COPY = {
 } as const;
 
 export interface EvalGraphProps {
-  /** Grades in ply order — shorter than the game while the run streams. */
+  /** In ply order, and shorter than the game while the run streams. */
   graded: readonly GradedPly[];
-  /** The axis, which is not the data: pinning it stops the curve
-   * rescaling on every chunk while the analysis streams in. */
+  /** The axis, not the data: pinning it stops the curve rescaling on every
+   * chunk while the analysis streams. */
   totalPlies: number;
-  /** The ply currently selected in the replay. */
   selectedPly?: number;
-  /** Called with the nearest move when anywhere on the graph is clicked. */
+  /** Called with the move nearest the click. */
   onSelectPly?: (ply: number) => void;
 }
 
-/** Winning chances, not centipawns: cp is unbounded and one mate score flattens every other move. `domain` is fixed to avoid the same distortion. */
+/** Winning chances, not centipawns: cp is unbounded and one mate score
+ * flattens every other move, which a fixed `domain` also guards. */
 export function EvalGraph({
   graded,
   totalPlies,
@@ -55,7 +51,7 @@ export function EvalGraph({
   const { i18n } = useLingui();
 
   if (graded.length === 0) {
-    // Skeleton, not an empty state: same height as the curve it becomes, so nothing shifts.
+    // The same height as the curve it becomes, so nothing shifts.
     return (
       <Skeleton
         className="h-20 w-full rounded-lg"
@@ -64,11 +60,10 @@ export function EvalGraph({
     );
   }
 
-  // Plies the run has not reached yet hold the last known share, so the
-  // curve ends flat instead of dropping to the floor while it streams.
+  // Plies the run has not reached hold the last known share, so the curve
+  // ends flat rather than dropping to the floor while it streams.
   const pending = whiteShareOf(graded.at(-1)!.evalAfter);
 
-  // Toned only where the move went wrong.
   const evaluationPoints: EvaluationPoint[] = Array.from(
     { length: Math.max(totalPlies, graded.length) },
     (_, index) => {

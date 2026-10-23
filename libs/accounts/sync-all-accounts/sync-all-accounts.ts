@@ -1,11 +1,8 @@
 /**
- * SyncAllAccounts — "sync my games", one request for every tracked account.
- *
- * Fans out the unchanged `requestSync` per account: its cooldown and
- * single-flight guard are the only source of truth, this slice adds none of
- * its own. A caller gets back only the jobs actually in flight — a cooldown
- * or an already-running job on one account is folded out, not reported,
- * since there is nothing new for a caller to watch there.
+ * Fans out the unchanged `requestSync` per account, whose cooldown and
+ * single-flight guard are the only ones. A caller gets back the jobs in
+ * flight: a cooling-down or already-running account is folded out, since
+ * there is nothing new to watch there.
  */
 import type { RequestSyncOutcome } from "../request-sync/request-sync.ts";
 
@@ -19,7 +16,7 @@ export interface SyncAllAccountsDeps {
 
 export async function syncAllAccounts(deps: SyncAllAccountsDeps, userId: string) {
   const accountIds = await deps.listAccountIds(userId);
-  // Different accounts lock different rows: nothing here contends.
+  // Different accounts lock different rows.
   const outcomes = await Promise.all(
     accountIds.map((accountId) => deps.requestSync(userId, accountId)),
   );

@@ -35,13 +35,8 @@ export interface EvaluationChartProps {
 }
 
 /**
- * Only a notable move gets a dot.
- *
- * A dot per ply turns an 80px strip into noise — the curve already
- * shows every move, and the scoresheet names them. Lichess and
- * chess.com mark the mistakes and leave the rest to the line, so the
- * eye lands on what went wrong. Any ply stays selectable: the click
- * target below is the whole plot, not these dots.
+ * A dot per ply turns an 80px strip into noise, so only a notable move gets
+ * one. Any ply stays selectable, the click target being the whole plot.
  */
 function MoveDot({
   cx,
@@ -74,12 +69,8 @@ function MoveDot({
 }
 
 /**
- * The selected ply, marked edge to edge.
- *
- * `ReferenceLine` stops at the plot area, so the chart's margin stays
- * blank above and below it — in an 80px strip that reads as a line that
- * failed to reach. This draws in the chart's own coordinates instead,
- * spanning the full height the way Lichess and chess.com mark the move.
+ * `ReferenceLine` stops at the plot area, which in an 80px strip reads as a
+ * line that failed to reach, so this draws in the chart's own coordinates.
  */
 function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
   const height = useChartHeight();
@@ -90,8 +81,8 @@ function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
   if (typeof x !== "number") return null;
 
   return (
-    // Over the curve, under the click target: a marker on top of the
-    // data that never swallows a click meant for the plot.
+    // Over the curve, under the click target, so it never swallows a click
+    // meant for the plot.
     <ZIndexLayer zIndex={DefaultZIndexes.activeDot}>
       <line
         x1={x}
@@ -106,7 +97,7 @@ function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
   );
 }
 
-/** The whole plot is the click target, not just the 2px dots: the x scale snaps a click to the nearest ply. */
+/** The x scale snaps a click to the nearest ply. */
 function PlotClickTarget({
   onSelectPly,
 }: {
@@ -127,7 +118,8 @@ function PlotClickTarget({
         fill="transparent"
         data-slot="evaluation-chart-click-target"
         className="cursor-pointer"
-        // ZIndexLayer's group is focusable; letting the click focus it rings the whole chart.
+        // ZIndexLayer's group is focusable, and focusing it rings the whole
+        // chart.
         onMouseDown={(event) => event.preventDefault()}
         onClick={(event) => {
           const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
@@ -161,8 +153,8 @@ export function EvaluationChart({
     [onSelectPly],
   );
 
-  // A selection the data does not hold is no selection: the consumer's
-  // "nothing selected" value never has to be a particular number.
+  // A selection the data does not hold is no selection, so the consumer
+  // needs no particular "nothing selected" value.
   const markedPly = data.find((point) => point.ply === selectedPly)?.ply;
 
   return (
@@ -185,13 +177,11 @@ export function EvaluationChart({
             stroke={color}
             strokeWidth={2}
             dot={renderDot}
-            // No hover affordance: the marker shows the selection, and a
-            // dot that appears under the pointer only competes with it.
+            // The marker shows the selection; a dot under the pointer
+            // competes with it.
             activeDot={false}
             isAnimationActive={false}
           />
-          {/* The marker, not a hover card: where the board sits is
-              persistent information the graph should keep showing. */}
           <SelectedPlyMarker ply={markedPly} />
           <PlotClickTarget onSelectPly={onSelectPly} />
         </LineChart>

@@ -5,8 +5,9 @@ import { resolveSession } from "../auth/session.ts";
 import { z } from "../libs/zod.ts";
 
 /**
- * Only route outside `_app`; guard mirrors it, redirecting an already-signed-in visitor away.
- * `redirect` is validated as a path (not a URL) — from the address bar, unvalidated it's an open redirect.
+ * The only route outside `_app`, with the mirrored guard. `redirect` is
+ * validated as a path rather than a URL: it arrives on the address bar, and
+ * unvalidated it is an open redirect.
  */
 const loginSearchSchema = z.object({
   redirect: z
@@ -17,11 +18,9 @@ const loginSearchSchema = z.object({
     .optional()
     .catch(undefined),
   /**
-   * Where a failed Google attempt lands: Better Auth appends `?error=<code>`
-   * when it sends the browser back here (`errorCallbackURL` in
-   * auth/sign-in/social.ts). Bounded to a short token — the value arrives
-   * on the address bar, so it is never rendered, only matched against
-   * codes the screen knows (`oauthErrorCopy`).
+   * Better Auth appends `?error=<code>` when it sends the browser back here.
+   * Bounded to a short token, which arrives on the address bar, so it is
+   * matched against the codes the screen knows and never rendered.
    */
   error: z
     .string()

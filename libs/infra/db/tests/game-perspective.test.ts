@@ -1,12 +1,10 @@
 // @vitest-environment node
 /**
- * Opening one game has to answer which seat was yours.
- *
- * A synced game stores null in `games.perspective` — the normalizer sees
- * a PGN, not an identity — so the read derives it from the provenance
- * account. Serving the raw null instead made the review screen fall back
- * to a list of handles the browser happens to remember, and seat the
- * opponent at the bottom on any device that never ran the import.
+ * A synced game stores null in `games.perspective`, the normalizer seeing a
+ * PGN rather than an identity, so the read derives the seat from the
+ * provenance account. Serving the raw null made the review screen fall back
+ * to handles the browser happened to remember, seating the opponent at the
+ * bottom on any device that never ran the import.
  */
 import type { NormalizedGame } from "@velachess/infra-platforms";
 import { afterAll, beforeEach, expect, it } from "vitest";
@@ -40,8 +38,7 @@ function syncedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
     source: "chess_com",
     externalId: "200000001",
     externalUrl: "https://www.chess.com/game/live/200000001",
-    // What a sync always stores: the provider hands over a PGN, not a
-    // statement about who the viewer is.
+    // What a sync stores: the provider hands over a PGN, not an identity.
     perspective: null,
     white: { name: "Opponent", rating: 1500 },
     black: { name: "yurimutti", rating: 1480 },
@@ -57,7 +54,7 @@ function syncedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
-/** `saveGames` answers with a count, so the id comes back off the table. */
+/** `saveGames` answers with a count, so the id comes off the table. */
 async function onlyGameId() {
   const [row] = await db.select({ id: games.id }).from(games);
   return row!.id;
@@ -85,8 +82,8 @@ it("seats you as White when the account played White", async () => {
 });
 
 it("matches the handle whatever case the provider returns it in", async () => {
-  // Chess.com answers with the display casing, which is not the casing
-  // anyone typed when connecting the account.
+  // Chess.com answers in display casing, not the casing anyone typed when
+  // connecting.
   const row = await openOnlyGame(
     "YuriMutti",
     syncedGame({ black: { name: "YURIMUTTI", rating: 1480 } }),
@@ -96,8 +93,8 @@ it("matches the handle whatever case the provider returns it in", async () => {
 });
 
 it("keeps the seat a manual import already resolved", async () => {
-  // A pasted PGN can state the seat outright, and nothing derived may
-  // overrule it — there is no account behind it to derive from.
+  // A pasted PGN states the seat outright, and has no account to derive
+  // from.
   await saveGames(
     db,
     [
@@ -118,8 +115,8 @@ it("keeps the seat a manual import already resolved", async () => {
 });
 
 it("answers null when nothing attributes the game", async () => {
-  // An unattributed PGN: null is the honest answer, and the screen is
-  // free to say it does not know rather than claim a seat.
+  // An unattributed PGN: null lets the screen say it does not know rather
+  // than claim a seat.
   await saveGames(
     db,
     [
@@ -139,8 +136,8 @@ it("answers null when nothing attributes the game", async () => {
 });
 
 it("still refuses a game that belongs to someone else", async () => {
-  // The account join is provenance only. Ownership is the row's own
-  // user_id, and adding the join must not widen it.
+  // The join is provenance only: ownership is the row's own user_id and
+  // must not widen.
   const account = (await insertTrackedAccount(db, ownerId, "chess_com", "yurimutti"))!;
   await saveGames(db, [syncedGame()], { userId: ownerId, accountId: account.id });
   const gameId = await onlyGameId();
@@ -150,9 +147,9 @@ it("still refuses a game that belongs to someone else", async () => {
 });
 
 it("the account-scoped list resolves the seat too, not just the single read", async () => {
-  // Same rule, second reader: this list served the raw column, so every
-  // synced game in it answered "unknown" while `getGameForUser` answered
-  // correctly for the very same row.
+  // The second reader of the same rule: this list served the raw column, so
+  // every synced game answered "unknown" while `getGameForUser` answered
+  // correctly for the same row.
   const account = (await insertTrackedAccount(db, ownerId, "chess_com", "yurimutti"))!;
   await saveGames(db, [syncedGame()], { userId: ownerId, accountId: account.id });
 

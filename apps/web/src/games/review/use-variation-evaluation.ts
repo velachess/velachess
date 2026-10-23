@@ -1,68 +1,73 @@
 /**
- * The one place a variation's position is sent to the engine, the one
- * place that search is cancelled, and the owner of the engine session
- * behind both.
- *
- * The session is this review's: opened by the first position that needs
- * it, kept while someone keeps walking the line — so one Worker answers
- * every position instead of one per FEN — and disposed when the review
- * goes away. Nothing else may dispose it, and the whole-game pass has a
- * session of its own that this one neither waits for nor interrupts.
+ * One session for the whole review, so one Worker answers every position of
+ * a line. The whole-game pass has a session of its own that this one
+ * neither waits for nor interrupts.
  */
-import { useEffect, useRef } from "react";
-import { useStore } from "zustand";
+import { useEffect, useRef, useState } from "react";
 
-import { openPositionEvaluator, type OpenPositionEvaluator } from "../analysis/index.ts";
-import { run } from "../../libs/effection.ts";
+import type { WhitePovScore } from "@velachess/analysis";
 
-import { variationFen } from "./review-model.ts";
-import type { ReviewStore } from "./review-store.ts";
+import {
+  createStockfishEvaluator,
+  type PositionEvaluator,
+  type PositionSearch,
+} from "../analysis/index.ts";
 
-export function useVariationEvaluation(store: ReviewStore): void {
-  const fen = useStore(store, (state) => variationFen(state.variation));
-  const evaluatorRef = useRef<OpenPositionEvaluator | null>(null);
+/** The finished number is the stream's return value, which `for await`
+ * discards. */
+async function settledEvaluation(search: PositionSearch) {
+  let step = await search.next();
+  // oxlint-disable-next-line eslint/no-await-in-loop -- draining a stream is sequential by definition: the next value exists only once this one arrived
+  while (!step.done) step = await search.next();
+  return step.value;
+}
 
-  /**
-   * Cleared before it is disposed, so a remount opens a fresh evaluator
-   * instead of reaching for a disposed one.
-   */
+interface Answered {
+  fen: string;
+  score: WhitePovScore;
+}
+
+export function useVariationEvaluation(fen: string | null): WhitePovScore | null {
+  const evaluatorRef = useRef<PositionEvaluator | null>(null);
+  const [answered, setAnswered] = useState<Answered | null>(null);
+
+  // Cleared before disposing, so a remount opens a fresh evaluator rather
+  // than reaching for a disposed one.
   useEffect(
     () => () => {
       const evaluator = evaluatorRef.current;
       evaluatorRef.current = null;
-      if (evaluator) void run(() => evaluator.dispose()).catch(() => {});
+      if (evaluator) void evaluator.dispose().catch(() => {});
     },
     [],
   );
 
   /**
-   * React's cleanup is the rule: everything that makes this position stop
-   * being the one on screen — a further move, walking the line back, the
-   * variation ending, the screen going away — runs the same teardown, so
-   * the engine is told to stop instead of being left searching for an
-   * answer nobody will read. The session survives that teardown; only the
-   * search is cancelled.
+   * `cancel()` reaches the search, where the generator's `return()` would
+   * queue behind the pending `next()`. The session survives the teardown.
    */
   useEffect(() => {
     if (fen === null) return;
 
-    const evaluator = (evaluatorRef.current ??= openPositionEvaluator());
-    const evaluation = run(() => evaluator.evaluate(fen));
+    const evaluator = (evaluatorRef.current ??= createStockfishEvaluator());
+    const search = evaluator.evaluate(fen);
+    let asked = true;
 
-    evaluation.then(
-      // The store refuses an answer about a position that is no longer on
-      // the board, so a result that beats its own `halt()` is caught
-      // there rather than by a flag here.
-      (raw) => store.getState().variationEvaluated(fen, raw.score),
+    void settledEvaluation(search).then(
+      (settled) => {
+        // A result that beat its own cancellation is not this position's.
+        if (asked) setAnswered({ fen, score: settled.score });
+      },
       () => {
-        // `SearchSuperseded` when a newer position took the engine, or a
-        // real engine failure: neither has a number to show, and neither
-        // is a reason to throw away the moves someone played.
+        // A stop, a superseded search or a dead engine: no number.
       },
     );
 
-    // `halt()` hands back a lazy handle: the task is interrupted only
-    // once that handle is consumed, and consuming it rejects.
-    return () => void evaluation.halt().catch(() => {});
-  }, [fen, store]);
+    return () => {
+      asked = false;
+      search.cancel();
+    };
+  }, [fen]);
+
+  return answered?.fen === fen ? answered.score : null;
 }

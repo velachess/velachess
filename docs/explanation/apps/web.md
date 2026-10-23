@@ -52,6 +52,12 @@ test harness may import; dependency-cruiser enforces it
 `import/accounts/`) is internal to its domain: its own `index.ts` is a
 contract toward the rest of that domain, not toward the app.
 
+Those barrels are the one thing `react-doctor` and this repository
+disagree about. Its `no-barrel-import` rule asks for the file rather than
+the folder, which is a dependency-cruiser error here, and all twenty of
+its hits are mandated `index.ts` imports — so the rule is off in
+`doctor.config.json`. The boundary is worth more than the tree-shaking.
+
 `engine/` sits outside `games/` for the same reason `api/` and `query/`
 do: it is infrastructure, not a capability. It is the Stockfish factory,
 its sessions and their Workers, and `games/analysis` is its only consumer

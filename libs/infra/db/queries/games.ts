@@ -32,19 +32,15 @@ function toRow(game: NormalizedGame, userId: string, accountId: string | undefin
   };
 }
 
-/** ~22 bind parameters per game: 500 rows stay far under Postgres's 65,535
- * per statement, and Drizzle builds each statement without overflowing. */
+/** ~22 bind parameters per game, so 500 rows stay well under Postgres's
+ * 65,535 per statement. */
 const SAVE_GAMES_BATCH_SIZE = 500;
 
 /**
- * Conflict-ignore persistence: a blocked insert is deduplication, not an
- * error — the caller reads it from the lower inserted count. Ownership is
- * always the user's; `accountId` is provenance only (a manual PGN import
- * has none), and the unique constraints decide what "duplicate" means per
- * source.
- *
- * Writes in sequential batches with no transaction across them: a failure
- * keeps the batches before it, and a retry re-inserts them as no-ops.
+ * A blocked insert is deduplication, not an error: the caller reads it from
+ * the lower inserted count, and the unique constraints decide what
+ * "duplicate" means per source. No transaction spans the batches, so a
+ * failure keeps the ones before it and a retry re-inserts them as no-ops.
  */
 export async function saveGames(
   db: Database,
@@ -70,31 +66,22 @@ export async function saveGames(
   return { inserted };
 }
 
-/**
- * The full row, rawPgn included — board rendering needs it.
- * Unscoped: for the WORKER and for internal reads that already trust the
- * id. HTTP handlers use `getGameForUser`.
- */
+/** Unscoped, for the worker and internal reads that already trust the id.
+ * HTTP handlers use `getGameForUser`. */
 export async function getGame(db: Database, gameId: string) {
   const [game] = await db.select().from(games).where(eq(games.id, gameId));
   return game ?? null;
 }
 
 /**
- * The full row, only if the caller owns it, with the seat resolved.
+ * Ownership is the row's own `user_id`, checked in the query rather than
+ * after the fetch, and the tracked-account join is provenance only: a LEFT
+ * join, so a pasted PGN is scoped exactly like a synced game.
  *
- * Ownership is still the row's own `user_id`, checked in the query
- * rather than after the fetch: there is no window where the row exists
- * in memory for a caller it does not belong to. The tracked-account
- * join added for `perspective` is provenance only and never widens
- * that — it is a LEFT join, so a manually imported PGN is scoped
- * exactly like a synced game and simply has no account to match.
- *
- * `perspective` is derived rather than read straight off the column,
- * because a synced game stores null there. Serving that null made the
- * review screen fall back to guessing the seat from a list of handles
- * the browser happens to remember, which seats the opponent at the
- * bottom on any device that never ran the import.
+ * `perspective` is derived rather than read off the column, which a synced
+ * game stores null in. Serving that null made the review screen guess the
+ * seat from handles the browser happened to remember, seating the opponent
+ * at the bottom on any device that never ran the import.
  */
 export async function getGameForUser(db: Database, userId: string, gameId: string) {
   const [row] = await db
@@ -106,15 +93,10 @@ export async function getGameForUser(db: Database, userId: string, gameId: strin
 }
 
 /**
- * Game list for one account — what a game-list UI renders without N+1.
- * rawPgn deliberately excluded. Unscoped by owner — callers that need
- * ownership enforced check the tracked account first (see
- * `@velachess/accounts`'s list-account-games).
- *
- * `perspective` is derived, not read off the column, for the reason
- * `perspective.ts` states: a synced game stores null there, and this list
- * hands the seat to a caller. It served the raw column until this join
- * was added — every synced row answered "unknown".
+ * Unscoped by owner: callers enforcing ownership check the tracked account
+ * first (`@velachess/accounts`'s list-account-games). `perspective` is
+ * derived for the reason `perspective.ts` states — a synced game stores
+ * null in the column.
  */
 export async function listGamesWithStatusForAccount(db: Database, accountId: string) {
   return (
@@ -129,8 +111,8 @@ export async function listGamesWithStatusForAccount(db: Database, accountId: str
         openingName: games.openingName,
       })
       .from(games)
-      // Provenance, not ownership: a LEFT join, so a pasted PGN with no
-      // account survives the read and answers from its stored column.
+      // Provenance, not ownership: LEFT, so a pasted PGN survives the read
+      // and answers from its stored column.
       .leftJoin(trackedAccounts, eq(trackedAccounts.id, games.accountId))
       .where(eq(games.accountId, accountId))
       .orderBy(sql`${games.playedAt} desc nulls last`, desc(games.id))

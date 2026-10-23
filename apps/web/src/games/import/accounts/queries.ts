@@ -12,21 +12,20 @@ import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
 
-/** Fallback wait when a 429 carries none — mirrors the server's own
- * `SYNC_COOLDOWN_SECONDS`. */
+/** Mirrors the server's `SYNC_COOLDOWN_SECONDS`, for a 429 carrying no
+ * wait. */
 const FALLBACK_RETRY_SECONDS = 60;
 
-/** Lichess serves its flairs from one public asset directory keyed by the
- * id the API reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`),
- * rendered as webp by its own frontend. Only the id crosses the API; the
- * address is presentation. */
+/** Lichess serves flairs from one public directory keyed by the id its API
+ * reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`). */
 const LICHESS_FLAIR_ASSETS = "https://lichess1.org/assets/flair/img";
 
 export function flairImageOf(flair: string): string {
   return `${LICHESS_FLAIR_ASSETS}/${flair}.webp`;
 }
 
-/** Tracked accounts per the server, not localStorage's `my-accounts` — a new machine or rebuilt DB can desync from local memory. */
+/** Per the server, not localStorage's `my-accounts`: a new machine or a
+ * rebuilt database desyncs from local memory. */
 export const trackedAccountsQuery = queryOptions({
   queryKey: ["accounts"],
   queryFn: () => parseResponse(api.accounts.$get()),
@@ -38,12 +37,12 @@ export type ImportRequest = {
   username: string;
 };
 
-/** POST is the only way to create an account — the old `GET /games?platform&username` upsert-on-read broke first imports with 404. */
 async function connectAccount(platform: SourceId, username: string) {
   return parseResponse(api.accounts.$post({ json: { platform, username } }));
 }
 
-/** Connects the handle, then remembers it under the server's returned username, not the typed one — platforms normalise it. */
+/** Remembers the server's returned username rather than the typed one,
+ * which the platforms normalise. */
 export async function importArchive(request: ImportRequest): Promise<RememberedAccount> {
   switch (request.kind) {
     case INPUT_KINDS.username: {
@@ -60,15 +59,14 @@ export async function importArchive(request: ImportRequest): Promise<RememberedA
   }
 }
 
-/** Whether this browser has an account selected — a UI question, not identity (that's the server session, see `auth/session.ts`). */
+/** A UI question, not identity, which is the server session's. */
 export type ImportStatus = "ready" | "empty";
 
 export function importStatus(remembered: RememberedAccount[]): ImportStatus {
   return remembered.length > 0 ? "ready" : "empty";
 }
 
-/** The statuses an account's sync can still leave. A settled one reads
- * `idle` here: the stream (`sync-events.ts`) is what announces the change. */
+/** A settled sync reads `idle`; `sync-events.ts` announces the change. */
 const ACTIVE_SYNC = new Set<TrackedAccount["syncStatus"]>([
   "queued",
   "running",
@@ -79,9 +77,6 @@ export function isSyncActive(status: TrackedAccount["syncStatus"]) {
   return ACTIVE_SYNC.has(status);
 }
 
-/** The spinner condition both sync buttons share: the request itself still
- * in flight, or the server already holding an active job for any of the
- * accounts this button covers. */
 export function isSyncInProgress(
   isPending: boolean,
   accounts: readonly Pick<TrackedAccount, "syncStatus">[],
@@ -89,9 +84,8 @@ export function isSyncInProgress(
   return isPending || accounts.some((account) => isSyncActive(account.syncStatus));
 }
 
-/** Syncs every tracked account in one request. Per-account cooldowns and
- * already-active jobs are folded in silently by the backend; only this
- * route's own rate limit surfaces as `onTooSoon`. */
+/** The backend folds in per-account cooldowns and active jobs silently;
+ * only this route's own rate limit surfaces as `onTooSoon`. */
 export function useSyncGames(handlers: {
   onTooSoon: (retryAfterSeconds: number) => void;
   onError: () => void;

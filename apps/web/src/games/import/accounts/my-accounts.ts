@@ -3,7 +3,8 @@ import { persist } from "zustand/middleware";
 
 import type { SourceId } from "./sources.ts";
 
-/** "Mine" is a device fact, not a server fact — platform usernames are public. Cleared with site data; re-import just upserts. */
+/** "Mine" is a device fact, not a server one: platform usernames are
+ * public. Cleared with site data, and a re-import upserts. */
 export interface RememberedAccount {
   accountId: string;
   platform: SourceId;
@@ -19,12 +20,9 @@ interface MyAccountsStore {
 const MY_ACCOUNTS_STORAGE_KEY = "velachess.my-accounts";
 
 /**
- * `persist` hydrates from storage on its own; there is no migration from
- * an older key. This list is a convenience — which accounts this browser
- * has seen — and the server remains the record. Losing it costs one
- * re-import, which upserts, so carrying a compatibility path for a key
- * that only ever existed on a handful of pre-release machines would be
- * dead code with a name on it.
+ * `persist` hydrates on its own and there is no migration from an older
+ * key: the server is the record, and losing this list costs one re-import,
+ * which upserts.
  */
 export const useMyAccounts = create<MyAccountsStore>()(
   persist(
