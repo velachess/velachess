@@ -37,6 +37,7 @@ import {
   buildImportPgnDeps,
   buildListGamesDeps,
 } from "./composition/games.ts";
+import { buildHealthDeps } from "./composition/health.ts";
 import { POLICIES, rateLimit } from "./middleware/rate-limit.ts";
 import { sessionMiddleware } from "./middleware/session.ts";
 import { defaultHook } from "./validation.ts";
@@ -44,6 +45,7 @@ import { accountsRoutes } from "./routes/accounts.ts";
 import { syncsRoutes } from "./routes/syncs.ts";
 import { userRoutes } from "./routes/user.ts";
 import { gamesRoutes } from "./routes/games.ts";
+import { healthRoutes } from "./routes/health.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -61,18 +63,6 @@ export interface ApiEnv {
  * service.
  */
 const MAX_BODY_BYTES = 256 * 1024;
-
-const healthRoute = createRoute({
-  method: "get",
-  path: "/health",
-  summary: "Liveness probe",
-  responses: {
-    200: {
-      description: "API is up",
-      content: { "application/json": { schema: z.object({ ok: z.boolean() }) } },
-    },
-  },
-});
 
 const configRoute = createRoute({
   method: "get",
@@ -96,7 +86,7 @@ export function createApp(deps: ApiDeps) {
   // `$()` converts the chain back to `OpenAPIHono`'s type: `.use()` (like
   // `.get`/`.post`) returns a plain `Hono` type, which drops `.openapi`
   // (see @hono/zod-openapi's README, "Type utilities") — needed here only
-  // because /health and /config sit after four `.use()` calls.
+  // because /config sits after four `.use()` calls.
   const app = $(
     new OpenAPIHono<ApiEnv>({ defaultHook })
       // Headers first, so they cover every response — including the opaque
@@ -148,9 +138,9 @@ export function createApp(deps: ApiDeps) {
       // A JSON fetch() never matches this check; that's CORS's job, above.
       .use("*", csrf({ origin: deps.trustedOrigins })),
   )
-    // System routes — liveness and documentation answer even when the
+    // System routes — health and documentation answer even when the
     // database is down; identity never touches them.
-    .openapi(healthRoute, (c) => c.json({ ok: true }, 200))
+    .route("/health", healthRoutes(buildHealthDeps(deps.readinessChecks)))
     // Public because the sign-in screen consumes it before there is anyone to
     // authenticate. Capability flags only — see SignInMethods in deps.ts.
     .openapi(configRoute, (c) => c.json({ signInMethods: deps.signInMethods }, 200))
@@ -177,7 +167,7 @@ export function createApp(deps: ApiDeps) {
     .all("/auth/*", (c) => deps.auth.handler(c.req.raw))
     .use("*", sessionMiddleware(deps.auth))
     // Every policy is keyed by userId, so this sits below the gate. No
-    // `/health` exemption needed: it's registered above the gate, so a
+    // `/health/*` exemption needed: it's registered above the gate, so a
     // request to it never reaches this line (tests/openapi.test.ts
     // asserts the ordering).
     .use("*", rateLimit(deps, POLICIES.authenticated))

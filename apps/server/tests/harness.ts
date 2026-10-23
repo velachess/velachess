@@ -29,6 +29,7 @@ import {
   type LoopHarness,
 } from "@velachess/test-utils";
 
+import { buildReadinessChecks } from "../src/composition/health.ts";
 import { createApp } from "../src/server.ts";
 import { createRedisClient } from "../src/redis.ts";
 import type { ApiDeps } from "../src/deps.ts";
@@ -135,6 +136,7 @@ export async function createApiHarness(
     // GET /games fills read-through; the suite must not reach the network.
     sync,
     redis,
+    readinessChecks: buildReadinessChecks(harness.db, harness.boss),
   };
 
   // The worker's own composition (apps/worker/src/composition/accounts.ts)

@@ -32,12 +32,13 @@ WASM, `apps/web/src/games/analysis/`) — see `docs/reference/analysis.md`.
 
 `src/main.ts` builds the real deps and hands them to `Worker`.
 `worker.start()`: `boss.start()` → `ensureQueues` (idempotent: policies,
-retry, DLQs, expiration + heartbeat, send-path warm-up) → the two
-`boss.work` registrations, awaited, so a handler that cannot register
+retry, DLQs, expiration + heartbeat, send-path warm-up) → the `sync`
+`boss.work` registration, awaited, so a handler that cannot register
 kills the process instead of logging "consuming" over a dead one.
-SIGTERM/SIGINT → `worker.stop()` (`boss.stop({ graceful: true })`:
-in-flight jobs finish, new fetches stop), then the pinned lock connection
-drains (`sql.end`), then exit. Its image recipe lives in `apps/worker/Dockerfile`
+Once it is registered, `serveLiveness` (`src/liveness.ts`) answers
+`GET /health/live` on `WORKER_HEALTH_PORT` (default `3003`). SIGTERM/SIGINT → `worker.stop()` (`boss.stop({ graceful: true })`:
+in-flight jobs finish, new fetches stop), then the liveness probe closes,
+then exit. Its image recipe lives in `apps/worker/Dockerfile`
 (same base recipe as the api's, different command); the global composition
 — postgres + api + worker — is `docker/docker-compose.yml`.
 

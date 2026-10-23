@@ -135,22 +135,22 @@ onboarding flow. This confirms that the local session was created successfully.
 
 ## 8. Verify the running environment
 
-In another terminal, call the API health endpoint:
+In another terminal, ask the API whether it is ready to serve:
 
 ```bash
-curl -fsS http://localhost:3000/health
+curl -fsS http://localhost:3000/health/ready
 ```
 
-It returns:
+It returns `ready`, with one entry per check:
 
 ```text
-{"ok":true}
+{"status":"ready","checks":{"database":{"status":"ok","latencyMs":2},"migrations":{"status":"ok","latencyMs":3},"queue":{"status":"ok","latencyMs":2}}}
 ```
 
 You now have evidence that the main services are working:
 
 - PostgreSQL reports healthy in Docker Compose.
-- The API health endpoint returns `{"ok":true}`.
+- The API readiness endpoint returns `"status":"ready"`.
 - The worker reports that it is consuming jobs.
 - The web application opens and accepts the local bootstrap credentials.
 

@@ -21,6 +21,7 @@ import { createApp } from "./server.ts";
 import { resolveApiEnv } from "./env.ts";
 import { createRedisClient } from "./redis.ts";
 import { buildBootstrapUserDeps } from "./composition/user.ts";
+import { buildReadinessChecks } from "./composition/health.ts";
 
 const apiLogger = logger.child({ component: "api" });
 
@@ -106,6 +107,7 @@ const app = createApp({
   lock,
   files: createFileStore(env.storage.root),
   redis,
+  readinessChecks: buildReadinessChecks(db, boss),
 });
 
 serve({ fetch: app.fetch, port: env.port }, (info) => {

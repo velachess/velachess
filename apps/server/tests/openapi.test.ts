@@ -153,7 +153,8 @@ it("system routes are registered before the identity middleware", () => {
 
   const gate = at("ALL /* sessionGate");
   expect(gate).toBeGreaterThan(-1);
-  expect(gate).toBeGreaterThan(at("GET /health"));
+  expect(gate).toBeGreaterThan(at("GET /health/live"));
+  expect(gate).toBeGreaterThan(at("GET /health/ready"));
   expect(gate).toBeGreaterThan(at("GET /openapi.json"));
   // Signing in happens without a session, definitionally.
   expect(gate).toBeGreaterThan(at("ALL /auth/*"));
@@ -171,7 +172,8 @@ it("system routes are registered before the identity middleware", () => {
   expect(above).toEqual(
     new Set([
       "ALL /*",
-      "GET /health",
+      "GET /health/live",
+      "GET /health/ready",
       "GET /config",
       "GET /openapi.json",
       "GET /docs",
