@@ -32,15 +32,17 @@ export function EvalBar({
   orientation = "white",
   className,
 }: EvalBarProps) {
-  const reading =
-    whiteShare === null ? null : Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
-
   // The fill a bar with no reading keeps: sliding to even and back would
   // animate a number nobody produced.
-  const [lastReading, setLastReading] = useState(reading ?? SHARE_EVEN);
-  if (reading !== null && reading !== lastReading) setLastReading(reading);
+  const [lastShare, setLastShare] = useState(whiteShare ?? SHARE_EVEN);
 
-  const share = reading ?? lastReading;
+  const hasNewReading = whiteShare !== null && whiteShare !== lastShare;
+
+  if (hasNewReading) {
+    setLastShare(whiteShare);
+  }
+
+  const share = Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare ?? lastShare));
   const whitePercent = share * PERCENT_MAX;
   const whiteAtBottom = orientation === "white";
   const whiteLeads = share >= SHARE_EVEN;
@@ -54,7 +56,7 @@ export function EvalBar({
       aria-valuemin={SHARE_MIN}
       aria-valuemax={SHARE_MAX}
       // The held fill is the previous position's, so it is not reported.
-      aria-valuenow={reading ?? undefined}
+      aria-valuenow={whiteShare === null ? undefined : share}
       aria-valuetext={label}
       aria-label={description}
       // `overflow-hidden` belongs to the fills: on the outer box it clipped
