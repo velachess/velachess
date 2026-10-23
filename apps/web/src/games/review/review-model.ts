@@ -1,10 +1,7 @@
 /**
- * What a review is, and every rule for moving around in one: pure, with
- * no React, no zustand and no engine. A transition answers "what would
- * change" and the store is what applies it.
- *
- * Chess itself is `@velachess/chess`'s — legality, whose turn it is and
- * the notation all come from there.
+ * Every rule for moving around a review: pure, with no React, no zustand
+ * and no engine. A transition answers "what would change" and the store
+ * is what applies it.
  */
 import type { MoveSquares } from "@velachess/chess";
 import { playMove, positionFromFen, type ReplayedMove } from "@velachess/chess";
@@ -12,12 +9,8 @@ import { playMove, positionFromFen, type ReplayedMove } from "@velachess/chess";
 import type { GradedPly } from "../analysis/index.ts";
 import { fenAtPly } from "./game-record.ts";
 
-/**
- * The grade on one ply, if the run has reached it. Grades are published
- * in ply order, so the array is a prefix of the game; the ply is checked
- * rather than trusted, so a mismatch reads as ungraded instead of
- * handing back a different move's grade.
- */
+/** The ply is checked rather than trusted: a mismatch reads as ungraded
+ * instead of handing back another move's grade. */
 export function gradeAtPly(
   graded: readonly GradedPly[],
   ply: number,
@@ -37,14 +30,12 @@ type ReplayNavigationEvent =
 
 export type ReplayNavigation = (event: ReplayNavigationEvent) => void;
 
-/** All a review needs of the game it is a review of, as a parameter —
- * the replay is `gameQuery`'s, never a copy in this state. */
+/** A parameter, never state: the replay is `gameQuery`'s. */
 export interface ReviewGame {
   moves: readonly ReplayedMove[];
   startFen: string;
 }
 
-/** One half-move of a variation, carrying the position it produced. */
 interface VariationMove {
   move: MoveSquares;
   san: string;
@@ -54,8 +45,7 @@ interface VariationMove {
 /** A line played from one ply of the real game. One line, not a tree. */
 export interface Variation {
   moves: VariationMove[];
-  /** 1-based: how many of the line's moves are on the board. Never 0 — a
-   * variation with nothing shown is the game itself. */
+  /** 1-based: how many of the line's moves are on the board. Never 0. */
   cursor: number;
 }
 
@@ -68,7 +58,6 @@ export interface ReviewData {
   showBestMove: boolean;
 }
 
-/** A change to apply, and what it announces once applied. */
 export interface ReviewTransition {
   data: Partial<ReviewData>;
   announce: ReplayNavigationEvent | null;
@@ -80,22 +69,18 @@ export const INITIAL_REVIEW: ReviewData = {
   showBestMove: false,
 };
 
-/** The variation's own position, when one is open. */
 export function variationFen(variation: Variation | null): string | null {
   if (!variation) return null;
   return variation.moves[variation.cursor - 1]?.fen ?? null;
 }
 
-/** The position on the board: the variation's when one is open, the game's otherwise. */
+/** The variation's position when one is open, the game's otherwise. */
 export function selectFen(state: ReviewData, game: ReviewGame): string {
   return variationFen(state.variation) ?? fenAtPly(game.moves, game.startFen, state.ply);
 }
 
-/**
- * Both ends of the game's own timeline, which a variation freezes: while
- * a line is on the board neither direction steps it, and the way back is
- * the scoresheet, which ends the line.
- */
+/** A variation freezes the game's timeline: neither direction steps while
+ * a line is on the board, and the way back is the scoresheet. */
 export function selectCanGoBack(state: ReviewData): boolean {
   return state.variation === null && state.ply > 0;
 }
@@ -104,7 +89,6 @@ export function selectCanGoForward(state: ReviewData, game: ReviewGame): boolean
   return state.variation === null && state.ply < game.moves.length;
 }
 
-/** The real game's move at the ply on screen; absent at the start. */
 export function selectGameMove(
   state: ReviewData,
   game: ReviewGame,
@@ -112,25 +96,20 @@ export function selectGameMove(
   return game.moves[state.ply - 1];
 }
 
-/** The variation's move on the board, when one is open. */
 export function selectVariationMove(state: ReviewData): MoveSquares | null {
   const { variation } = state;
   if (!variation) return null;
   return variation.moves[variation.cursor - 1]?.move ?? null;
 }
 
-/** The notation of whichever move the board is showing. */
 export function selectShowingSan(state: ReviewData, game: ReviewGame): string | null {
   const { variation } = state;
   if (variation) return variation.moves[variation.cursor - 1]?.san ?? null;
   return selectGameMove(state, game)?.san ?? null;
 }
 
-/**
- * Where a jump lands, and what it announces. Null when it would change
- * nothing — a jump onto the ply already on screen, with no variation to
- * leave, is not navigation.
- */
+/** Null when it would change nothing: a jump onto the ply on screen,
+ * with no variation to leave, is not navigation. */
 export function goToPlyState(
   state: ReviewData,
   game: ReviewGame,
@@ -151,8 +130,6 @@ export function goToPlyState(
   };
 }
 
-/** Both blocked for as long as a variation is on the board: stepping is
- * the game's timeline, and a line is not on it. */
 export function nextReviewState(
   state: ReviewData,
   game: ReviewGame,
@@ -169,11 +146,7 @@ export function previousReviewState(
   return goToPlyState(state, game, state.ply - 1);
 }
 
-/**
- * The line a move would make, or null when it is not a move this
- * position allows. Playing after walking the cursor back replaces the
- * continuation rather than branching off it.
- */
+/** The line a move would make, or null when the position refuses it. */
 export function playVariationMove(
   state: ReviewData,
   game: ReviewGame,

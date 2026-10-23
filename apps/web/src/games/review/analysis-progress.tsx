@@ -32,15 +32,11 @@ const NOT_STARTED: ProgressReading = { graded: 0, searching: null };
 
 export interface AnalysisProgressProps {
   game: ReplayableGame;
-  /** The axis the bar fills against, from the replay rather than the run. */
   totalPlies: number;
 }
 
-/**
- * The one consumer of the search in flight. It subscribes on its own so
- * a deepening search redraws this bar and nothing else — the panel
- * around it reads only the grades that have landed.
- */
+/** The one consumer of the search in flight, subscribing on its own so a
+ * deepening search redraws this bar and nothing else. */
 export function AnalysisProgress({ game, totalPlies }: AnalysisProgressProps) {
   const { i18n } = useLingui();
   const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectProgress });

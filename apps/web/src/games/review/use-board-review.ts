@@ -1,13 +1,8 @@
 /**
- * Everything the board needs, already decided: `board-pane.tsx` reads
- * this and lays it out, rather than assembling it from the store.
- *
- * Granular on purpose, on both sides. `variation` and
- * `variationEvaluation` are replaced wholesale when they change, and the
- * report is read through a `select` that names the two grades the board
- * draws — so the board re-renders when it actually looks different, and
- * not because the analysis reached some other move or deepened its
- * search.
+ * Everything the board needs, already decided. Granular on both sides:
+ * the report is read through a `select` naming the two grades the board
+ * draws, so it re-renders when it looks different and not because the
+ * analysis reached some other move.
  */
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
@@ -57,7 +52,6 @@ export function useBoardReview(game: ReplayableGame): BoardReview {
   const showBestMove = useGameReview((state) => state.showBestMove);
   const playMove = useGameReview((state) => state.playMove);
 
-  // The move just played, and the choice facing whoever is to move now.
   const grades = useQuery({
     ...gameAnalysisQuery(game),
     select: boardGradesAtPly(ply),
@@ -71,9 +65,8 @@ export function useBoardReview(game: ReplayableGame): BoardReview {
     playMove,
     legalTargetsOf: (square) => legalTargetsAt(fen, square),
     lastMove: lastMove ?? undefined,
-    // Nothing of the report is drawn over a variation: its badge, its
-    // best move and a revealed arrow would all be about a position that
-    // is no longer on screen.
+    // Nothing of the report is drawn over a variation: it would be about
+    // a position no longer on screen.
     badges: inVariation ? undefined : badgeAt(lastMove?.to, playedGrade?.category),
     bestMove:
       inVariation || !positionGrade?.bestMove

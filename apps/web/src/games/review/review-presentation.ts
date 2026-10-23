@@ -1,9 +1,6 @@
 /**
- * The two players, as a review screen shows them: which way the board
- * sits, who is in each seat, and which of them is you.
- *
- * Pure. Localising a rating is the caller's, which is the only part that
- * needs an i18n instance.
+ * The two players as a review screen shows them. Pure: localising a
+ * rating is the caller's, the only part needing an i18n instance.
  */
 import { resolveGamePerspective } from "@velachess/chess";
 
@@ -11,7 +8,6 @@ import { flairImageOf } from "../import/index.ts";
 import { seatIdentityOf, type Seat } from "./board-view.ts";
 import type { ReplayableGame } from "./game-record.ts";
 
-/** What seating a board needs of the game it is showing. */
 export type SeatedGame = Pick<
   ReplayableGame,
   | "perspective"
@@ -23,7 +19,6 @@ export type SeatedGame = Pick<
   | "blackIdentity"
 >;
 
-/** One seat as the strips beside the board show it. */
 export interface PlayerSeat {
   name: string;
   /** Already localised — absent when the platform did not report one. */
@@ -38,9 +33,8 @@ export interface ReviewPlayers {
   /** The seat you are not is on top. */
   top: PlayerSeat;
   bottom: PlayerSeat;
-  /** Null when nobody knows which seat is yours — "you" is a claim, so it
-   * needs evidence. The board still has to face somewhere; the trail
-   * does not. */
+  /** Null when nobody knows which seat is yours: "you" is a claim, so it
+   * needs evidence. */
   mySeat: Seat | null;
 }
 

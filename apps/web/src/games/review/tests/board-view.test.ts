@@ -7,13 +7,8 @@ import { legalTargetsAt, sanOfUciAt, seatIdentityOf, seatOf } from "../board-vie
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/**
- * Which seat the board faces.
- *
- * The stored perspective when the import resolved one, and the tracked
- * usernames when it did not. Defaulting to white put anyone who played
- * black behind the wrong pieces on every unlabelled game.
- */
+/** Defaulting to white put anyone who played black behind the wrong
+ * pieces on every unlabelled game. */
 describe("seatOf", () => {
   const game = { perspective: null, whiteName: "magnuscarlsen", blackName: "yurimutti" };
 
@@ -26,25 +21,17 @@ describe("seatOf", () => {
   });
 
   it("matches a username whatever its case", () => {
-    // Platforms echo back whatever casing the player typed.
     expect(seatOf(game, ["YuriMutti"])).toBe("black");
   });
 
   it("faces white when nothing identifies you", () => {
-    // A board has to face somewhere, and a game between two strangers
-    // has no seat of yours to take.
     expect(seatOf(game, ["someoneelse"])).toBe("white");
     expect(seatOf(game, [])).toBe("white");
   });
 });
 
-/**
- * What a seat shows from the identity its payload carried.
- *
- * The server resolves both players from a shared per-handle cache; here
- * a null means "unknown", and unknown means initials, never a broken
- * picture.
- */
+/** A null means "unknown", and unknown means initials, never a broken
+ * picture. */
 describe("seatIdentityOf", () => {
   it("carries the picture and flair a seat resolved to", () => {
     expect(

@@ -1,10 +1,7 @@
 /**
- * Where the engine's vocabulary becomes the analysis domain's, and the
- * only place in this domain that opens an engine session.
- *
- * One evaluator holds one session for as long as its owner keeps it, so
- * walking a game or a line reuses a single Worker instead of starting one
- * per FEN, and `dispose()` is final.
+ * Where the engine's vocabulary becomes the domain's, and the only place
+ * here that opens a session — one Worker per evaluator, reused for every
+ * FEN.
  */
 import { parseFen } from "@velachess/chess";
 import { toWhitePov, type PositionEvaluation } from "@velachess/analysis";
@@ -23,9 +20,9 @@ export function positionEvaluationOf(
   fen: string,
   search: CompletedSearch,
 ): PositionEvaluation {
-  // `unwrap` on purpose: every FEN reaching here was written by
-  // `makeFen`, so a malformed one is a bug worth hearing about rather
-  // than a score silently flipped to the wrong side.
+  // `unwrap` on purpose: every FEN here was written by `makeFen`, so a
+  // malformed one is a bug worth hearing about rather than a score
+  // silently flipped to the wrong side.
   const score = search.lastInfo
     ? toWhitePov(search.lastInfo.score, parseFen(fen).unwrap().turn)
     : {};
@@ -35,12 +32,8 @@ export function positionEvaluationOf(
   };
 }
 
-/**
- * The one place the engine's Effection task becomes an async iterator.
- * The session owns cancellation, retries and the Worker; this hands its
- * `info` lines to a `for await` and its result to a `return`, so no
- * consumer of Analysis holds an Effection task or spells a UCI command.
- */
+/** The one place the engine's Effection task becomes an async iterator,
+ * so no consumer of Analysis holds a task or spells a UCI command. */
 function searchPosition(session: EngineSessionHandle, fen: string): PositionSearch {
   const pending: EngineUpdate[] = [];
   let wake: (() => void) | null = null;
@@ -71,9 +64,8 @@ function searchPosition(session: EngineSessionHandle, fen: string): PositionSear
       throw error;
     },
   );
-  // The stream may be abandoned before it is awaited, and an unhandled
-  // rejection would then be reported as a crash rather than a stopped
-  // search.
+  // An abandoned stream would otherwise report an unhandled rejection
+  // as a crash rather than a stopped search.
   void settled.catch(() => {});
 
   function cancel(): void {

@@ -11,14 +11,9 @@ import { renderApp } from "../../../test/render.tsx";
 import { ANALYSIS_EVENT, type AnalysisEvent } from "../../analysis/index.ts";
 
 /**
- * What the review hands the board, and how often.
- *
- * The board is a 64-square third-party widget, and the point of reading
- * the report through `select` is that a deepening search, a grade for
- * some other move and a variation's own evaluation never reach it. The
- * boundary is counted here rather than a hook's renders, because the
- * boundary is what costs anything — and the arrow someone asks for is
- * asserted here too, because this is where it arrives.
+ * What the review hands the board, and how often. The boundary is
+ * counted here rather than a hook's renders, because 64 squares is what
+ * costs anything.
  */
 let boardRenders = 0;
 let suggestedMove: MoveSquares | undefined;
@@ -31,8 +26,7 @@ vi.mock("@velachess/ui/chess/board", () => ({
     boardRenders += 1;
     suggestedMove = props.suggestedMove;
     // A button rather than a div: playing a variation goes through the
-    // real board's `onMove`, and the squares it would be clicked on are
-    // the widget's own.
+    // real board's `onMove`.
     return (
       <button
         type="button"
@@ -132,9 +126,8 @@ describe("what the analysis re-renders", () => {
     addGames(game);
     await renderApp({ path: `/games/${game.id}` });
 
-    // Measured from the first reading, not from the empty one: the board
-    // is drawn once more when the analysis exists at all, and after that
-    // a deepening search must not touch it.
+    // Measured from the first reading: the board is drawn once more when
+    // the analysis exists at all, and not again for a deeper search.
     await screen.findByTestId("board");
     pass.searching(1, 4);
     await screen.findByText(/depth 4/);

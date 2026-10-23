@@ -28,11 +28,10 @@ export interface BoardPaneProps {
   bottom: PlayerSeat;
 }
 
-/** The strips align with the board, so they take the board's width — the
- * shared one, which every board screen in the app is sized by. */
+/** The strips align with the board, so they take its shared width. */
 const BOARD_WIDTH = BOARD_STAGE_WIDTH;
 
-/** The strips sit beside the bar, so they start where the board starts. */
+/** Beside the bar, so a strip starts where the board starts. */
 const STRIP_INSET = "ps-6";
 
 export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {

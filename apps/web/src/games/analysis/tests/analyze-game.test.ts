@@ -8,14 +8,12 @@ import { analyzeGame } from "../game/analyze.ts";
 import type { PositionEvaluator } from "../position/evaluate.ts";
 import { ANALYSIS_EVENT, type AnalysisEvent } from "../types.ts";
 
-/** "1. f3 e5 2. g4 Qh4#" — the game ends on its last move, so the rules
- * score that position and the engine is never asked about it. */
+/** Ends on its last move, so the rules score that position. */
 const FOOLS_MATE = "1. f3 e5 2. g4 Qh4# *";
 
 const LEVEL: PositionEvaluation = { score: { cp: 0 }, bestMove: "e2e4" };
 
 interface FakeEvaluator extends PositionEvaluator {
-  /** Every position it was asked about, in the order it was asked. */
   readonly asked: readonly string[];
   readonly disposed: boolean;
 }
@@ -108,8 +106,8 @@ describe("analyzeGame", () => {
 
     const events = await collect(analyzeGame(replay, evaluator));
 
-    // Three searches for two plies: the evaluation after a move is the
-    // evaluation before the next one.
+    // Three searches for two plies: an evaluation after a move is the
+    // evaluation before the next.
     expect(evaluator.asked).toHaveLength(3);
     expect(events.filter((event) => event.type === ANALYSIS_EVENT.PLY_GRADED)).toEqual([
       {
@@ -151,7 +149,7 @@ describe("analyzeGame", () => {
       live: { ply: 1, fen: replay.moves[0]!.fenBefore, update: anUpdate(5) },
     });
     // Every grade arrives after the updates of the search that decided
-    // it, so nothing is ever graded from a provisional score.
+    // it: nothing is graded from a provisional score.
     expect(events.map((event) => event.type)).toEqual([
       ANALYSIS_EVENT.POSITION_UPDATE,
       ANALYSIS_EVENT.POSITION_UPDATE,
@@ -184,8 +182,8 @@ describe("analyzeGame", () => {
   });
 
   it("grades the legal prefix of a game that goes illegal part-way", async () => {
-    // Same policy the import applies: a game with at least one legal move
-    // is a game, and the part that replayed is what the board shows.
+    // Same policy the import applies: the part that replayed is what the
+    // board shows.
     const events = await collect(
       analyzeGame(aReplay("1. e4 e5 2. Qxf7# *"), fakeEvaluator()),
     );

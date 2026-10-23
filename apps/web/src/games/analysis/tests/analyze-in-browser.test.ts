@@ -16,9 +16,8 @@ import {
   type ScriptedEngine,
 } from "../../../engine/tests/scripted-engine.ts";
 
-// Mocked one level below the SDK: the real `createEngine` sessions, their
-// lifecycle and their UCI conversation all run, only the Worker behind
-// them is scripted.
+// Mocked one level below the SDK: real sessions and real UCI, only the
+// Worker is scripted.
 vi.mock("../../../engine/browser-session.ts", () => ({
   openBrowserEngineSession: vi.fn(),
 }));
@@ -43,9 +42,7 @@ function mockEngine() {
   return engines;
 }
 
-/** Reads one pass, keeping what it graded and what it reported whole —
- * a stored report arrives as a single `completed`, a search as one
- * `ply-graded` per move. */
+/** Reads one pass: what it graded, and what it reported whole. */
 function read(game: GameAnalysisInput, { stopAfter = Infinity } = {}) {
   const graded: GradedPly[] = [];
   const reports: (readonly GradedPly[])[] = [];
@@ -65,7 +62,6 @@ function input(gameId = "game-1") {
   return { gameId, replay: aReplay(TWO_PLY_PGN) };
 }
 
-/** The three replies a full pass over `TWO_PLY_PGN` consumes. */
 function answerEveryPosition(engine: ScriptedEngine): void {
   engine.queueGoResponse(goLines(20, "e2e4"));
   engine.queueGoResponse(goLines(15, "e7e5"));
@@ -191,7 +187,7 @@ describe("analyzeGameInBrowser", () => {
     await vi.waitFor(() => expect(engines).toHaveLength(1));
     answerEveryPosition(engines[0]!);
     // The store, not the connection: this pass already opened the
-    // database for its own (missing) report, so only the write can fail.
+    // database, so only the write can fail.
     vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
       throw new DOMException("quota", "QuotaExceededError");
     });

@@ -1,12 +1,10 @@
 /**
- * One review instance's state and its actions. Every rule it applies
- * lives in `review-model.ts`; this file holds the state, reads it with
- * `get`, and writes what a transition decided with `set`.
+ * Every rule it applies lives in `review-model.ts`; this file holds the
+ * state and writes what a transition decided.
  *
- * The game is a closure rather than state, and needs no guard against
- * going stale: a replay is this game's movetext, which never changes
- * once imported, and `game-review.tsx`'s `key={gameId}` rebuilds the
- * store for a different game.
+ * The game is a closure rather than state, and needs no staleness guard:
+ * movetext never changes once imported, and `game-review.tsx`'s
+ * `key={gameId}` rebuilds the store for a different game.
  */
 import { createStore, type StoreApi } from "zustand/vanilla";
 

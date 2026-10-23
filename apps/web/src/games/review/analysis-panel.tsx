@@ -34,21 +34,9 @@ export interface AnalysisPanelProps {
 }
 
 /**
- * Everything that is not the board.
- *
- * The curve, the result and the controls are permanent — a long game
- * must never scroll the buttons out of reach. Between them sit two tabs
- * answering two different questions, each owning its own content and its
- * own scrolling:
- *
- *   Move    what happened here — verdict plus the scoresheet, which is
- *           the working surface while stepping through
- *   Report  how the game went — opening, the tally, and the way out
- *
- * The scoresheet used to live outside the tabs, on the argument that it
- * "must never be a click away". True while reading a move; false while
- * reading the report, where a move-by-move list is noise underneath a
- * summary — and the two then fought over one scroll region.
+ * Everything that is not the board. The curve, the result and the
+ * controls are permanent — a long game must never scroll the buttons out
+ * of reach — and the two tabs own their own scrolling.
  */
 const NOTHING_GRADED: readonly GradedPly[] = [];
 
@@ -56,13 +44,12 @@ export function AnalysisPanel({ game }: AnalysisPanelProps) {
   const { i18n } = useLingui();
 
   // The grades that have landed, and nothing provisional: a deepening
-  // search redraws the bar inside `AnalysisProgress`, not this panel.
+  // search redraws `AnalysisProgress`, not this panel.
   const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectGraded });
   const graded = analysis.data ?? NOTHING_GRADED;
 
-  // `inVariation`: the main line's verdict is then about a position
-  // nobody is looking at, so it is not shown at all rather than shown as
-  // if it belonged to the move someone just played.
+  // `inVariation`: the main line's verdict is about a position nobody is
+  // looking at, so it is not shown at all.
   const ply = useGameReview((state) => state.ply);
   const move = useGameReview((state) => selectGameMove(state, game));
   const inVariation = useGameReview((state) => state.variation !== null);

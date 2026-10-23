@@ -23,23 +23,18 @@ import {
 import { gameAnalysisQuery, selectGraded } from "../game-analysis-query.ts";
 import type { AnalysedGame } from "../game-analysis-query.ts";
 
-// The stream itself, staged: what `analyzeGameInBrowser` produces is
-// covered by `analysis/tests/`, and what this file owns is what React
-// Query does with it.
+// What `analyzeGameInBrowser` produces is `analysis/tests/`'s; this file
+// owns what React Query does with it.
 vi.mock("../../analysis/game/analyze.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-/** The one game every case analyses: its id and its replay, which is all
- * an analysis is handed. */
+/** The one game every case analyses. */
 const game: AnalysedGame = { id: "game-1", ...aReplay() };
 
-/**
- * A pass the test drives event by event, counting how many times it was
- * started and how many of its streams were closed — which is how "the
- * pass outlives the screen" is observable at all.
- */
+/** A pass the test drives event by event, counting starts and closes —
+ * which is how "the pass outlives the screen" is observable. */
 function stagedPass() {
   const events: AnalysisEvent[] = [];
   let resume: (() => void) | null = null;
@@ -111,7 +106,6 @@ function readCache(queryClient: QueryClientType): GameAnalysis | undefined {
   return queryClient.getQueryData<GameAnalysis>(gameAnalysisQuery(game).queryKey);
 }
 
-/** One screen reading the grades, mounted and unmounted on demand. */
 function mountConsumer(queryClient: QueryClientType) {
   return renderHook(
     () => useQuery({ ...gameAnalysisQuery(game), select: selectGraded }),
@@ -136,8 +130,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // Not `clear()`: a pass this test left running would be cancelled with
-  // nobody to hear it, and every case builds its own client anyway.
+  // Not `clear()`: a pass left running would be cancelled with nobody to
+  // hear it, and every case builds its own client.
   onlineManager.setOnline(true);
   resetBackendStatus();
   vi.restoreAllMocks();
@@ -151,8 +145,7 @@ describe("gameAnalysisQuery", () => {
     await vi.waitFor(() => expect(pass.started).toBe(1));
     pass.grade(1);
 
-    // Readable while the pass is still running: the cache is the
-    // accumulator, so there is nothing to wait for.
+    // The cache is the accumulator, so there is nothing to wait for.
     await vi.waitFor(() => expect(readCache(queryClient)?.graded).toHaveLength(1));
     expect(queryClient.getQueryState(gameAnalysisQuery(game).queryKey)).toMatchObject({
       status: "success",
@@ -176,8 +169,7 @@ describe("gameAnalysisQuery", () => {
       expect(readCache(queryClient)?.live).toMatchObject({ ply: 1 }),
     );
 
-    // The deeper reading replaces the shallower one: the earlier depths
-    // are not history anybody keeps.
+    // The deeper reading replaces the shallower one.
     expect(readCache(queryClient)?.live?.update.depth).toBe(9);
     expect(readCache(queryClient)?.graded).toEqual([]);
 

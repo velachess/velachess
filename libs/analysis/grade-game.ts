@@ -1,8 +1,5 @@
-/**
- * The pure half of an analysis: given one evaluation per position, say what
- * each move was. No engine, no I/O, no async — whoever sequences the
- * evaluations calls in here, one ply at a time.
- */
+/** Given one evaluation per position, what each move was. No engine, no
+ * I/O, no async. */
 
 import type { Outcome, ReplayedMove } from "@velachess/chess";
 
@@ -10,11 +7,8 @@ import { classifyMove } from "./classify-move.ts";
 import type { MoveCategory } from "./move-category.ts";
 import type { PositionEvaluation, WhitePovScore } from "./score.ts";
 
-/**
- * What one move was worth. The move's own identity — its notation and
- * the position it was played from — belongs to the replayed game, which
- * every consumer already has: these line up by `ply`.
- */
+/** What one move was worth. Its notation and the position it came from
+ * belong to the replayed game; these line up by `ply`. */
 export interface GradedPly {
   /** 1-indexed. */
   ply: number;

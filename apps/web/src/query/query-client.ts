@@ -47,9 +47,8 @@ export function createQueryClient() {
     // is still broken for everything else. The reload the banner asks for is
     // the reset.
     queryCache: new QueryCache({
-      // `meta.engine` marks a query whose work runs on this device: a
-      // failed search reaches its own screen through `isError`, so there
-      // is nothing global to do with it and nothing to normalize it into.
+      // `meta.engine` marks work that runs on this device: a failed
+      // search reaches its own screen through `isError`.
       onError: (error, query) => {
         if (query.meta?.["engine"] === true) return;
         handleApiError(error);

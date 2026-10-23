@@ -26,20 +26,13 @@ import { useVariationEvaluation } from "../use-variation-evaluation.ts";
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 
-/** A one-move game, so there is a real ply to navigate back onto —
- * replayed by production's own `libs/chess` call. */
+/** A one-move game, replayed by production's own `libs/chess` call. */
 const moves: readonly ReplayedMove[] = aReplay("1. e4 *").moves;
 
-/** Handed to the store once, and to every selector that needs it — the
- * replay is React Query's, never the store's. */
 const game = { moves, startFen: START };
 
-/**
- * A controllable stand-in for one position's search: streams nothing,
- * never settles until the test says so, and records whether it was
- * cancelled instead — duplicated locally per this codebase's test-helper
- * convention.
- */
+/** A search that settles only when the test says so, and records being
+ * cancelled instead. */
 function makeControllableEval(result: PositionEvaluation) {
   let settle: (value: PositionEvaluation) => void;
   let fail: (error: Error) => void;
@@ -51,14 +44,13 @@ function makeControllableEval(result: PositionEvaluation) {
   let answered = false;
 
   const run = vi.fn((): PositionSearch => {
-    // Per search, not per helper: cancelling one must not stop the engine
-    // from eventually answering the next search for the same position.
+    // Per search, not per helper: cancelling one must not stop the next
+    // search for the same position from answering.
     let stop: () => void;
     const stopped = new Promise<never>((_, reject) => {
       stop = () => reject(new Error("search cancelled"));
     });
-    // Handled here too: a search cancelled while it was still streaming
-    // never reaches the race below.
+    // A search cancelled while still streaming never reaches the race.
     void stopped.catch(() => {});
     let halted = false;
 
@@ -66,8 +58,7 @@ function makeControllableEval(result: PositionEvaluation) {
       yield { depth: 4, multipv: 1, score: { cp: 0 }, pv: ["e2e4"] };
       const value = await Promise.race([engineAnswered, stopped]);
       // A cancelled search delivers nothing, even when the engine
-      // answered in the same tick — which is the engine session's own
-      // rule, duplicated here on purpose.
+      // answered in the same tick.
       if (halted) throw new Error("search cancelled");
       answered = true;
       return value;
@@ -90,7 +81,6 @@ function makeControllableEval(result: PositionEvaluation) {
   };
 }
 
-/** Lets the engine's promises and React's state updates settle. */
 async function flush() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));

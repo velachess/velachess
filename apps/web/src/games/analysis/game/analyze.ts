@@ -1,12 +1,7 @@
 /**
- * One whole game, graded ply by ply, as a stream of events.
- *
- * `analyzeGame` decides *which* positions to search and what the answers
- * mean; it is handed an evaluator and owns neither the session nor the
- * stored report. `analyzeGameInBrowser` is the composition around it: a
- * stored report short-circuits before Stockfish is ever started, a
- * finished one is written exactly once, and the session is released
- * whether the pass completes, fails, or the consumer walks away.
+ * One whole game, graded ply by ply, as a stream of events. `analyzeGame`
+ * is handed an evaluator and owns neither the session nor the stored
+ * report; `analyzeGameInBrowser` is the composition that owns both.
  */
 import type { ReplayedGame } from "@velachess/chess";
 import {
@@ -21,8 +16,7 @@ import { createStockfishEvaluator } from "../position/stockfish.ts";
 import type { PositionEvaluator } from "../position/evaluate.ts";
 import { ANALYSIS_EVENT, type AnalysisEvent, type GameAnalysisInput } from "../types.ts";
 
-/** One position, as events — the return value is the completed search a
- * grade may be built from. */
+/** The return value is the completed search a grade may be built from. */
 async function* searchPosition(
   evaluator: PositionEvaluator,
   fen: string,
@@ -44,13 +38,10 @@ async function* searchPosition(
 }
 
 /**
- * Grades every ply, emitting each one the moment it is decided. One
- * search per position: the evaluation after a move is the evaluation
+ * One search per position: the evaluation after a move is the evaluation
  * before the next one, and a game that ended on its final move takes
- * that move's score from the rules rather than a search.
- *
- * A mainline that went illegal part-way is graded up to that point,
- * which is the prefix the board shows.
+ * that move's score from the rules rather than a search. A mainline that
+ * went illegal part-way is graded up to that point.
  */
 export async function* analyzeGame(
   replay: ReplayedGame,
@@ -95,17 +86,16 @@ export async function* analyzeGameInBrowser(
   try {
     for await (const event of analyzeGame(input.replay, evaluator)) {
       // Stored before it is announced, so a consumer that stops reading
-      // on hearing the news still leaves the report behind. A failing
-      // search throws before this event, so a half-graded game is never
-      // stored.
+      // on the news still leaves the report behind. A failing search
+      // throws before this event, so a half-graded game is never stored.
       if (event.type === ANALYSIS_EVENT.COMPLETED) {
         await saveReport(input.gameId, event.graded);
       }
       yield event;
     }
   } finally {
-    // A consumer that stops reading early releases the Worker too, after
-    // the search in flight answers — the engine's watchdog bounds that.
+    // A consumer that stops early releases the Worker too, once the
+    // search in flight answers — the engine's watchdog bounds that.
     await evaluator.dispose();
   }
 }

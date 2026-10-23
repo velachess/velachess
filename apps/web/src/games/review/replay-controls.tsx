@@ -15,21 +15,12 @@ const CONTROLS_COPY = {
 } as const;
 
 /**
- * Stepping a game, in the shared vocabulary.
- *
- * The buttons themselves are `MoveNav` — the shared ones — so this file is
- * only this screen's words for them. No reset: the scoresheet already
- * reaches every ply in one click.
- *
  * `sticky bottom-0`: on mobile the panel above this scrolls the page, so
- * without it Prev/Next would sit below a long game's eval graph, tabs and
- * result — pinning keeps it reachable just above the bottom tab bar.
- * `bg-card` covers the content that scrolls underneath once pinned. It's
- * a no-op at `lg`, where the panel bounds its own scroll and this already
- * sits at its natural position.
+ * without it Prev/Next would sit below a long game's graph, tabs and
+ * result. `bg-card` covers what scrolls underneath once pinned, and both
+ * are no-ops at `lg`.
  */
 export interface ReplayControlsProps {
-  /** Where the game ends, which is what Next stops at. */
   game: ReviewGame;
 }
 

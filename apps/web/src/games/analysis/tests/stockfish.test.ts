@@ -14,8 +14,8 @@ import {
   type ScriptedEngine,
 } from "../../../engine/tests/scripted-engine.ts";
 
-// Mocked one level below the SDK: the real session lifecycle and UCI
-// conversation run, only the Worker behind them is scripted.
+// Mocked one level below the SDK: real session lifecycle and real UCI,
+// only the Worker is scripted.
 vi.mock("../../../engine/browser-session.ts", () => ({
   openBrowserEngineSession: vi.fn(),
 }));
@@ -47,7 +47,6 @@ function mockEngine(onEngine?: (engine: ScriptedEngine) => void) {
   return engines;
 }
 
-/** Every update the search streamed, and what it settled on. */
 async function drain(search: PositionSearch) {
   const updates: EngineUpdate[] = [];
   let step = await search.next();
@@ -94,8 +93,8 @@ describe("positionEvaluationOf", () => {
 
 describe("createStockfishEvaluator", () => {
   it("searches the position and returns the engine's answer", async () => {
-    // Queued before the search starts, so the reply is deterministic
-    // rather than racing the session's own handshake.
+    // Queued before the search starts, so the reply cannot race the
+    // handshake.
     mockEngine((engine) => engine.queueGoResponse(goLines(20, "e2e4")));
 
     const held = open();
@@ -217,8 +216,8 @@ describe("createStockfishEvaluator", () => {
 
     // Black to move, so the engine's own +(-12) is white's +12.
     expect((await current).evaluation).toEqual({ score: { cp: 12 }, bestMove: "e7e5" });
-    // The replaced search answered too, over the same Worker — its answer
-    // is about a position nobody is looking at any more.
+    // The replaced search answered too, about a position nobody is
+    // looking at.
     expect(await abandonedReading).toBe("rejected");
     await held.close();
   });

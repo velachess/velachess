@@ -1,10 +1,7 @@
 /**
- * Reliability around a bare `EngineSession`: how long to wait before
- * deciding the engine has gone silent, when to hurry it with `stop`, and
- * when to give up on a session and search again on a fresh one.
- *
- * Nothing here knows what a score means. It returns the engine's own
- * vocabulary — every `info` line as it arrives and the `bestmove` — and
+ * Reliability around a bare `EngineSession`: when to decide the engine
+ * has gone silent, when to hurry it with `stop`, and when to search
+ * again on a fresh session. It returns the engine's own vocabulary and
  * leaves white POV, classification and caching to whoever asked.
  */
 
@@ -23,9 +20,8 @@ import {
 import type { EngineSession } from "./engine-session.ts";
 import type { BestMove, EngineUpdate, SearchOutcome } from "./types.ts";
 
-/** Once `stop` has been sent, the whole remaining drain gets this long —
- * one deadline, not rearmed per line, so a chatty but stuck engine cannot
- * extend it. */
+/** One deadline for the whole drain after `stop`, not rearmed per line,
+ * so a chatty but stuck engine cannot extend it. */
 const DEFAULT_GRACE_MS = 2000;
 
 /** A search the engine actually answered. */
@@ -34,29 +30,23 @@ export interface CompletedSearch {
   bestMove: BestMove;
 }
 
-/** Each `info` line, as the engine produces it. The watchdog reads the
- * same lines, so a search that reports progress is a search that is
- * alive. */
+/** Each `info` line, as the engine produces it. */
 export type OnEngineUpdate = (update: EngineUpdate) => void;
 
 export interface EngineEvaluator {
-  /** Searches `fen`, retrying once on a fresh session when the engine dies
-   * or goes silent. Throws when both attempts fail. A retry replays the
-   * position from scratch, so `onUpdate` sees the second attempt's lines
-   * too. */
+  /** Retries once on a fresh session when the engine dies or goes
+   * silent, and throws when both attempts fail. */
   evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch>;
-  /** Hurries the in-flight search, the same way the silence watchdog
-   * does. It still settles with an outcome, because a real UCI engine
-   * answers `stop` with a bestmove — how long to wait for that is the
-   * caller's to decide, since nothing here asked for the stop. */
+  /** Hurries the in-flight search. It still settles with an outcome,
+   * because a real engine answers `stop` with a bestmove; how long to
+   * wait for that is the caller's, since nothing here asked for it. */
   stop(): void;
 }
 
 export interface EngineEvaluatorOptions {
   depth: number;
-  /** How long the engine may say nothing at all before it is hurried with
-   * `stop`. Rearmed by every `info` line, so a slow deep search is not
-   * mistaken for a dead one. */
+  /** Rearmed by every `info` line, so a slow deep search is not mistaken
+   * for a dead one. */
   silenceTimeoutMs?: number;
   graceMs?: number;
 }
@@ -132,16 +122,13 @@ interface SessionHolder {
 }
 
 /**
- * A session that outlives the operation which opened it. `owner.run` is
- * synchronous and the task it returns is halted when `owner` unwinds, so
- * the evaluator needs no teardown of its own — and `suspend()` is what
- * keeps the session's own resource alive inside that task.
+ * A session that outlives the operation which opened it: the task
+ * `owner.run` returns is halted when `owner` unwinds, so the evaluator
+ * needs no teardown of its own, and `suspend()` keeps the session's
+ * resource alive inside it.
  *
- * `ready` is rejected rather than thrown so the failure arrives exactly
- * once, at the awaiting site: returning keeps the task's outcome
- * successful, which stops Effection from also raising it on `owner`, and
- * ends the task, which releases anything the failed open had already
- * acquired.
+ * `ready` is rejected rather than thrown so the failure lands once, at
+ * the awaiting site, instead of also raising on `owner`.
  */
 function* openSessionHolder(
   owner: Scope,
