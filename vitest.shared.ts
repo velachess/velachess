@@ -26,6 +26,7 @@ export const aliases = {
   // package.json declaring these as real dependencies on its behalf.
   "@velachess/infra-logger": path.resolve(import.meta.dirname, "./libs/infra/logger/src"),
   "@velachess/infra-auth": path.resolve(import.meta.dirname, "./libs/infra/auth"),
+  "@velachess/infra-email": path.resolve(import.meta.dirname, "./libs/infra/email"),
 };
 
 /**

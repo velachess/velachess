@@ -36,3 +36,11 @@ current Better Auth option.
 - One `Auth` instance per process, built from injected deps
   (`AuthConfig`), never from ambient env reads inside this library — env
   resolution belongs to the composition root (`apps/server`).
+- Email is optional and arrives as `AuthConfig.sendEmail`. Present, it turns
+  on Better Auth's `sendResetPassword` and `sendVerificationEmail`
+  (`requireEmailVerification`, `sendOnSignIn`, `revokeSessionsOnPasswordReset`);
+  absent, none of those options exist. Links are built here under the `/api`
+  proxy, not taken from Better Auth's `url`, whose `/auth` base the browser
+  cannot reach. Sends are not awaited: Better Auth awaits the callback, and
+  latency would reveal whether an address has an account. The bootstrap twin
+  gets no sender.

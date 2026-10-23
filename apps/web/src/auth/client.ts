@@ -7,6 +7,7 @@ import { createAuthClient } from "better-auth/react";
 import { inferAdditionalFields } from "better-auth/client/plugins";
 
 import { apiBaseUrl } from "../api/index.ts";
+import { i18n } from "../i18n/index.ts";
 
 export const authClient = createAuthClient({
   basePath: `${apiBaseUrl}/auth`,
@@ -19,6 +20,11 @@ export const authClient = createAuthClient({
     // `globalThis.fetch`, and binding early sends every auth request to the
     // real network.
     customFetchImpl: (...args) => globalThis.fetch(...args),
+    // The language the server writes verification and reset emails in.
+    onRequest: (context) => {
+      context.headers.set("accept-language", i18n.locale);
+      return context;
+    },
   },
 });
 

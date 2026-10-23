@@ -16,6 +16,8 @@ import type { Redis } from "./redis.ts";
 interface SignInMethods {
   password: boolean;
   google: boolean;
+  /** Whether "Forgot password?" can deliver anything: email is configured. */
+  passwordReset: boolean;
 }
 
 export interface ApiDeps {

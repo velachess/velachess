@@ -157,6 +157,9 @@ content as children. Region budgets and the responsive contract live in
 Better Auth session through the query cache and redirects unauthenticated
 visitors to `/login`, preserving the requested path. `/login` mirrors the
 guard and sends an authenticated visitor back to the product.
+`/forgot-password` and `/reset-password` sit beside it, public too; the
+sign-in screen links to the first only when `GET /config` reports
+`passwordReset`.
 
 Guards run before components exist, so session resolution returns a defined
 authenticated/unauthenticated state instead of leaking a rejected query. The

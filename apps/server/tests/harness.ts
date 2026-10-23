@@ -6,6 +6,7 @@ import { hc } from "hono/client";
 import { Redis } from "ioredis";
 
 import { createAuth, type Auth } from "@velachess/infra-auth";
+import type { AuthEmail } from "@velachess/infra-email";
 import { createFileStore } from "@velachess/infra-storage";
 import { syncAccount } from "@velachess/accounts";
 import {
@@ -84,6 +85,8 @@ export function unreachableRedis(): Redis {
 export async function createApiHarness(
   /** The archive GET /games reads through to. */
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
+  /** Turns email on, the way RESEND_API_KEY does in main.ts. */
+  { sendEmail }: { sendEmail?: (email: AuthEmail) => Promise<void> } = {},
 ): Promise<ApiHarness> {
   const harness = await createLoopHarness();
 
@@ -95,7 +98,7 @@ export async function createApiHarness(
     secret: "test-secret-at-least-32-characters-long",
     secureCookies: false,
   };
-  const auth = createAuth(authConfig);
+  const auth = createAuth({ ...authConfig, ...(sendEmail ? { sendEmail } : {}) });
   // Like production: the mounted instance rejects POST
   // /auth/sign-up/email.
   const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
@@ -110,7 +113,7 @@ export async function createApiHarness(
     trustedOrigins: [ORIGIN],
     // Unconfigured here: auth.test.ts builds its own instance where the
     // provider matters.
-    signInMethods: { password: true, google: false },
+    signInMethods: { password: true, google: false, passwordReset: Boolean(sendEmail) },
     // PGlite listens on its one session, which is the session the worker
     // twin below commits on.
     syncNotifications: createSyncNotifications((channel, onNotify) =>

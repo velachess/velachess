@@ -4,5 +4,6 @@
   "singleQuote": false,
   "trailingComma": "all",
   "printWidth": 90,
-  "sortPackageJson": false
+  "sortPackageJson": false,
+  "ignorePatterns": ["libs/infra/email/locales/*/messages.ts"]
 }

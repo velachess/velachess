@@ -183,6 +183,28 @@ This is also what opens public sign-up without an SMTP dependency:
 password path only), while social sign-in creates the account on first
 use.
 
+## Email: verification and password reset (optional)
+
+Set both `RESEND_API_KEY` and `VELACHESS_EMAIL_FROM` to turn on email,
+sent through [Resend](https://resend.com/docs). The sender must be on a
+domain you verified in Resend, as an address or `Name <address>`. Setting
+one without the other refuses to boot. Leave both unset and neither feature
+exists: "Forgot password?" is not offered and sign-in works as before.
+
+With email on:
+
+- **Password reset.** The sign-in screen links to `/forgot-password`. The
+  email points at `<VELACHESS_BASE_URL>/reset-password`; a new password
+  signs the account out everywhere.
+- **Email verification.** A password account whose address is unconfirmed
+  cannot sign in; the refused attempt emails a confirmation link, so an
+  account created before email was configured gets one on its next sign-in.
+  The first user from bootstrap is confirmed already.
+
+Emails go out in the language the person's app is set to (English,
+Português (Brasil) or Español). They are sent in the background: a Resend
+outage is logged by the API and never changes the answer a visitor sees.
+
 ## What refuses to boot, and why
 
 | Condition                                                            | Behavior                                                                                                        |
@@ -191,7 +213,9 @@ use.
 | Production with the `.env.example` placeholder secret                | Startup fails — a copied example file is indistinguishable from no secret.                                      |
 | Production without `VELACHESS_BASE_URL`                              | Startup fails — cookies and trusted origins for a defaulted localhost would belong to a host nobody is on.      |
 | One of `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` without the other | Startup fails — half a provider is a button that fails at the redirect instead of at boot.                      |
+| One of `RESEND_API_KEY` / `VELACHESS_EMAIL_FROM` without the other   | Startup fails — half an email setup is a reset link that never arrives.                                         |
+| `VELACHESS_EMAIL_FROM` that is not an address or `Name <address>`    | Startup fails; the error names the variable. The API key is never printed.                                      |
 | Production with an `http://` base URL                                | Boots, with a loud warning: put TLS in front. `Secure` cookies follow the actual transport and are never faked. |
 
-All of these rules live in `libs/infra/auth/env.ts` with unit tests
-beside them.
+These rules live in `libs/infra/auth/env.ts` and, for email,
+`libs/infra/email/env.ts`, with unit tests beside them.

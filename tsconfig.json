@@ -43,6 +43,7 @@
       "@velachess/infra-queue/*": ["./libs/infra/queue/*"],
       "@velachess/infra-auth": ["./libs/infra/auth/index.ts"],
       "@velachess/infra-auth/*": ["./libs/infra/auth/*"],
+      "@velachess/infra-email": ["./libs/infra/email/index.ts"],
       "@velachess/accounts": ["./libs/accounts/index.ts"],
       "@velachess/games": ["./libs/games/index.ts"],
       "@velachess/user": ["./libs/user/index.ts"],

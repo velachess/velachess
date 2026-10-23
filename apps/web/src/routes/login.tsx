@@ -18,9 +18,10 @@ const loginSearchSchema = z.object({
     .optional()
     .catch(undefined),
   /**
-   * Better Auth appends `?error=<code>` when it sends the browser back here.
-   * Bounded to a short token, which arrives on the address bar, so it is
-   * matched against the codes the screen knows and never rendered.
+   * Better Auth appends `?error=<code>` when it sends the browser back here,
+   * after Google or a confirmation link. Bounded to a short token, which
+   * arrives on the address bar, so it is matched against the codes the screen
+   * knows and never rendered.
    */
   error: z
     .string()

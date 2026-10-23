@@ -47,6 +47,27 @@ describe("resolveApiEnv", () => {
 
     expect(env.port).toBe(3000);
     expect(env.bootstrapCredentials).toBeNull();
+    expect(env.email).toBeNull();
+  });
+
+  it("resolves email when Resend is configured", () => {
+    const env = resolveApiEnv({
+      ...VALID,
+      RESEND_API_KEY: "re_live_key",
+      VELACHESS_EMAIL_FROM: "VelaChess <no-reply@chess.example.com>",
+    });
+
+    expect(env.email).toEqual({
+      apiKey: "re_live_key",
+      from: "VelaChess <no-reply@chess.example.com>",
+    });
+  });
+
+  it("refuses half an email configuration without echoing the key", () => {
+    const error = errorOf(() => resolveApiEnv({ ...VALID, RESEND_API_KEY: CANARY }));
+
+    expect(error.message).toMatch(/VELACHESS_EMAIL_FROM/);
+    expect(error.message).not.toContain(CANARY);
   });
 
   it("requires DATABASE_URL", () => {

@@ -50,11 +50,11 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:12
 #: src/settings/layout/navigation.ts:29
-#: src/test/routes.tsx:129
+#: src/test/routes.tsx:132
 msgid "Account"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:51
+#: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "An account already exists with that email. Sign in with your password instead."
 msgstr ""
 
@@ -74,7 +74,7 @@ msgstr ""
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
-#: src/test/routes.tsx:150
+#: src/test/routes.tsx:153
 msgid "Appearance"
 msgstr ""
 
@@ -88,6 +88,10 @@ msgstr ""
 
 #: src/onboarding/onboarding-dialog.tsx:23
 msgid "Back"
+msgstr ""
+
+#: src/auth/password-reset/forgot-password-screen.tsx:30
+msgid "Back to sign in"
 msgstr ""
 
 #: src/backend-status/backend-status-banner.tsx:9
@@ -141,6 +145,10 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+#: src/auth/password-reset/reset-password-screen.tsx:27
+msgid "Change password"
+msgstr ""
+
 #: src/settings/account/avatar-field.tsx:34
 msgid "Change picture"
 msgstr ""
@@ -149,12 +157,20 @@ msgstr ""
 msgid "Change your picture"
 msgstr ""
 
+#: src/auth/password-reset/reset-password-screen.tsx:28
+msgid "Changing…"
+msgstr ""
+
 #: src/games/import/accounts/sources.ts:61
 msgid "Chess.com username"
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:46
 msgid "Choose a JPEG, PNG or WebP image."
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:22
+msgid "Choose a new password"
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:44
@@ -173,6 +189,14 @@ msgstr ""
 
 #: src/games/list/filters.ts:28
 msgid "Color"
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:24
+msgid "Confirm new password"
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:48
+msgid "Confirm your email first. We sent a new link to your inbox."
 msgstr ""
 
 #: src/games/list/games-list.tsx:25
@@ -196,19 +220,19 @@ msgstr ""
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:55
 #: src/settings/layout/navigation.ts:30
-#: src/test/routes.tsx:136
+#: src/test/routes.tsx:139
 msgid "Connections"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:30
 msgid "Continue to VelaChess"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:47
+#: src/auth/sign-in/sign-in-screen.tsx:42
 msgid "Continue with Google"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/auth/sign-in/sign-in-screen.tsx:31
 msgid "Continue with Google or sign in with your account credentials."
 msgstr ""
 
@@ -241,7 +265,9 @@ msgstr ""
 msgid "Couldn't reach that account"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:43
+#: src/auth/password-reset/forgot-password-screen.tsx:29
+#: src/auth/password-reset/reset-password-screen.tsx:33
+#: src/auth/sign-in/sign-in-screen.tsx:38
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr ""
 
@@ -300,7 +326,8 @@ msgstr ""
 msgid "Draw"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:38
+#: src/auth/password-reset/forgot-password-screen.tsx:24
+#: src/auth/sign-in/sign-in-screen.tsx:33
 #: src/settings/account/profile-form.tsx:27
 msgid "Email"
 msgstr ""
@@ -313,7 +340,11 @@ msgstr ""
 msgid "Enter a name."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:44
+#: src/auth/password-reset/forgot-password-screen.tsx:23
+msgid "Enter your account's email and we'll send you a link to choose a new password."
+msgstr ""
+
+#: src/auth/sign-in/sign-in-screen.tsx:39
 msgid "Enter your email."
 msgstr ""
 
@@ -321,7 +352,7 @@ msgstr ""
 msgid "Enter your name so your games can be told apart from your opponents'."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:46
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Enter your password."
 msgstr ""
 
@@ -329,7 +360,7 @@ msgstr ""
 msgid "Enter your username"
 msgstr ""
 
-#: src/games/review/board-evaluation.tsx:15
+#: src/games/review/board-evaluation.tsx:17
 #: src/games/review/move-insight.tsx:26
 msgid "Evaluation"
 msgstr ""
@@ -346,16 +377,20 @@ msgstr ""
 msgid "Filters"
 msgstr ""
 
+#: src/auth/sign-in/sign-in-screen.tsx:47
+msgid "Forgot password?"
+msgstr ""
+
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
-#: src/test/routes.tsx:157
+#: src/test/routes.tsx:160
 msgid "Gameplay"
 msgstr ""
 
 #: src/games/list/games-list.tsx:22
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:74
+#: src/test/routes.tsx:77
 msgid "Games"
 msgstr ""
 
@@ -379,11 +414,11 @@ msgstr ""
 msgid "Google"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:50
+#: src/auth/sign-in/sign-in-screen.tsx:45
 msgid "Google sign-in didn't complete. Try again."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:49
+#: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "Google sign-in was cancelled."
 msgstr ""
 
@@ -401,6 +436,10 @@ msgstr ""
 
 #: src/settings/account/profile-form.tsx:24
 msgid "How you're shown in the app."
+msgstr ""
+
+#: src/auth/password-reset/forgot-password-screen.tsx:28
+msgid "If an account exists for that email, a reset link is on its way."
 msgstr ""
 
 #: src/games/import/accounts/sources.ts:79
@@ -432,7 +471,7 @@ msgstr ""
 msgid "Inaccuracy"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:42
+#: src/auth/sign-in/sign-in-screen.tsx:37
 msgid "Invalid email or password."
 msgstr ""
 
@@ -487,7 +526,7 @@ msgstr ""
 #: src/routes/_app/settings/language-region.tsx:7
 #: src/settings/language-region/language-region-screen.tsx:18
 #: src/settings/layout/navigation.ts:31
-#: src/test/routes.tsx:143
+#: src/test/routes.tsx:146
 msgid "Language & region"
 msgstr ""
 
@@ -565,6 +604,10 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
+#: src/auth/password-reset/reset-password-screen.tsx:23
+msgid "New password"
+msgstr ""
+
 #: src/games/list/games-list.tsx:30
 #: src/games/review/replay-controls.tsx:14
 #: src/onboarding/onboarding-dialog.tsx:22
@@ -611,7 +654,7 @@ msgstr ""
 msgid "Opponent"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:48
+#: src/auth/sign-in/sign-in-screen.tsx:43
 msgid "Or continue with"
 msgstr ""
 
@@ -619,8 +662,12 @@ msgstr ""
 msgid "Or paste the moves"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/auth/sign-in/sign-in-screen.tsx:34
 msgid "Password"
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:26
+msgid "Passwords don't match."
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:41
@@ -709,6 +756,14 @@ msgstr ""
 msgid "Report"
 msgstr ""
 
+#: src/auth/password-reset/reset-password-screen.tsx:32
+msgid "Request a new link"
+msgstr ""
+
+#: src/auth/password-reset/forgot-password-screen.tsx:22
+msgid "Reset your password"
+msgstr ""
+
 #: src/games/list/columns.tsx:16
 #: src/games/list/filters.ts:36
 msgid "Result"
@@ -739,6 +794,14 @@ msgstr ""
 msgid "Saving…"
 msgstr ""
 
+#: src/auth/password-reset/forgot-password-screen.tsx:26
+msgid "Send reset link"
+msgstr ""
+
+#: src/auth/password-reset/forgot-password-screen.tsx:27
+msgid "Sending…"
+msgstr ""
+
 #: src/settings/account/sign-in-methods.tsx:26
 msgid "Set — you can sign in with your email and password."
 msgstr ""
@@ -746,7 +809,7 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:114
+#: src/test/routes.tsx:117
 msgid "Settings"
 msgstr ""
 
@@ -754,11 +817,12 @@ msgstr ""
 msgid "Show the engine's move on the board"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:40
+#: src/auth/password-reset/reset-password-screen.tsx:30
+#: src/auth/sign-in/sign-in-screen.tsx:35
 msgid "Sign in"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
+#: src/auth/sign-in/sign-in-screen.tsx:32
 msgid "Sign in with your account credentials."
 msgstr ""
 
@@ -770,7 +834,7 @@ msgstr ""
 msgid "Sign-in methods"
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:41
+#: src/auth/sign-in/sign-in-screen.tsx:36
 msgid "Signing in…"
 msgstr ""
 
@@ -831,7 +895,12 @@ msgstr ""
 msgid "System follows your operating system's setting."
 msgstr ""
 
-#: src/auth/sign-in/sign-in-screen.tsx:45
+#: src/auth/sign-in/sign-in-screen.tsx:49
+msgid "That confirmation link is invalid or has expired. Sign in to get a new one."
+msgstr ""
+
+#: src/auth/password-reset/forgot-password-screen.tsx:25
+#: src/auth/sign-in/sign-in-screen.tsx:40
 msgid "That doesn't look like an email address."
 msgstr ""
 
@@ -857,6 +926,10 @@ msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:54
 msgid "There is nothing to import yet."
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:31
+msgid "This reset link is invalid or has expired."
 msgstr ""
 
 #: src/onboarding/onboarding-dialog.tsx:27
@@ -889,6 +962,10 @@ msgstr ""
 #: src/games/list/columns.tsx:22
 #: src/games/review/game-result.tsx:12
 msgid "Unfinished"
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:25
+msgid "Use at least 8 characters."
 msgstr ""
 
 #: src/onboarding/steps.tsx:19
@@ -952,6 +1029,10 @@ msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:48
 msgid "Your name in these games"
+msgstr ""
+
+#: src/auth/password-reset/reset-password-screen.tsx:29
+msgid "Your password was changed. Sign in with the new one."
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:38

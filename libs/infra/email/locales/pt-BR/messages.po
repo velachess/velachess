@@ -1,0 +1,73 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-10-24 00:24+0200\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: pt-BR\n"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:9
+msgid "If the button doesn't work, open this link:"
+msgstr "Se o botão não funcionar, abra este link:"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:13
+msgid "Reset your VelaChess password"
+msgstr "Redefina sua senha do VelaChess"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:14
+msgid "Use this link to choose a new password."
+msgstr "Use este link para escolher uma nova senha."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:15
+msgid "Reset your password"
+msgstr "Redefina sua senha"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:16
+msgid "Someone asked to reset the password for your VelaChess account. Choose a new one with the button below."
+msgstr "Recebemos um pedido para redefinir a senha da sua conta VelaChess. Escolha uma nova senha pelo botão abaixo."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:19
+msgid "Choose a new password"
+msgstr "Escolher nova senha"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:21
+msgid "If you didn't ask for this, ignore this email. Your password stays the same."
+msgstr "Se você não fez esse pedido, ignore este email. Sua senha continua a mesma."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:26
+msgid "Confirm your email for VelaChess"
+msgstr "Confirme seu email no VelaChess"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:27
+msgid "Confirm this address to finish setting up your account."
+msgstr "Confirme este endereço para concluir a criação da sua conta."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:28
+msgid "Confirm your email"
+msgstr "Confirme seu email"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:29
+msgid "Confirm this is your email address to finish setting up your VelaChess account."
+msgstr "Confirme que este é o seu endereço de email para concluir a criação da sua conta VelaChess."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:32
+msgid "Confirm email"
+msgstr "Confirmar email"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:34
+msgid "If you didn't create a VelaChess account, ignore this email."
+msgstr "Se você não criou uma conta no VelaChess, ignore este email."

@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { resolveAuthEnv, type ResolvedAuthEnv } from "@velachess/infra-auth";
+import { resolveEmailEnv, type EmailConfig } from "@velachess/infra-email";
 import { resolveStorageEnv, type ResolvedStorageEnv } from "@velachess/infra-storage";
 import {
   bootstrapCredentialsFromEnv,
@@ -40,6 +41,8 @@ export interface ResolvedApiEnv {
   redis: ResolvedRedisEnv;
   auth: ResolvedAuthEnv;
   storage: ResolvedStorageEnv;
+  /** `null` when Resend is not configured. */
+  email: EmailConfig | null;
   bootstrapCredentials: BootstrapUserCredentials | null;
 }
 
@@ -53,6 +56,7 @@ export function resolveApiEnv(env: Record<string, string | undefined>): Resolved
     redis: resolveRedisEnv(env),
     auth: resolveAuthEnv(env),
     storage: resolveStorageEnv(env),
+    email: resolveEmailEnv(env),
     bootstrapCredentials: bootstrapCredentialsFromEnv(env),
   };
 }
