@@ -29,9 +29,8 @@ import { signInMethodsQuery } from "../sign-in-methods.ts";
 import { useQuery } from "../../libs/react-query.ts";
 import { z } from "../../libs/zod.ts";
 
-// Neutral copy: with Google enabled, the provider button also creates
-// the account on first use — never assume the visitor is returning, and
-// never promise email registration (it does not exist).
+// Neutral because the provider button also creates the account on first
+// use, and email registration does not exist.
 const SIGN_IN_COPY = {
   title: msg`Continue to VelaChess`,
   descriptionGoogle: msg`Continue with Google or sign in with your account credentials.`,
@@ -60,14 +59,12 @@ const FAILURE_COPY: Record<
   unavailable: SIGN_IN_COPY.unavailable,
 };
 
-/** OAuth's own "the person said no". */
 const OAUTH_ERROR_ACCESS_DENIED = "access_denied";
-/** Better Auth refusing to attach Google to an existing password account —
- * retrying never succeeds, so it gets its own copy. */
+/** Better Auth refusing to attach Google to an existing password account,
+ * where retrying never succeeds. */
 const OAUTH_ERROR_ACCOUNT_NOT_LINKED = "account_not_linked";
 
-// Everything else reads as a retryable failure. The raw code is never
-// rendered.
+// Everything else reads as retryable, and the raw code is never rendered.
 function oauthErrorCopy(code: string) {
   if (code === OAUTH_ERROR_ACCESS_DENIED) return SIGN_IN_COPY.googleCancelled;
   if (code === OAUTH_ERROR_ACCOUNT_NOT_LINKED) return SIGN_IN_COPY.googleAccountNotLinked;
@@ -75,16 +72,15 @@ function oauthErrorCopy(code: string) {
 }
 
 /**
- * The one screen reachable without a session. Which methods appear is
- * the server's answer (`GET /config`), so an instance without Google
- * credentials renders no dead button.
+ * Which methods appear is the server's answer (`GET /config`), so an
+ * instance without Google credentials renders no dead button.
  */
 export function SignInScreen({
   redirect,
   oauthError,
 }: {
   redirect?: string;
-  /** `?error=` as Better Auth returned it after a Google attempt. */
+  /** `?error=` as Better Auth returned it. */
   oauthError?: string;
 }) {
   const { i18n } = useLingui();
@@ -101,8 +97,8 @@ export function SignInScreen({
           password: value.password,
         });
       } catch {
-        // Held by the mutation and rendered below; rethrowing would be
-        // an unhandled rejection.
+        // The mutation holds it and the screen renders it below;
+        // rethrowing leaves the rejection unhandled.
         return;
       }
 
@@ -126,8 +122,7 @@ export function SignInScreen({
     try {
       await signInWithGoogle({ successURL: redirect ?? "/", redirect });
       // No `finally`: on success the browser is navigating away, and
-      // re-enabling the button here would let a click race that navigation
-      // and start a second flow before it lands.
+      // re-enabling the button lets a click race that navigation.
     } catch {
       setGoogleFailed(true);
       setGooglePending(false);

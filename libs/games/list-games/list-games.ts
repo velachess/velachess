@@ -1,16 +1,14 @@
 /**
- * ListGames — one page of the user's unified library, filtered.
- *
- * Every game the user owns in one list: synced Chess.com and Lichess
- * archives next to manually imported PGNs, provenance visible per row
- * but never deciding what appears here. Ownership is the games table's
- * own user_id — a read, and nothing but a read.
+ * Synced archives and pasted PGNs in one list, where provenance is visible
+ * per row but never decides what appears. Ownership is the games table's
+ * own user_id.
  */
 import type { GameFilters, GamePage, GameRow } from "@velachess/infra-db";
 
 export interface Library {
   games: GameRow[];
-  /** Matching the filters, not the page — the pager needs the whole count. */
+  /** Matching the filters, not the page: the pager needs the whole
+   * count. */
   total: number;
   page: number;
   pageSize: number;
@@ -26,7 +24,6 @@ export interface ListGamesDeps {
   listGamesPage: ListGamesPage;
 }
 
-/** "Show me my games" — every source at once. */
 export async function openLibrary(
   deps: ListGamesDeps,
   userId: string,

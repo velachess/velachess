@@ -9,7 +9,7 @@ import {
 
 export type Seat = "white" | "black";
 
-/** The seat `@velachess/chess` resolves, else white — somewhere to start,
+/** The seat `@velachess/chess` resolves, else white: somewhere to start,
  * not evidence about who the person is. */
 export function seatOf(
   game: { perspective: Seat | null; whiteName: string; blackName: string },
@@ -19,14 +19,13 @@ export function seatOf(
 }
 
 export interface SeatIdentity {
-  /** Provider profile picture, resolved server-side from the profile
-   * cache. Absent when unknown — initials stand in. */
+  /** Resolved server-side from the profile cache; absent when unknown. */
   avatarUrl?: string;
-  /** Lichess asset id, decorated beside the name. Never an avatar. */
+  /** A Lichess asset id beside the name, never an avatar. */
   flair?: string;
 }
 
-/** Nulls become absent: initials stand in for an unknown picture. */
+/** Nulls become absent, so initials stand in. */
 export function seatIdentityOf(
   identity:
     | {
@@ -43,7 +42,6 @@ export function seatIdentityOf(
   };
 }
 
-/** Drag hints for the position on screen. */
 export function legalTargetsAt(fen: string, square: string): readonly LegalDestination[] {
   return positionFromFen(fen).unwrap(
     (position) => legalDestinations(position, square),
@@ -52,9 +50,8 @@ export function legalTargetsAt(fen: string, square: string): readonly LegalDesti
 }
 
 /**
- * `makeSan` will happily name a move nobody could play, so a record
- * drifted from its FEN would render a confident, impossible suggestion —
- * hence the legality check.
+ * `makeSan` will name a move nobody could play, so without the legality
+ * check a record drifted from its FEN renders an impossible suggestion.
  */
 export function sanOfUciAt(fen: string, uci: string): string | null {
   return positionFromFen(fen).unwrap(

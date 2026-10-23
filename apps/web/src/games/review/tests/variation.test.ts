@@ -26,13 +26,12 @@ import { useVariationEvaluation } from "../use-variation-evaluation.ts";
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 
-/** A one-move game, replayed by production's own `libs/chess` call. */
+/** Replayed through production's own `libs/chess` call. */
 const moves: readonly ReplayedMove[] = aReplay("1. e4 *").moves;
 
 const game = { moves, startFen: START };
 
-/** A search that settles only when the test says so, and records being
- * cancelled instead. */
+/** Settles only when the test says so, and records being cancelled. */
 function makeControllableEval(result: PositionEvaluation) {
   let settle: (value: PositionEvaluation) => void;
   let fail: (error: Error) => void;
@@ -44,21 +43,20 @@ function makeControllableEval(result: PositionEvaluation) {
   let answered = false;
 
   const run = vi.fn((): PositionSearch => {
-    // Per search, not per helper: cancelling one must not stop the next
-    // search for the same position from answering.
+    // Per search, so cancelling one leaves the next for the same position
+    // free to answer.
     let stop: () => void;
     const stopped = new Promise<never>((_, reject) => {
       stop = () => reject(new Error("search cancelled"));
     });
-    // A search cancelled while still streaming never reaches the race.
     void stopped.catch(() => {});
     let halted = false;
 
     async function* search() {
       yield { depth: 4, multipv: 1, score: { cp: 0 }, pv: ["e2e4"] };
       const value = await Promise.race([engineAnswered, stopped]);
-      // A cancelled search delivers nothing, even when the engine
-      // answered in the same tick.
+      // A cancelled search delivers nothing, even when the engine answered
+      // in the same tick.
       if (halted) throw new Error("search cancelled");
       answered = true;
       return value;
@@ -88,10 +86,9 @@ async function flush() {
 }
 
 /**
- * A review with the evaluation hook mounted the way `board-evaluation.tsx`
- * mounts it: the FEN in, the number out. The reading is attached to the
- * store so a test can ask for both without threading two values around —
- * it is the screen's two sources, not a third one.
+ * The evaluation hook mounted the way `board-evaluation.tsx` mounts it. The
+ * reading hangs off the store so a test can read both of the screen's
+ * sources without threading two values around.
  */
 type MountedReview = ReviewStore & {
   evaluation: () => WhitePovScore | null;
@@ -121,9 +118,8 @@ const play = (store: ReviewStore, from: string, to: string) => {
 };
 
 /**
- * The hook owns one evaluator per review and asks it for every position,
- * so the double is split in two: `evaluate` is the search, and `dispose`
- * is the session going away.
+ * The hook owns one evaluator per review, so `evaluate` is the search and
+ * `dispose` is the session going away.
  */
 const evaluate = vi.fn<(fen: string) => PositionSearch>();
 const dispose = vi.fn<() => Promise<void>>(async () => {});
@@ -150,8 +146,7 @@ describe("playing a variation", () => {
   });
 
   it("rejects a move by the side that is not to play", () => {
-    // The rules allow it; a variation is a game being played, so the turn
-    // is the turn.
+    // A variation is a game being played, so the turn is the turn.
     const store = openReview();
 
     expect(play(store, "e7", "e5")).toBe(false);
@@ -192,7 +187,6 @@ describe("playing a variation", () => {
     expect(play(store, "e2", "e4")).toBe(true);
     expect(play(store, "e7", "e5")).toBe(true);
     expect(play(store, "g1", "f3")).toBe(true);
-    // White again, out of turn now that Black has not replied.
     expect(play(store, "b1", "c3")).toBe(false);
 
     const { variation } = store.getState();
@@ -233,8 +227,7 @@ describe("playing a variation", () => {
     play(store, "e7", "e5");
     play(store, "g1", "f3");
 
-    // Every search answers, oldest first, after the board already moved
-    // three positions on.
+    // Oldest first, after the board already moved three positions on.
     for (const answer of answers) answer.answer();
     await flush();
 
@@ -244,9 +237,8 @@ describe("playing a variation", () => {
   });
 
   it("drops an answer that arrives after the line left that position", async () => {
-    // The window the hook used to guard with a `cancelled` flag: the
-    // search settles after its own cleanup ran, with the screen still
-    // mounted. The store is what refuses it.
+    // The search settles after its own cleanup ran, with the screen still
+    // mounted, and the store is what refuses it.
     const first = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
     const second = makeControllableEval({ score: { cp: 2 }, bestMove: "g1f3" });
     evaluate.mockImplementationOnce(first.run).mockImplementationOnce(second.run);
@@ -266,8 +258,8 @@ describe("playing a variation", () => {
 
     const store = openReview();
     play(store, "e2", "e4");
-    // Back to the real game: nothing supersedes the search, it is simply
-    // about a position nobody is looking at any more.
+    // Nothing supersedes the search; it is about a position nobody is
+    // looking at.
     act(() => store.getState().goToPly(1));
     pending.answer();
     await flush();
@@ -318,8 +310,8 @@ describe("navigating a variation", () => {
     act(() => store.getState().previous());
     act(() => store.getState().next());
 
-    // Stepping is the game's own, and a line is not on it: nothing moved,
-    // and the board is still showing the line.
+    // Stepping is the game's own, so nothing moved and the line is still on
+    // the board.
     expect(store.getState().ply).toBe(0);
     expect(store.getState().variation?.moves.map((move) => move.san)).toEqual(["e4"]);
     expect(selectFen(store.getState(), game)).toBe(AFTER_E4);

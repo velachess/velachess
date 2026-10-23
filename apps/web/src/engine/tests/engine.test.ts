@@ -20,8 +20,7 @@ const FEN_A = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const FEN_B = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
 const FEN_C = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
 
-/** Short enough to elapse inside a test, same spirit as the engine
- * suite's own `FAST` options. */
+/** Short enough to elapse inside a test. */
 const STOP_SETTLE_MS = 30;
 
 function harness(options: ScriptedEngineOptions = {}) {
@@ -40,8 +39,7 @@ function harness(options: ScriptedEngineOptions = {}) {
 const search = (session: EngineSessionHandle, fen: string): Task<CompletedSearch> =>
   run(() => session.evaluate(fen));
 
-/** Lets Effection's scheduler drain, and any deadline shorter than this
- * elapse, without asserting on how long anything took. */
+/** Lets Effection's scheduler drain, and any shorter deadline elapse. */
 async function flush(ms = 0) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -69,8 +67,7 @@ describe("createEngine", () => {
     const second = search(b, FEN_B);
     await vi.waitFor(() => expect(engines).toHaveLength(2));
 
-    // Both are searching before either has answered: neither session
-    // waited for the other.
+    // Both searching before either answered: neither session waited.
     expect(engines[0]!.searching).toBe(true);
     expect(engines[1]!.searching).toBe(true);
 
@@ -95,8 +92,7 @@ describe("createEngine", () => {
 
     expect(engines).toHaveLength(1);
     expect(engines[0]!.goCallCount).toBe(2);
-    // No `stop` anywhere: a search that answered on its own is not one
-    // the next search has to interrupt.
+    // No `stop`: a search that answered on its own needs no interrupting.
     expect(engines[0]!.sent).toEqual([
       "uci",
       "isready",
@@ -143,8 +139,8 @@ describe("createEngine", () => {
     quiet(abandoned);
     await vi.waitFor(() => expect(engines).toHaveLength(1));
 
-    // Nothing is queued, so `stop` is what ends the first search — the
-    // truncated outcome that must not be handed to the second.
+    // Nothing queued, so `stop` ends the first search, and its truncated
+    // outcome must not reach the second.
     const next = search(session, FEN_B);
     engines[0]!.queueGoResponse(goLines(-5, "e7e5"));
 
@@ -169,9 +165,8 @@ describe("createEngine", () => {
     await expect(first).rejects.toBeInstanceOf(SearchSuperseded);
     await expect(second).rejects.toBeInstanceOf(SearchSuperseded);
 
-    // Each replacement waited for the one before it to answer: the whole
-    // conversation is one Worker's, strictly alternating, with no `go`
-    // ever issued while another was outstanding.
+    // One Worker's conversation, strictly alternating, with no `go` issued
+    // while another was outstanding.
     expect(engines[0]!.sent).toEqual([
       "uci",
       "isready",
@@ -202,8 +197,8 @@ describe("createEngine", () => {
     const scripted = engines[0]!;
     await abandoned.halt().catch(() => {});
 
-    // The drained `bestmove` belongs to nobody: a halted caller is never
-    // handed a result, stale or otherwise.
+    // A halted caller is never handed a result, so the drained `bestmove`
+    // belongs to nobody.
     expect(delivered).toBeNull();
     expect(scripted.sent).toContain("stop");
     expect(scripted.searching).toBe(false);
@@ -215,9 +210,8 @@ describe("createEngine", () => {
   });
 
   it("holds the next search until the stopped one actually answers", async () => {
-    // `ignoreStop` withholds the bestmove, so nothing but the deadline
-    // can release the replacement — and before the deadline it must not
-    // be released at all.
+    // `ignoreStop` withholds the bestmove, so only the deadline can release
+    // the replacement.
     const { engine, engines } = harness({ ignoreStop: true });
     const session = engine.createSession({ depth: 14 });
 
@@ -229,9 +223,9 @@ describe("createEngine", () => {
     quiet(next);
     await flush(STOP_SETTLE_MS / 3);
 
-    // Still one `go`: the replacement cannot speak while the first search
-    // is outstanding. If `done` ever reported the caller leaving rather
-    // than the engine going idle, this is where it breaks.
+    // Still one `go`: the replacement cannot speak while the first search is
+    // outstanding, which breaks if `done` ever reports the caller leaving
+    // rather than the engine going idle.
     expect(engines[0]!.goCallCount).toBe(1);
     expect(engines[0]!.sent).toContain("stop");
   });
@@ -243,8 +237,8 @@ describe("createEngine", () => {
     const abandoned = search(session, FEN_A);
     quiet(abandoned);
     await vi.waitFor(() => expect(engines).toHaveLength(1));
-    // Chatty but wedged: a silence watchdog would never fire here, which
-    // is exactly why the stop deadline exists.
+    // Chatty but wedged, so a silence watchdog never fires: the reason the
+    // stop deadline exists.
     engines[0]!.emitInfo(12);
 
     const next = search(session, FEN_B);
@@ -261,8 +255,8 @@ describe("createEngine", () => {
     const session = engine.createSession({ depth: 14 });
 
     const failing = search(session, FEN_A);
-    // A dead Worker ends its line stream; infra retries once on a fresh
-    // session, so the second one has to die too for the call to fail.
+    // Infra retries once on a fresh session, so the second has to die too
+    // for the call to fail.
     await vi.waitFor(() => expect(engines).toHaveLength(1));
     engines[0]!.crash();
     await vi.waitFor(() => expect(engines).toHaveLength(2));
@@ -276,10 +270,9 @@ describe("createEngine", () => {
   });
 
   it("releases the next search when a cancelled one is stopped and the engine never answers", async () => {
-    // The caller-halt path goes through `releaseSearch`, whose teardown
-    // runs while the operation is unwinding — a different route to
-    // `stopSearch` than a newer request takes. If `released` failed to
-    // resolve there, the next search would wait forever.
+    // The caller-halt path reaches `stopSearch` through `releaseSearch`'s
+    // teardown, while unwinding, which a newer request does not. If
+    // `released` failed to resolve there, the next search waits forever.
     const { engine, engines } = harness({ ignoreStop: true });
     const session = engine.createSession({ depth: 14 });
 
@@ -305,8 +298,8 @@ describe("createEngine", () => {
       await vi.waitFor(() => expect(engines).toHaveLength(1));
       await abandoned.halt().catch(() => {});
 
-      // The open was the session's, not the caller's, so it finishes and
-      // the Worker is registered rather than orphaned.
+      // The open was the session's, so it finishes and the Worker is
+      // registered rather than orphaned.
       engines[0]!.answerHandshake();
       expect(engines[0]!.goCallCount).toBe(0);
       expect(engines[0]!.closed).toBe(false);
@@ -328,8 +321,8 @@ describe("createEngine", () => {
       await vi.waitFor(() => expect(engines).toHaveLength(1));
 
       await run(() => session.dispose());
-      // Finishing the handshake after disposal must not hand the Worker
-      // to anyone: the session's scope is already gone.
+      // The session's scope is already gone, so the finished handshake hands
+      // the Worker to nobody.
       engines[0]!.answerHandshake();
 
       await expect(pending).rejects.toBeInstanceOf(EngineSessionDisposed);
@@ -344,8 +337,7 @@ describe("createEngine", () => {
       const { engine, engines } = harness({ holdHandshake: true });
       const session = engine.createSession({ depth: 14 });
 
-      // Both in the same tick, so the second shares the first's open
-      // rather than starting one of its own.
+      // Same tick, so the second shares the first's open.
       const first = search(session, FEN_A);
       const second = search(session, FEN_B);
       quiet(first);
@@ -353,8 +345,8 @@ describe("createEngine", () => {
       await vi.waitFor(() => expect(engines).toHaveLength(1));
       expect(engines).toHaveLength(1);
 
-      // A dead Worker ends its line stream, which is a handshake that can
-      // never complete — without waiting out the 10s handshake timeout.
+      // A dead Worker ends its line stream, so the handshake can never
+      // complete, without waiting out its 10s timeout.
       engines[0]!.crash();
 
       const failure = /closed before completing the handshake/;
@@ -362,7 +354,6 @@ describe("createEngine", () => {
       await expect(second).rejects.toThrow(failure);
       expect(engines[0]!.closed).toBe(true);
 
-      // Back to idle, so a later search opens a fresh Worker.
       const third = search(session, FEN_C);
       await vi.waitFor(() => expect(engines).toHaveLength(2));
       engines[1]!.answerHandshake();
@@ -383,8 +374,7 @@ describe("createEngine", () => {
 
       await run(() => session.dispose());
       expect(engines[0]!.closed).toBe(true);
-      // Nothing to assert but that it returns: a second disposal of a
-      // session that is already gone must not reopen or throw.
+      // A second disposal must not reopen or throw.
       await run(() => session.dispose());
       expect(engines).toHaveLength(1);
     });

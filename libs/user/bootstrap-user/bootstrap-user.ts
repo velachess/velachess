@@ -1,7 +1,8 @@
 /**
- * First-run provisioning, no HTTP endpoint — env-var-based, at startup, into an empty user table only.
- * Avoids the recurring CVE pattern (Portainer, Krayin, Gitea, Immich) of unauthenticated "create first user" surfaces guarded by resettable runtime state.
- * Called a "user", not "admin": the product has no roles/RBAC to justify the word.
+ * Env-var provisioning at startup, into an empty user table only: there is
+ * no HTTP endpoint, a pattern with CVEs to its name in Portainer, Krayin,
+ * Gitea and Immich, where resettable runtime state guarded an
+ * unauthenticated "create first user" surface.
  */
 
 export interface BootstrapUserCredentials {
@@ -9,8 +10,8 @@ export interface BootstrapUserCredentials {
   password: string;
 }
 
-/** Read the well-known env vars; null when not configured (cloud, or a
- * self-hoster who created their first user some other way). */
+/** Null when not configured, which a self-hoster who created their first
+ * user another way is. */
 export function bootstrapCredentialsFromEnv(
   env: Record<string, string | undefined>,
 ): BootstrapUserCredentials | null {
@@ -50,9 +51,10 @@ export interface BootstrapUserDeps {
 }
 
 /**
- * Create the first user, once. Guard is "any user exists" (not "this email"), so it's idempotent
- * and can't overwrite credentials. Advisory lock prevents two concurrent instances both passing the count.
- * Goes through Better Auth's own sign-up API, not a hand-rolled INSERT, so hashing matches verification.
+ * The guard is "any user exists" rather than "this email", so it cannot
+ * overwrite credentials, and the advisory lock stops two concurrent
+ * instances both passing the count. Creation goes through Better Auth's own
+ * sign-up API, so hashing matches verification.
  */
 export async function bootstrapUser(
   deps: BootstrapUserDeps,
@@ -73,10 +75,9 @@ export async function bootstrapUser(
       password: credentials.password,
     });
 
-    // signUpEmail hard-codes emailVerified: false, not overridable via the
-    // body. The operator running this already controls the box the email
-    // sits on, so verification proves nothing — and left false, this
-    // account fails Google's account-linking check on first use.
+    // `signUpEmail` hard-codes `emailVerified: false` with no override, and
+    // left false this account fails Google's account-linking check on first
+    // use. The operator already controls the box the email sits on.
     await deps.markEmailVerified(created.user.id);
 
     return { status: "created", userId: created.user.id };

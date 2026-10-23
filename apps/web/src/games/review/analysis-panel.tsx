@@ -22,11 +22,11 @@ import { useGameReview } from "./use-game-review.ts";
 const PANEL_COPY = {
   move: msg`Move`,
   report: msg`Report`,
-  /** A landmark's name is read aloud, so it is copy like any other. */
+  /** A landmark's name is read aloud, so it is copy. */
   region: msg`Review`,
 } as const;
 
-/** Tab ids are keys, never copy — the label is translated, this is not. */
+/** Keys, not copy: the label is translated, these are not. */
 const TABS = { move: "move", report: "report" } as const;
 
 export interface AnalysisPanelProps {
@@ -34,22 +34,22 @@ export interface AnalysisPanelProps {
 }
 
 /**
- * Everything that is not the board. The curve, the result and the
- * controls are permanent — a long game must never scroll the buttons out
- * of reach — and the two tabs own their own scrolling.
+ * The curve, the result and the controls are permanent, so a long game
+ * never scrolls the buttons out of reach, and the two tabs own their own
+ * scrolling.
  */
 const NOTHING_GRADED: readonly GradedPly[] = [];
 
 export function AnalysisPanel({ game }: AnalysisPanelProps) {
   const { i18n } = useLingui();
 
-  // The grades that have landed, and nothing provisional: a deepening
-  // search redraws `AnalysisProgress`, not this panel.
+  // The grades that landed and nothing provisional: a deepening search
+  // redraws `AnalysisProgress`, not this panel.
   const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectGraded });
   const graded = analysis.data ?? NOTHING_GRADED;
 
-  // `inVariation`: the main line's verdict is about a position nobody is
-  // looking at, so it is not shown at all.
+  // In a variation the main line's verdict is about a position nobody is
+  // looking at, so it is not shown.
   const ply = useGameReview((state) => state.ply);
   const move = useGameReview((state) => selectGameMove(state, game));
   const inVariation = useGameReview((state) => state.variation !== null);

@@ -1,12 +1,10 @@
 /**
- * [UI] Style values for react-chessboard, which takes CSSProperties (not
- * classNames) for squares/notation/frame. Values come from CSS custom
- * properties in `styles/theme.css` — no literal colours here.
+ * react-chessboard takes CSSProperties, not classNames, so every colour
+ * here reads a custom property from `styles/theme.css`.
  */
 
 import type { CSSProperties } from "react";
 
-/** Custom properties this module reads. Declared in `styles/theme.css`. */
 const TOKEN = {
   lightSquare: "--board-light",
   darkSquare: "--board-dark",
@@ -24,10 +22,7 @@ function cssVar(name: (typeof TOKEN)[keyof typeof TOKEN]): string {
   return `var(${name})`;
 }
 
-/**
- * Badge tones — not chess move categories. Four grade colours plus "book",
- * matching `styles/theme.css`; callers map their own vocabulary onto these.
- */
+/** Not move categories: callers map their own vocabulary onto these. */
 export const BADGE_TONES = ["ok", "inaccuracy", "mistake", "blunder", "book"] as const;
 
 export type BadgeTone = (typeof BADGE_TONES)[number];
@@ -40,22 +35,20 @@ export const BADGE_TONE_COLOR: Record<BadgeTone, string> = {
   book: cssVar(TOKEN.highlight),
 };
 
-/** Which of the board's edges a badge's square touches at its corner. */
 export interface BadgeEdges {
   right: boolean;
   top: boolean;
 }
 
-/** The file and rank that run along the right and top edges, as seen from the bottom seat. */
+/** The file and rank along the right and top edges, from the bottom
+ * seat. */
 const BOARD_EDGES = {
   white: { file: "h", rank: "8" },
   black: { file: "a", rank: "1" },
 } as const;
 
-/**
- * Whether a square's top-right corner is on the board's right or top edge.
- * A badge sits on that corner, and there it would leave the board.
- */
+/** A badge sits on the top-right corner, which those edges would push off
+ * the board. */
 export function badgeEdgesOf(
   square: string,
   orientation: keyof typeof BOARD_EDGES,
@@ -65,16 +58,10 @@ export function badgeEdgesOf(
   return { right: file === edges.file, top: rank === edges.rank };
 }
 
-/** The engine's first choice: full strength, so it reads as the answer. */
 export const ARROW_BEST = cssVar(TOKEN.gradeOk);
 
-/**
- * A move someone asked to see, drawn apart from the grade ramp.
- *
- * Green already means "this was the best move" and red "this lost you
- * something". A suggestion is neither — it is an answer to a question,
- * and giving it a verdict colour would read as one.
- */
+/** Off the grade ramp, where green means "best" and red "lost something",
+ * and a suggestion is neither. */
 export const ARROW_SUGGESTED = cssVar(TOKEN.suggested);
 
 export const BOARD_STYLE = {
@@ -83,36 +70,29 @@ export const BOARD_STYLE = {
   highlight: { backgroundColor: cssVar(TOKEN.highlight) },
 } as const satisfies Record<string, React.CSSProperties>;
 
-/**
- * Notation needs two colours because it sits on two backgrounds — the
- * library asks for them separately for exactly that reason.
- */
 export const NOTATION_STYLE = {
   onLight: { color: cssVar(TOKEN.notationOnLight) },
   onDark: { color: cssVar(TOKEN.notationOnDark) },
 } as const satisfies Record<string, React.CSSProperties>;
 
 /**
- * Long enough to read as a move, short enough not to gate the next one.
- * Stepping through a game with the arrow keys is faster than any easing
- * curve, so the replay turns animation off rather than queueing.
+ * Stepping with the arrow keys is faster than any easing curve, so the
+ * replay turns animation off rather than queueing it.
  */
 export const ANIMATION_DURATION_MS = 180;
 
 /**
- * Move-hint dots: filled dot for a quiet move, ring for a capture (the
- * Lichess/Chess.com convention). Painted via radial-gradient because
- * squareStyles only accepts CSS properties, not child nodes.
+ * Painted as a radial-gradient because `squareStyles` accepts CSS
+ * properties, not child nodes.
  */
 const HINT_COLOR = "color-mix(in oklab, var(--foreground) 24%, transparent)";
 
-/** Small enough to read as a marker; a larger dot reads as a piece. */
+/** A larger dot reads as a piece. */
 const HINT_DOT_RADIUS = "17%";
-/** The ring hugs the square's edge so the piece underneath stays legible. */
+/** Hugs the square's edge, so the piece underneath stays legible. */
 const HINT_RING_WIDTH = "9%";
 
 export const HINT_STYLE: Record<"move" | "capture" | "selected", CSSProperties> = {
-  /** The square the piece came from, so the dots have a visible origin. */
   selected: { backgroundColor: HINT_COLOR },
   move: {
     backgroundImage: `radial-gradient(circle at center, ${HINT_COLOR} ${HINT_DOT_RADIUS}, transparent ${HINT_DOT_RADIUS})`,

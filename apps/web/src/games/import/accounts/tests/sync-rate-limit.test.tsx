@@ -9,20 +9,13 @@ import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 
 /**
- * What a person sees when the server says "not now" — the one refusal
- * that must not read as a failure.
- *
- * A 429 asks for the opposite reaction from every other error: wait,
- * instead of retry. So each screen that can hit one has to say when to
- * come back (the body's `retryAfterSeconds` — the client cannot read a
- * rejection's headers) and must not use the vocabulary of breakage.
- *
- * Game analysis no longer has a server leg to rate-limit — it runs
- * entirely in the browser now — so that half of this file is gone; sync
- * still hits the server and still needs this.
+ * A 429 asks for the opposite reaction from every other error: wait, not
+ * retry. A screen that can hit one says when to come back, from the body's
+ * `retryAfterSeconds` since the client cannot read a rejection's headers,
+ * and never uses the vocabulary of breakage.
  */
 
-/** The refusal as the rate-limit middleware writes it. */
+/** As the rate-limit middleware writes it. */
 const rateLimited = (retryAfterSeconds: number) =>
   HttpResponse.json(
     { error: "too many requests", retryAfterSeconds },
@@ -36,9 +29,9 @@ describe("a throttled sync", () => {
   });
 
   it("lands in the same calm toast as the per-account cooldown", async () => {
-    // Unlike a per-account cooldown (folded into an empty answer, silent),
-    // this route's own burst limit is visible: a person clicking it
-    // manually needs to know the button heard them.
+    // Where a per-account cooldown is folded into an empty answer, this
+    // route's burst limit is visible: a person clicking manually needs to
+    // know the button heard them.
     server.use(http.post("/api/accounts/sync", () => rateLimited(37)));
 
     const { user } = await renderApp();

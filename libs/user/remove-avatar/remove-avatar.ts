@@ -1,8 +1,6 @@
 /**
- * RemoveAvatar — drop this user's picture back to their initials.
- *
- * `none` rather than `null` is the whole point: it records that the user
- * chose to have no picture, which a later OAuth sign-in must not undo.
+ * `none` rather than `null` records that the user chose to have no picture,
+ * which a later OAuth sign-in must not undo.
  */
 import { avatarStorageKey } from "../avatar.ts";
 
@@ -21,10 +19,9 @@ export async function removeAvatar(
   deps: RemoveAvatarDeps,
   userId: string,
 ): Promise<void> {
-  // Row first, bytes second — the opposite of setAvatar, for the same
-  // reason. Here the row is what the user sees, so clearing it first
-  // means a failing unlink leaves an orphaned object rather than an
-  // avatar that refuses to disappear.
+  // Row first, the opposite of setAvatar: here the row is what the user
+  // sees, so a failing unlink leaves an orphan rather than an avatar that
+  // refuses to disappear.
   await deps.writeAvatarState(userId, { image: null, avatarSource: "none" });
   await deps.removeAvatarObject(avatarStorageKey(userId));
 }

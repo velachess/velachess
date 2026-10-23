@@ -15,31 +15,25 @@ import { BoardStage } from "@velachess/ui/chess/board-stage";
 import { useBreadcrumbTrail } from "./breadcrumb-trail.ts";
 
 export interface BoardScreenProps {
-  /** The page's own name — the last crumb, which the router cannot know
-   * because it needs data the route hasn't loaded. */
+  /** The last crumb, which the router cannot know: it needs data the route
+   * has not loaded. */
   page: ReactNode;
   /** The board column and its context panel, in that order. */
   children: ReactNode;
 }
 
 /**
- * The frame every board screen shares: a breadcrumb that stays put, and
- * a board beside its context panel below it.
- *
- * The scroll boundary, the trail and the two-column stage are decided
- * here once; each screen brings only its own two children.
+ * The scroll boundary, the trail and the two-column stage are decided here
+ * once; each screen brings its own two children.
  */
 export function BoardScreen({ page, children }: BoardScreenProps) {
   const { i18n } = useLingui();
   const trail = useBreadcrumbTrail();
 
   return (
-    // The scroll/overflow boundary sits here so the breadcrumb stays
-    // above it; the stage below keeps its own height tuning.
-    //
-    // `pb-0` on mobile: a sticky footer nav inside the panel sticks to
-    // this container's own padding edge, so a bottom padding here would
-    // show up as a gap between it and the screen edge/bottom bar.
+    // The overflow boundary sits here so the breadcrumb stays above it.
+    // `pb-0` on mobile: a sticky footer nav inside the panel sticks to this
+    // container's padding edge, where bottom padding reads as a gap.
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pb-0 lg:overflow-hidden lg:pb-4">
       <Breadcrumb className="shrink-0">
         <BreadcrumbList>

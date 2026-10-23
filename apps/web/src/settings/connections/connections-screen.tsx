@@ -86,9 +86,8 @@ const CONNECTIONS_VIEW_KIND = {
   CONNECTED: "connected",
 } as const;
 
-/** The screen's one branch point, named instead of re-checked inline —
- * mirrors `onboarding-state.ts`'s `onboardingState()`: sequential guards
- * producing a discriminated union, read once at the top of render. */
+/** Sequential guards producing a discriminated union, like
+ * `onboarding-state.ts`'s `onboardingState()`. */
 type ConnectionsView =
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOADING }
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOAD_ERROR }
@@ -102,16 +101,14 @@ function connectionsView(
 ): ConnectionsView {
   if (isPending) return { kind: CONNECTIONS_VIEW_KIND.LOADING };
   if (isError) return { kind: CONNECTIONS_VIEW_KIND.LOAD_ERROR };
-  // Neither pending nor errored: the query succeeded, so `data` is defined
-  // — react-query's own guarantee, same one the original ternary here
-  // relied on implicitly.
+  // Neither pending nor errored, so the query succeeded and `data` is
+  // defined: react-query's own guarantee.
   if (data!.length === 0) return { kind: CONNECTIONS_VIEW_KIND.EMPTY };
   return { kind: CONNECTIONS_VIEW_KIND.CONNECTED, accounts: data! };
 }
 
-/** Settings → Connections: the chess accounts games come from — not sign-in
- * methods (see Account). Composes the existing tracked-accounts query and
- * sync/import mutations; no account state lives here. */
+/** The chess accounts games come from, not sign-in methods, which are
+ * Account's. No account state lives here. */
 export function ConnectionsScreen() {
   const { i18n } = useLingui();
   const accounts = useQuery(trackedAccountsQuery);
@@ -213,8 +210,8 @@ function AccountRow({ account }: { account: TrackedAccount }) {
     },
   });
 
-  // The server's word, not this row's memory: a job it still holds reads
-  // as running on any screen, after any reload.
+  // The server's word, not this row's memory, so a job it still holds reads
+  // as running after any reload.
   const syncing = isSyncInProgress(sync.isPending, [account]);
   const label = syncing ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
 

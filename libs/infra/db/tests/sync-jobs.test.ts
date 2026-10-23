@@ -22,7 +22,7 @@ import { createTestDb } from "./test-db.ts";
 const { db, listen, close } = await createTestDb();
 afterAll(() => close());
 
-/** Notifications arrive on their own tick; this lets them. */
+/** Notifications arrive on their own tick. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 async function anAccount() {
@@ -31,7 +31,7 @@ async function anAccount() {
   return { userId: user.id, accountId: account.id };
 }
 
-/** A delivery picking the job up: the attempt every later write is fenced to. */
+/** The attempt every later write is fenced to. */
 async function deliver(job: { id: string }) {
   const run = await markSyncRunning(db, job.id);
   if (!run) throw new Error(`job ${job.id} is not active`);
@@ -70,8 +70,8 @@ describe("sync jobs", () => {
 
   it("a delivery picks up a job from any status that means it is still on its way", async () => {
     // The SQL predicate is the one spelling of `isActiveSyncStatus` that
-    // cannot call it. Every status the policy calls active must let a
-    // delivery in; every settled one must keep it out.
+    // cannot call it, so every active status lets a delivery in and every
+    // settled one keeps it out.
     for (const status of ["queued", "running", "retrying"] as const) {
       const owner = await anAccount();
       const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
@@ -116,9 +116,9 @@ describe("sync jobs", () => {
   });
 
   it("an attempt a newer delivery replaced can neither lock nor finish the job", async () => {
-    // The stamp is the fence: a delivery pg-boss took the job from (a
-    // missed heartbeat, an expiry) may still be running, and whatever it
-    // commits after the retry picked the job up must miss the row.
+    // A delivery pg-boss took the job from may still be running, and
+    // whatever it commits after the retry picked the job up misses the
+    // row.
     const owner = await anAccount();
     const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
     const stale = await deliver(job);
@@ -162,7 +162,7 @@ describe("sync jobs", () => {
       errorCode: null,
     });
 
-    // Retries spent on an incomplete pass: the row says so, not "internal".
+    // Retries spent on an incomplete pass read as that, not "internal".
     const spent = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
     await finishSyncJob(db, await deliver(spent), {
       status: "retrying",
@@ -218,7 +218,7 @@ describe("sync jobs", () => {
       const retry = await deliver(job);
       await db.transaction(async (tx) => {
         await finishSyncJob(tx, retry, { status: "succeeded", errorCode: null });
-        // Not yet: the games committing alongside are not visible either.
+        // Not yet: the games committing alongside are not visible.
         await settle();
         expect(heard).toEqual([]);
       });
@@ -232,11 +232,11 @@ describe("sync jobs", () => {
       const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
       const stale = await deliver(job);
       await finishSyncJob(db, stale, { status: "retrying", errorCode: "internal" });
-      // `started_at` is millisecond-resolution: without a gap, a fast local
-      // run can re-stamp within the same millisecond as `stale`, making the
-      // "obsolete" attempt indistinguishable from the fresh one by accident.
+      // `started_at` has millisecond resolution, so without a gap a fast run
+      // re-stamps within the same millisecond and the obsolete attempt is
+      // indistinguishable from the fresh one.
       await settle();
-      // Re-stamped: the old attempt is obsolete.
+      // Re-stamped, so the old attempt is obsolete.
       await deliver(job);
 
       const heard: string[] = [];
@@ -254,7 +254,7 @@ describe("sync jobs", () => {
       const unlisten = await listen(SYNC_JOB_CHANGED_CHANNEL, (id) => heard.push(id));
 
       await abandonSyncJob(db, job.id);
-      // Already closed: no second announcement.
+      // Already closed, so no second announcement.
       await abandonSyncJob(db, job.id);
       await settle();
       expect(heard).toEqual([job.id]);

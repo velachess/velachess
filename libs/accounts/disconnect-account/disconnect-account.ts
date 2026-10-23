@@ -1,19 +1,13 @@
 /**
- * DisconnectAccount — stop tracking a chess.com/Lichess handle.
+ * Someone else's account id answers `not-found`, like an id that never
+ * existed.
  *
- * Owner-scoped like `requestSync`: someone else's account id answers
- * `not-found`, same as an id that never existed.
+ * The games the connection brought in go with it: they cannot be read
+ * properly once the account is gone, the seat being derived by joining it.
+ * A pasted PGN has no account and is never touched.
  *
- * Removing a connection removes what it imported. The games it brought in
- * go with it (and their analyses with them) — a library that keeps
- * showing games from an account the user just disconnected is the bug
- * this answers, and those rows cannot even be read properly once their
- * account is gone: the seat the user played is derived by joining it.
- * Games the user imported as PGN have no account and are never touched.
- *
- * Deleting clears the `(user_id, platform)` slot, so reconnecting a
- * (possibly different) handle on that provider afterward is a plain
- * `importAccount` call, nothing special.
+ * Deleting clears the `(user_id, platform)` slot, so reconnecting any
+ * handle on that provider afterwards is a plain `importAccount` call.
  */
 import type { TrackedAccount } from "@velachess/infra-db";
 
@@ -21,8 +15,7 @@ type GetTrackedAccountForUser = (
   userId: string,
   accountId: string,
 ) => Promise<TrackedAccount | null>;
-/** Named for what disconnecting means, not for the row it starts with:
- * the connection and the games it produced leave together. */
+/** The connection and the games it produced leave together. */
 type DeleteAccountAndItsGames = (accountId: string) => Promise<void>;
 
 export interface DisconnectAccountDeps {

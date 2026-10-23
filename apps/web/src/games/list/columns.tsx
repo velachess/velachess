@@ -30,8 +30,8 @@ const GAMES_COLUMNS_COPY = {
 } as const;
 
 /**
- * Who you played, from your seat. Without `perspective` the game was
- * never attributed, and white is simply the top name.
+ * From your seat. Without `perspective` the game was never attributed, and
+ * white is the top name.
  */
 export function opponentOf(game: Game) {
   const asBlack = game.perspective === "black";
@@ -43,7 +43,8 @@ export function opponentOf(game: Game) {
 
 export type Outcome = GameOutcome;
 
-/** The scoresheet says "1-0"; whether that's a win depends on your side. */
+/** The scoresheet says "1-0"; whether that is a win depends on your
+ * side. */
 export function outcomeOf(game: Game): Outcome {
   return gameOutcomeFor(game.result, game.perspective);
 }
@@ -67,8 +68,8 @@ const OUTCOME_BADGE = {
 } as const;
 
 /**
- * "10 min", "3 + 2" — from the clock, not the platform's label, which
- * Lichess and chess.com word differently for the same game.
+ * From the clock, not the platform's label, which Lichess and chess.com
+ * word differently for the same game.
  */
 export function formatClock(
   initialSeconds: number | null,
@@ -85,7 +86,7 @@ const columnHelper = createColumnHelper<DataTableFeatures, Game>();
 
 export interface ColumnDeps {
   translate: (message: MessageDescriptor) => string;
-  /** Locale-aware, built once by the screen — never hand-formatted. */
+  /** Built once by the screen, never hand-formatted. */
   formatDate: (iso: string) => string;
   timeClassLabel: (game: Game) => string | null;
 }
@@ -126,7 +127,7 @@ export function gamesColumns({ translate, formatDate, timeClassLabel }: ColumnDe
         const openingName = row.original.openingName;
         return (
           // A link, not an onClick: opening a game is navigation, and a
-          // keyboard-reachable row is what the tests assert.
+          // keyboard can reach a link.
           <Link
             to="/games/$gameId"
             params={{ gameId: row.original.id }}

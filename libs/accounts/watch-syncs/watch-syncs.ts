@@ -1,15 +1,15 @@
 /**
- * WatchSyncs — the owner's settled syncs, as they happen. Each signal
- * names a job; the row decides whether it is this user's and whether it
- * has settled. A signal is never evidence of either: the channel is one
- * for every process, and Postgres keeps no record of what it delivered.
+ * Each signal names a job, and the row decides whether it is this user's
+ * and whether it settled. A signal is evidence of neither: the channel is
+ * shared by every process, and Postgres keeps no record of what it
+ * delivered.
  */
 import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
 
 export type SyncSignal = { kind: "changed"; syncId: string } | { kind: "reset" };
 
 type Subscribe = (listener: (signal: SyncSignal) => void) => () => void;
-/** Unscoped on purpose: ownership is decided here, against the row. */
+/** Unscoped: ownership is decided here, against the row. */
 type GetSyncJob = (id: string) => Promise<{
   id: string;
   userId: string;

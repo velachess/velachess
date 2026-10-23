@@ -7,8 +7,8 @@ import type { PgBoss } from "./client.ts";
 import type { SyncQueue } from "./ports.ts";
 import { QUEUES } from "./queues.ts";
 
-/** pg-boss's own table, declared for typed reads — the adapter is the
- * pg-boss boundary, so knowing its schema here is the point, not a leak. */
+/** Declared for typed reads: this file is the pg-boss boundary, so knowing
+ * its schema here is the point. */
 const pgboss = pgSchema("pgboss");
 const bossJob = pgboss.table("job", {
   id: text("id"),
@@ -19,15 +19,14 @@ const bossJob = pgboss.table("job", {
   createdOn: timestamp("created_on", { withTimezone: true }),
 });
 
-/** pg-boss may still deliver a job in these states. It leaves the others
- * only through an operator's retry, resume or redrive. */
+/** A job leaves the other states only through an operator's retry, resume
+ * or redrive. */
 const LIVE_STATES = new Set(["created", "retry", "active"]);
 
 /**
- * drizzle types `execute()` as returning `unknown`; pg-boss's adapter wants
- * the concrete `{ rows }` shape it gets at runtime. Bridging that is what
- * this file is for — the assertion stays here, at the pg-boss boundary,
- * and never leaks into callers.
+ * drizzle types `execute()` as `unknown` where pg-boss's adapter wants the
+ * concrete `{ rows }` it gets at runtime. The assertion stays at this
+ * boundary and never leaks into callers.
  */
 const asBossDb = (dbOrTx: Database) =>
   // oxlint-disable-next-line typescript/consistent-type-assertions -- drizzle's execute() types as unknown; bridged once, at this boundary
@@ -36,8 +35,8 @@ const asBossDb = (dbOrTx: Database) =>
 export function makeSyncQueue(boss: PgBoss): SyncQueue {
   return {
     async enqueue(dbOrTx, job) {
-      // No payload: the job id is the sync job's id, the account is its
-      // singleton key, and the worker reads everything else from the row.
+      // No payload: the job id is the sync job's, the account is its
+      // singleton key, and the worker reads the rest from the row.
       const sent = await boss.send(
         QUEUES.sync,
         {},

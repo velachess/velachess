@@ -1,7 +1,6 @@
 /**
- * One whole game, graded ply by ply, as a stream of events. `analyzeGame`
- * is handed an evaluator and owns neither the session nor the stored
- * report; `analyzeGameInBrowser` is the composition that owns both.
+ * `analyzeGame` is handed an evaluator and owns neither the session nor the
+ * stored report; `analyzeGameInBrowser` owns both.
  */
 import type { ReplayedGame } from "@velachess/chess";
 import {
@@ -16,7 +15,7 @@ import { createStockfishEvaluator } from "../position/stockfish.ts";
 import type { PositionEvaluator } from "../position/evaluate.ts";
 import { ANALYSIS_EVENT, type AnalysisEvent, type GameAnalysisInput } from "../types.ts";
 
-/** The return value is the completed search a grade may be built from. */
+/** The return value is the completed search a grade is built from. */
 async function* searchPosition(
   evaluator: PositionEvaluator,
   fen: string,
@@ -39,9 +38,9 @@ async function* searchPosition(
 
 /**
  * One search per position: the evaluation after a move is the evaluation
- * before the next one, and a game that ended on its final move takes
- * that move's score from the rules rather than a search. A mainline that
- * went illegal part-way is graded up to that point.
+ * before the next one, and a game that ended on its final move takes that
+ * score from the rules. A mainline that went illegal part-way is graded up
+ * to that point.
  */
 export async function* analyzeGame(
   replay: ReplayedGame,
@@ -85,17 +84,17 @@ export async function* analyzeGameInBrowser(
   const evaluator = createStockfishEvaluator();
   try {
     for await (const event of analyzeGame(input.replay, evaluator)) {
-      // Stored before it is announced, so a consumer that stops reading
-      // on the news still leaves the report behind. A failing search
-      // throws before this event, so a half-graded game is never stored.
+      // Stored before it is announced, so a consumer that stops reading on
+      // the news still leaves the report behind. A failing search throws
+      // before this event, so a half-graded game is never stored.
       if (event.type === ANALYSIS_EVENT.COMPLETED) {
         await saveReport(input.gameId, event.graded);
       }
       yield event;
     }
   } finally {
-    // A consumer that stops early releases the Worker too, once the
-    // search in flight answers — the engine's watchdog bounds that.
+    // A consumer that stops early releases the Worker once the search in
+    // flight answers, which the engine's watchdog bounds.
     await evaluator.dispose();
   }
 }

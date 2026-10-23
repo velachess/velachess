@@ -1,11 +1,8 @@
 /**
- * The analysis of one game as React Query sees it, with the cache as the
- * accumulator.
- *
- * Leaving the screen does not stop the pass: `streamFn` never reads
- * `context.signal`, and React Query only cancels an observer-less fetch
- * whose signal was consumed. So `cancelQueries()` is not an interrupt
- * here and must never be offered as one.
+ * The cache is the accumulator. Leaving the screen does not stop the pass:
+ * `streamFn` never reads `context.signal`, and React Query only cancels an
+ * observer-less fetch whose signal was consumed, so `cancelQueries()` is no
+ * interrupt here.
  */
 import {
   analyzeGameInBrowser,
@@ -45,20 +42,20 @@ function reduceAnalysis(analysis: GameAnalysis, event: AnalysisEvent): GameAnaly
 
 export function gameAnalysisQuery(game: AnalysedGame) {
   return queryOptions({
-    // The identity of the answer, not just of the game: the stored
-    // report is gated on the same values.
+    // The identity of the answer, not just the game: the stored report is
+    // gated on the same values.
     queryKey: [...gameAnalysisQueryKey, game.id, ANALYSIS_IDENTITY],
     queryFn: experimental_streamedQuery({
       streamFn: () => analyzeGameInBrowser({ gameId: game.id, replay: game }),
       reducer: reduceAnalysis,
       initialValue: EMPTY_ANALYSIS,
     }),
-    // Stockfish runs on this device, so an offline browser must not
-    // pause it.
+    // Stockfish runs on this device, so an offline browser must not pause
+    // it.
     networkMode: "always",
     // One pass per game, shared by every consumer and by a remount.
     staleTime: Infinity,
-    // Keeps a failed search out of the API error path — see
+    // Keeps a failed search out of the API error path; see
     // `query/query-client.ts`.
     meta: { engine: true },
   });

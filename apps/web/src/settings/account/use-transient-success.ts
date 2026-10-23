@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 
-/** Long enough to read, short enough that it never becomes the screen's
- * resting state. */
+/** Long enough to read, short enough not to become the resting state. */
 const DEFAULT_MS = 4000;
 
 /**
- * Ends a settled mutation after a moment, so its success message reads as
- * an event rather than a status.
+ * Ends a settled mutation after a moment, so its message reads as an event
+ * rather than a status.
  *
  * A confirmation that lives until the next edit stops saying "that
  * worked" and starts saying "this is how things are" — which on a screen

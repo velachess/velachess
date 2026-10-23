@@ -11,12 +11,12 @@ import {
 
 const INFO = "info depth 8 multipv 1 score cp 31 pv e2e4 e7e5";
 
-/** Timeouts small enough that the whole suite is fast, large enough that a
- * scheduler hiccup can't look like a silent engine. */
+/** Small enough to be fast, large enough that a scheduler hiccup does not
+ * look like a silent engine. */
 const FAST = { depth: 8, silenceTimeoutMs: 30, graceMs: 30 } as const;
 
-/** Answers the handshake and nothing else — the shape of a Worker whose
- * WASM module died after loading. */
+/** The handshake and nothing else: a Worker whose WASM module died after
+ * loading. */
 const MUTE: FakeEngineOptions = { handshake: true };
 
 function answering(move: string): FakeEngineOptions {
@@ -28,8 +28,8 @@ function answering(move: string): FakeEngineOptions {
   };
 }
 
-/** A fresh fake engine per session, so a test can count how many the
- * evaluator opened and script each one differently. */
+/** One per session, so a test counts how many the evaluator opened and
+ * scripts each differently. */
 function sessions(optionsFor: (index: number) => FakeEngineOptions) {
   const engines: FakeEngine[] = [];
   return {
@@ -61,9 +61,9 @@ describe("silenceTimeoutFor", () => {
 
 describe("useEngineEvaluator", () => {
   it("stop reaches the engine, and the search still settles", async () => {
-    // A real engine answers `stop` with a bestmove, so a caller that
-    // asks for one gets an outcome rather than a cancellation. How long
-    // to wait for it is the caller's business, not this evaluator's.
+    // A real engine answers `stop` with a bestmove, so a caller gets an
+    // outcome rather than a cancellation. How long to wait is the
+    // caller's.
     const { engines, open } = sessions(() => ({
       handshake: true,
       onCommand: (command, emit) => {
@@ -131,9 +131,9 @@ describe("useEngineEvaluator", () => {
   });
 
   it("budgets the retry per position, not per evaluator", async () => {
-    // Session 0 is mute, so "fen-a" retries onto session 1. Session 1
-    // answers once and then goes mute, so "fen-b" retries onto session 2.
-    // A budget spent once per evaluator would abort the second position.
+    // "fen-a" retries onto session 1, which answers once and then goes
+    // mute, so "fen-b" retries onto session 2. A budget spent once per
+    // evaluator would abort the second position.
     const { engines, open } = sessions((index) => {
       if (index === 0) return MUTE;
       if (index === 1) {
@@ -162,8 +162,8 @@ describe("useEngineEvaluator", () => {
   });
 
   it("rearms the silence watchdog on every info line, so a slow search is not killed", async () => {
-    // Four info lines spaced just under the silence timeout: a total
-    // deadline would fire partway through, a rearmed one never does.
+    // Four info lines just under the silence timeout: a total deadline fires
+    // partway through, a rearmed one never does.
     const { engines, open } = sessions(() => ({
       handshake: true,
       onCommand: (command, emit) => {

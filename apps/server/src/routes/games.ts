@@ -18,7 +18,6 @@ import {
   wireDateOrNull,
 } from "../validation.ts";
 
-/** The largest page worth answering in one round trip. */
 const MAX_PAGE_SIZE = 100;
 
 const libraryQuery = z.object({
@@ -38,11 +37,7 @@ const libraryQuery = z.object({
   pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 });
 
-/**
- * How the uploader is identified across the batch: forced White or Black
- * for every game, or by name against each game's own headers. Optional at
- * the API: without it, games still land, just unattributed.
- */
+/** Optional: without it, games still land, just unattributed. */
 const participationSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("white") }),
   z.object({ mode: z.literal("black") }),
@@ -59,22 +54,18 @@ const importPgnSchema = z.object({
     .describe("How the uploader is identified across the batch"),
 });
 
-/** Mirrors `@velachess/infra-platforms`' `resultSchema`, `perspectiveSchema`
- * and `gameSourceSchema` — `routes-no-direct-infra` forbids importing them,
- * so this file keeps one hand-written copy of each; guarded by
- * `apps/server/tests/contracts.test.ts`. */
+/** Mirrors `@velachess/infra-platforms`' `resultSchema`,
+ * `perspectiveSchema` and `gameSourceSchema`, which `routes-no-direct-infra`
+ * forbids importing; guarded by `apps/server/tests/contracts.test.ts`. */
 export const GAME_RESULT = ["1-0", "0-1", "1/2-1/2", "*"] as const;
 export const GAME_PERSPECTIVE = ["white", "black"] as const;
 export const GAME_SOURCE = ["chess_com", "lichess", "pgn"] as const;
 
 /**
- * Mirrors the `.select({...})` projection in
- * `libs/infra/db/queries/status.ts`'s `listGamesPage` — inferred from a
- * Drizzle query, never a declared interface, so this is the one place
- * that shape is written out by hand. `apps/web`'s games-list table reads
- * these fields directly (caught by the RPC typecheck gate, same lesson
- * as `/games/{id}`), so a loose record isn't an option
- * here either. `playedAt` travels as ISO text on the wire, not a `Date`.
+ * Mirrors `listGamesPage`'s projection, which is inferred from a Drizzle
+ * query rather than declared. `apps/web`'s games-list table reads these
+ * fields directly, so a loose record is not an option, and `playedAt`
+ * travels as ISO text.
  */
 const gameListRowSchema = z.object({
   id: z.string().uuid(),
@@ -92,12 +83,9 @@ const gameListRowSchema = z.object({
   openingName: z.string().nullable(),
 });
 
-/** Mirrors `@velachess/infra-db`'s `Game` row (`getGameForReview`'s base)
- * plus the two provider-identity fields it decorates. `playedAt`/
- * `createdAt` travel as ISO text on the wire, not a `Date` — `apps/web`'s
- * `gameQuery` spreads this response directly into `ReplayableGame` and
- * reads `rawPgn` off it, so this needs real fields, not a loose record
- * (caught by the RPC typecheck gate). */
+/** `apps/web`'s `gameQuery` spreads this response straight into
+ * `ReplayableGame` and reads `rawPgn` off it, so it needs real fields, not
+ * a loose record; the timestamps travel as ISO text. */
 const seatIdentitySchema = z.object({
   avatarUrl: z.string().nullable(),
   flair: z.string().nullable(),
@@ -131,12 +119,7 @@ const gameDetailSchema = z.object({
   blackIdentity: seatIdentitySchema,
 });
 
-/**
- * The serializers. Built from the schemas above with `.extend()`, so only
- * the timestamp columns are restated and the rest cannot drift; the
- * handlers parse through these instead of hand-writing `.toISOString()`
- * next to a schema that only claims the result is a string.
- */
+/** Only the timestamp columns are restated, so the rest cannot drift. */
 const gameListRowWire = gameListRowSchema.extend({
   playedAt: wireDateOrNull,
 });
@@ -215,8 +198,6 @@ const getGameRoute = createRoute({
   },
 });
 
-/** Narrow composed deps per handler — routes never see a Database value
- * directly. */
 export interface GamesRouteDeps {
   get: GetGameDeps;
   list: ListGamesDeps;
@@ -226,10 +207,8 @@ export interface GamesRouteDeps {
 export function gamesRoutes(deps: GamesRouteDeps) {
   return (
     new OpenAPIHono<ApiEnv>({ defaultHook })
-      // The user's unified library — synced accounts and manual PGN
-      // imports together, ownership read straight off the row. A pure
-      // read: connecting a provider is POST /accounts, importing a file
-      // is POST /games/import; neither ever happens on a GET.
+      // A pure read: connecting a provider is POST /accounts and importing
+      // a file is POST /games/import, never a GET.
       .openapi(libraryRoute, async (c) => {
         const { page, pageSize, ...filters } = c.req.valid("query");
         const library = await openLibrary(deps.list, c.get("userId"), {

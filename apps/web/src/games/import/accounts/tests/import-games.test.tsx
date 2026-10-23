@@ -7,10 +7,9 @@ import { accountIsTracked } from "../../../../test/handlers/accounts.ts";
 import { renderApp } from "../../../../test/render.tsx";
 
 /**
- * Importing is one read, so the screen has exactly two outcomes to get
- * right: the archive opened, or the platform has never heard of that
- * name. Both are asserted through what appears, not through what was
- * requested.
+ * Two outcomes to get right: the archive opened, or the platform has never
+ * heard of that name. Both asserted through what appears rather than what
+ * was requested.
  */
 describe("import games", () => {
   it("opens the games list once the archive answers", async () => {
@@ -21,8 +20,8 @@ describe("import games", () => {
     await user.type(screen.getByLabelText("Chess.com username"), ME);
     await user.click(screen.getByRole("button", { name: "Import" }));
 
-    // Landing on the list is the assertion: it proves the account was
-    // remembered, because `_app` would have bounced the navigation back.
+    // Landing on the list proves the account was remembered: `_app` would
+    // have bounced the navigation back.
     expect(await screen.findByText("first-opponent")).toBeInTheDocument();
   });
 
@@ -40,9 +39,8 @@ describe("import games", () => {
   });
 
   it("catches an impossible username before spending a request", async () => {
-    // No handler describes a request with a space in the username, so if
-    // one were sent the run would fail on the unhandled request rather
-    // than on this assertion — which is the check working twice.
+    // No handler describes a username with a space, so sending one fails on
+    // the unhandled request as well as on this assertion.
     const { user } = await renderApp({ path: "/import" });
 
     await user.type(screen.getByLabelText("Chess.com username"), "not a username");

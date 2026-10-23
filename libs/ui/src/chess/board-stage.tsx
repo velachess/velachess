@@ -1,13 +1,9 @@
 /**
- * [UI/chess] The board screen's layout grammar, in one place.
+ * The board's size, the panel's width budget and how they stack are one
+ * decision:
  *
- * A screen about a position is one dominant board with a context panel
- * beside it, so the board's size, the panel's width budget and the way
- * they stack on a narrow window are one shared decision.
- *
- * Responsive contract:
  *   >= 1024px  board | panel, sharing one screenful
- *   <  1024px  board, then panel below it, each at its natural height
+ *   <  1024px  board, then panel below it, at natural height
  */
 import type * as React from "react";
 
@@ -15,28 +11,19 @@ import { Skeleton } from "../components/skeleton.tsx";
 import { cn } from "../lib/utils.ts";
 
 /**
- * The board's width, and anything meant to align with it.
- *
- * Capped at 32rem because an uncapped square on a 768px screen is a
- * 768px board that pushes the panel below the fold. From `lg` the two
- * columns share one screenful, so it also has to fit vertically: `svh`
- * because mobile chrome shrinks the viewport, minus 9rem of furniture
- * (padding, strips or controls, gaps). Container units cannot do this —
- * Tailwind's `@container` is `inline-size`, which has no `cqh`.
+ * Capped because an uncapped square on a 768px screen pushes the panel
+ * below the fold. From `lg` it must fit vertically too, in `svh` because
+ * mobile chrome shrinks the viewport, minus the furniture. Container units
+ * cannot do this: Tailwind's `@container` has no `cqh`.
  */
 export const BOARD_STAGE_WIDTH =
   "w-full min-w-0 max-w-[32rem] lg:max-w-[min(100svh-9rem,100%)]";
 
 /**
- * Grid, not flex: the panel gets a width *range*, so it grows with the
- * window while the board takes what is left. `minmax(0,1fr)` is what
- * lets the board column shrink — a track's default minimum is its
- * content, which would push the panel off screen.
- *
- * `auto-rows-min` stops the board painting over the panel when stacked:
- * the default `auto` track shares the container's height between the
- * rows instead of giving each what it asked for. Side by side from `lg`,
- * one row meant to fill the screen — `fr`.
+ * Grid, not flex, because the panel gets a width range. `minmax(0,1fr)`
+ * lets the board column shrink, a track's default minimum being its
+ * content, and `auto-rows-min` stops the stacked board painting over the
+ * panel.
  */
 export function BoardStage({
   children,
@@ -57,14 +44,11 @@ export function BoardStage({
   );
 }
 
-/** The board and whatever sits directly above or below it, centred in
- * the column and vertically centred once the two share a screenful. */
 export function BoardColumn({
   label,
   children,
   className,
 }: {
-  /** Accessible name for the region — already translated. */
   label: string;
   children: React.ReactNode;
   className?: string;
@@ -82,19 +66,16 @@ export function BoardColumn({
   );
 }
 
-/** Everything that is not the board: its own scroll boundary, so a long
- * variation tree or scoresheet never grows the screen.
+/** Its own scroll boundary, so a long scoresheet never grows the screen.
  *
- * `overflow-clip`, not `overflow-hidden`: same rounded-corner clipping,
- * but `hidden` registers as a scroll container and would catch a sticky
- * descendant (a pinned footer nav) before it reaches the real scrolling
- * ancestor above it. */
+ * `overflow-clip` rather than `overflow-hidden`, which registers as a
+ * scroll container and catches a sticky descendant before it reaches the
+ * real scrolling ancestor. */
 export function BoardPanel({
   label,
   children,
   className,
 }: {
-  /** Accessible name for the region — already translated. */
   label: string;
   children: React.ReactNode;
   className?: string;
@@ -113,17 +94,8 @@ export function BoardPanel({
 }
 
 /**
- * What the board is showing, said out loud.
- *
- * The squares are drawn as a grid of divs with no accessible name, so a
- * person using a screen reader hears the region's name on arriving and
- * nothing whatsoever on stepping through — the one control that changes
- * the whole screen would be silent. `polite` because the move is a
- * consequence of their own action, not an interruption.
- *
- * It is also the only way a test can ask what the board shows without
- * reaching into the chessboard library, and that is not a coincidence:
- * the board had no answer to give anyone.
+ * The squares are divs with no accessible name, so stepping would otherwise
+ * be silent. `polite`, because the move follows the person's own action.
  */
 export function BoardStatus({ children }: { children: React.ReactNode }) {
   return (
@@ -134,22 +106,16 @@ export function BoardStatus({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * The stage while it loads, at the size it will be.
- *
- * A placeholder that is smaller than what replaces it is worse than none:
- * the board arrives, everything below it jumps, and the screen looks
- * broken at the exact moment a person is deciding whether it works. So
- * this uses the real width — `BOARD_STAGE_WIDTH`, the same class the
- * board itself gets — inside the real grid, and reserves the row the
- * controls take.
+ * At the size it will be: a placeholder smaller than what replaces it makes
+ * everything below jump when the board arrives.
  */
 export function BoardStageSkeleton({
   label,
   panel,
 }: {
-  /** Announced while the screen is empty — already translated. */
+  /** Announced while the screen is empty; already translated. */
   label: string;
-  /** The panel's shape, when a screen's is worth previewing. */
+  /** The panel's shape, when it is worth previewing. */
   panel?: React.ReactNode;
 }) {
   return (

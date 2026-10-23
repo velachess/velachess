@@ -1,8 +1,7 @@
 /**
- * [UI/layout] The working area: a main region and an optional aside for
- * detail. Selecting something fills the aside instead of replacing the
- * page, and the aside's width is an explicit budget so the main region
- * never jumps when the detail changes.
+ * A main region and an optional aside for detail, so selecting something
+ * fills the aside instead of replacing the page. The aside's width is an
+ * explicit budget, so the main region never jumps.
  *
  * Responsive contract:
  *   > 1024px   main | aside (width prop)
@@ -43,10 +42,9 @@ export function StageMain({
 
 export interface StageAsideProps {
   children: React.ReactNode;
-  /** Width budget in px. Kept explicit so regions are decided, not emergent. */
+  /** In px, explicit so the regions are decided rather than emergent. */
   width?: number;
   hasDivider?: boolean;
-  /** Accessible name for the region. */
   label: string;
   className?: string;
 }
@@ -63,7 +61,7 @@ export function StageAside({
       {hasDivider && <Separator orientation="vertical" className="hidden lg:block" />}
       <aside
         aria-label={label}
-        // The budget travels as a variable so the class stays static.
+        // The budget travels as a variable, so the class stays static.
         style={{ "--aside-width": `${width}px` } as React.CSSProperties}
         className={cn(
           "flex w-full shrink-0 flex-col overflow-auto lg:w-(--aside-width)",

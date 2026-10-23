@@ -1,10 +1,7 @@
 // @vitest-environment node
 /**
- * The session gate and the ownership walls, over the real harness.
- *
- * Everything here goes through HTTP the way a browser would: real
- * Better Auth sign-up, a real session cookie, and the same middleware
- * production runs. No bypass exists to test around, which is the point.
+ * Everything here goes through HTTP the way a browser would: real Better
+ * Auth sign-up, a real session cookie, and the middleware production runs.
  */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -44,13 +41,13 @@ describe("bootstrap", () => {
       },
     );
     expect(first.status).toBe("created");
-    // The created outcome exposes status and userId — nothing else, by
-    // construction, which is what makes main.ts's log of it safe.
+    // Nothing but status and userId, which is what makes main.ts's log of
+    // it safe.
     expect(Object.keys(first).toSorted()).toEqual(["status", "userId"]);
     expect(JSON.stringify(first)).not.toContain("dev-password");
 
-    // A second startup with the same env does nothing — the guard is
-    // "any user exists", so re-running cannot touch anyone's credentials.
+    // The guard is "any user exists", so re-running cannot touch anyone's
+    // credentials.
     const second = await bootstrapUser(
       buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
       {
@@ -60,8 +57,8 @@ describe("bootstrap", () => {
     );
     expect(second).toEqual({ status: "skipped", reason: "users-exist" });
 
-    // Not even with different credentials: an installation with users
-    // manages them through real auth, never through startup env.
+    // An installation with users manages them through real auth, never
+    // through startup env.
     const hijack = await bootstrapUser(
       buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
       {
@@ -71,8 +68,7 @@ describe("bootstrap", () => {
     );
     expect(hijack).toEqual({ status: "skipped", reason: "users-exist" });
 
-    // A different email skips just the same — the guard is the table,
-    // not the address.
+    // The guard is the table, not the address.
     const other = await bootstrapUser(
       buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
       {
@@ -84,9 +80,9 @@ describe("bootstrap", () => {
 
     const rows = await harness.db.select().from(schema.users);
     expect(rows).toHaveLength(1);
-    // Better Auth's own sign-up writes emailVerified: false; bootstrapUser
-    // corrects it, or this account can never link a Google sign-in on the
-    // same email (Better Auth refuses with account_not_linked, always).
+    // Better Auth's sign-up writes false, and without the correction this
+    // account can never link a Google sign-in on the same email
+    // (account_not_linked).
     expect(rows[0]!.emailVerified).toBe(true);
   });
 
@@ -103,9 +99,8 @@ describe("bootstrap", () => {
   });
 
   it("outcomes carry status words alone — safe to log verbatim", async () => {
-    // main.ts logs the outcome as-is. Serialize every answerable shape
-    // the way pino would and prove no credential survives into any of
-    // them; the created shape is pinned to exactly {status, userId}.
+    // main.ts logs the outcome as-is, so every answerable shape is
+    // serialized the way pino would and checked for credentials.
     const skipped = await bootstrapUser(
       buildBootstrapUserDeps(harness.db, harness.bootstrapAuth, harness.lock),
       {
@@ -126,8 +121,7 @@ describe("bootstrap", () => {
 });
 
 describe("bootstrap under concurrent startup", () => {
-  // Its own harness: the race only exists against an EMPTY user table,
-  // and the shared harness above has already provisioned one.
+  // Its own harness: the race only exists against an empty user table.
   let fresh: ApiHarness;
 
   beforeAll(async () => {
@@ -139,12 +133,10 @@ describe("bootstrap under concurrent startup", () => {
   });
 
   it("three simultaneous bootstraps yield exactly one user", async () => {
-    // Three API instances starting against the same empty database, over
-    // the real advisory-lock implementation the harness runs (actual
-    // pg_try_advisory_lock SQL through PGlite — see
-    // libs/test-utils/harness.ts — not a mock). One acquires and
-    // creates; every loser answers concurrent-startup and moves on — the
-    // user it would have created is the one being created.
+    // Three API instances against the same empty database, over the real
+    // `pg_try_advisory_lock` the harness runs. One creates; every loser
+    // answers concurrent-startup, the user it would have created being the
+    // one in flight.
     const credentials = { email: "user@velachess.local", password: "dev-password" };
     const outcomes = await Promise.all([
       bootstrapUser(
@@ -170,17 +162,14 @@ describe("bootstrap under concurrent startup", () => {
     const rows = await fresh.db.select().from(schema.users);
     expect(rows).toHaveLength(1);
 
-    // And the winner's user signs in through the normal flow.
     const cookie = await fresh.signIn(credentials.email, credentials.password);
     expect(cookie).toContain("=");
   });
 });
 
 describe("the adapter writes our tables, our names", () => {
-  // The mapping the config claims — modelName per entity, display_name
-  // for Better Auth's `name`, uuid ids — proven against rows, not read
-  // back through Better Auth (which would agree with itself by
-  // construction).
+  // Proven against rows rather than read back through Better Auth, which
+  // would agree with itself by construction.
   it("a signup lands in users/auth_accounts with a uuid id and display_name", async () => {
     const { userId, cookie } = await harness.signUp("mapping@test.local");
 
@@ -193,8 +182,7 @@ describe("the adapter writes our tables, our names", () => {
       .from(schema.users)
       .where(eq(schema.users.id, userId));
     expect(user).toBeDefined();
-    // Better Auth speaks `name`; the column is display_name. The value
-    // arriving here is the mapping working end to end.
+    // Better Auth speaks `name`; the column is display_name.
     expect(user!.displayName).toBeTruthy();
     expect(user!.email).toBe("mapping@test.local");
 
@@ -204,7 +192,6 @@ describe("the adapter writes our tables, our names", () => {
       .where(eq(schema.authAccounts.userId, userId));
     expect(credentials).toHaveLength(1);
     expect(credentials[0]!.providerId).toBe("credential");
-    // Hashed by Better Auth's own path — never the raw password.
     expect(credentials[0]!.password).not.toBe("test-password-123");
 
     const sessions = await harness.db
@@ -218,12 +205,9 @@ describe("the adapter writes our tables, our names", () => {
 
 describe("the closed surfaces", () => {
   it("POST /auth/sign-up/email is not a way in", async () => {
-    // The mounted instance closes sign-up (`allowSignUp` defaults to
-    // false): a self-hosted install reachable on a network must not
-    // accept account creation from whoever finds it. Server-side
-    // creation (bootstrap, harness.signUp) goes through the unmounted
-    // signup-enabled twin — the adapter-mapping test above proves that
-    // path still works.
+    // The mounted instance closes sign-up, so a reachable self-host accepts
+    // no account creation. Server-side creation goes through the unmounted
+    // signup-enabled twin.
     const before = (await harness.db.select().from(schema.users)).length;
 
     const response = await harness.app.request("/auth/sign-up/email", {
@@ -241,8 +225,8 @@ describe("the closed surfaces", () => {
   });
 
   it("no bootstrap or setup HTTP surface exists", async () => {
-    // Bootstrap is env-var provisioning at startup; nothing on the wire
-    // can trigger it. These paths answer like any other unknown route.
+    // Bootstrap is env-var provisioning at startup, and nothing on the wire
+    // can trigger it.
     for (const path of ["/bootstrap", "/setup", "/auth/bootstrap", "/auth/setup"]) {
       const response = await harness.app.request(path, { method: "POST" });
       expect([401, 404], path).toContain(response.status);
@@ -277,13 +261,11 @@ describe("Google sign-in", () => {
     const authorize = new URL(url);
     expect(authorize.origin).toBe("https://accounts.google.com");
     expect(authorize.searchParams.get("client_id")).toBe("client-id");
-    // Pinned deliberately: an explicit redirectURI (auth.ts) keeps the
-    // OAuth return leg on the same /api/* proxy contract every other auth
-    // call already uses — no second proxy rule to remember.
+    // The explicit redirectURI keeps the OAuth return leg on the same
+    // /api/* proxy contract as every other auth call.
     expect(authorize.searchParams.get("redirect_uri")).toBe(
       `https://chess.example.com${GOOGLE_CALLBACK_PATH}`,
     );
-    // PKCE, not an implicit flow.
     expect(authorize.searchParams.get("code_challenge_method")).toBe("S256");
   });
 
@@ -299,8 +281,7 @@ describe("Google sign-in", () => {
 
 describe("secure cookies behind TLS", () => {
   it("an https deployment sets Secure on the session cookie", async () => {
-    // The same database, configured the way an https production is —
-    // proving `secureCookies: true` reaches the Set-Cookie attributes.
+    // The same database, configured the way an https production is.
     const secureAuth = createAuth({
       db: harness.db,
       baseUrl: "https://chess.example.com",
@@ -343,8 +324,8 @@ describe("the session gate", () => {
       headers: { cookie },
     });
     expect(response.status).toBe(200);
-    // A fresh admin owns nothing — the empty library proves the request
-    // resolved to a real, scoped user rather than to anything ambient.
+    // A fresh admin owns nothing, so the empty library proves the request
+    // resolved to a scoped user.
     expect(await response.json()).toMatchObject({ games: [], total: 0 });
   });
 
@@ -370,8 +351,7 @@ describe("the session gate", () => {
     });
     expect(out.ok).toBe(true);
 
-    // Database-backed sessions are the reason this is immediate: the row
-    // is gone, so the same cookie is now nobody.
+    // The session row is gone, so the same cookie is now nobody.
     expect((await harness.app.request("/games", { headers: { cookie } })).status).toBe(
       401,
     );
@@ -388,9 +368,7 @@ describe("ownership isolation", () => {
   });
 
   it("two users track the same public username independently", async () => {
-    // Usernames are public — a handle is nobody's property. Each user gets
-    // their own connection row; before this, the second import silently
-    // transferred the first user's entire archive.
+    // Usernames are public, so each user gets their own connection row.
     const aliceAccount = await parseResponse(
       alice.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
     );
@@ -405,7 +383,6 @@ describe("ownership isolation", () => {
 
     expect(bobAccount.id).not.toBe(aliceAccount.id);
 
-    // Both still own theirs — nothing transferred.
     const aliceList = await parseResponse(alice.api.accounts.$get());
     const bobList = await parseResponse(bob.api.accounts.$get());
     expect(aliceList.map((a) => a.id)).toContain(aliceAccount.id);
@@ -426,8 +403,8 @@ describe("ownership isolation", () => {
     const library = await parseResponse(alice.api.games.$get({ query: {} }));
     const gameId = library.games[0]!.id;
 
-    // The owner reads it fine; the stranger gets the same 404 a missing
-    // id would produce — the route never confirms which uuids exist.
+    // The stranger gets the 404 a missing id produces: the route never
+    // confirms which uuids exist.
     expect((await alice.request(`/games/${gameId}`)).status).toBe(200);
     expect((await bob.request(`/games/${gameId}`)).status).toBe(404);
     expect((await bob.request(`/games/${gameId}/analysis`)).status).toBe(404);

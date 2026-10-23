@@ -1,7 +1,5 @@
-/**
- * Auth adapter: Better Auth in, `SignInFailure` out. Raw Better Auth
- * messages never reach the user.
- */
+/** Better Auth in, `SignInFailure` out: its messages never reach the
+ * user. */
 
 import { authClient, toSessionUser, type SessionUser } from "../client.ts";
 import { NetworkError } from "../../api/index.ts";
@@ -13,11 +11,10 @@ export interface Credentials {
 
 export type SignInFailure = "invalid-credentials" | "unavailable";
 
-// The code, not the status: a bare 401 can also be a proxy or an
-// outage, which must not read as "wrong password". INVALID_EMAIL is
-// Better Auth's genuine 400 for a malformed address — a real answer,
-// not an outage — and gets the same copy without saying which half of
-// the form was wrong.
+// The code, not the status: a bare 401 can be a proxy or an outage, which
+// must not read as "wrong password". INVALID_EMAIL is a real 400 for a
+// malformed address, and gets the same copy rather than naming which half
+// of the form was wrong.
 const CREDENTIAL_REJECTION_CODES = new Set([
   "INVALID_EMAIL_OR_PASSWORD",
   "INVALID_EMAIL",
@@ -33,7 +30,7 @@ class SignInError extends Error {
   }
 }
 
-/** Resolves with the user from the sign-in response — no second round-trip. */
+/** From the sign-in response, with no second round-trip. */
 export async function signIn(credentials: Credentials): Promise<SessionUser> {
   let result: Awaited<ReturnType<typeof authClient.signIn.email>>;
 
@@ -43,7 +40,7 @@ export async function signIn(credentials: Credentials): Promise<SessionUser> {
       password: credentials.password,
     });
   } catch (cause) {
-    // Transport failure; HTTP errors come back in `error`.
+    // A transport failure: HTTP errors come back in `error`.
     throw new SignInError("unavailable", { cause });
   }
 

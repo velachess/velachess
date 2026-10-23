@@ -1,8 +1,6 @@
 /**
- * Browser-only. Wraps a `Worker` that's already running a UCI engine (WASM
- * or otherwise) — this file only speaks the postMessage side of that
- * conversation. It doesn't load the engine script or know where the wasm
- * asset lives; the caller creates the Worker and hands it in.
+ * Speaks only the postMessage side: the caller creates the Worker already
+ * running a UCI engine and hands it in.
  */
 
 import { createQueue, ensure, resource, type Operation } from "effection";
@@ -14,10 +12,9 @@ export function useWorkerTransport(worker: Worker): Operation<Transport> {
     const lines = createQueue<string, void>();
 
     const onMessage = (event: MessageEvent<string>) => lines.add(event.data);
-    // A crashed child process closes its stdout, which ends the readline
-    // iterator naturally; a crashed Worker posts no final message of its
-    // own, so without this a waiting consumer would hang instead of
-    // seeing the stream end the same way.
+    // A crashed Worker posts no final message, where a crashed child
+    // process ends its readline iterator, so without this a waiting
+    // consumer hangs.
     const onError = () => lines.close();
 
     worker.addEventListener("message", onMessage);
@@ -27,8 +24,7 @@ export function useWorkerTransport(worker: Worker): Operation<Transport> {
       worker.removeEventListener("message", onMessage);
       worker.removeEventListener("error", onError);
       worker.terminate();
-      // Ends the stream rather than leaving it to suspend: nothing more
-      // can arrive once the worker is gone.
+      // Nothing more can arrive once the worker is gone.
       lines.close();
     });
 

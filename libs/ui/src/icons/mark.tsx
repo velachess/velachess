@@ -1,14 +1,10 @@
 /**
- * [UI/icons] The VelaChess mark — a geometric pawn with a four-point
- * guidance star. Paths copied verbatim from the exported brand kit
- * (`../brand/mark/velachess-mark.svg` and `velachess-micro-white.svg`,
- * `../brand/README.md` has the full kit and its rules), not redrawn — fills
+ * Paths copied verbatim from the brand kit in `../brand/`, with the fills
  * swapped for `fill-foreground`/`fill-guidance` so the mark follows the
- * theme instead of being pinned to the brand's fixed ink.
+ * theme rather than the brand's fixed ink.
  *
- * The kit is explicit that below ~24px the star is dropped and the pawn
- * fills the frame, so `size` swaps to that cropped viewBox instead of just
- * scaling the full mark down.
+ * The kit drops the star below ~24px and lets the pawn fill the frame, so
+ * `size` swaps to that cropped viewBox instead of scaling the full mark.
  */
 import type * as React from "react";
 

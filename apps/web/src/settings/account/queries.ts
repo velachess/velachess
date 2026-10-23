@@ -1,11 +1,9 @@
 /**
- * Account reads/writes. Identity goes through Better Auth's own endpoints —
- * name, sign-in methods — because it owns those records.
- *
- * The avatar is the exception, and not an inconsistency: Better Auth stores
- * no binaries, so the bytes go to our API and it writes the resulting URL
- * onto `user.image` itself. Both paths end the same way, invalidating the
- * session query, because that is the single place the app reads the avatar
+ * Identity goes through Better Auth's own endpoints, which own those
+ * records. The avatar is the exception: Better Auth stores no binaries, so
+ * the bytes go to our API and it writes the resulting URL onto
+ * `user.image`. Both paths invalidate the session query, the one place the
+ * app reads the avatar
  * from.
  */
 
@@ -35,8 +33,8 @@ export const accountMethodsQuery = queryOptions({
   },
 });
 
-/** Renames only. Email needs `changeEmail`'s verification flow, and
- * this build has no mail transport. */
+/** Renames only: email needs `changeEmail`'s verification flow, and this
+ * build has no mail transport. */
 export function useRenameSelf() {
   const queryClient = useQueryClient();
 
@@ -46,18 +44,16 @@ export function useRenameSelf() {
       if (error) throw new Error(`could not update profile (${error.status})`);
     },
     onSuccess: () => {
-      // The shell reads the name from the session query — refresh it.
-      // Invalidate rather than refetch-then-set: a network blip here must
-      // not turn a rename that already succeeded into a shown failure.
+      // Invalidate rather than refetch-then-set, so a network blip does not
+      // turn a rename that succeeded into a shown failure.
       return queryClient.invalidateQueries({ queryKey: sessionQueryKey });
     },
   });
 }
 
 /**
- * Base64 in chunks. A single spread of a 100 KB array into
- * `String.fromCharCode` overflows the argument limit in every engine, and
- * the failure looks like a corrupt upload rather than a stack error.
+ * A single spread of a 100 KB array into `String.fromCharCode` overflows
+ * the argument limit in every engine, and reads as a corrupt upload.
  */
 const CHUNK = 8 * 1024;
 
@@ -70,21 +66,20 @@ async function toBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-/** Uploads the cropped image and lets the server decide its URL. */
 export function useSetAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (blob: Blob) =>
       parseResponse(api.me.avatar.$post({ json: { image: await toBase64(blob) } })),
-    // Same reason as useRenameSelf: the shell and this screen both read the
-    // avatar from the session query, so one invalidation refreshes both.
+    // The shell and this screen both read the avatar from the session
+    // query, so one invalidation refreshes both.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
   });
 }
 
-/** Back to initials. The server records the removal as deliberate, so a
- * later sign-in does not restore a provider picture over it. */
+/** The server records the removal as deliberate, so a later sign-in does
+ * not restore a provider picture over it. */
 export function useRemoveAvatar() {
   const queryClient = useQueryClient();
 

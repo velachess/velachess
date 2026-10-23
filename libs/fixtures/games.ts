@@ -1,8 +1,4 @@
-/**
- * Named PGN games, reused across packages. Pure data — see positions.ts.
- */
-
-/** Shortest possible checkmate. Final position matches FOOLS_MATE_CHECKMATE in positions.ts. */
+/** Its final position is `FOOLS_MATE_CHECKMATE` in positions.ts. */
 export const FOOLS_MATE_PGN = `[Event "Fool's Mate"]
 [Site "?"]
 [Date "????.??.??"]
@@ -14,8 +10,7 @@ export const FOOLS_MATE_PGN = `[Event "Fool's Mate"]
 1. f3 e5 2. g4 Qh4# 0-1
 `;
 
-/** Legal opening, then an illegal move (Ra3 — blocked by White's own a2 pawn,
- * which hasn't moved). Exercises "stop at the first illegal move", not a real game. */
+/** Ra3 is blocked by White's own a2 pawn: two legal moves, then a stop. */
 export const ILLEGAL_MOVE_PGN = `[Event "Illegal move"]
 [Site "?"]
 [Result "*"]
@@ -23,8 +18,8 @@ export const ILLEGAL_MOVE_PGN = `[Event "Illegal move"]
 1. e4 e5 2. Ra3 *
 `;
 
-/** Illegal from the very first move (Nf6 — no knight reaches f6 from b1 or g1
- * in one move). Zero legal moves, unlike ILLEGAL_MOVE_PGN's two-then-stop. */
+/** No knight reaches f6 in one move: zero legal moves, unlike
+ * ILLEGAL_MOVE_PGN. */
 export const NO_LEGAL_MOVES_PGN = `[Event "No legal moves"]
 [Site "?"]
 [Result "*"]
@@ -32,14 +27,14 @@ export const NO_LEGAL_MOVES_PGN = `[Event "No legal moves"]
 1. Nf6 *
 `;
 
-/** Unterminated header quote — malformed structure, not just an illegal move. */
+/** Unterminated header quote: malformed structure, not an illegal move. */
 export const MALFORMED_HEADER_PGN = `[Event "Malformed
 [Site "?"]
 
 1. e4 e5 *
 `;
 
-/** Two games in one PGN — the second is unfinished on purpose. */
+/** The second game is unfinished on purpose. */
 export const MULTI_GAME_PGN = `${FOOLS_MATE_PGN}
 [Event "Unfinished"]
 [Site "?"]
@@ -48,17 +43,12 @@ export const MULTI_GAME_PGN = `${FOOLS_MATE_PGN}
 1. e4 e5 *
 `;
 
-/**
- * The player a manual import names as theirs — one person, both colors
- * across the file. Invented handle; a test has no business shipping a
- * real player's name.
- */
+/** Invented: a fixture has no business shipping a real player's name. */
 export const IMPORTED_PLAYER_NAME = "Ada Lovelace";
 
 /**
- * One upload, two games, opposite seats: the named player is White in
- * the first and Black in the second, so per-game perspective resolution
- * has something honest to resolve.
+ * The named player is White in the first game and Black in the second, so
+ * per-game perspective resolution has something to resolve.
  */
 export const MIXED_COLOR_PGN = `[Event "As white"]
 [Site "?"]
@@ -76,7 +66,7 @@ export const MIXED_COLOR_PGN = `[Event "As white"]
 1. d4 d5 2. c4 e6 *
 `;
 
-/** A short Spanish, tagged with player names so a manual import can attribute it. */
+/** Tagged with player names, so a manual import can attribute it. */
 export const NAMED_FIRST_GAME_PGN = `[Event "Named first"]
 [Site "?"]
 [White "${IMPORTED_PLAYER_NAME}"]

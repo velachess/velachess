@@ -1,8 +1,7 @@
 /**
- * Reliability around a bare `EngineSession`: when to decide the engine
- * has gone silent, when to hurry it with `stop`, and when to search
- * again on a fresh session. It returns the engine's own vocabulary and
- * leaves white POV, classification and caching to whoever asked.
+ * When to decide the engine has gone silent, when to hurry it with `stop`,
+ * and when to search again on a fresh session. Returns the engine's own
+ * vocabulary, leaving white POV and classification to whoever asked.
  */
 
 import {
@@ -20,26 +19,23 @@ import {
 import type { EngineSession } from "./engine-session.ts";
 import type { BestMove, EngineUpdate, SearchOutcome } from "./types.ts";
 
-/** One deadline for the whole drain after `stop`, not rearmed per line,
- * so a chatty but stuck engine cannot extend it. */
+/** One deadline for the whole drain after `stop`, not rearmed per line, so
+ * a chatty but stuck engine cannot extend it. */
 const DEFAULT_GRACE_MS = 2000;
 
-/** A search the engine actually answered. */
 export interface CompletedSearch {
   lastInfo?: EngineUpdate;
   bestMove: BestMove;
 }
 
-/** Each `info` line, as the engine produces it. */
 export type OnEngineUpdate = (update: EngineUpdate) => void;
 
 export interface EngineEvaluator {
-  /** Retries once on a fresh session when the engine dies or goes
-   * silent, and throws when both attempts fail. */
+  /** Retries once on a fresh session when the engine dies or goes silent,
+   * and throws when both attempts fail. */
   evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch>;
-  /** Hurries the in-flight search. It still settles with an outcome,
-   * because a real engine answers `stop` with a bestmove; how long to
-   * wait for that is the caller's, since nothing here asked for it. */
+  /** The search still settles with an outcome, a real engine answering
+   * `stop` with a bestmove; how long to wait for it is the caller's. */
   stop(): void;
 }
 
@@ -51,7 +47,6 @@ export interface EngineEvaluatorOptions {
   graceMs?: number;
 }
 
-/** Matches the shape used before this moved out of `@velachess/analysis`. */
 export function silenceTimeoutFor(depth: number, override?: number): number {
   if (override !== undefined) return override;
   return Math.min(30_000, Math.max(5000, 3000 + depth * 400));

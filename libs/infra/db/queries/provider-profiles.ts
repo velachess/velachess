@@ -11,19 +11,9 @@ export interface ProviderSeat {
 }
 
 /**
- * Identity for a handle is one row per `(platform, username)` across all
- * users — public metadata about a player, not about anyone's connection.
- * Both behaviors that touch it (connect-time reads, game-review
- * resolution) share this file because both need the same two operations:
- * look a pair of handles up, write one back.
- */
-
-/**
- * Profiles change rarely and games every session; a week keeps an open
- * cheap while capping how long a changed picture stays stale. The policy
- * lives beside the table it governs because two behaviors read this
- * cache (connect-time warming, game-review resolution) and slices do not
- * import each other — one definition here beats two that can drift.
+ * Profiles change rarely, so a week keeps an open cheap while capping how
+ * long a changed picture stays stale. Beside the table it governs because
+ * two slices read this cache and slices do not import each other.
  */
 const PROFILE_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -48,14 +38,10 @@ export async function findProviderProfiles(db: Database, seats: readonly Provide
 }
 
 /**
- * Write-through for one handle, returning the row as it now stands.
- *
- * The two outcomes of a read persist differently: `fetched` is an answer
- * and overwrites the identity fields — nulls included, because avatars do
- * get removed — while `failed` only ages the refresh window and whatever
- * was stored stands until a successful read speaks. `fetchedAt` is
- * stamped on EVERY attempt either way, so an outage costs one try per
- * window, not one per game open.
+ * `fetched` overwrites the identity fields, nulls included, because avatars
+ * do get removed; `failed` only ages the refresh window, so what was stored
+ * stands until a successful read. `fetchedAt` is stamped on every attempt,
+ * so an outage costs one try per window rather than one per game open.
  */
 export async function upsertProviderProfile(
   db: Database,

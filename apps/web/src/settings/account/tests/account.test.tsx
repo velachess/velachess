@@ -12,12 +12,9 @@ import {
 } from "../../../test/handlers/auth.ts";
 
 /**
- * Settings → Account: who you are here, and how you get back in.
- *
- * Driven through the real router and the real shell, because half of what
- * this screen promises is navigational — that the user menu leads here,
- * that the section is behind the same wall as everything else, and that a
- * rename shows up in the shell it was performed from.
+ * Driven through the real router and shell, because half of what this
+ * screen promises is navigational: that the user menu leads here, that the
+ * section is behind the same wall, and that a rename shows up in the shell.
  */
 
 describe("reaching the account screen", () => {
@@ -65,9 +62,8 @@ describe("the profile", () => {
 
     await renderApp({ path: "/settings/account" });
 
-    // Shown because people look for it; disabled because changing it is a
-    // verification flow this build cannot complete. An input that accepts
-    // typing and silently discards it would be the worse answer.
+    // Shown because people look for it, disabled because changing it needs
+    // a verification flow this build cannot complete.
     const email = await screen.findByLabelText("Email");
     expect(email).toBeDisabled();
     expect(
@@ -89,10 +85,8 @@ describe("the profile", () => {
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
 
-    // The point of routing the write through the session query: the name
-    // in the shell is the same fact, so it cannot lag behind. Two places
-    // now say "Magnus" — this screen's profile, and the menu — and that
-    // is precisely the assertion.
+    // The shell's name is the same fact, read from the same session query,
+    // so two places now say "Magnus".
     await user.click(desktopNav().getByRole("button", { name: "Account" }));
     await waitFor(() => expect(screen.getAllByText("Magnus")).toHaveLength(2));
   });
@@ -173,8 +167,8 @@ describe("sign-in methods", () => {
 
     await renderApp({ path: "/settings/account" });
 
-    // Deliberate: unlinking the last method locks the person out, and the
-    // guard for that is a decision, not a button this screen can render.
+    // Unlinking the last method locks the person out, and that guard is a
+    // decision, not a button.
     expect(await screen.findByText("Google")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /disconnect|unlink|remove/i }),
@@ -188,8 +182,8 @@ describe("sign-in methods", () => {
     await renderApp({ path: "/settings/account" });
 
     expect(await screen.findByText("Google")).toBeInTheDocument();
-    // Chess.com and Lichess are where games come from, not ways in — that
-    // list lives at Settings → Connections instead.
+    // Chess.com and Lichess are where games come from, not ways in: that
+    // list is Settings → Connections.
     expect(screen.queryByText("Chess.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Lichess")).not.toBeInTheDocument();
   });
@@ -211,9 +205,8 @@ describe("sign-in methods", () => {
   });
 });
 
-/** A real File, so the type and size guards see what a browser would give
- * them. The bytes never matter: jsdom's canvas is stubbed, so the encode
- * always yields the same one-byte blob. */
+/** A real File, so the type and size guards see what a browser gives them.
+ * The bytes never matter: jsdom's canvas is stubbed. */
 function imageFile({
   type = "image/png",
   bytes = 8,
@@ -226,7 +219,6 @@ async function openAccount() {
   return renderApp({ path: "/settings/account" });
 }
 
-/** The avatar is the control, and its menu holds both actions. */
 async function openAvatarMenu(user: { click: (element: Element) => Promise<void> }) {
   await user.click(await screen.findByRole("button", { name: "Change your picture" }));
 }
@@ -238,7 +230,6 @@ describe("the avatar", () => {
     const { user } = await renderApp({ path: "/" });
     await user.click(await desktopNav().findByRole("button", { name: "Account" }));
 
-    // "VelaChess User" → first and last initial.
     const menu = await screen.findByText(TEST_USER.email);
     expect(
       within(menu.closest("div")!.parentElement!).getByText("VU"),
@@ -270,9 +261,7 @@ describe("changing the avatar", () => {
 
     expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
     // The shell reads the same session query, so one invalidation refreshes
-    // both — that is the whole reason the mutation invalidates rather than
-    // writing the cache. Initials disappearing from the shell's user menu
-    // is how that shows from outside.
+    // both, which the initials leaving the user menu shows.
     await user.click(await desktopNav().findByRole("button", { name: "Account" }));
     await waitFor(() => {
       expect(screen.queryByText("VU")).not.toBeInTheDocument();
@@ -294,12 +283,9 @@ describe("changing the avatar", () => {
 
   /**
    * `fireEvent`, not `user.upload`: userEvent enforces the input's `accept`
-   * attribute and silently drops a non-matching file, so the change event
-   * never fires and the guard is never reached. Browsers do not enforce it
-   * that way — `accept` filters the picker's default view, a user can
-   * switch it to all files, and a drop bypasses it entirely — which is why
-   * the guard exists and why the test has to reach past userEvent to
-   * exercise it. Same class of exception as pgn-import-dialog.test.tsx.
+   * and drops a non-matching file, so the change event never fires. A
+   * browser does not — `accept` only filters the picker's default view —
+   * which is why the guard exists and why this reaches past userEvent.
    */
   it("refuses a file that is not an image we accept", async () => {
     await openAccount();
@@ -349,15 +335,13 @@ describe("changing the avatar", () => {
     expect(
       await screen.findByText("Couldn't save that picture. Try again."),
     ).toBeInTheDocument();
-    // Still open, so the user can retry without picking the file again.
     expect(screen.getByRole("button", { name: "Save picture" })).toBeInTheDocument();
   });
 });
 
 /**
- * The avatar persists the moment it changes; the form's Save speaks for the
- * editable fields and nothing else. Keeping those apart is what stops Save
- * from implying the picture still needs saving.
+ * The avatar persists the moment it changes, so Save speaks for the
+ * editable fields alone and never implies the picture needs saving.
  */
 describe("what Save is responsible for", () => {
   it("is unavailable while nothing has been edited", async () => {
@@ -376,8 +360,8 @@ describe("what Save is responsible for", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
-    // The session now carries the new name, so the field matches what is
-    // stored and there is nothing left to save.
+    // The session carries the new name, so the field matches what is
+    // stored.
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     });
@@ -392,7 +376,6 @@ describe("what Save is responsible for", () => {
     expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    // And the picture's own confirmation is not mistaken for the form's.
     expect(screen.queryByText("Saved.")).not.toBeInTheDocument();
   });
 });

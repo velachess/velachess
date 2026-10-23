@@ -24,8 +24,6 @@ export interface GamesFiltersProps {
 }
 
 /**
- * One button instead of a row of them.
- *
  * Every change resets to page 1: a filter that narrows the list while
  * leaving you on page 7 shows an empty table and looks broken.
  */
@@ -40,10 +38,8 @@ export function GamesFilters({ search, onChange }: GamesFiltersProps) {
           <Button
             variant="outline"
             size="sm"
-            // A narrowed list is the screen's most important fact, and
-            // the control that narrowed it is closed. The trigger wears
-            // the same accent the chosen chips inside it wear, so "this
-            // list is filtered" is legible without opening anything.
+            // The control that narrowed the list is closed, so the trigger
+            // wears the same accent as the chosen chips inside it.
             className={triggerStyle(active > 0)}
           >
             <Filter data-icon="inline-start" />
@@ -55,8 +51,8 @@ export function GamesFilters({ search, onChange }: GamesFiltersProps) {
       <PopoverContent align="end" className="w-64">
         <FieldGroup className="gap-4">
           {FILTER_GROUPS.map((group) => {
-            // A second `search[group.key]` read here would not narrow —
-            // TS only tracks the truthy-check on this exact binding.
+            // A second `search[group.key]` read would not narrow: TS tracks
+            // the truthy check on this binding alone.
             const value = search[group.key];
             const selected = value ? [value] : [];
             return (
@@ -96,8 +92,8 @@ function triggerStyle(isFiltering: boolean): string {
   return "border-primary text-primary hover:text-primary";
 }
 
-/** The count, not a dot: "how many rules are narrowing this" is the
- * question someone looking at a short list actually has. */
+/** The count, not a dot: how many rules narrow the list is the question
+ * someone looking at a short one has. */
 function ActiveFilterBadge({ active }: { active: number }) {
   if (active === 0) return null;
   return <Badge variant="info">{active}</Badge>;

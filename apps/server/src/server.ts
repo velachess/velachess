@@ -1,9 +1,3 @@
-/**
- * [SERVER] — the HTTP app, assembled from injected deps (bootstrapping lives
- * in main.ts, so tests build the same app over PGlite). AppType is a type-only
- * export — importing it pulls zero runtime code.
- */
-
 import { swaggerUI } from "@hono/swagger-ui";
 import { $, createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { bodyLimit } from "hono/body-limit";
@@ -57,10 +51,8 @@ export interface ApiEnv {
 }
 
 /**
- * The largest body any route legitimately sends. The biggest one is a PGN
- * paste; 256 KiB is a very long game with room to spare, and refusing
- * beyond it costs nothing while an unbounded POST is cheap denial of
- * service.
+ * The largest body any route legitimately sends — a PGN paste. An unbounded
+ * POST is cheap denial of service.
  */
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -83,41 +75,34 @@ const configRoute = createRoute({
 });
 
 export function createApp(deps: ApiDeps) {
-  // `$()` converts the chain back to `OpenAPIHono`'s type: `.use()` (like
-  // `.get`/`.post`) returns a plain `Hono` type, which drops `.openapi`
-  // (see @hono/zod-openapi's README, "Type utilities") — needed here only
-  // because /config sits after four `.use()` calls.
+  // `$()` converts the chain back to `OpenAPIHono`'s type: `.use()` returns a
+  // plain `Hono`, which drops `.openapi`. Needed because /config sits after
+  // four `.use()` calls.
   const app = $(
     new OpenAPIHono<ApiEnv>({ defaultHook })
-      // Headers first, so they cover every response — including the opaque
-      // 500 that `onError` produces at the very bottom.
-      //
-      // No CSP: this app answers JSON. A content policy governs what a
-      // *document* may load, and the document is served by the reverse
-      // proxy in front of the SPA, not here. What matters for an API is
-      // nosniff and a referrer policy, which are the middleware's defaults.
+      // First, so the headers cover every response, including the opaque 500
+      // `onError` produces at the bottom. No CSP: a content policy governs
+      // what a document may load, and the document is served by the proxy in
+      // front of the SPA. An API needs nosniff and a referrer policy, which
+      // are the middleware's defaults.
       .use("*", secureHeaders())
-      // Declared before every route, as hono's docs require ("should be called
-      // before the route"), and mirroring Better Auth's Hono guide: an explicit
-      // origin list rather than a wildcard, `credentials: true` because the
-      // session rides in a cookie, and the very same list Better Auth trusts —
-      // one source of truth, so CORS and the session cannot disagree about who
-      // is allowed to talk to this API.
+      // Before every route, as hono requires, with `credentials: true`
+      // because the session rides in a cookie and the same origin list Better
+      // Auth trusts, so CORS and the session cannot disagree about who may
+      // talk to this API.
       //
-      // Today that list is the app's own origin, and a same-origin request
-      // carries no Origin header worth answering, so this middleware is
-      // effectively inert. It exists for the deployment that puts the SPA on a
-      // separate host, and it fails closed until that host is declared.
+      // That list is currently the app's own origin, and a same-origin
+      // request carries no Origin header worth answering, so this is
+      // effectively inert until a deployment puts the SPA on a separate host.
       //
-      // Also the layer that stops a forged JSON fetch() — see csrf() below
-      // for the request class this one doesn't cover.
+      // Also the layer that stops a forged JSON fetch(); csrf() below covers
+      // the class this one does not.
       .use(
         "*",
         cors({
           origin: deps.trustedOrigins,
           credentials: true,
-          // What the SPA actually sends. Anything else is not a request this
-          // API knows how to serve.
+          // What the SPA sends; nothing else is a request this API serves.
           allowHeaders: ["Content-Type"],
           maxAge: 600,
         }),
@@ -132,20 +117,19 @@ export function createApp(deps: ApiDeps) {
         }),
       )
       // Origin check for requests CORS never sees: a plain <form> POST needs
-      // no preflight (content-type form-urlencoded/multipart/text-plain, or
-      // absent), so it reaches here un-vetted — and SameSite=Lax lets a
-      // top-level form submission carry the cookie cross-site regardless.
-      // A JSON fetch() never matches this check; that's CORS's job, above.
+      // no preflight, so it arrives un-vetted, and SameSite=Lax lets a
+      // top-level submission carry the cookie cross-site anyway. A JSON
+      // fetch() never matches this check — that is CORS's job, above.
       .use("*", csrf({ origin: deps.trustedOrigins })),
   )
-    // System routes — health and documentation answer even when the
-    // database is down; identity never touches them.
+    // Health and documentation answer even when the database is down, and
+    // identity never touches them.
     .route("/health", healthRoutes(buildHealthDeps(deps.readinessChecks)))
-    // Public because the sign-in screen consumes it before there is anyone to
-    // authenticate. Capability flags only — see SignInMethods in deps.ts.
+    // Public because the sign-in screen reads it before there is anyone to
+    // authenticate. Capability flags only.
     .openapi(configRoute, (c) => c.json({ signInMethods: deps.signInMethods }, 200))
-    // Generated from every route above that used `createRoute`/`.openapi()`
-    // — no hand-maintained document to drift from it.
+    // Generated from every `createRoute`/`.openapi()` above, so there is no
+    // hand-maintained document to drift.
     .doc31("/openapi.json", {
       openapi: "3.1.0",
       info: {
@@ -155,33 +139,26 @@ export function createApp(deps: ApiDeps) {
           "Import your games from Chess.com, Lichess or PGN and review them with Stockfish.",
       },
     })
-    // Interactive documentation, reading the generated spec above — public
-    // like the spec itself, for the same reason (nothing here is secret,
-    // and someone deciding whether to integrate has no session yet).
+    // Public like the spec it reads: nothing here is secret, and someone
+    // deciding whether to integrate has no session yet.
     .get("/docs", swaggerUI({ url: "/openapi.json" }))
-    // Better Auth owns everything under /auth/* — sign-in, sign-out,
-    // session, sign-up. Mounted before the session gate because logging
-    // in is, definitionally, done without a session. The handler shape is
-    // the official Hono integration: forward the raw Request. It throttles
-    // itself; no limiter of ours in front of it.
+    // Mounted before the session gate because signing in is done without a
+    // session. The raw-Request forward is the official Hono integration, and
+    // Better Auth throttles itself, so no limiter of ours sits in front.
     .all("/auth/*", (c) => deps.auth.handler(c.req.raw))
     .use("*", sessionMiddleware(deps.auth))
-    // Every policy is keyed by userId, so this sits below the gate. No
-    // `/health/*` exemption needed: it's registered above the gate, so a
-    // request to it never reaches this line (tests/openapi.test.ts
-    // asserts the ordering).
+    // Every policy is keyed by userId, so this sits below the gate. Health
+    // needs no exemption: registered above, its requests never reach this
+    // line (tests/openapi.test.ts asserts the ordering).
     .use("*", rateLimit(deps, POLICIES.authenticated))
-    // Costlier actions get their own budget on top of the general one.
-    // import is keyed per account, not per user: the 60s sync cooldown
-    // (SYNC_COOLDOWN_SECONDS) is already per account, and a user syncing
-    // several tracked accounts must not have the first ones spend the
-    // budget the last one needs.
+    // Keyed per account, not per user: the sync cooldown is per account too,
+    // and a user syncing several accounts must not have the first ones spend
+    // the budget the last one needs.
     .use(
       "/accounts/:id/sync",
       rateLimit(deps, POLICIES.import, (c) => `${c.get("userId")}:${c.req.param("id")}`),
     )
-    // The whole-library button gets its own budget, independent of each
-    // account's own cooldown-backed one above.
+    // Its own budget, independent of each account's cooldown-backed one.
     .use("/accounts/sync", rateLimit(deps, POLICIES.import))
     .route(
       "/me",
@@ -218,19 +195,16 @@ export function createApp(deps: ApiDeps) {
       }),
     );
 
-  // One JSON error contract everywhere. HTTPException is hono's own
-  // "stop this request" signal (middleware throws it, a handler may):
-  // its status and message become the same `{ error }` shape the
-  // handlers speak, so a thrown rejection and a returned one are
-  // indistinguishable on the wire. Everything else is a defect: logged
-  // with the request context and answered as an opaque 500 — internals
-  // never leak into a response body.
+  // One JSON error contract everywhere: an HTTPException's status and
+  // message become the same `{ error }` shape the handlers speak, so a
+  // thrown rejection and a returned one are indistinguishable on the wire.
+  // Everything else is a defect, logged with the request context and
+  // answered as an opaque 500 so internals never reach a response body.
   app.notFound((c) => c.json({ error: "not found" }, 404));
   app.onError((error, c) => {
     if (error instanceof HTTPException) {
-      // hono's own csrf middleware throws a message-less 403 (it carries a
-      // plain-text Response instead), so there is a fallback rather than an
-      // `{ error: "" }` a client cannot act on.
+      // hono's csrf middleware throws a message-less 403, so the fallback
+      // avoids an `{ error: "" }` a client cannot act on.
       return c.json({ error: error.message || "request rejected" }, error.status);
     }
     apiLogger.error(
@@ -244,13 +218,10 @@ export function createApp(deps: ApiDeps) {
 }
 
 /**
- * Every status a route's own handler chain never declares, because it
- * comes from onError/notFound or from middleware mounted via `.use()`
- * rather than a route's own `.get`/`.post` chain (401 the session gate,
- * 403 csrf, 404 unknown paths, 413 the body ceiling, 429 the rate
- * limiter, 500 unhandled) — hono's RPC inference can't see any of these
- * on its own, so a client reading `res.status === 429` would get `never`
- * for the body without this.
+ * The statuses that come from onError/notFound or from `.use()` middleware
+ * rather than a route's own chain. Hono's RPC inference cannot see them, so
+ * without this a client reading `res.status === 429` gets `never` for the
+ * body.
  */
 type GlobalErrorResponses = {
   401: { json: { error: string } };

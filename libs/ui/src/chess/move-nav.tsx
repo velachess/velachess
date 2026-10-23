@@ -1,9 +1,6 @@
 /**
- * [UI/chess] Stepping through a position, once.
- *
- * "Back one, forward one, start again" is one gesture; what a step
- * *means* is the caller's business — this owns the buttons and nothing
- * else.
+ * "Back one, forward one, start again" is one gesture; what a step means is
+ * the caller's business.
  *
  * 44px tall on touch, smaller on pointer: the thumb needs the height.
  * Copy arrives translated, like every other string in this package.
@@ -16,20 +13,21 @@ import {
   PaginationItem,
 } from "../components/pagination.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/tooltip.tsx";
-// Icons stay behind the UI package's single entry point so replacing Lucide does not leak here.
+// Icons stay behind the package's entry point, so replacing Lucide does not
+// leak here.
 // react-doctor-disable-next-line react-doctor/no-barrel-import
 import { ArrowLeft, ArrowRight, RotateCcw } from "../icons/index.ts";
 import { cn } from "../lib/utils.ts";
 
 export interface MoveNavCopy {
-  /** Accessible name of the whole group. */
+  /** Accessible name of the group. */
   navigation: string;
   previous: string;
   next: string;
-  /** Abbreviations shown on the buttons; the full words are the labels. */
+  /** On the buttons; the full words are the labels. */
   previousShort: string;
   nextShort: string;
-  /** Only read when `onReset` is given. */
+  /** Read only when `onReset` is given. */
   reset?: string;
 }
 
@@ -39,8 +37,7 @@ export interface MoveNavProps {
   canGoForward: boolean;
   onPrevious: () => void;
   onNext: () => void;
-  /** Back to the starting position. Omitted where there is nothing to
-   * return to that "previous" does not already reach. */
+  /** Omitted where "previous" already reaches everything. */
   onReset?: () => void;
   className?: string;
 }

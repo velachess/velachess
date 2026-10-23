@@ -1,7 +1,6 @@
 /**
- * [UI/layout] The 64px icon rail. It renders navigation it is *given*:
- * items are data and the caller says which is active, so the dock never
- * imports a router and works in any app.
+ * The icon rail renders navigation it is given: items are data and the
+ * caller says which is active, so it never imports a router.
  */
 import type * as React from "react";
 
@@ -10,30 +9,25 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../components/tooltip.t
 
 export interface NavDockItem {
   id: string;
-  /** Shown in the tooltip and used as the accessible name. */
+  /** The tooltip, and the accessible name. */
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** Count shown as a small dot-badge; hidden when zero or undefined. */
+  /** A dot-badge, hidden when zero or absent. */
   badge?: number;
 }
 
-/** Generic over the caller's item so ids keep their union, not `string`. */
+/** Generic over the caller's item, so ids keep their union. */
 export interface NavDockProps<TItem extends NavDockItem> {
   items: TItem[];
-  /**
-   * `| undefined` on purpose: "no item is active" is a real state, and
-   * `exactOptionalPropertyTypes` separates omitted from passed-undefined.
-   */
+  /** `| undefined` because no active item is a real state, which
+   * `exactOptionalPropertyTypes` tells apart from omitted. */
   activeId?: TItem["id"] | undefined;
-  /** The app decides what a link is — `<Link>`, `<a>`, a button. */
   renderItem: (item: TItem, content: React.ReactNode) => React.ReactNode;
-  /** Accessible name for the landmark — the app owns its words. */
+  /** Accessible name for the landmark. */
   label?: string;
-  /** Optional mark at the top of the dock. */
   brand?: React.ReactNode;
-  /** Optional control pinned to the bottom — the account menu, in apps
-   * that have one. Separate from `items` because it is not navigation:
-   * it never takes part in `activeId`. */
+  /** Separate from `items` because it is not navigation: it never takes
+   * part in `activeId`. */
   footer?: React.ReactNode;
   className?: string;
 }

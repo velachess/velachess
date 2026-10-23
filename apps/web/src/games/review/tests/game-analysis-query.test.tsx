@@ -23,18 +23,17 @@ import {
 import { gameAnalysisQuery, selectGraded } from "../game-analysis-query.ts";
 import type { AnalysedGame } from "../game-analysis-query.ts";
 
-// What `analyzeGameInBrowser` produces is `analysis/tests/`'s; this file
-// owns what React Query does with it.
+// What `analyzeGameInBrowser` produces is `analysis/tests/`'s; this owns
+// what React Query does with it.
 vi.mock("../../analysis/game/analyze.ts", () => ({
   analyzeGameInBrowser: vi.fn(),
 }));
 const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-/** The one game every case analyses. */
 const game: AnalysedGame = { id: "game-1", ...aReplay() };
 
-/** A pass the test drives event by event, counting starts and closes —
- * which is how "the pass outlives the screen" is observable. */
+/** Driven event by event, counting starts and closes, which is how the
+ * pass outliving the screen is observable. */
 function stagedPass() {
   const events: AnalysisEvent[] = [];
   let resume: (() => void) | null = null;
@@ -175,8 +174,8 @@ describe("gameAnalysisQuery", () => {
 
     pass.grade(1);
     await vi.waitFor(() => expect(readCache(queryClient)?.graded).toHaveLength(1));
-    // Cleared with the grade, so a finished position's reading can never
-    // be shown as the next one's.
+    // Cleared with the grade, so a finished position's reading is never
+    // shown as the next one's.
     expect(readCache(queryClient)?.live).toBeNull();
   });
 
@@ -204,8 +203,8 @@ describe("gameAnalysisQuery", () => {
     screen.unmount();
     await settle();
 
-    // Nothing consumed the query's signal, so React Query leaves the
-    // fetch alone: the stream is still open and still filling the cache.
+    // Nothing consumed the query's signal, so React Query leaves the fetch
+    // alone and the stream keeps filling the cache.
     expect(pass.closed).toBe(0);
     pass.grade(2);
     await vi.waitFor(() => expect(readCache(queryClient)?.graded).toHaveLength(2));
@@ -255,9 +254,9 @@ describe("gameAnalysisQuery", () => {
       await vi.waitFor(() => expect(screen.result.current.isError).toBe(true));
     });
 
-    // The consumer is where it lands: `meta.engine` keeps it out of the
-    // API error path, so nothing reports it, nothing is normalized into
-    // an `ApiError`, and the backend is never blamed for a search.
+    // `meta.engine` keeps it out of the API error path, so nothing reports
+    // it, nothing normalizes it into an `ApiError`, and the backend is never
+    // blamed for a search.
     expect(screen.result.current.error).toBe(boom);
     expect(reported).not.toHaveBeenCalled();
     expect(getBackendStatus()).toBe("available");

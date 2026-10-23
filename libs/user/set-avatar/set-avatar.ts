@@ -1,8 +1,6 @@
 /**
- * SetAvatar — accept bytes as this user's avatar, or refuse them.
- *
- * Refusals are returned, not thrown: an image the browser encoded badly
- * is an answer the route maps to a 4xx, not an exception.
+ * Refusals are returned, not thrown: an image the browser encoded badly is
+ * an answer the route maps to a 4xx.
  */
 import {
   AVATAR_MAX_BYTES,
@@ -35,16 +33,14 @@ export async function setAvatar(
     return { status: "rejected", reason: "too-large" };
   }
 
-  // Before the write, and from the bytes rather than anything the caller
-  // said about them.
+  // From the bytes, not from anything the caller said about them.
   if (sniffAvatarMediaType(bytes) === null) {
     return { status: "rejected", reason: "unsupported-format" };
   }
 
-  // Bytes first, row second. A failed row write leaves an object under a
-  // key the next upload overwrites; a failed put leaves the row pointing
-  // at the previous avatar. The reverse order would show the user a
-  // broken image for as long as the retry took.
+  // Bytes first: a failed row write leaves an object the next upload
+  // overwrites, where the reverse order shows a broken image until the
+  // retry.
   await deps.putAvatarObject(avatarStorageKey(userId), bytes);
 
   const image = avatarUrl(Date.now());

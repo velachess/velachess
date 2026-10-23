@@ -1,9 +1,7 @@
 /**
- * ReadAvatar — the bytes of this user's own avatar.
- *
- * There is no key parameter, and that is the isolation guarantee: the key
- * is derived from the authenticated user id, so no caller can name
- * someone else's object and there is no check anyone can forget.
+ * No key parameter is the isolation guarantee: the key derives from the
+ * authenticated user id, so no caller can name someone else's object and
+ * there is no check to forget.
  */
 import {
   avatarStorageKey,
@@ -12,10 +10,9 @@ import {
 } from "../avatar.ts";
 
 /**
- * `Uint8Array<ArrayBuffer>`, not the bare `Uint8Array` that now widens to
- * `ArrayBufferLike`: a stored object is a standalone copy, and saying so is
- * what lets the route hand these bytes to a Response without a cast or a
- * second copy.
+ * `Uint8Array<ArrayBuffer>` rather than the bare `Uint8Array` that widens
+ * to `ArrayBufferLike`, which is what lets the route hand these bytes to a
+ * Response without a cast or a copy.
  */
 type GetAvatarObject = (key: string) => Promise<Uint8Array<ArrayBuffer> | null>;
 
@@ -35,9 +32,8 @@ export async function readAvatar(
   const bytes = await deps.getAvatarObject(avatarStorageKey(userId));
   if (bytes === null) return null;
 
-  // Sniffed on the way out as well as in. Bytes that reached the store by
-  // some other route — a file placed by hand, a restored backup — get no
-  // Content-Type invented for them; they read as no avatar at all.
+  // Sniffed on the way out too, so bytes that reached the store by some
+  // other route get no Content-Type invented for them.
   const mediaType = sniffAvatarMediaType(bytes);
   if (mediaType === null) return null;
 

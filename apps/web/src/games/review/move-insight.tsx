@@ -45,8 +45,8 @@ const EXPLANATIONS: Record<MoveCategory, MessageDescriptor> = {
   blunder: msg`It changes who is winning.`,
 };
 
-/** The badge's own vocabulary, which is not NAG: it stands for the
- * verdict rather than annotating the move, so every category has one. */
+/** Not NAG: it stands for the verdict rather than annotating the move, so
+ * every category has one. */
 const BADGE: Record<MoveCategory, { glyph: string; tone: string }> = {
   best: { glyph: "!", tone: "bg-move-ok" },
   good: { glyph: "✓", tone: "bg-move-ok" },
@@ -57,12 +57,10 @@ const BADGE: Record<MoveCategory, { glyph: string; tone: string }> = {
 
 export interface MoveInsightProps {
   move: ReplayedMove | undefined;
-  /** The engine's read of it, absent until the analysis reaches this ply. */
+  /** Absent until the analysis reaches this ply. */
   graded: GradedPly | undefined;
-  /**
-   * Draw the engine's move on the board. Absent leaves the suggestion as
-   * text — a screen that cannot act on it should not offer a button.
-   */
+  /** Absent leaves the suggestion as text: a screen that cannot act on it
+   * should not offer a button. */
   onRevealBestMove?: (() => void) | undefined;
 }
 
@@ -188,8 +186,8 @@ function BestMoveValue({
 }
 
 /**
- * Redundant on purpose: colour at a glance, symbol without colour
- * vision, sentence for a screen reader — so the badge hides from one.
+ * Redundant on purpose: colour at a glance, symbol without colour vision,
+ * sentence for a screen reader, which is why the badge hides from one.
  */
 function GradeBadge({ category }: { category: MoveCategory }) {
   return (

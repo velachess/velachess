@@ -1,9 +1,7 @@
 /**
- * Moves — legality, and the two notations a board and an engine need.
- * chessops decides every rule here; this file exists for the three things
- * it does not answer: whether a destination captures, which of its two
- * castling notations a board and an engine read, and applying a move
- * without mutating the position.
+ * chessops decides every rule; this file exists for the three it does not
+ * answer: whether a destination captures, which castling notation to read,
+ * and applying a move without mutating the position.
  */
 
 import type { Position } from "chessops/chess";
@@ -16,7 +14,6 @@ import { makeSanAndPlay, parseSan } from "chessops/san";
 export { castlingSide, isNormal, parseUci };
 export type { Move };
 
-/** A square a piece may legally reach, and what it would do there. */
 export interface LegalDestination {
   square: string;
   /** True when a piece sits there — including en passant, where the
@@ -25,15 +22,9 @@ export interface LegalDestination {
 }
 
 /**
- * Where the piece on `square` may legally go — legal, not pseudo-legal;
- * `pos.dests` resolves pins, check, castling and en passant, and answers
- * empty for a piece whose turn it is not.
- *
- * Two things `dests` leaves to the caller. It names castling on the
- * rook's square, because that is how chessops encodes the move — a board
- * has to show the square the king lands on, which is also the one a
- * person drags to. And it does not say whether landing somewhere takes
- * a piece, which a board draws differently.
+ * `pos.dests` resolves pins, check, castling and en passant, but names
+ * castling on the rook's square and does not say whether a destination
+ * captures.
  */
 export function legalDestinations(pos: Position, square: string): LegalDestination[] {
   const from = parseSquare(square);
@@ -59,9 +50,8 @@ function isEnPassant(pos: Position, from: number, to: number): boolean {
 }
 
 /**
- * A move as chessops means it, or null if illegal here — the one gate
- * before playing anything. `normalizeMove` is what lets a person drag the
- * king to g1 when chessops encodes castling as king-takes-own-rook.
+ * `normalizeMove` is what lets a person drag the king to g1, chessops
+ * encoding castling as king-takes-own-rook.
  */
 function legalMoveBetween(
   pos: Position,
@@ -81,20 +71,15 @@ function legalMoveBetween(
   return pos.isLegal(move) ? move : null;
 }
 
-/** The result of actually playing a move, not just checking it. A caller
- * wanting the move in UCI has `uciOf`; nothing has, so it is not here. */
 export interface PlayedMove {
   fen: string;
   san: string;
 }
 
 /**
- * Validates and applies one move, without mutating `pos`. Only the side
- * to move may play: `pos.dests` offers nothing to the other one, so
- * accepting its moves would mean a board that takes what it never
- * offered. Promotion defaults to queen — no picker in this app yet, but
- * the parameter stays real so a future caller can override it. Null on an
- * illegal move, same contract as the legality gate it runs.
+ * Without mutating `pos`. Only the side to move may play, `pos.dests`
+ * offering nothing to the other one, and promotion defaults to queen
+ * because this app has no picker.
  */
 export function playMove(
   pos: Position,
@@ -102,34 +87,27 @@ export function playMove(
   to: string,
   promotion: Role = "queen",
 ): PlayedMove | null {
-  // chessops' isLegal rejects any move whose `promotion` doesn't match
-  // "is this actually a pawn landing on the back rank" — so a `queen`
-  // default can't be passed unconditionally. Try with it first (only a
-  // genuine promotion can succeed), fall back without it for everything
-  // else.
+  // chessops' isLegal rejects a `promotion` on anything but a pawn
+  // reaching the back rank, so the default cannot be passed
+  // unconditionally: try with it, fall back without.
   const move =
     legalMoveBetween(pos, from, to, promotion) ?? legalMoveBetween(pos, from, to);
   if (!move) return null;
 
-  // One clone, not two: `makeSan` is `makeSanAndPlay` on a clone of its
-  // own, so playing our copy and naming the move are the same step. The
-  // position handed in is never touched.
+  // One clone: `makeSan` clones internally, so playing our copy and naming
+  // the move are the same step.
   const next = pos.clone();
   const san = makeSanAndPlay(next, move);
 
   return { fen: makeFen(next.toSetup()), san };
 }
 
-/** A move as the two squares a board draws between. */
 export interface MoveSquares {
   from: string;
   to: string;
 }
 
-/**
- * Squares a UCI move touches, or null if not one. Uses `parseUci` rather
- * than slicing the string, so invalid strings like "z9z9" are rejected.
- */
+/** `parseUci` rather than slicing, so "z9z9" is rejected. */
 export function squaresOfUci(uci: string): MoveSquares | null {
   const move = parseUci(uci);
   if (!move || !isNormal(move)) return null;
@@ -137,11 +115,9 @@ export function squaresOfUci(uci: string): MoveSquares | null {
 }
 
 /**
- * The castling square a board draws and an engine speaks, or null when the
- * move is not castling. chessops encodes castling as king-takes-own-rook
- * (e1 → h1) and names the king's landing square separately
- * (`kingCastlesTo`); choosing the second over the first is the one rule
- * behind both `squaresOfSan` and `uciOf`.
+ * chessops encodes castling as king-takes-own-rook (e1 → h1) and names
+ * the king's landing square separately. Choosing the second is the one
+ * rule behind both `squaresOfSan` and `uciOf`.
  */
 function castlingTarget(pos: Position, move: NormalMove): number | null {
   const side = castlingSide(pos, move);
@@ -149,10 +125,8 @@ function castlingTarget(pos: Position, move: NormalMove): number | null {
   return kingCastlesTo(pos.turn, side);
 }
 
-/**
- * Squares a SAN move touches; requires the position since SAN leaves the
- * origin implicit (e.g. which knight `Nf3` means depends on the board).
- */
+/** Requires the position: SAN leaves the origin implicit — which knight
+ * `Nf3` means depends on the board. */
 export function squaresOfSan(pos: Position, san: string): MoveSquares | null {
   const move = parseSan(pos, san);
   if (!move || !isNormal(move)) return null;
@@ -162,9 +136,9 @@ export function squaresOfSan(pos: Position, san: string): MoveSquares | null {
 }
 
 /**
- * UCI as an engine speaks it, which is not always what `makeUci` returns:
- * a castle has to read `e1g1`, or comparing a played move against the
- * engine's `bestmove` never matches and no castle is ever the best move.
+ * Not always what `makeUci` returns: a castle has to read `e1g1`, or
+ * comparing a played move against the engine's `bestmove` never matches
+ * and no castle is ever the best move.
  */
 export function uciOf(pos: Position, move: Move): string {
   if (!isNormal(move)) return makeUci(move);

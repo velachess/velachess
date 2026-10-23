@@ -10,7 +10,7 @@ import {
 } from "../archive.ts";
 import { GAME_PGN } from "../games.ts";
 
-/** The API's own default, so an unpaged read answers the same size it does. */
+/** The API's own default, so an unpaged read answers the same size. */
 const DEFAULT_PAGE_SIZE = 25;
 
 function positiveInt(value: string | null, fallback: number): number {
@@ -18,7 +18,8 @@ function positiveInt(value: string | null, fallback: number): number {
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallback;
 }
 
-/** The unified library read; 400 matches the route, so the UI fails on its own terms rather than the test peeking at the request. */
+/** The 400 matches the route, so the UI fails on its own terms rather than
+ * the test peeking at the request. */
 export const gamesHandlers = [
   http.get("/api/games", ({ request }) => {
     const query = new URL(request.url).searchParams;
@@ -39,9 +40,9 @@ export const gamesHandlers = [
   }),
 
   /**
-   * The manual upload. A blank body is the route's 400; a staged failure
-   * answers like an unreachable server; success lands the staged games in
-   * the library so a refetch shows them, exactly as the real slice does.
+   * A blank body is the route's 400, a staged failure answers like an
+   * unreachable server, and success lands the staged games in the library,
+   * as the real slice does.
    */
   http.post("/api/games/import", async ({ request }) => {
     const body = (await request.json()) as {
@@ -76,8 +77,8 @@ export const gamesHandlers = [
   http.get("/api/games/:id", ({ params }) => {
     const game = gameById(String(params["id"]));
     if (!game) return HttpResponse.json({ error: "game not found" }, { status: 404 });
-    // Fields the list does not carry: movetext, this screen's tags, and
-    // both seats' provider identity as the profile cache resolved it.
+    // What the list does not carry: movetext, this screen's tags, and both
+    // seats' identity as the profile cache resolved it.
     return HttpResponse.json({
       ...game,
       ...seatIdentityFields(String(params["id"])),

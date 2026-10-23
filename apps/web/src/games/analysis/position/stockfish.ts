@@ -1,6 +1,6 @@
 /**
  * Where the engine's vocabulary becomes the domain's, and the only place
- * here that opens a session — one Worker per evaluator, reused for every
+ * here that opens a session: one Worker per evaluator, reused for every
  * FEN.
  */
 import { parseFen } from "@velachess/chess";
@@ -13,16 +13,15 @@ import type { EngineSessionHandle } from "../../../engine/index.ts";
 import { ANALYSIS_DEPTH } from "../types.ts";
 import type { PositionEvaluator, PositionSearch } from "./evaluate.ts";
 
-/** UCI's "no legal move" bestmove, which is not a move. */
+/** UCI's "no legal move" bestmove. */
 const NO_MOVE = "(none)";
 
 export function positionEvaluationOf(
   fen: string,
   search: CompletedSearch,
 ): PositionEvaluation {
-  // `unwrap` on purpose: every FEN here was written by `makeFen`, so a
-  // malformed one is a bug worth hearing about rather than a score
-  // silently flipped to the wrong side.
+  // Every FEN here was written by `makeFen`, so a malformed one is a bug
+  // worth hearing about rather than a score flipped to the wrong side.
   const score = search.lastInfo
     ? toWhitePov(search.lastInfo.score, parseFen(fen).unwrap().turn)
     : {};
@@ -32,8 +31,8 @@ export function positionEvaluationOf(
   };
 }
 
-/** The one place the engine's Effection task becomes an async iterator,
- * so no consumer of Analysis holds a task or spells a UCI command. */
+/** The one place the engine's Effection task becomes an async iterator, so
+ * no consumer holds a task or spells a UCI command. */
 function searchPosition(session: EngineSessionHandle, fen: string): PositionSearch {
   const pending: EngineUpdate[] = [];
   let wake: (() => void) | null = null;
@@ -64,15 +63,15 @@ function searchPosition(session: EngineSessionHandle, fen: string): PositionSear
       throw error;
     },
   );
-  // An abandoned stream would otherwise report an unhandled rejection
-  // as a crash rather than a stopped search.
+  // An abandoned stream would report an unhandled rejection as a crash
+  // rather than a stopped search.
   void settled.catch(() => {});
 
   function cancel(): void {
     if (finished) return;
     finished = true;
-    // `halt()` hands back a lazy handle: the task is interrupted only
-    // once that handle is consumed, and consuming it rejects.
+    // `halt()` hands back a lazy handle: the task is interrupted only once
+    // it is consumed, and consuming it rejects.
     void task.halt().catch(() => {});
     notify();
   }

@@ -1,17 +1,13 @@
 // @vitest-environment jsdom
 /**
- * The board against the real `react-chessboard`, not a mock of it.
+ * Against the real `react-chessboard`, because the captured `options` prove
+ * only what we asked for. That gap hid two bugs: `squareStyles` is read
+ * only by the div a `squareRenderer` replaces, so every fill was discarded,
+ * and a piece renders inside its square, so wiring both `onPieceClick` and
+ * `onSquareClick` made one click report two moves.
  *
- * Asserting on the captured `options` object proves we ask for the right
- * thing and nothing about whether the library does it. That gap has hidden
- * two bugs: `squareStyles` is read only by the div a `squareRenderer`
- * replaces, so every fill we computed was discarded; and a piece renders
- * inside its square, so wiring both `onPieceClick` and `onSquareClick`
- * made one click report two moves. Every interaction lives here for that
- * reason.
- *
- * Dragging does not: dnd-kit needs a pointer and a layout, and jsdom has
- * neither. The drop contract stays in `board.test.tsx`.
+ * Dragging stays in `board.test.tsx`: dnd-kit needs a pointer and a layout
+ * jsdom lacks.
  */
 import { act, render } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
@@ -20,7 +16,7 @@ import { Board } from "../board.tsx";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const AFTER_E4 = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1";
-/** White pawn e4, black pawn d5: exd5 captures onto an occupied square. */
+/** exd5 captures onto an occupied square. */
 const CAPTURE = "4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1";
 
 const KNIGHT_OPENINGS = [
@@ -30,22 +26,19 @@ const KNIGHT_OPENINGS = [
 
 const knightTargets = (from: string) => (from === "b1" ? KNIGHT_OPENINGS : []);
 
-/** The library renders `id="chessboard-square-<name>"` per square. */
+/** The library's own per-square id. */
 const squareAt = (container: HTMLElement, name: string) =>
   container.querySelector<HTMLElement>(`#chessboard-square-${name}`);
 
-/** The inline style of the div our `squareRenderer` returns — where every
- * fill this component paints actually lands. */
+/** The div our `squareRenderer` returns, where every fill lands. */
 const fillAt = (container: HTMLElement, name: string) =>
   squareAt(container, name)?.querySelector("div")?.getAttribute("style") ?? "";
 
 const badgeAt = (container: HTMLElement, name: string) =>
   squareAt(container, name)?.querySelector('[data-slot="square-badge"]') ?? null;
 
-/** Throws rather than asserting: it narrows the element for the click
- * below, and says which id went missing if the library renames one —
- * instead of a click silently doing nothing and the next assertion
- * reading like a timing flake it is not. */
+/** Throws rather than asserting, so a renamed library id is named instead
+ * of a click silently doing nothing. */
 const clickOn = (element: HTMLElement | null, what: string) => {
   if (!element) throw new Error(`${what} is not on the board`);
   act(() => {
@@ -59,10 +52,8 @@ const clickPiece = (container: HTMLElement, id: string) =>
 const clickSquare = (container: HTMLElement, name: string) =>
   clickOn(squareAt(container, name), name);
 
-// react-chessboard's first mount is real DOM work over 64 squares, and a
-// cold/throttled CI runner has occasionally pushed this past the default
-// 5s. Give the mounting tests more room rather than raising the file's
-// default for every test.
+// The first mount is real DOM work over 64 squares, which a throttled CI
+// runner has pushed past the default 5s.
 const SLOW = 10_000;
 
 it("renders a square for every one of the sixty-four", () => {
@@ -157,7 +148,7 @@ it(
 it(
   "leaves a board with no hint source unmarked",
   () => {
-    // A replay board is being read, not played; marks on it are noise.
+    // A replay board is read, not played, so marks on it are noise.
     const { container } = render(<Board fen={START} />);
 
     clickPiece(container, "wN-b1");
@@ -171,7 +162,7 @@ it(
 it(
   "makes exactly one move attempt per click-to-capture gesture",
   () => {
-    // A piece renders inside its square and neither click handler stops
+    // A piece renders inside its square and neither handler stops
     // propagation, so one click on an occupied destination reaches both.
     const onMove = vi.fn(() => true);
     const { container } = render(
@@ -254,10 +245,9 @@ it(
 it(
   "drops the selection when the position changes under it",
   () => {
-    // Stepping to the next ply must not leave dots on a square nobody
-    // picked up there. `animated={false}` as the review screen runs it:
-    // the library measures a square to animate a position change, and
-    // jsdom lays nothing out.
+    // Stepping must not leave dots on a square nobody picked up there.
+    // `animated={false}` as the review screen runs it, the library
+    // measuring a square jsdom never lays out.
     const { container, rerender } = render(
       <Board fen={START} animated={false} legalTargetsOf={knightTargets} />,
     );

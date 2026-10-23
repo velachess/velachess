@@ -4,20 +4,16 @@ import { legalDestinations, playMove, squaresOfSan, squaresOfUci } from "../move
 import { positionFromFen } from "../position.ts";
 
 /**
- * What a move indicator is allowed to promise.
- *
- * Legal, not pseudo-legal: a dot on a square a pinned piece cannot reach
- * is worse than no dot, because the person trusts it and the board then
- * refuses the move. These are the rules that a hand-rolled "squares the
- * piece attacks" would get wrong.
+ * Legal, not pseudo-legal: a dot on a square a pinned piece cannot reach is
+ * worse than no dot, because the person trusts it and the board then
+ * refuses the move. A hand-rolled "squares the piece attacks" gets these
+ * wrong.
  */
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/** SAN needs the board it was played on, so tests read through it. */
 const sanSquares = (fen: string, san: string) =>
   squaresOfSan(positionFromFen(fen).unwrap(), san);
 
-/** Same position with the other side to move. */
 const blackToMove = (fen: string) => fen.replace(" w ", " b ");
 
 const at = (fen: string, square: string) =>
@@ -34,15 +30,14 @@ describe("legalDestinations", () => {
   });
 
   it("gives a pinned piece only the moves that keep the king safe", () => {
-    // The knight on e2 is pinned to the king on e1 by the rook on e8. It
-    // attacks six squares and may legally reach none of them.
+    // The e2 knight is pinned by the e8 rook: six squares attacked, none
+    // reachable.
     const pinned = "4r2k/8/8/8/8/8/4N3/4K3 w - - 0 1";
 
     expect(squares(pinned, "e2")).toEqual([]);
   });
 
   it("marks a capture as a capture", () => {
-    // Black pawn on d5, white pawn on e4: exd5 takes.
     const takes = "4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1";
 
     expect(at(takes, "e4")).toContainEqual({ square: "d5", isCapture: true });
@@ -50,17 +45,17 @@ describe("legalDestinations", () => {
   });
 
   it("calls en passant a capture even though the square is empty", () => {
-    // Black has just played f7-f5; exf6 takes a pawn that is not on f6.
-    // Asking "is the destination occupied" answers no, and gets it wrong.
+    // exf6 takes a pawn that is not on f6, so "is the destination occupied"
+    // answers no and gets it wrong.
     const enPassant = "4k3/8/8/4Pp2/8/8/8/4K3 w - f6 0 1";
 
     expect(at(enPassant, "e5")).toContainEqual({ square: "f6", isCapture: true });
   });
 
   it("offers castling on the square the king lands on, not the rook's", () => {
-    // chessops encodes castling as the king taking its own rook (e1h1).
-    // A board draws where the king goes, and that is also the square a
-    // person drags to — so the dot has to say g1.
+    // chessops encodes castling as the king taking its own rook (e1h1), but
+    // the dot has to sit where the king lands, which is where a person
+    // drags.
     const canCastle = "4k3/8/8/8/8/8/8/4K2R w K - 0 1";
 
     expect(squares(canCastle, "e1")).toContain("g1");
@@ -80,8 +75,8 @@ describe("legalDestinations", () => {
   });
 
   it("collapses a promotion into one square", () => {
-    // Four moves, one destination: a dot marks a square, not a choice of
-    // piece. Listing it four times would draw four dots on one square.
+    // Four moves, one destination: listing it four times draws four dots on
+    // one square.
     const promoting = "4k3/P7/8/8/8/8/8/4K3 w - - 0 1";
 
     expect(squares(promoting, "a7")).toEqual(["a8"]);
@@ -96,19 +91,15 @@ describe("legalDestinations", () => {
   });
 
   it("offers nothing for the side that is not to move", () => {
-    // White to move, asking about a black pawn. Drawing dots here would
-    // promise a move `playMove` then refuses.
+    // Dots for the side not to move promise what `playMove` refuses.
     expect(squares(START, "e7")).toEqual([]);
   });
 });
 
 /**
- * The contract between the dots and the drag.
- *
  * Every square the board offers has to be one the move accepts, and the
- * other way round. These drifted apart once already: destinations were
- * computed for either side while the move only ever allowed the side to
- * play, so the board drew dots on pieces it then refused to move.
+ * other way round. These drifted apart once: destinations were computed for
+ * either side while the move allowed only the side to play.
  */
 function playsEverythingOffered(fen: string, from: string) {
   const offered = squares(fen, from);
@@ -186,9 +177,8 @@ describe("squaresOfSan", () => {
   });
 
   it("renders castling on the king's destination, not the rook's square", () => {
-    // chessops encodes castling as the king taking its own rook (e1h1);
-    // a board drawing the move wants the square the king lands on — which
-    // is also what an engine's UCI would name (issue #3).
+    // The square the king lands on, which is also what an engine's UCI
+    // names (issue #3).
     const castling = "r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1";
 
     expect(sanSquares(castling, "O-O")).toEqual({ from: "e1", to: "g1" });
@@ -204,14 +194,12 @@ describe("squaresOfSan", () => {
   });
 
   it("gives nothing when the move does not fit the position", () => {
-    // A record drifted from its FEN would otherwise light two squares
-    // chosen at random, which is worse than lighting none.
+    // A record drifted from its FEN would light two arbitrary squares,
+    // which is worse than lighting none.
     expect(sanSquares(START, "Qh5xf7")).toBeNull();
   });
 
   it("yields nothing for a move that is not legal here", () => {
-    // A record drifted from its FEN would otherwise highlight two squares
-    // that have nothing to do with what was played.
     expect(sanSquares(START, "Nf6")).toBeNull();
   });
 });

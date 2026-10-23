@@ -1,7 +1,6 @@
 /**
- * Composition root for the accounts module's worker-side handler: adapts
- * the DB client and fetch-override fixture `main.ts` builds into the narrow
- * `SyncAccountDeps` `syncAccount` declared.
+ * Adapts what `main.ts` builds into the narrow `SyncAccountDeps`
+ * `syncAccount` declared.
  */
 import {
   finishSyncJob,
@@ -16,8 +15,7 @@ import type { Database } from "@velachess/infra-db";
 import type { SyncAccountDeps, SyncDeps } from "@velachess/accounts";
 import { logger } from "@velachess/infra-logger";
 
-/** The cursor warning needs somewhere to land; the slice declares the
- * callback and the composition root owns the sink. */
+/** The slice declares the callback; the composition root owns the sink. */
 const syncLogger = logger.child({ component: "sync" });
 
 export function buildSyncAccountDeps(db: Database, sync: SyncDeps = {}): SyncAccountDeps {
@@ -32,10 +30,9 @@ export function buildSyncAccountDeps(db: Database, sync: SyncDeps = {}): SyncAcc
     markTrackedAccountSynced,
     onUnreadableCursor: (info) =>
       syncLogger.warn(info, "stored sync cursor did not parse; starting over"),
-    // A caller may redirect either — a test harness reads the archive
-    // through a fixture and may want the cursor warning itself. Spread
-    // per key, not `...sync`: `exactOptionalPropertyTypes` treats an
-    // explicit `undefined` as a value, which would erase the default.
+    // A caller may redirect either. Spread per key rather than `...sync`:
+    // `exactOptionalPropertyTypes` treats an explicit `undefined` as a
+    // value, which would erase the default.
     ...(sync.fetch ? { fetch: sync.fetch } : {}),
     ...(sync.onUnreadableCursor ? { onUnreadableCursor: sync.onUnreadableCursor } : {}),
   };

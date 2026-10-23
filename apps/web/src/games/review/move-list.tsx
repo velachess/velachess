@@ -10,7 +10,7 @@ import { gradeAtPly } from "./review-model.ts";
 import { useGameReview } from "./use-game-review.ts";
 
 export interface MoveListProps {
-  /** Grades in ply order — shorter than the game while the run streams. */
+  /** In ply order, and shorter than the game while the run streams. */
   graded: readonly GradedPly[];
   moves: readonly ReplayedMove[];
   whiteName: string;
@@ -24,10 +24,9 @@ interface ScoresheetRow {
 }
 
 /**
- * One row per move number, each side in its own column. Built from the
- * positions rather than by pairing plies two at a time: a game can start
- * from a FEN, at any move number and with Black to play, and its first
- * row then has no White move at all.
+ * Built from the positions rather than by pairing plies two at a time: a
+ * game can start from a FEN with Black to play, whose first row has no
+ * White move at all.
  */
 function scoresheetRows(moves: readonly ReplayedMove[]): ScoresheetRow[] {
   const rows: ScoresheetRow[] = [];
@@ -43,7 +42,6 @@ function scoresheetRows(moves: readonly ReplayedMove[]): ScoresheetRow[] {
   return rows;
 }
 
-/** Cells are real buttons for keyboard reach. */
 export function MoveList({ graded, moves, whiteName, blackName }: MoveListProps) {
   const currentPly = useGameReview((state) => state.ply);
   const onSelectPly = useGameReview((state) => state.goToPly);
@@ -117,8 +115,8 @@ function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
   );
 }
 
-/** NAG notation, not copy — the glyphs every scoresheet already prints.
- * `best` and `good` earn no symbol: a mark on every move is no mark. */
+/** NAG notation, not copy. `best` and `good` earn no symbol: a mark on
+ * every move is no mark. */
 const CATEGORY_GLYPHS: Partial<Record<MoveCategory, string>> = {
   inaccuracy: "?!",
   mistake: "?",

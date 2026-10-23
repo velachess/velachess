@@ -67,9 +67,8 @@ const RESULT_COPY = {
 } as const;
 
 /**
- * The manual source's entry point. Chess.com and Lichess connect through
- * Import games; this is the separate, repeatable upload — no account row
- * behind it, nothing remembered on this device.
+ * The manual source: a repeatable upload with no account row behind it and
+ * nothing remembered on this device.
  */
 export function PgnImportButton() {
   const { i18n } = useLingui();
@@ -111,9 +110,8 @@ const DEFAULT_VALUES: FormValues = {
 };
 
 /**
- * A .pgn is plain text by definition; read it into the paste field so
- * there is exactly one place the import reads from. Clears the input
- * first so picking the same file again still fires a change event.
+ * Read into the paste field, so the import has one source. The input is
+ * cleared so picking the same file again still fires a change event.
  */
 async function handlePgnFileChange(
   input: HTMLInputElement,
@@ -132,11 +130,9 @@ async function handlePgnFileChange(
 }
 
 /**
- * tanstack-form keeps field meta (touched, errors) in the form instance,
- * not the component — switching away from "By name" unmounts the name
- * field but leaves its old error cached, ready to reappear the instant
- * "By name" is picked again. Resetting it here is what makes that a
- * clean field, not a stale one.
+ * tanstack-form keeps field meta in the form instance, not the component,
+ * so unmounting the name field leaves its error cached and ready to
+ * reappear the instant "By name" is picked again.
  */
 function handleParticipationModeChange(
   mode: ParticipationMode | undefined,
@@ -144,9 +140,8 @@ function handleParticipationModeChange(
   form: { resetField: (name: "playerName") => void },
 ) {
   field.handleChange(mode);
-  // Only leaving "By name" has anything stale to clear — resetting on
-  // every change would run the reset before the name field has even
-  // mounted for the mode that's just been picked.
+  // Resetting on every change would run before the name field has mounted
+  // for the mode just picked.
   if (mode !== PARTICIPATION_MODES.byName) form.resetField("playerName");
 }
 
@@ -173,23 +168,22 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const form = useForm({
     defaultValues: DEFAULT_VALUES,
     validators: {
-      // onMount is deliberate, not an oversight: Import must start disabled
-      // before any interaction (participationMode starts unset), not just
-      // after a failed submit attempt.
+      // `onMount` so Import starts disabled before any interaction, since
+      // participationMode starts unset.
       onMount: formSchema,
       onChange: formSchema,
     },
     onSubmit: async ({ value }) => {
       // onSubmit's `value` is the raw field shape, not the schema's
-      // `.transform()` output (@tanstack/form-core@1.33.5) — this parse is
-      // what actually produces `{ pgn, participation }`.
+      // `.transform()` output (@tanstack/form-core@1.33.5), so this parse is
+      // what produces `{ pgn, participation }`.
       const { pgn, participation } = formSchema.parse(value);
 
       try {
         await importPgn.mutateAsync({ pgn, participation });
       } catch {
-        // The mutation already holds the failure and onError reports it;
-        // rethrowing here would leave the rejection unhandled.
+        // The mutation holds the failure and onError reports it;
+        // rethrowing leaves the rejection unhandled.
         return;
       }
     },

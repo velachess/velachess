@@ -10,8 +10,7 @@ import { withPagination, type Paginated } from "./pagination.ts";
 import { perspectiveSql } from "./perspective.ts";
 import { games, trackedAccounts } from "../schema.ts";
 
-/** What the games screen filters by. Every field is optional: absent means
- * "don't narrow on this", which is what an untouched filter should do. */
+/** Absent means "do not narrow on this". */
 export interface GameFilters {
   color?: "white" | "black" | undefined;
   /** From your side of the board, not the scoresheet's. */
@@ -25,9 +24,8 @@ export interface GamePage {
 }
 
 /**
- * Estimated duration in SQL, from the same rule the app uses. Written as
- * arithmetic on the stored columns rather than a stored class, so
- * re-tuning the boundaries never needs a backfill.
+ * Arithmetic on the stored columns rather than a stored class, so re-tuning
+ * the boundaries never needs a backfill.
  */
 const estimatedSecondsSql = sql`(${games.timeControlInitialSeconds} + ${ESTIMATED_MOVES} * coalesce(${games.timeControlIncrementSeconds}, 0))`;
 
@@ -45,20 +43,13 @@ function timeClassPredicate(timeClass: TimeClass): SQL {
 }
 
 /**
- * Won, lost or drew — from your seat. The scoresheet says "1-0"; whether
- * that is a win depends on which side you were, so the two columns have
- * to be read together. The whole disjunction is parenthesized: AND binds
- * tighter than OR, and an unscoped branch here would match other users'
- * rows once combined with the ownership condition.
+ * `gameOutcomeFor` in `@velachess/chess`, which no predicate can call from
+ * inside Postgres; the route tests in
+ * `apps/server/tests/library-filters.test.ts` hold the two together.
  *
- * Same rule as `gameOutcomeFor` in `@velachess/chess`, which is what
- * every caller outside SQL uses. A predicate cannot call it — this runs
- * inside Postgres — so the two are held together by the route tests in
- * `apps/server/tests/library-filters.test.ts` instead: draw answers from
- * the result alone, including for a game with no resolved seat, and a
- * decided game with no seat is claimed by neither win nor loss. The
- * filter offers no `unfinished` value, so that branch has no predicate
- * to express here.
+ * The disjunction is parenthesized because AND binds tighter than OR, and
+ * an unscoped branch would match other users' rows once combined with the
+ * ownership condition.
  */
 function outcomePredicate(
   outcome: NonNullable<GameFilters["outcome"]>,
@@ -85,10 +76,9 @@ function gameFilterConditions(userId: string, filters: GameFilters): SQL[] {
 }
 
 /**
- * One page of the user's unified library — synced accounts and manually
- * imported PGNs together, filtered, with everything the list renders.
- * The account join is provenance only: it feeds perspective derivation
- * for games that have one and must not drop the ones that don't.
+ * Synced accounts and pasted PGNs together. The account join is provenance
+ * only: it feeds perspective derivation and must not drop the rows with no
+ * account.
  */
 export async function listGamesPage(
   db: Database,
@@ -115,16 +105,15 @@ export async function listGamesPage(
       openingName: games.openingName,
     })
     .from(games)
-    // Provenance, not ownership — perspective derivation input for the
-    // synced rows; a PGN row has none and must survive the read.
+    // Provenance, not ownership: a PGN row has no account and must survive
+    // the read.
     .leftJoin(trackedAccounts, eq(games.accountId, trackedAccounts.id))
     .where(where)
     .$dynamic();
 
-  // Newest first, id as the tiebreak: `played_at` is nullable and repeats
-  // within a minute, and a partial order lets a row show up on two pages.
-  // The count shares the page's joins — the filters speak the same
-  // perspective rule, which references the provenance account.
+  // id as the tiebreak: `played_at` is nullable and repeats within a minute,
+  // and a partial order lets a row show up on two pages. The count shares
+  // the page's joins because the filters speak the same perspective rule.
   const [rows, [totals]] = await Promise.all([
     withPagination(
       page$,

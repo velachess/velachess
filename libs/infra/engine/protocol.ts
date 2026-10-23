@@ -1,7 +1,6 @@
 /**
- * UCI wire format — building commands and reading the engine's replies.
- * Pure string in, parsed value (or null for lines that aren't one of ours)
- * out. No process, no transport, testable with plain strings.
+ * String in, parsed value out, or null for a line that is not one of ours.
+ * No process and no transport.
  */
 
 import type { BestMove, EngineUpdate, GoMode } from "./types.ts";
@@ -33,10 +32,9 @@ export function buildSetOptionCommand(
 }
 
 /**
- * Parses an `info` line into an EngineUpdate. Null for anything not a
- * settled scored line — `info string`, missing depth/score/pv, or an
- * `upperbound`/`lowerbound` (an aspiration-window re-search bound, not
- * a real evaluation).
+ * Null for anything but a settled scored line: `info string`, a missing
+ * depth, score or pv, or an `upperbound`/`lowerbound`, which is an
+ * aspiration-window re-search bound rather than an evaluation.
  */
 export function parseInfoLine(line: string): EngineUpdate | null {
   if (!line.startsWith("info ") || line.includes(" string ")) return null;
@@ -46,8 +44,8 @@ export function parseInfoLine(line: string): EngineUpdate | null {
   const multipv = line.match(/ multipv (?<multipv>\d+)/)?.groups?.["multipv"];
   const cp = line.match(/ score cp (?<cp>-?\d+)/)?.groups?.["cp"];
   const mate = line.match(/ score mate (?<mate>-?\d+)/)?.groups?.["mate"];
-  // Scanned by index, not by regex: ` pv ` repeated across a long line
-  // makes the anchored pattern quadratic.
+  // By index, not regex: ` pv ` repeated across a long line makes the
+  // anchored pattern quadratic.
   const pvAt = line.indexOf(" pv ");
   const pv = pvAt === -1 ? undefined : line.slice(pvAt + " pv ".length);
   const nodes = line.match(/ nodes (?<nodes>\d+)/)?.groups?.["nodes"];

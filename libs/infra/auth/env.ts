@@ -1,39 +1,35 @@
 /**
- * [AUTH ENV] — turns ambient env vars into a validated auth config, or
- * throws a message naming the variable and requirement to fix. Pure
- * (`resolveAuthEnv(env)` takes env as a value) so the API composition root stays wiring.
- * Never echoes `VELACHESS_AUTH_SECRET`'s value in any error or log.
+ * Every failure names the variable and the requirement, and none echoes
+ * `VELACHESS_AUTH_SECRET`'s value.
  *
- * `production` is computed independently of envalid's own isProduction,
+ * `production` is computed independently of envalid's own `isProduction`,
  * which treats an unset NODE_ENV as production — this repo's opposite.
  */
 
 import { cleanEnv, EnvError, makeValidator, str, url } from "envalid";
 
-/** The .env.example placeholder — booting production with it means the
- * file was copied verbatim, which is indistinguishable from no secret. */
+/** The .env.example placeholder: booting production with it is
+ * indistinguishable from having no secret. */
 const EXAMPLE_SECRET = "change-me-to-a-random-32-character-secret";
 
 export interface ResolvedAuthEnv {
   secret: string;
   baseUrl: string;
-  /** Derived from the baseUrl scheme — https means Secure cookies. */
+  /** Derived from the baseUrl scheme. */
   secureCookies: boolean;
-  /** The baseUrl origin plus any VELACHESS_TRUSTED_ORIGINS entries. */
+  /** The baseUrl origin plus any `VELACHESS_TRUSTED_ORIGINS` entries. */
   trustedOrigins: string[];
-  /** Google OAuth credentials, when both are present. Absent means the
-   * provider is simply not offered. */
+  /** Absent means the provider is not offered. */
   google?: { clientId: string; clientSecret: string };
-  /** Reverse proxy addresses. Absent behind a real proxy collapses every
-   * client into one rate-limit bucket — see AuthConfig.trustedProxies. */
+  /** Absent behind a real proxy collapses every client into one rate-limit
+   * bucket; see `AuthConfig.trustedProxies`. */
   trustedProxies?: string[];
-  /** Production served over plain http — legal for a LAN self-host, but
-   * main.ts warns loudly: session cookies ride unencrypted. */
+  /** Production over plain http: legal for a LAN self-host, and main.ts
+   * warns, because session cookies then ride unencrypted. */
   insecureProductionTransport: boolean;
 }
 
-// 32 characters is Better Auth's own floor for a real secret — str() has
-// no minLength, so this is the one var that needs a custom parser.
+// 32 characters is Better Auth's own floor, and `str()` has no minLength.
 const authSecret = makeValidator<string>((input) => {
   if (input.length < 32) {
     throw new EnvError(
@@ -55,8 +51,8 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
           "VELACHESS_AUTH_SECRET is required — it signs session tokens. " +
           "Generate one: openssl rand -base64 32",
       }),
-      // A bare default, not devDefault: whether production may rely on
-      // it is the policy check below, not a shape one.
+      // A bare default, not devDefault: whether production may rely on it
+      // is the policy check below.
       VELACHESS_BASE_URL: url({ default: "http://localhost:3000" }),
       VELACHESS_TRUSTED_ORIGINS: str({ default: undefined }),
       GOOGLE_CLIENT_ID: str({ default: undefined }),
@@ -65,9 +61,9 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     },
     {
       // envalid's default reporter logs and calls process.exit(1); this
-      // throws instead, so a bad env is provable without a process.
-      // VELACHESS_BASE_URL gets its own message — url()'s own doesn't
-      // name the variable.
+      // throws, so a bad env is provable without a process.
+      // `VELACHESS_BASE_URL` needs its own message because `url()`'s does
+      // not name the variable.
       reporter: ({ errors }) => {
         if (errors["VELACHESS_BASE_URL"]) {
           throw new Error(

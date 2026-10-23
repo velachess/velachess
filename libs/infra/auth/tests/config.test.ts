@@ -1,14 +1,10 @@
 /**
- * What the config actually hands to Better Auth. These assertions look
- * modest, and they are the only cheap way to catch the failure mode that
- * matters here: a security option that is silently *not* passed through
- * behaves exactly like a correctly configured one until it is needed.
+ * A security option silently not passed through behaves exactly like a
+ * configured one until it is needed, which is what these pin.
  *
- * Better Auth's own limiter is off outside production
- * (`enabled: options.rateLimit?.enabled ?? isProduction` in its context
- * builder), so its behaviour cannot be exercised from a test process. Its
- * chain-stripping and bucket-keying are the library's to prove; ours is
- * that the options reach it.
+ * Better Auth's limiter is off outside production, so its behaviour cannot
+ * be exercised from a test process: its bucket-keying is the library's to
+ * prove, ours is that the options reach it.
  */
 import { describe, expect, it } from "vitest";
 
@@ -16,7 +12,7 @@ import type { Database } from "@velachess/infra-db";
 
 import { createAuth } from "../auth.ts";
 
-/** Never queried: the Drizzle adapter is lazy, and nothing here signs in. */
+/** Never queried: the Drizzle adapter is lazy. */
 const db = {} as Database;
 
 const base = {
@@ -28,8 +24,7 @@ const base = {
 
 describe("rate limiting", () => {
   it("is stored in the database, under our table", () => {
-    // The default is process memory: per-instance, and reset by every
-    // deploy. A limit that forgets on restart is not a limit.
+    // The default is per-instance process memory, reset by every deploy.
     const { options } = createAuth(base);
     expect(options.rateLimit).toEqual({
       storage: "database",
@@ -45,8 +40,8 @@ describe("trusted proxies", () => {
   });
 
   it("are absent, not empty, when not declared", () => {
-    // An empty list is not the same statement as "no proxies": Better Auth
-    // reads an unset list as "the socket address is the client".
+    // Better Auth reads an unset list as "the socket address is the
+    // client", which an empty one does not say.
     const { options } = createAuth(base);
     expect(options.advanced?.ipAddress).toBeUndefined();
   });
@@ -67,8 +62,8 @@ describe("Google sign-in", () => {
   });
 
   it("is independent of the password sign-up switch", () => {
-    // The one that opens public sign-up without an SMTP dependency:
-    // `disableSignUp` governs emailAndPassword only.
+    // `disableSignUp` governs emailAndPassword only, which is what opens
+    // public sign-up without an SMTP dependency.
     const { options } = createAuth({
       ...base,
       google: { clientId: "id", clientSecret: "secret" },
@@ -80,10 +75,9 @@ describe("Google sign-in", () => {
 
 describe("the OAuth error fallback", () => {
   it("points at the sign-in screen, not Better Auth's own /auth/error", () => {
-    // Reached only when there's no recoverable state to carry a caller's
-    // own errorCallbackURL — a state_mismatch or a malformed callback
-    // request. Left unset, this is baseURL + basePath + "/error", a
-    // path the SPA never routes.
+    // Reached when no recoverable state carries a caller's own
+    // errorCallbackURL. Unset, it is baseURL + basePath + "/error", a path
+    // the SPA never routes.
     const { options } = createAuth(base);
     expect(options.onAPIError?.errorURL).toBe("https://chess.example.com/login");
   });
@@ -99,25 +93,19 @@ describe("cookies", () => {
 });
 
 /**
- * The avatar lifecycle rests on Better Auth writing `user.image` when it
- * creates a user and never again. That is the default, which is exactly
- * why it needs pinning: enabling either flag below would silently restore
- * a provider picture over an uploaded avatar, and over the deliberate
- * "no picture" state a user chose.
+ * The avatar lifecycle rests on Better Auth writing `user.image` at user
+ * creation and never again, so enabling either flag below would restore a
+ * provider picture over an uploaded avatar, or over a deliberate removal.
  *
- * Read from the installed 1.7.2:
- * `api/routes/callback.mjs:232` gates the sign-in overwrite on
- * `overrideUserInfoOnSignIn`, and `oauth2/link-account.mjs:320` gates the
- * link-time overwrite on `accountLinking.updateUserInfoOnLink !== true`.
- * Neither is behaviour a test process can drive — a real token exchange
- * would be needed — so the option is the seam.
+ * In the installed 1.7.2, `api/routes/callback.mjs:232` gates the sign-in
+ * overwrite on `overrideUserInfoOnSignIn` and `oauth2/link-account.mjs:320`
+ * the link-time one on `accountLinking.updateUserInfoOnLink`. Neither can
+ * be driven without a real token exchange, so the option is the seam.
  */
 describe("who owns user.image", () => {
-  // Asserted as whole objects rather than one absent key each: TypeScript
-  // infers these from the literals we pass, so a test naming the key would
-  // not even compile while the key is absent — and would stop being a
-  // guard the moment it appeared. An exhaustive match fails on any added
-  // option, which is the actual thing worth catching.
+  // Whole objects rather than one absent key each: a test naming a key
+  // would not compile while it is absent, and would stop guarding the
+  // moment it appeared. An exhaustive match fails on any added option.
   it("passes Google no option that could overwrite user.image on sign-in", () => {
     const { options } = createAuth({
       ...base,

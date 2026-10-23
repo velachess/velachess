@@ -1,8 +1,7 @@
 /**
- * Stockfish sessions, and nothing else. A session owns one Worker and
- * keeps it across searches — the one thing `@velachess/infra-engine`
- * cannot do on its own, because its evaluator dies with the scope that
- * opened it and a cancelling caller is that scope.
+ * A session owns one Worker and keeps it across searches, which
+ * `@velachess/infra-engine` cannot do on its own: its evaluator dies with
+ * the scope that opened it, and a cancelling caller is that scope.
  *
  * Sessions never see each other: no registry, no lane, no shared lock.
  */
@@ -31,15 +30,12 @@ import {
 } from "@velachess/infra-engine";
 
 /**
- * How long a stopped search may take to answer `bestmove` before its
- * Worker is killed. Infra's watchdog cannot serve here: it measures
- * *silence*, so an engine that keeps talking while ignoring `stop` never
- * trips it.
+ * How long a stopped search may take to answer `bestmove` before its Worker
+ * is killed. Infra's watchdog measures silence, so an engine that keeps
+ * talking while ignoring `stop` never trips it.
  */
 const DEFAULT_STOP_SETTLE_MS = 2000;
 
-/** A newer search took the engine, or the session was disposed under
- * this one. Not a failure: there is nothing to show for it. */
 export class SearchSuperseded extends Error {
   constructor() {
     super("A newer search superseded this one");
@@ -47,7 +43,6 @@ export class SearchSuperseded extends Error {
   }
 }
 
-/** `dispose()` is final — the handle never searches again. */
 export class EngineSessionDisposed extends Error {
   constructor() {
     super("This engine session has been disposed");
@@ -57,7 +52,7 @@ export class EngineSessionDisposed extends Error {
 
 export interface EngineSessionHandle {
   /** Supersedes whatever is in flight. `onUpdate` receives this search's
-   * `info` lines, and only while it is the current one. */
+   * `info` lines only while it is the current one. */
   evaluate(fen: string, onUpdate?: OnEngineUpdate): Operation<CompletedSearch>;
   dispose(): Operation<void>;
 }
@@ -73,16 +68,14 @@ export interface EngineDeps {
 }
 
 interface Search {
-  /** `null` before the search starts and again the moment it ends: an
-   * Effection `Task` cannot be asked whether it is still running. */
+  /** Null before the search starts and again once it ends: an Effection
+   * `Task` cannot be asked whether it is still running. */
   searchTask: Task<Result<CompletedSearch>> | null;
-  /** The link the next search waits on, and the session's only
-   * serialization. A search that never reached the engine still has one. */
+  /** The session's only serialization. A search that never reached the
+   * engine still has one. */
   released: WithResolvers<void>;
 }
 
-/** A union rather than three fields, so "open while opening" cannot be
- * written. */
 type WorkerSlot =
   | { readonly status: "idle" }
   | {
@@ -111,15 +104,12 @@ export function createEngine(deps: EngineDeps): Engine {
 
       let disposed = false;
       let workerSlot: WorkerSlot = IDLE;
-      /** The most recent search, running or not. */
       let latestSearch: Search | null = null;
 
       function assertNotDisposed(): void {
         if (disposed) throw new EngineSessionDisposed();
       }
 
-      /** Stale means no longer the latest: `evaluate` claims
-       * `latestSearch` before it can block, and `dispose` clears it. */
       function isSuperseded(search: Search): boolean {
         return latestSearch !== search;
       }
@@ -131,17 +121,15 @@ export function createEngine(deps: EngineDeps): Engine {
       }
 
       /**
-       * Publishes the Worker from in here rather than handing it back to
-       * the search that asked: one cancelled mid-open would otherwise
-       * leave a live Worker nobody recorded, and the next would open a
-       * second.
+       * Publishes the Worker from in here rather than handing it to the
+       * search that asked: one cancelled mid-open would leave a live Worker
+       * nobody recorded, and the next would open a second.
        */
       function* openWorker(
         ready: WithResolvers<Result<EngineEvaluator>>,
       ): Operation<void> {
-        // Settles the waiting searches when the open is halted before it
-        // either succeeded or failed, which would otherwise leave them
-        // waiting on a Worker nobody is opening.
+        // An open halted before it succeeded or failed would otherwise
+        // leave the waiting searches on a Worker nobody is opening.
         yield* ensure(() => {
           if (workerSlot.status === "opening") workerSlot = IDLE;
           ready.resolve(
@@ -158,14 +146,14 @@ export function createEngine(deps: EngineDeps): Engine {
               : { silenceTimeoutMs: deps.silenceTimeoutMs }),
           });
         } catch (error) {
-          // Carried rather than rethrown: raising here would also take
-          // the session's scope down.
+          // Carried, not rethrown: raising here takes the session's scope
+          // down too.
           ready.resolve(Err(error));
           return;
         }
 
         // Everything that takes the slot away halts this task first, so
-        // `opening` here is always this open. Disposal publishes nothing.
+        // `opening` is always this open.
         if (disposed || workerSlot.status !== "opening") return;
         workerSlot = { status: "ready", task: workerSlot.task, evaluator };
         ready.resolve(Ok(evaluator));
@@ -173,9 +161,9 @@ export function createEngine(deps: EngineDeps): Engine {
       }
 
       /**
-       * Lazy and re-openable while the session lives: a stop that went
-       * unanswered leaves no Worker, and the next search opens one.
-       * Disposal is the only thing this does not recover from.
+       * Re-openable while the session lives: a stop that went unanswered
+       * leaves no Worker, and the next search opens one. Disposal is the
+       * only thing this does not recover from.
        */
       function* getOrOpenWorker(): Operation<EngineEvaluator> {
         assertNotDisposed();
@@ -190,8 +178,8 @@ export function createEngine(deps: EngineDeps): Engine {
         return unbox(yield* ready.operation);
       }
 
-      /** Returns only once the Worker is genuinely idle again, answered
-       * or killed — which is what lets the next search speak. */
+      /** Returns only once the Worker is idle again, answered or killed,
+       * which is what lets the next search speak. */
       function* stopSearch(search: Search): Operation<void> {
         const running = search.searchTask;
         if (!running) return;
@@ -209,14 +197,12 @@ export function createEngine(deps: EngineDeps): Engine {
         ]);
         if (answered) return;
 
-        // Infra leaves a halted session marked as searching, for its
-        // owner to discard — which is what happens next.
+        // Infra leaves a halted session marked as searching, for its owner
+        // to discard.
         yield* running.halt();
         yield* closeWorker();
       }
 
-      /** A search the caller left running has to be handed back before
-       * the next one may speak. */
       function* releaseSearch(
         search: Search,
         previousSearch: Search | null,
@@ -225,17 +211,17 @@ export function createEngine(deps: EngineDeps): Engine {
           yield* stopSearch(search);
           return;
         }
-        // Not running, so it holds nothing — but the next search still
-        // waits on this link, so it releases once its predecessor has.
+        // Holds nothing, but the next search waits on this link, so it
+        // releases once its predecessor has.
         if (previousSearch) yield* previousSearch.released.operation;
         search.released.resolve();
       }
 
       /**
        * Runs in the session's scope, not the caller's, so a caller that
-       * walks away cannot leave the engine mid-search with nobody to
-       * drain it. The outcome travels as a value because a failing task
-       * raises on the scope that owns it, tearing the session down.
+       * walks away cannot leave the engine mid-search with nobody to drain
+       * it. The outcome travels as a value because a failing task raises on
+       * the scope that owns it, tearing the session down.
        */
       function* executeSearch(
         evaluator: EngineEvaluator,
@@ -243,13 +229,12 @@ export function createEngine(deps: EngineDeps): Engine {
         fen: string,
         onUpdate?: OnEngineUpdate,
       ): Operation<CompletedSearch> {
-        // Superseded while the Worker opened: nobody is waiting for it.
         if (isSuperseded(search)) throw new SearchSuperseded();
 
         const task = scope.run(function* (): Operation<Result<CompletedSearch>> {
           try {
-            // The search runs to its own end here, so a line it produces
-            // after being replaced must not read as the current one's.
+            // The search runs to its own end, so a line it produces after
+            // being replaced must not reach the caller.
             return Ok(
               yield* evaluator.evaluate(fen, (update) => {
                 if (!isSuperseded(search)) onUpdate?.(update);
@@ -268,8 +253,8 @@ export function createEngine(deps: EngineDeps): Engine {
         try {
           settled = yield* task;
         } catch {
-          // Unwinding never enters a `catch`, so a raise here is a halt:
-          // the Worker was closed under the search, or the session went.
+          // Unwinding never enters a `catch`, so a raise is a halt: the
+          // Worker was closed under the search, or the session went.
           throw disposed ? new EngineSessionDisposed() : new SearchSuperseded();
         }
         if (isSuperseded(search)) throw new SearchSuperseded();
@@ -277,8 +262,7 @@ export function createEngine(deps: EngineDeps): Engine {
         try {
           return unbox(settled);
         } catch (error) {
-          // Infra already retried on a fresh session: this Worker is not
-          // worth keeping.
+          // Infra already retried on a fresh session.
           yield* closeWorker();
           throw error;
         }
@@ -308,9 +292,8 @@ export function createEngine(deps: EngineDeps): Engine {
           disposed = true;
           workerSlot = IDLE;
           latestSearch = null;
-          // Unwinding the scope halts whatever was running, an open in
-          // flight included, and quits the engine before the Worker is
-          // terminated.
+          // Unwinding halts whatever was running, an open in flight
+          // included, and quits the engine before the Worker is terminated.
           yield* destroy();
         },
       };

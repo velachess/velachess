@@ -1,9 +1,8 @@
 /**
- * [UI/layout] The mobile bottom tab bar — `NavDock`'s horizontal sibling,
- * shown through `AppFrame`'s `navFallback` slot below the rail breakpoint.
- * Touch has no hover, so the label sits under the icon instead of in a
- * tooltip; otherwise it takes the same data-in, router-free shape as
- * `NavDock` so a caller builds both from one `items` array.
+ * `NavDock`'s horizontal sibling, shown through `AppFrame`'s `navFallback`
+ * slot below the rail breakpoint. Touch has no hover, so the label sits
+ * under the icon rather than in a tooltip; otherwise it takes the same
+ * router-free shape, so a caller builds both from one `items` array.
  *
  * Each item gets an equal-width slot (`flex-1`) that is the full tap
  * target; the selected pill inside it is a fixed box, sized the same for
@@ -19,23 +18,19 @@ import type * as React from "react";
 import { cn } from "../lib/utils.ts";
 import type { NavDockItem } from "./nav-dock.tsx";
 
-/** Generic over the caller's item so ids keep their union, not `string`. */
+/** Generic over the caller's item, so ids keep their union. */
 export interface NavBarProps<TItem extends NavDockItem> {
   items: TItem[];
-  /**
-   * `| undefined` on purpose: "no item is active" is a real state, and
-   * `exactOptionalPropertyTypes` separates omitted from passed-undefined.
-   */
+  /** `| undefined` because no active item is a real state, which
+   * `exactOptionalPropertyTypes` tells apart from omitted. */
   activeId?: TItem["id"] | undefined;
-  /** The app decides what a link is — `<Link>`, `<a>`, a button. Give it
-   * `className="contents"` so the slot below, not the link, is what
-   * `nav`'s flexbox sizes. */
+  /** Give the returned element `className="contents"`, so the slot below
+   * rather than the link is what `nav`'s flexbox sizes. */
   renderItem: (item: TItem, content: React.ReactNode) => React.ReactNode;
-  /** Accessible name for the landmark — the app owns its words. */
+  /** Accessible name for the landmark. */
   label?: string;
-  /** Optional control trailing the items — the account menu, in apps
-   * that have one. Separate from `items` because it is not navigation:
-   * it never takes part in `activeId`. */
+  /** Separate from `items` because it is not navigation: it never takes
+   * part in `activeId`. */
   footer?: React.ReactNode;
   className?: string;
 }

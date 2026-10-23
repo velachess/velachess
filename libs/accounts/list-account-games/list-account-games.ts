@@ -1,7 +1,4 @@
-/**
- * ListAccountGames — one tracked handle's games, the read model the
- * account screen renders.
- */
+/** One tracked handle's games, as the account screen renders them. */
 import type { TrackedAccount } from "@velachess/infra-db";
 
 type GetTrackedAccountForUser = (
@@ -27,10 +24,9 @@ export interface ListAccountGamesDeps {
 }
 
 /**
- * Scoped by owner: someone else's account id and a missing one are the
- * same null, so a caller never confirms which uuids exist. The join and
- * its ordering live in `@velachess/infra-db`'s
- * `listGamesWithStatusForAccount`; this slice only enforces ownership.
+ * Someone else's account id and a missing one are the same null, so a
+ * caller never confirms which uuids exist. The join and its ordering are
+ * `listGamesWithStatusForAccount`'s; this slice enforces ownership.
  */
 export async function listGamesWithStatus(
   deps: ListAccountGamesDeps,

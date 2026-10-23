@@ -6,26 +6,21 @@ import type { ReadAvatarDeps, RemoveAvatarDeps, SetAvatarDeps } from "@velachess
 import type { ApiEnv } from "../server.ts";
 import { defaultHook, errorResponseSchema } from "../validation.ts";
 
-/** `@velachess/user`'s `SetAvatarOutcome.reason` vocabulary — local to this
- * file, the only one that branches on it. */
 const AVATAR_REJECTION = {
   UNSUPPORTED_FORMAT: "unsupported-format",
   TOO_LARGE: "too-large",
 } as const;
 
 /**
- * Base64 inflates by four bytes per three, so the wire ceiling is derived
- * from the byte ceiling rather than guessed. It is the cheap outer guard:
- * `AVATAR_MAX_BYTES` is the one that speaks about the image, and the
- * global `bodyLimit` in server.ts is the one that speaks about the
- * request.
+ * Derived from the byte ceiling, since base64 inflates by four bytes per
+ * three. The cheap outer guard: `AVATAR_MAX_BYTES` speaks about the image
+ * and server.ts's `bodyLimit` about the request.
  */
 const MAX_AVATAR_BASE64_CHARS = Math.ceil((AVATAR_MAX_BYTES * 4) / 3) + 4;
 
 const setAvatarSchema = z.object({
-  /** Raw base64, no `data:` prefix — the client strips it. Rejecting the
-   * prefix here beats decoding it and finding out the bytes are the ASCII
-   * of a MIME type. */
+  /** Raw base64: rejecting a `data:` prefix here beats decoding it and
+   * finding the bytes are the ASCII of a MIME type. */
   image: z
     .string()
     .min(1)
@@ -34,8 +29,7 @@ const setAvatarSchema = z.object({
 });
 
 const avatarSchema = z.object({
-  /** The stored, cache-busted URL. The browser renders it straight from
-   * the session, so it is the only thing worth returning. */
+  /** The cache-busted URL the browser renders from the session. */
   image: z.string(),
 });
 
@@ -89,10 +83,8 @@ const getAvatarRoute = createRoute({
     }),
   },
   responses: {
-    // Not a Zod/JSON response — binary bodies are plain literal schemas,
-    // the same escape hatch the SSE route in games.ts uses. A Zod schema
-    // here makes `c.body` reject a Uint8Array, since the typed helper
-    // narrows to what the schema describes.
+    // A literal schema, not Zod: the typed helper narrows `c.body` to what
+    // the schema describes, which rejects a Uint8Array.
     200: {
       description: "The image, typed from its own bytes",
       content: {

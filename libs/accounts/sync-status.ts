@@ -1,28 +1,14 @@
 /**
- * Which sync-job statuses mean a sync is still on its way.
- *
- * A module-root pure policy: no DB, queue or provider dependency of its
- * own, so the slices import it directly rather than declaring it three
- * times. `get-sync`, `request-sync` and `list-accounts` each had their own
- * copy of this list. `apps/web` keeps its own, over its own vocabulary: a
- * job settles on `succeeded`/`failed` while an account's `syncStatus`
- * collapses both into `idle`, and the frontend must not import a backend
- * module to learn that the active sets happen to coincide.
- *
- * The SQL predicate in `libs/infra/db/queries/sync-jobs.ts` is the one
- * expression of this rule that cannot call it — a predicate runs inside
- * Postgres, and infra may not import a business module. It is held to this
- * list by that package's `sync-jobs.test.ts`, not by shared code; same
- * arrangement `libs/chess/game-result.ts` documents for its own SQL
- * counterpart.
+ * `apps/web` keeps its own copy over its own vocabulary, where a settled
+ * job collapses into `idle`, because the frontend may not import a backend
+ * module. The SQL predicate in `libs/infra/db/queries/sync-jobs.ts` cannot
+ * call this one either, and is held to the list by that package's
+ * `sync-jobs.test.ts`.
  */
 
 /** The job lifecycle, as `sync_job_status` stores it. */
 export type SyncJobStatus = "queued" | "running" | "retrying" | "succeeded" | "failed";
 
-/** Private to this policy: callers ask the predicate below, which keeps
- * the narrowing an `includes` would throw away. Exporting the list too
- * would be a second way to answer one question. */
 const ACTIVE_SYNC_STATUSES = [
   "queued",
   "running",
@@ -32,9 +18,8 @@ const ACTIVE_SYNC_STATUSES = [
 type ActiveSyncStatus = (typeof ACTIVE_SYNC_STATUSES)[number];
 
 /**
- * A type predicate, not a bare `includes`: callers branch on the answer
- * and then use the status itself, so the narrowing has to survive. `null`
- * — an account whose newest job is gone — is not active.
+ * A type predicate rather than a bare `includes`, because callers use the
+ * status after branching on it. A missing newest job is not active.
  */
 export function isActiveSyncStatus(
   status: SyncJobStatus | null | undefined,
@@ -43,11 +28,9 @@ export function isActiveSyncStatus(
 }
 
 /**
- * The settled-sync SSE event names: `apps/server` emits them on
- * `GET /syncs/events`, `apps/web` matches on them to know when to refetch.
- * One declaration so a rename cannot compile on one side while silently
- * breaking the other — both apps reach it through this module's `index.ts`,
- * never through each other (`no-cross-app-runtime-imports`).
+ * `apps/server` emits these on `GET /syncs/events` and `apps/web` matches
+ * them. One declaration, so a rename cannot compile on one side and break
+ * the other.
  */
 export const SYNC_SETTLED_EVENTS = {
   completed: "sync.completed",

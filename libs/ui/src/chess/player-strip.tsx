@@ -10,16 +10,12 @@ const INITIALS_MAX = 2;
 const WHITESPACE = /\s+/;
 const FIRST_LETTER = 1;
 
-/**
- * Code points, not code units. Chess usernames carry emoji often enough
- * that `"🐴rider".slice(0, 2)` matters — it cuts a surrogate pair in half
- * and renders as a replacement character.
- */
+/** Code points, not code units: `"🐴rider".slice(0, 2)` cuts a surrogate
+ * pair in half and renders as a replacement character. */
 function firstCharacters(text: string, count: number): string {
   return [...text].slice(0, count).join("");
 }
 
-/** "Yuri Mutti" → "YM" — one letter from each of the first two words. */
 function initialsFromWords(words: string[]): string {
   return words
     .slice(0, INITIALS_MAX)
@@ -27,17 +23,12 @@ function initialsFromWords(words: string[]): string {
     .join("");
 }
 
-/** "kalipere" → "KA" — a single word has no second word to borrow from. */
 function initialsFromOneWord(word: string): string {
   return firstCharacters(word, INITIALS_MAX);
 }
 
-/**
- * The two or so letters that stand in for a missing avatar.
- *
- * Two rules, not one: a name with parts is an acronym of them, and a
- * single word — which most chess usernames are — is its own opening.
- */
+/** A name with parts becomes an acronym; a single word — which most
+ * chess usernames are — its own opening. */
 export function initialsOf(name: string): string {
   const words = name.trim().split(WHITESPACE).filter(Boolean);
   if (words.length === 0) return "";
@@ -51,9 +42,9 @@ export function initialsOf(name: string): string {
 }
 
 /**
- * `flag-icons` names its classes after the lowercase ISO 3166-1 alpha-2
- * code, and ships `xx` for "no flag" — so an unrecognised code lands on a
- * blank rather than on a missing background and a broken box.
+ * `flag-icons` classes are the lowercase ISO 3166-1 alpha-2 code, and
+ * `xx` is its "no flag" — so an unrecognised code lands on a blank
+ * rather than a broken box.
  */
 const FLAG_UNKNOWN = "xx";
 const ISO_ALPHA2 = /^[A-Za-z]{2}$/;

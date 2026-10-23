@@ -1,11 +1,6 @@
 /**
- * Composition root for the accounts module: adapts the DB client, queues,
- * and fetch-override fixture every route already carries into the narrow
- * readers/writers each accounts route's slice declared. Routes never see
- * a Database or SyncQueue value directly.
- *
- * The worker builds `syncAccount`'s deps on its own
- * (`apps/worker/src/composition/accounts.ts`) — apps never share a
+ * Routes never see a `Database` or `SyncQueue` value directly, and the
+ * worker builds `syncAccount`'s deps on its own: apps never share a
  * composition helper.
  */
 import {
@@ -69,8 +64,8 @@ export function buildRequestSyncDeps(
   };
 }
 
-/** Fans out to the same `requestSync` the per-account route calls — one
- * cooldown/single-flight implementation, reused rather than duplicated. */
+/** The same `requestSync` the per-account route calls, so there is one
+ * cooldown implementation. */
 export function buildSyncAllAccountsDeps(
   db: Database,
   syncQueue: SyncQueue,
@@ -91,8 +86,8 @@ export function buildGetSyncDeps(db: Database, syncQueue: SyncQueue): GetSyncDep
   };
 }
 
-/** The one LISTEN the process holds, and the unscoped row read the slice
- * checks ownership against — the signal itself is never trusted. */
+/** The process's one LISTEN, and the unscoped row read the slice checks
+ * ownership against: the signal is never trusted. */
 export function buildWatchSyncsDeps(
   db: Database,
   notifications: SyncNotifications,

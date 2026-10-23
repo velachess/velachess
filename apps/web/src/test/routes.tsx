@@ -23,18 +23,17 @@ import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
 /**
- * The app's routes, by hand: `routeTree.gen.ts` is generated and
- * gitignored, so a test cannot import the real tree without a build.
- * This mirrors it where it counts — the ids (`getRouteApi` looks routes
- * up by id), the `_app` session guard (worth exercising, not stubbing —
- * it is the wall the whole app stands behind), `/login` outside it, and
- * the search schema, imported rather than restated.
+ * `routeTree.gen.ts` is generated and gitignored, so a test cannot import
+ * the real tree without a build. This mirrors it where it counts: the ids
+ * `getRouteApi` looks routes up by, the `_app` session guard the whole app
+ * stands behind, `/login` outside it, and the search schema, imported
+ * rather than restated.
  *
  * The app shell is included because global UX, like the backend outage
  * banner, lives in the layout rather than in a slice.
  */
-// Same context the app's root declares: the guards below resolve the
-// session through this client, exactly as `_app` does in production.
+// The guards below resolve the session through this client, as `_app`
+// does.
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClientType }>()();
 
 const appRoute = createRoute({
@@ -55,7 +54,7 @@ const appRoute = createRoute({
 
 function TestAppLayout() {
   const queryClient = useQueryClient();
-  // Mirrors `routes/_app.tsx`: the sync stream belongs to the wall.
+  // Like `routes/_app.tsx`: the sync stream belongs to the wall.
   useEffect(() => startSyncEvents(queryClient), [queryClient]);
 
   return (
@@ -66,10 +65,9 @@ function TestAppLayout() {
   );
 }
 
-// A real layout, not the flat `games_.$gameId` sibling trick the generated
-// tree used before nesting was needed: `useBreadcrumbTrail` reads this
-// route's `staticData` off an ancestor match, which only exists when
-// `/games/$gameId` genuinely nests under `/games`.
+// A real layout, because `useBreadcrumbTrail` reads this route's
+// `staticData` off an ancestor match, which exists only when
+// `/games/$gameId` nests under `/games`.
 const gamesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/games",
@@ -95,8 +93,8 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
-  // Mirrors `routes/_app/games/$gameId.tsx`: opening a game is what
-  // starts its analysis, and that is the route's, not the screen's.
+  // Like `routes/_app/games/$gameId.tsx`: opening a game starts its
+  // analysis, and that is the route's job.
   loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
   component: GameReview,
 });
@@ -107,9 +105,9 @@ const importRoute = createRoute({
   component: ConnectAccount,
 });
 
-// Nested for real, like /games: the account screen is
-// reached from the shell's user menu, so the link has to resolve against
-// the same tree the menu renders inside.
+// Nested for real, like /games: the account screen is reached from the
+// shell's user menu, so the link resolves against the tree the menu renders
+// inside.
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/settings",
@@ -160,15 +158,15 @@ const gameplayRoute = createRoute({
   component: GameplayScreen,
 });
 
-// Public, and the mirror image of the guard above: already signed in
-// means there is nothing to do here.
+// Public, and the mirror of the guard above: already signed in means there
+// is nothing to do here.
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search["redirect"] === "string" ? search["redirect"] : undefined,
-    // Mirrors the real route: an OAuth failure comes back on the address
-    // bar, and the screen renders a message rather than the raw code.
+    // Like the real route: an OAuth failure comes back on the address bar,
+    // and the screen renders a message rather than the code.
     error: typeof search["error"] === "string" ? search["error"] : undefined,
   }),
   beforeLoad: async ({ context, search }) => {

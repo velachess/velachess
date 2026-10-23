@@ -1,19 +1,14 @@
 /**
- * Opening-name resolution from PGN metadata. Chess.com encodes the name
- * inside the ECOUrl slug instead of an [Opening] header — the URL is the
- * fallback name source. Lichess and manual PGNs carry an [Opening] header
- * directly. This module unifies both into a single resolution.
- *
- * This is provider-specific URL parsing, not chess-domain logic. The
- * resolved name is persisted during normalization; consumers work
- * with the canonical `openingName` field.
+ * Chess.com encodes the name in the ECOUrl slug instead of an [Opening]
+ * header, which Lichess and manual PGNs carry. Provider-specific URL
+ * parsing, not chess-domain logic: the resolved name is persisted during
+ * normalization.
  */
 
 /**
- * chess.com encodes the name in the ECOUrl slug:
  *   .../openings/Closed-Sicilian-Defense-Grand-Prix-Attack-3...g6-4.Bc4
- * → "Closed Sicilian Defense Grand Prix Attack". Move-like tokens (start
- * with a digit or an ellipsis) end the human-readable part.
+ * becomes "Closed Sicilian Defense Grand Prix Attack": a move-like token,
+ * starting with a digit or an ellipsis, ends the readable part.
  */
 export function openingNameFrom(source: {
   name?: string | null | undefined;

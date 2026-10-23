@@ -1,8 +1,7 @@
 /**
- * Player profiles — the picture and flag beside a name. Separate from
- * game providers since profiles change rarely and games every session;
- * fetching both on one cadence would waste a request per sync. Both
- * endpoints are public/unauthenticated; shapes read off real responses.
+ * Separate from the game providers because profiles change rarely and games
+ * every session, so one cadence would waste a request per sync. Both
+ * endpoints are public, and the shapes are read off real responses.
  */
 
 import { z } from "zod";
@@ -14,24 +13,19 @@ const USER_AGENT = "velachess-ingest (+https://github.com/yurimutti/velachess)";
 const HEADERS = { Accept: "application/json", "User-Agent": USER_AGENT };
 
 export interface PlayerProfile {
-  /** Absent on Lichess, which has no avatars at all, and on Chess.com
-   * accounts that never uploaded one. */
+  /** Absent on Lichess, which has no avatars, and on Chess.com accounts
+   * that never uploaded one. */
   avatarUrl: string | null;
-  /** Lichess only — a flair id like `people.santa-claus-light-skin-tone`,
-   * rendered from Lichess's own asset set, not an image URL. Kept apart
-   * from the avatar on purpose: it decorates the name, it does not stand
-   * in for a face. Null on Chess.com, which has no flair concept. */
+  /** Lichess only: a flair id like `people.santa-claus-light-skin-tone`,
+   * rendered from Lichess's asset set rather than an image URL. */
   flair: string | null;
   /** ISO 3166-1 alpha-2, uppercase. Null when undeclared. */
   countryCode: string | null;
 }
 
 /**
- * The two outcomes a provider read can have, kept apart on purpose:
- * `failed` means no profile came back and whatever is cached must stand —
- * `not-found` when the handle does not exist, `unavailable` when we learned
- * nothing (outage, timeout, unrecognizable payload); `fetched` is an
- * answer, even when that answer carries no avatar — profiles do get removed.
+ * `failed` means whatever is cached must stand; `fetched` is an answer even
+ * when it carries no avatar, because profiles do get removed.
  */
 export type ProfileFetch =
   | { status: "fetched"; profile: PlayerProfile }
@@ -39,8 +33,8 @@ export type ProfileFetch =
 
 const UNAVAILABLE = { status: "failed", reason: "unavailable" } as const;
 
-/** Chess.com's `country` field is a link like `.../pub/country/BR` — the
- * last path segment is already the code, no need to resolve the link. */
+/** Chess.com's `country` is a link like `.../pub/country/BR`, whose last
+ * segment is already the code. */
 const ISO_ALPHA2 = /^[A-Za-z]{2}$/;
 
 export function countryCodeFromUrl(url: string | undefined): string | null {
@@ -49,32 +43,28 @@ export function countryCodeFromUrl(url: string | undefined): string | null {
 }
 
 /**
- * Note what is *not* read here: `location`. It is free text and it is not
- * the flag — a real account answers `country: ".../BR"` alongside
- * `location: "Spain"`. Reading `location` would fly the wrong flag.
+ * `location` is deliberately unread: it is free text, and a real account
+ * answers `country: ".../BR"` alongside `location: "Spain"`.
  */
 const chessComProfileSchema = z.object({
   avatar: z.string().optional(),
   country: z.string().optional(),
 });
 
-/** Lichess omits `profile` until the person fills it, hence `.optional()`.
- * `flair` sits at the top level and is equally optional. No avatar field
- * exists on this endpoint for any account. */
+/** Lichess omits `profile` until the person fills it, and the endpoint
+ * carries no avatar field for any account. */
 const lichessProfileSchema = z.object({
   flair: z.string().optional(),
   profile: z.object({ flag: z.string().optional() }).optional(),
 });
 
-/** A profile is decoration around a name; a provider that accepts the
- * request but never answers must not hold a game open (or a connection
- * hostage). Five seconds covers every real provider and routes a hung
- * socket into the same empty-profile path as any other failure. */
+/** A provider that accepts the request but never answers must not hold a
+ * game open; a hung socket routes into the same empty-profile path as any
+ * other failure. */
 const FETCH_TIMEOUT_MS = 5000;
 
-/** A failure on any error — non-ok status, network error, timeout, bad
- * JSON — never a definitive empty profile. Only a 404 says the handle does
- * not exist; everything else says we learned nothing. */
+/** Any error is a failure rather than a definitive empty profile. Only a
+ * 404 says the handle does not exist. */
 async function fetchJson(
   url: string,
   doFetch: FetchFn,
@@ -84,8 +74,6 @@ async function fetchJson(
       headers: HEADERS,
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
-    // A profile is decoration around a name. A missing or broken one leaves
-    // the initials in place; it must never fail a game from loading.
     if (res.status === 404) return { status: "failed", reason: "not-found" };
     if (!res.ok) return UNAVAILABLE;
     return { body: await res.json() };
@@ -108,8 +96,8 @@ export async function fetchChessComProfile(
   );
   if (!("body" in fetched)) return fetched;
   const parsed = chessComProfileSchema.safeParse(fetched.body);
-  // A shape we do not recognize is not a trustworthy "no avatar" — treat
-  // it like a failed ask rather than an answer that clears anything.
+  // An unrecognized shape is not a trustworthy "no avatar": a failed ask
+  // clears nothing.
   if (!parsed.success) return UNAVAILABLE;
 
   return {
@@ -132,8 +120,6 @@ export async function fetchLichessProfile(
 
   const fetched = await fetchJson(`https://lichess.org/api/user/${username}`, doFetch);
   if (!("body" in fetched)) return fetched;
-  // Same rule as chess.com above: an unrecognized payload must not be
-  // read as a definitive empty profile.
   const parsed = lichessProfileSchema.safeParse(fetched.body);
   if (!parsed.success) return UNAVAILABLE;
 
@@ -141,8 +127,6 @@ export async function fetchLichessProfile(
   return {
     status: "fetched",
     profile: {
-      // Lichess has no profile pictures. Not "we don't read it yet" — the
-      // endpoint carries no image field for any account.
       avatarUrl: null,
       flair: parsed.data.flair ?? null,
       countryCode: ISO_ALPHA2.test(flag ?? "") ? flag!.toUpperCase() : null,

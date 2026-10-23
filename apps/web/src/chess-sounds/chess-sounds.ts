@@ -27,8 +27,7 @@ export type ChessSoundEvent =
       type: typeof CHESS_SOUND_EVENT.MOVE;
       fenBefore: string;
       san: string;
-      /** Whose seat is watching. Omitted where there is no "opponent" —
-       * there is no opponent to tell apart. */
+      /** Omitted where there is no opponent to tell apart. */
       viewerColor?: Color | undefined;
     }
   | { type: typeof CHESS_SOUND_EVENT.GAME_START }
@@ -75,8 +74,7 @@ export function soundForEvent(event: ChessSoundEvent): ChessSound | null {
 
     position.play(move);
 
-    // Checkmate is not its own category — there's no dedicated asset for
-    // it, and it is always also a check (often also a capture), so it
+    // Checkmate has no asset of its own, and is always also a check, so it
     // falls out of the same priority as any other move.
     if (isPromotion) return CHESS_SOUND.PROMOTION;
     if (isCastle) return CHESS_SOUND.CASTLE;
@@ -100,8 +98,8 @@ function playAsset(sound: ChessSound): void | Promise<void> {
   if (!audio) {
     audio = new Audio();
     audio.preload = "auto";
-    // Safari has no ogg/vorbis decoder — asked once per sound, on the
-    // element that will actually play it, rather than a throwaway probe.
+    // Safari has no ogg/vorbis decoder. Asked once per sound, on the element
+    // that will play it.
     const ext = audio.canPlayType("audio/ogg; codecs=vorbis") ? "ogg" : "mp3";
     audio.src = `/sounds/chess/${ext}/${sound}.${ext}`;
     audioBySound.set(sound, audio);
@@ -112,7 +110,7 @@ function playAsset(sound: ChessSound): void | Promise<void> {
 
 export type SoundOutput = (sound: ChessSound) => void | Promise<void>;
 
-/** Audio is fire-and-forget because playback failure must not affect chess. */
+/** Fire-and-forget: a playback failure must not affect chess. */
 export function dispatchChessSound(
   event: ChessSoundEvent,
   muted: boolean,
@@ -130,10 +128,9 @@ export function dispatchChessSound(
 }
 
 /**
- * Play one event's sound. A plain function rather than a hook: the mute
- * preference is read when a sound is played, so nothing that only wants
- * to play one has to re-render when the preference changes, and a
- * long-lived callback cannot capture a stale one.
+ * A plain function rather than a hook: the preference is read when a sound
+ * plays, so nothing re-renders when it changes and no long-lived callback
+ * captures a stale one.
  */
 export function playChessSound(event: ChessSoundEvent): void {
   dispatchChessSound(event, useSoundPreferences.getState().muted);

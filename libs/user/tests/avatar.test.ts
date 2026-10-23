@@ -10,11 +10,10 @@ import {
 } from "../avatar.ts";
 
 /**
- * Drift guard: `users.avatar_source` is free `text` with no DB constraint,
- * and `libs/infra/db` declares its own copy of the two-value domain
- * because infra may not import a business module. The two stay mutually
- * assignable, checked at typecheck from this side — the module that owns
- * the concept and already depends on infra.
+ * `users.avatar_source` is free `text` with no DB constraint, and
+ * `libs/infra/db` declares its own copy of the domain because infra may not
+ * import a business module. The two stay mutually assignable, checked from
+ * this side, which owns the concept and depends on infra.
  */
 const toStoredAvatarSource: StoredAvatarSource = {} as AvatarSource;
 const fromStoredAvatarSource: AvatarSource = {} as StoredAvatarSource;
@@ -33,8 +32,8 @@ describe("sniffAvatarMediaType", () => {
     expect(sniffAvatarMediaType(png())).toBe("image/png");
   });
 
-  /** The reason this function exists: a caller claiming `image/png` over
-   * markup must get no avatar, whatever the Content-Type said. */
+  /** A caller claiming `image/png` over markup gets no avatar, whatever the
+   * Content-Type said. */
   it("refuses markup that a Content-Type could dress up as an image", () => {
     const svg = new TextEncoder().encode('<svg onload="alert(1)"/>');
     const html = new TextEncoder().encode("<!doctype html><script>");
@@ -43,8 +42,8 @@ describe("sniffAvatarMediaType", () => {
     expect(sniffAvatarMediaType(html)).toBeNull();
   });
 
-  /** "RIFF" alone is a container, not a format — a WAV file starts the
-   * same way, so the form type at byte 8 has to match too. */
+  /** "RIFF" is a container, and a WAV file starts the same way, so the form
+   * type at byte 8 has to match too. */
   it("refuses a RIFF container that is not WEBP", () => {
     const wav = new Uint8Array([
       0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45,
@@ -65,7 +64,7 @@ describe("sniffAvatarMediaType", () => {
 
 describe("addressing", () => {
   /** One key per user, so replacing an avatar overwrites rather than
-   * leaving an object nobody will collect. */
+   * leaving an orphan. */
   it("derives one fixed key per user", () => {
     expect(avatarStorageKey("d3b07384-d9a0-4c9b-8f4e-000000000001")).toBe(
       "avatars/d3b07384-d9a0-4c9b-8f4e-000000000001.webp",
@@ -81,8 +80,8 @@ describe("addressing", () => {
 });
 
 describe("the size ceiling", () => {
-  /** Base64 inflates by a third, so the ceiling has to leave room under
-   * the API's 256 KB body limit rather than sit at it. */
+  /** Base64 inflates by a third, so the ceiling leaves room under the API's
+   * 256 KB body limit rather than sitting at it. */
   it("leaves room for base64 under a 256 KB body limit", () => {
     expect(Math.ceil((AVATAR_MAX_BYTES * 4) / 3)).toBeLessThan(256 * 1024);
   });

@@ -1,9 +1,7 @@
 /**
- * The one place that turns a raw PGN string into a NormalizedGame, no
- * matter which provider produced it. Every provider hands this the same
- * two things — the PGN text, and what it already knows about origin (which
- * it must supply itself: a PGN's own [Site] tag means something different
- * on each platform, see providers/chess-com.ts and providers/lichess.ts).
+ * Every provider hands this the PGN text and what it knows about origin,
+ * which it must supply itself: a PGN's own [Site] tag means something
+ * different on each platform.
  */
 
 import { emptyHeaders, isPlayableGame, parsePgn, replayMainline } from "@velachess/chess";
@@ -22,7 +20,7 @@ export interface NormalizeMeta {
 
 const CLOCK_ANNOTATION = /\[%clk/;
 
-/** Chess.com: "180" or "180+2". Lichess: "600+0". Same shape on both, verified live. */
+/** "180" or "180+2" on Chess.com, "600+0" on Lichess: one shape. */
 function parseTimeControl(raw: string | undefined): {
   initialSeconds?: number;
   incrementSeconds?: number;
@@ -70,14 +68,12 @@ export function normalizeGame(
     };
   }
 
-  // chessops always returns at least one Game, even for non-PGN text — with
-  // an empty headers map and an empty mainline. That, not an empty array,
-  // is the real "nothing here" signal.
+  // chessops returns at least one Game even for non-PGN text, with empty
+  // headers and an empty mainline, which is the "nothing here" signal.
   const game = games[0];
-  // `isPlayableGame` is the one statement of what counts as a game, and it
-  // needs the replay — so the movetext is interpreted here, once, rather
-  // than again through `hasPlayableGame`. A game that goes illegal part-way
-  // is kept: the legal prefix is what gets shown and analysed.
+  // `isPlayableGame` needs the replay, so the movetext is interpreted here
+  // once rather than again through `hasPlayableGame`. A game that goes
+  // illegal part-way is kept, its legal prefix being what gets shown.
   const replay = game && replayMainline(game);
   if (!game || !replay?.isOk || !isPlayableGame(game.headers, replay.value)) {
     return {
@@ -90,9 +86,8 @@ export function normalizeGame(
   }
 
   const headers = game.headers;
-  // A PGN from the wild can carry anything in [Result]. The schema that
-  // defines the column's domain decides, so there is no second list to
-  // keep in step — and "*" (unknown) is the honest fallback.
+  // A PGN from the wild carries anything in [Result], so the schema that
+  // defines the column's domain decides and "*" is the fallback.
   const parsedResult = resultSchema.safeParse(headers.get("Result"));
   const result = parsedResult.success ? parsedResult.data : "*";
 

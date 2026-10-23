@@ -1,9 +1,7 @@
 /**
- * Lichess's game-export API — public, no auth required (OAuth only raises
- * the rate-limit tier). Requests raw PGN directly (`Accept:
- * application/x-chess-pgn`) rather than NDJSON: verified live that this
- * returns clean multi-tag PGN text, so this provider reuses the exact same
- * split + normalize path as chess-com.ts and pgn.ts instead of parsing JSON.
+ * Lichess's game-export API is public, OAuth only raising the rate-limit
+ * tier. It asks for raw PGN rather than NDJSON, so this provider reuses the
+ * same split and normalize path as chess-com.ts and pgn.ts.
  */
 
 import { z } from "zod";
@@ -14,12 +12,12 @@ import { splitPgnGames } from "../split.ts";
 import type { FetchFn, SyncFailure, SyncResult } from "../schema.ts";
 
 /**
- * Where to resume this account's export. A schema, not a bare interface,
- * for the same reason as `chessComCursorSchema`: one `jsonb` column holds
- * both shapes and only the reader can tell them apart.
+ * A schema rather than an interface for the same reason as
+ * `chessComCursorSchema`: one `jsonb` column holds both shapes and only the
+ * reader tells them apart.
  */
 export const lichessCursorSchema = z.object({
-  /** Epoch millis of the newest game already seen, plus one. */
+  /** Epoch millis of the newest game seen, plus one. */
   sinceMs: z.number(),
 });
 export type LichessCursor = z.infer<typeof lichessCursorSchema>;

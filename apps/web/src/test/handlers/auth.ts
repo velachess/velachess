@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 
-/** Shapes copied from real cURL responses, not invented. Cookies aren't simulated in jsdom; `sessionActive()`/`sessionInactive()` set state directly instead. */
+/** Shapes copied from real responses. jsdom simulates no cookies, so
+ * `sessionActive()`/`sessionInactive()` set the state directly. */
 
 const BASE = "/api/auth";
 
@@ -8,11 +9,10 @@ export interface TestSessionUser {
   id: string;
   email: string;
   name: string;
-  /** Absent by default on purpose: a password account has no picture, so
-   * the avatar's initials fallback is the path most of the suite runs. */
+  /** Absent by default, so most of the suite runs the initials
+   * fallback. */
   image?: string | null;
-  /** Absent by default too: most of the suite is somebody mid-first-run,
-   * which is what makes the onboarding tests the ones that set it. */
+  /** Absent by default: most of the suite is somebody mid-first-run. */
   onboardedAt?: string | null;
 }
 
@@ -22,17 +22,12 @@ export const TEST_USER: TestSessionUser = {
   name: "VelaChess User",
 };
 
-/**
- * What `GET /api/config` reports. Google is off by default for the same
- * reason the real server defaults it off — an instance without
- * credentials does not offer it — so a test that wants the button says
- * so, and every other test proves its absence.
- */
+/** Google off by default, like the real server, so a test that wants the
+ * button says so and every other one proves its absence. */
 let signInMethods = { password: true, google: false };
 
-/** Bumped per upload so a replacement produces a different URL, the way
- * the real cache buster does — a test asserting the image changed needs
- * the value to actually change. */
+/** Bumped per upload, like the real cache buster, so a replacement
+ * produces a different URL. */
 let avatarVersion = 1;
 
 export function signInMethodsAre(methods: {
@@ -42,7 +37,7 @@ export function signInMethodsAre(methods: {
   signInMethods = { ...signInMethods, ...methods };
 }
 
-/** Providers this account can sign in with, as `/list-accounts` reports. */
+/** As `/list-accounts` reports them. */
 let linkedProviders: string[] = ["credential"];
 
 export function linkedProvidersAre(providers: string[]): void {
@@ -56,8 +51,7 @@ type AuthScenario =
   | { kind: "signed-in"; user: TestSessionUser }
   | { kind: "unavailable" };
 
-// Signed in is the default the rest of the suite runs under — a games or
-// games test shouldn't have to log in first.
+// The default the rest of the suite runs under.
 let scenario: AuthScenario = { kind: "signed-in", user: TEST_USER };
 
 export function sessionActive(user: TestSessionUser = TEST_USER): TestSessionUser {
@@ -69,7 +63,7 @@ export function sessionInactive(): void {
   scenario = { kind: "signed-out" };
 }
 
-/** The session lookup itself fails: not "signed out", but "no answer". */
+/** The lookup itself fails: not signed out, but no answer. */
 export function sessionUnavailable(): void {
   scenario = { kind: "unavailable" };
 }
@@ -101,8 +95,7 @@ function sessionBody(user: TestSessionUser) {
 }
 
 export const authHandlers = [
-  // Not under BASE: this one is our API, not Better Auth's — the sign-in
-  // screen asks it what to render before there is anyone to authenticate.
+  // Not under BASE: this one is our API, not Better Auth's.
   http.get("/api/config", () => HttpResponse.json({ signInMethods })),
 
   http.get(`${BASE}/get-session`, () => {
@@ -110,7 +103,6 @@ export const authHandlers = [
       return HttpResponse.json({ message: "boom" }, { status: 500 });
     }
     if (scenario.kind === "signed-out") {
-      // What Better Auth answers with no cookie: 401, no body of note.
       return HttpResponse.json(null, { status: 401 });
     }
     return HttpResponse.json(sessionBody(scenario.user));
@@ -139,10 +131,9 @@ export const authHandlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // What Better Auth answers a social sign-in with: the provider's
-  // authorization URL, for the client to send the browser to. jsdom does
-  // not navigate, which is exactly why the assertion is on the request
-  // rather than on a redirect.
+  // Better Auth answers with the provider's authorization URL for the
+  // client to navigate to. jsdom does not navigate, which is why the
+  // assertions are on the request.
   http.post(`${BASE}/sign-in/social`, () =>
     HttpResponse.json({
       url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",
@@ -165,8 +156,8 @@ export const authHandlers = [
   http.post(`${BASE}/update-user`, async ({ request }) => {
     const body = (await request.json()) as { name?: string };
     if (scenario.kind === "signed-in" && body.name) {
-      // The session is where the app reads the name back from, so the
-      // fake server has to actually change it or the test proves nothing.
+      // The app reads the name back from the session, so this has to
+      // actually change it.
       scenario = { kind: "signed-in", user: { ...scenario.user, name: body.name } };
     }
     return HttpResponse.json({ status: true });
@@ -174,11 +165,10 @@ export const authHandlers = [
 
   /**
    * Avatar bytes go to our API, not Better Auth, but the URL lands on the
-   * same session — so these live beside the session handler that reads it.
+   * same session.
    *
-   * The body is checked rather than accepted: a payload that is not raw
-   * base64 is what the real route refuses, so refusing it here is what
-   * makes a screen test able to catch the client sending the wrong thing.
+   * The body is checked rather than accepted, like the real route, so a
+   * screen test catches the client sending the wrong thing.
    */
   http.post("/api/me/avatar", async ({ request }) => {
     const body = (await request.json()) as { image?: string };
@@ -200,8 +190,7 @@ export const authHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // Closed on the real server, closed here too — the frontend must never
-  // grow a path that depends on it existing.
+  // Closed on the real server too: no frontend path may depend on it.
   http.post(`${BASE}/sign-up/email`, () =>
     HttpResponse.json(
       {

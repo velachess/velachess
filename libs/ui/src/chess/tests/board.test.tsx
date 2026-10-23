@@ -1,16 +1,13 @@
 // @vitest-environment jsdom
 /**
- * The wrapper's job is translation: our props in, react-chessboard
- * `options` out. The mock captures the options object the library would
- * receive, so these assertions pin that contract — and the *absence* of
- * hand-rolled work, since notation, animation, arrows and the badge slot
- * are all options rather than overlays of our own.
+ * Our props in, react-chessboard `options` out. The mock captures the
+ * options the library would receive, pinning that contract and the absence
+ * of hand-rolled work.
  *
- * What the library then does with those options is not assertable here,
- * and asserting it here is what hid two bugs. Every rendered result lives
- * in `board-render.test.tsx`, against the real library. The one exception
- * is dragging: dnd-kit needs a pointer and a layout that jsdom does not
- * provide, so the drag and drop callbacks are driven through the mock.
+ * What the library does with them is not assertable here, and asserting it
+ * here hid two bugs: every rendered result lives in
+ * `board-render.test.tsx`. The exception is dragging, which needs a pointer
+ * and a layout jsdom lacks, so those callbacks are driven through the mock.
  */
 import { act, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
@@ -60,14 +57,12 @@ interface SquareFill {
   backgroundColor?: string;
 }
 
-/** The fill the renderer puts on a square, read where it is applied. */
 function fillAt(square: string): SquareFill {
   return captured.squareRenderer({ square }).props.style ?? {};
 }
 
-// Only the component is stubbed. The module's own constants stay real,
-// because the wrapper builds its arrow geometry on top of them and a
-// hand-written stand-in would drift from the library's defaults.
+// Only the component is stubbed: the wrapper builds its arrow geometry on
+// the module's own constants, and a stand-in would drift from them.
 vi.mock("react-chessboard", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-chessboard")>()),
   Chessboard: ({ options }: { options: CapturedOptions }) => {
@@ -93,15 +88,14 @@ it("asks the library for notation rather than drawing it", () => {
   render(<Board fen={START} />);
 
   expect(captured.showNotation).toBe(true);
-  // Two colours because the legend sits on two backgrounds.
   expect(captured.lightSquareNotationStyle.color).not.toBe(
     captured.darkSquareNotationStyle.color,
   );
 });
 
 it("draws a requested move apart from the grade colours", () => {
-  // Green means "this was best" and red "this lost something". A move
-  // someone asked to see is neither — it answers a question.
+  // Green means "best" and red "lost something"; a move someone asked to
+  // see is neither.
   render(
     <Board
       fen={START}
@@ -127,7 +121,7 @@ it("draws no arrows at all rather than an empty list", () => {
 
 it("clears user-drawn arrows when the position changes", () => {
   render(<Board fen={START} />);
-  // Without this a mark drawn on move 12 is still hanging there on 13.
+  // Without it a mark drawn on move 12 hangs there on 13.
   expect(captured.clearArrowsOnPositionChange).toBe(true);
 });
 
@@ -186,14 +180,13 @@ it("never asks about a piece let go outside the board", () => {
   expect(onMove).not.toHaveBeenCalled();
 });
 
-// A badge sits on its square's top-right corner. Where that corner is the
-// board's own edge, it is pushed inward instead of leaving the board.
+// A badge sits on its square's top-right corner, pushed inward where that
+// corner is the board's own edge.
 it.each([
   { square: "e4", orientation: "white", edges: { right: false, top: false } },
   { square: "h4", orientation: "white", edges: { right: true, top: false } },
   { square: "e8", orientation: "white", edges: { right: false, top: true } },
   { square: "h8", orientation: "white", edges: { right: true, top: true } },
-  // The board's left and bottom edges never hold a badge's corner.
   { square: "a1", orientation: "white", edges: { right: false, top: false } },
   { square: "a4", orientation: "black", edges: { right: true, top: false } },
   { square: "e1", orientation: "black", edges: { right: false, top: true } },
@@ -209,13 +202,12 @@ it.each([
 it("trims the arrowhead and keeps the arrows translucent", () => {
   render(<Board fen={START} bestMove={{ from: "e2", to: "e4" }} />);
 
-  // A quarter of a square off the head clears the destination piece,
-  // where the library's default eighth plants it on top of one. The
-  // tail stays at the origin's centre, overlapping the piece that
-  // moves — that overlap is what reads as "this piece goes there".
+  // A quarter off the head clears the destination piece, where the
+  // library's default eighth plants it on top of one. The tail stays at the
+  // origin's centre, and that overlap reads as "this piece goes there".
   expect(captured.arrowOptions.arrowLengthReducerDenominator).toBe(4);
   expect(captured.arrowOptions.arrowStartOffset).toBe(0);
-  // Well under the library's 0.65: an arrow annotates the position
-  // rather than becoming an object on it.
+  // Under the library's 0.65, so an arrow annotates the position rather
+  // than becoming an object on it.
   expect(captured.arrowOptions.opacity).toBe(0.45);
 });

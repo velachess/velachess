@@ -1,6 +1,6 @@
 /**
- * [UI] Move-grade/book mark on a square. Rendered via squareRenderer, so
- * it styles in Tailwind (not CSSProperties) — the grid places it.
+ * Rendered through `squareRenderer`, so it styles in Tailwind rather than
+ * CSSProperties.
  */
 
 import type { ComponentType, ReactNode } from "react";
@@ -13,7 +13,7 @@ interface MarkProps {
   className: string;
 }
 
-/** A hand-drawn mark: Lucide has no `?`, `?!` or `??`. */
+/** Hand-drawn: Lucide has no `?`, `?!` or `??`. */
 function NagMark({ className, children }: MarkProps & { children: ReactNode }) {
   return (
     <svg
@@ -75,19 +75,15 @@ export function SquareBadge({ tone, edges }: SquareBadgeProps) {
     <span
       aria-hidden
       data-slot="square-badge"
-      // Just under a third of the square: enough to read the mark, small
-      // enough that it annotates the position instead of outweighing the
-      // piece it points at.
-      //
-      // Centred on the square's top-right corner, so it sits at the
-      // meeting point of four squares and reads as attached to the move.
-      // On the board's own edge that would leave the board, so it is
-      // pushed inward, with a small margin, instead. The shadow, not a ring, lifts it off a
-      // piece underneath — a ring in one fixed colour reads as a border.
+      // Just under a third of the square, so the mark annotates the
+      // position rather than outweighing the piece. Centred on the
+      // top-right corner, where four squares meet, and pushed inward on the
+      // board's own edge. A shadow rather than a ring, which in one fixed
+      // colour reads as a border.
       className={cn(
         "pointer-events-none absolute z-10 grid size-[32%]",
-        // One ink for every tone: a badge that changes text colour with
-        // its grade reads as two different components.
+        // One ink for every tone: changing text colour with the grade reads
+        // as two components.
         "place-items-center rounded-full text-white shadow-sm",
         !edges.right && "right-0 translate-x-1/2",
         edges.right && "right-1/24",

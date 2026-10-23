@@ -7,8 +7,8 @@ import { legalTargetsAt, sanOfUciAt, seatIdentityOf, seatOf } from "../board-vie
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-/** Defaulting to white put anyone who played black behind the wrong
- * pieces on every unlabelled game. */
+/** Defaulting to white put anyone who played black behind the wrong pieces
+ * on every unlabelled game. */
 describe("seatOf", () => {
   const game = { perspective: null, whiteName: "magnuscarlsen", blackName: "yurimutti" };
 
@@ -30,8 +30,7 @@ describe("seatOf", () => {
   });
 });
 
-/** A null means "unknown", and unknown means initials, never a broken
- * picture. */
+/** Unknown means initials, never a broken picture. */
 describe("seatIdentityOf", () => {
   it("carries the picture and flair a seat resolved to", () => {
     expect(
@@ -48,8 +47,8 @@ describe("seatIdentityOf", () => {
   });
 
   it("answers nothing for a seat nobody could resolve", () => {
-    // Nulls collapse to absence: an initials fallback is rendered by
-    // there being no image at all, not by an empty src.
+    // Nulls collapse to absence: the initials fallback renders on no image
+    // at all, not an empty src.
     expect(seatIdentityOf({ avatarUrl: null, flair: null })).toEqual({});
     expect(seatIdentityOf(undefined)).toEqual({});
   });
@@ -64,8 +63,7 @@ describe("legalTargetsAt", () => {
   });
 
   it("offers nothing for the side that is not to move", () => {
-    // The board must not draw a dot the move then refuses: a variation is
-    // a game being played, and it is White's turn.
+    // A variation is a game being played, and it is White's turn.
     expect(legalTargetsAt(START, "e7")).toEqual([]);
   });
 
@@ -84,7 +82,7 @@ describe("sanOfUciAt", () => {
   });
 
   it("goes quiet rather than throwing on a position it cannot set up", () => {
-    // The played move still has to render; only the suggestion drops.
+    // The played move still renders; only the suggestion drops.
     expect(sanOfUciAt("not a fen", "g1f3")).toBeNull();
   });
 
@@ -98,18 +96,13 @@ describe("sanOfUciAt", () => {
 });
 
 /**
- * The two squares the board lights for the move just played.
- *
- * `use-board-review.ts` reads them off the replay's own UCI rather than
- * parsing the position back out of a FEN. The cases below are the ones
- * where the two notations disagree, or where a suffix could be mistaken
- * for a square.
+ * `use-board-review.ts` reads the two lit squares off the replay's own UCI
+ * rather than parsing the position back out of a FEN. These are the cases
+ * where the notations disagree, or a suffix could be mistaken for a square.
  */
 /**
- * Kings and rooks only, so castling is the move under test and nothing
- * else can interfere. One game per side: after White castles short the
- * rook lands on f1 and covers f8, which makes Black's own short castle
- * illegal — so the two cannot share a game.
+ * Kings and rooks only, and one game per side: after White castles short
+ * the rook covers f8, which makes Black's own short castle illegal.
  */
 const castling = (turn: "w" | "b", movetext: string) =>
   aReplay(
@@ -118,8 +111,8 @@ const castling = (turn: "w" | "b", movetext: string) =>
 
 describe("the last move, as the replay already named it", () => {
   it("lights the king's squares when castling short, not the rook's", () => {
-    // chessops encodes castling as king-takes-own-rook (e1h1); a board
-    // draws the king's two-square step, and h1 is where the rook was.
+    // chessops encodes castling as king-takes-own-rook (e1h1), but a board
+    // draws the king's two-square step.
     expect(squaresOfUci(castling("w", "1. O-O *").uci)).toEqual({ from: "e1", to: "g1" });
     expect(squaresOfUci(castling("b", "1... O-O *").uci)).toEqual({
       from: "e8",

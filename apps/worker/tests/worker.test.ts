@@ -1,9 +1,8 @@
 // @vitest-environment node
 /**
- * The worker over the real harness: pg-boss delivers, the handler calls
- * the sync slice, the loop runs in the background. The slice cases below
- * hand deliveries over themselves, composed the way the worker composes
- * them. Analysis has no worker handler — it runs browser-side.
+ * The worker over the real harness: pg-boss delivers, the handler calls the
+ * sync slice. The cases below hand deliveries over themselves, composed the
+ * way the worker composes them.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -46,8 +45,7 @@ let userId: string;
 let accountId: string;
 const testLogger = logger.child({ component: "test-worker" }, { level: "silent" });
 
-/** A sync job for a fresh user's chess.com handle, recorded and queued as
- * the API does. */
+/** Recorded and queued as the API does. */
 async function newSyncJob(username: string = LOOPER_USERNAME) {
   const user = await createUser(h.db);
   const account = (await insertTrackedAccount(h.db, user.id, "chess_com", username))!;
@@ -62,10 +60,8 @@ async function newSyncJob(username: string = LOOPER_USERNAME) {
   });
 }
 
-/** The job's next delivery, as pg-boss hands it to the worker. */
 const deliver = (job: { id: string }) => deliverSyncJob(h.boss, job.id);
 
-/** The sync handler's call, composed as `worker.ts` composes it. */
 const sync = (deps: SyncDeps, delivery: { id: string; signal: AbortSignal }) =>
   syncAccount(buildSyncAccountDeps(h.db, deps), delivery);
 
@@ -77,17 +73,14 @@ const bossStateOf = async (job: { id: string }) =>
     )
   ).rows[0];
 
-/** The looper archive with its only month failing. */
 const brokenMonth: typeof fetch = async (input) =>
   String(input).endsWith("/2026/08")
     ? new Response("unavailable", { status: 503 })
     : chessComFixtureFetch()(input);
 
-/** Three archive months, two games apiece, each tracked by its own call
- * count — so a test can assert a checkpointed month is never re-fetched.
- * Each month plays different moves: dedup keys on the movetext hash, and
- * `LOOPER_LOSS_PGN`/`LOOPER_WIN_PGN` repeated verbatim across months would
- * collide as "the same game" instead of landing as six distinct rows. */
+/** Three months, two games apiece, each with its own call count so a test
+ * can assert a checkpointed month is never re-fetched. The moves differ per
+ * month because dedup keys on the movetext hash. */
 const MULTI_MONTH_ARCHIVES = ["2026/06", "2026/07", "2026/08"];
 const MULTI_MONTH_OPENINGS = [
   "1. e4 e6 2. g4 d5",
@@ -137,7 +130,7 @@ function multiMonthFetch(opts: { failMonth?: string } = {}) {
 const jobOf = (job: { id: string; userId: string }) =>
   getSyncJobForUser(h.db, job.userId, job.id);
 
-/** The job as `GET /syncs/:id` answers it, closing one pg-boss ended. */
+/** As `GET /syncs/:id` answers it, closing one pg-boss ended. */
 const jobAsPolled = (job: { id: string; userId: string }) =>
   getSync(
     {
@@ -149,7 +142,7 @@ const jobAsPolled = (job: { id: string; userId: string }) =>
     job.id,
   );
 
-/** A fetch that answers only once `release` is called — a delivery held mid-fetch. */
+/** Answers only once `release` is called: a delivery held mid-fetch. */
 function heldFetch(answer: typeof fetch) {
   let release!: () => void;
   const released = new Promise<void>((resolve) => (release = resolve));
@@ -163,8 +156,7 @@ function heldFetch(answer: typeof fetch) {
   return { held, fetching, release };
 }
 
-/** The narrow deps `listGamesWithStatus` declared — composed here the way
- * `apps/server/src/composition/accounts.ts` composes them for the API. */
+/** Composed as `apps/server/src/composition/accounts.ts` does. */
 const gamesWithStatus = (forUser: string, forAccount: string) =>
   listGamesWithStatus(
     {
@@ -178,7 +170,6 @@ const gamesWithStatus = (forUser: string, forAccount: string) =>
 beforeAll(async () => {
   h = await createLoopHarness();
 
-  // Seed the user's side: a tracked account, as the api would.
   const user = await createUser(h.db);
   userId = user.id;
   const account = (await insertTrackedAccount(
@@ -222,7 +213,6 @@ describe("worker", () => {
       }, 30_000),
     ).toMatchObject({ state: "completed" });
 
-    // The tests below hand sync deliveries over themselves.
     await h.boss.offWork(QUEUES.sync);
   }, 120_000);
 });
@@ -231,9 +221,8 @@ describe("sync deliveries", () => {
   const fixture = { fetch: chessComFixtureFetch() };
 
   it("a delivery for a job that no longer exists resolves without work", async () => {
-    // The account was disconnected after the job was queued: the row went
-    // with it, and the delivery has nothing to record. Resolving is what
-    // lets pg-boss end it instead of retrying.
+    // The row went with the account, so resolving lets pg-boss end the
+    // delivery instead of retrying it.
     const job = await newSyncJob();
     await deleteTrackedAccountAndGames(h.db, job.accountId);
 
@@ -246,8 +235,7 @@ describe("sync deliveries", () => {
     await sync(fixture, delivery);
     expect(await jobOf(job)).toMatchObject({ status: "succeeded", gamesInserted: 2 });
 
-    // The same attempt handed over twice — what a consumer that crashed
-    // right after its commit, or an operator's redrive, looks like.
+    // What a consumer crashing right after its commit looks like.
     await expect(sync(fixture, delivery)).resolves.toBeUndefined();
     expect(await jobOf(job)).toMatchObject({ status: "succeeded", gamesInserted: 2 });
     expect(await gamesWithStatus(job.userId, job.accountId)).toHaveLength(2);
@@ -261,7 +249,6 @@ describe("sync deliveries", () => {
       const delivery = await deliver(job);
       expect(await bossStateOf(job)).toMatchObject({ retry_count: retryCount });
       await expect(sync(failing, delivery)).rejects.toThrow(/incomplete/);
-      // The row says why; pg-boss decides whether there is another attempt.
       expect(await jobOf(job)).toMatchObject({
         status: "retrying",
         errorCode: "incomplete",
@@ -276,17 +263,15 @@ describe("sync deliveries", () => {
       status: "failed",
       error: { code: "incomplete", retryable: true },
     });
-    // No cursor for a pass that never completed — and nothing was saved
-    // twice across the attempts.
+    // No cursor for a pass that never completed, and nothing saved twice.
     expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toBeNull();
     expect(await jobOf(job)).toMatchObject({ gamesFetched: 0, gamesInserted: 0 });
   });
 
   it("a cursor stored in the other provider's shape starts the walk over", async () => {
-    // `sync_cursor` is one jsonb column holding either provider's shape.
-    // Cast by platform, a Lichess-shaped row reached chess.com with
-    // `month === undefined`, which matched no archive month: the pass
-    // completed having fetched nothing, and the cursor never advanced.
+    // Cast by platform rather than parsed, a Lichess-shaped row reached
+    // chess.com with `month === undefined`, matching no archive month: the
+    // pass completed having fetched nothing.
     const job = await newSyncJob();
     await updateTrackedAccountCursor(h.db, job.accountId, {
       sinceMs: 1_704_067_200_000,
@@ -303,7 +288,7 @@ describe("sync deliveries", () => {
       gamesFetched: 2,
       errorCode: null,
     });
-    // Reported, not swallowed — a full archive walk otherwise looks routine.
+    // Reported, or a full archive walk looks routine.
     expect(unreadable).toEqual([{ accountId: job.accountId, platform: "chess_com" }]);
   }, 60_000);
 
@@ -313,7 +298,6 @@ describe("sync deliveries", () => {
       fetch: (async () => new Response("", { status: 404 })) as typeof fetch,
     };
 
-    // Resolves: pg-boss has nothing to retry.
     await sync(gone, await deliver(job));
 
     expect(await jobOf(job)).toMatchObject({ status: "failed", errorCode: "not-found" });
@@ -321,10 +305,9 @@ describe("sync deliveries", () => {
   });
 
   it("a delivery cancelled after its last response keeps the month it already checkpointed", async () => {
-    // pg-boss aborts the signal on expiry or a lost claim. The fetch has
-    // already answered, so the slice itself has to stop — but the fixture's
-    // one archive month committed as a checkpoint before that cancellation
-    // was even observed, so it survives the retry this records.
+    // pg-boss aborts on expiry or a lost claim. The fetch has already
+    // answered, so the slice itself stops, but the fixture's one month
+    // checkpointed before the cancellation was observed and survives.
     const job = await newSyncJob();
     const deadline = new AbortController();
     const lateFetch = (async (input: RequestInfo | URL) => {
@@ -343,8 +326,8 @@ describe("sync deliveries", () => {
   });
 
   it("a delivery cancelled mid-fetch stops at the provider", async () => {
-    // The provider hands pg-boss's signal to fetch: an abort while a request
-    // is in flight rejects there, before any archive page is read.
+    // The provider hands pg-boss's signal to fetch, so an abort mid-request
+    // rejects there, before any archive page is read.
     const job = await newSyncJob();
     const deadline = new AbortController();
     const honoring = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -363,23 +346,21 @@ describe("sync deliveries", () => {
 
   it("a delivery that lost the job to a retry writes nothing", async () => {
     const job = await newSyncJob();
-    // The stale delivery would bring a different archive: anything of it
-    // that lands is visible.
+    // The stale delivery brings a different archive, so anything of it that
+    // lands is visible.
     const stale = heldFetch(chessComListingFixtureFetch());
     const current = heldFetch(chessComFixtureFetch());
 
-    // The first delivery starts, then stalls in its fetch...
     const first = sync({ fetch: stale.held }, await deliver(job));
     await stale.fetching;
-    // ...pg-boss takes the job back, as its supervisor does on a missed
-    // heartbeat or expiry, and hands it to a retry that marks the job
-    // running again — the row now carries the retry's stamp.
+    // pg-boss takes the job back, as its supervisor does on a missed
+    // heartbeat, and the retry re-stamps the row.
     await h.boss.fail(QUEUES.sync, job.id, new Error("heartbeat timeout"));
     const second = sync({ fetch: current.held }, await deliver(job));
     await current.fetching;
 
-    // The first wakes up and commits: its stamp is gone, so its games,
-    // cursor, sync time and status all miss the row.
+    // The first wakes up and commits, but its stamp is gone, so every write
+    // misses the row.
     stale.release();
     await first;
     expect(await gamesWithStatus(job.userId, job.accountId)).toEqual([]);
@@ -392,8 +373,7 @@ describe("sync deliveries", () => {
   });
 
   it("a dead-lettered sync retried by an operator runs again and recovers", async () => {
-    // What the dashboard's "retry" on the failed job does: the job keeps
-    // its id — the sync job's id — so the row, still `retrying`, picks up
+    // The dashboard's "retry" keeps the sync job's id, so the row picks up
     // where it left off once the provider answers.
     const job = await newSyncJob();
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -402,7 +382,6 @@ describe("sync deliveries", () => {
       await h.boss.fail(QUEUES.sync, delivery);
     }
     expect(await bossStateOf(job)).toMatchObject({ state: "failed" });
-    // The dead letter is the copy an operator sees.
     expect(await h.boss.findJobs(QUEUES.syncDlq)).toContainEqual(
       expect.objectContaining({ sourceId: job.id }),
     );
@@ -417,9 +396,8 @@ describe("sync deliveries", () => {
   });
 
   it("redriving the sync dead-letter queue cannot revive a sync", async () => {
-    // A redrive mints a new job id; the slice resolves it to no sync job
-    // and the delivery completes without work. The operator's move is the
-    // retry above.
+    // A redrive mints a new job id, which resolves to no sync job, so the
+    // delivery completes without work.
     const job = await newSyncJob();
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const delivery = await deliver(job);
@@ -427,8 +405,8 @@ describe("sync deliveries", () => {
       await h.boss.fail(QUEUES.sync, delivery);
     }
 
-    // The dead-letter queue holds every sync this file let die; the
-    // redriven copy of this one is told apart by its singleton key.
+    // The dead-letter queue holds every sync this file let die, so the
+    // redriven copy is told apart by its singleton key.
     expect(await h.boss.redrive(QUEUES.syncDlq)).toBeGreaterThanOrEqual(1);
     const redriven = await h.boss.fetch(QUEUES.sync, {
       batchSize: 50,
@@ -472,12 +450,10 @@ describe("sync deliveries", () => {
     await held.fetching;
     await deleteTrackedAccountAndGames(h.db, job.accountId);
     held.release();
-    // Resolves: the row went with the account, pg-boss ends the delivery.
     await syncing;
 
     expect(await getTrackedAccount(h.db, job.accountId)).toBeNull();
     expect(await jobOf(job)).toBeNull();
-    // Not even an orphan with its account nulled.
     expect((await listGamesPage(h.db, job.userId)).total).toBe(0);
   });
 
@@ -485,8 +461,8 @@ describe("sync deliveries", () => {
     const job = await newSyncJob();
     const crashing = multiMonthFetch({ failMonth: "2026/08" });
 
-    // Months 06 and 07 each checkpoint in turn; 08 fails, so the pass is
-    // incomplete — but the cursor already sits past 07, not at the start.
+    // 06 and 07 each checkpoint, 08 fails, so the pass is incomplete with
+    // its cursor past 07 rather than at the start.
     const firstDelivery = await deliver(job);
     await expect(sync({ fetch: crashing.fetch }, firstDelivery)).rejects.toThrow(
       /incomplete/,
@@ -503,9 +479,8 @@ describe("sync deliveries", () => {
     expect(crashing.calls.get("2026/07")).toBe(1);
     await h.boss.fail(QUEUES.sync, firstDelivery);
 
-    // The retry resumes from the cursor: 06 is never touched again. (07 is
-    // re-walked — the boundary month an archive can still append to — 08
-    // finally succeeds.)
+    // 06 is never touched again; 07 is re-walked, being the boundary month
+    // an archive can still append to.
     const recovered = multiMonthFetch();
     await expect(
       sync({ fetch: recovered.fetch }, await deliver(job)),

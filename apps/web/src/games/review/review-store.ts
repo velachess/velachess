@@ -1,10 +1,10 @@
 /**
- * Every rule it applies lives in `review-model.ts`; this file holds the
- * state and writes what a transition decided.
+ * Every rule it applies is `review-model.ts`'s; this holds the state and
+ * writes what a transition decided.
  *
- * The game is a closure rather than state, and needs no staleness guard:
+ * The game is a closure rather than state and needs no staleness guard:
  * movetext never changes once imported, and `game-review.tsx`'s
- * `key={gameId}` rebuilds the store for a different game.
+ * `key={gameId}` rebuilds the store for another game.
  */
 import { createStore, type StoreApi } from "zustand/vanilla";
 
@@ -24,7 +24,7 @@ interface ReviewActions {
   goToPly: (ply: number) => void;
   next: () => void;
   previous: () => void;
-  /** False when the position does not allow the move — nothing changes. */
+  /** False when the position does not allow the move. */
   playMove: (from: string, to: string) => boolean;
   revealBestMove: () => void;
 }

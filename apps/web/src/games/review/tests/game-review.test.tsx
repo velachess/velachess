@@ -24,8 +24,8 @@ import type { Game } from "../../list/index.ts";
 
 /**
  * The screen through the route, with the engine mocked at
- * `analyzeGameInBrowser` rather than at the Worker — `libs/infra/engine`
- * and `analysis/tests/` cover that level.
+ * `analyzeGameInBrowser` rather than at the Worker, which
+ * `libs/infra/engine` and `analysis/tests/` cover.
  */
 
 vi.mock("../../analysis/game/analyze.ts", () => ({
@@ -33,29 +33,28 @@ vi.mock("../../analysis/game/analyze.ts", () => ({
 }));
 const { analyzeGameInBrowser } = await import("../../analysis/game/analyze.ts");
 
-// Partial: the screen reaches the whole-game pass through this module as
-// well, and only the interactive evaluator is stubbed.
+// Partial: the screen reaches the whole-game pass through this module too,
+// so only the interactive evaluator is stubbed.
 vi.mock("../../analysis/index.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../analysis/index.ts")>()),
   createStockfishEvaluator: vi.fn(),
 }));
 const { createStockfishEvaluator } = await import("../../analysis/index.ts");
 
-/** Every ply graded, with one blunder at Nc6 (ply 4). Its `bestMove` has
- * to be legal there, or the insight card renders no suggestion. */
+/** One blunder at Nc6 (ply 4), whose `bestMove` has to be legal there or
+ * the insight card renders no suggestion. */
 const gradedPlies = () =>
   Array.from({ length: GAME_SANS.length }, (_, index) =>
     aGradedPly(index + 1, index === 3 ? { category: "blunder", bestMove: "g7g6" } : {}),
   );
 
-/** Matches a move button by its SAN and the NAG glyph the grade adds. */
 const blunderButton = (content: string) =>
   content.includes("Nc6") && content.includes("??");
 
 const findBlunderButton = () => screen.findByRole("button", { name: blunderButton });
 
-/** `finished: false` never ends: the engine has not reached the rest of
- * the game yet. */
+/** `finished: false` never ends: the engine has not reached the rest of the
+ * game. */
 function plyPass(moves: GradedPly[], { finished = true }: { finished?: boolean } = {}) {
   return async function* (): AsyncGenerator<AnalysisEvent> {
     for (const grade of moves) yield { type: ANALYSIS_EVENT.PLY_GRADED, grade };
@@ -69,8 +68,8 @@ function stageAnalysis(moves: GradedPly[]): void {
 }
 
 function stageFailedAnalysis(): void {
-  // Throws where the pass would open the engine, before it has a stream
-  // to hand back — the shape an unusable browser really fails in.
+  // Throws before the pass has a stream to hand back, the shape an
+  // unusable browser fails in.
   vi.mocked(analyzeGameInBrowser).mockImplementation(() => {
     throw new Error("engine failed");
   });
@@ -119,9 +118,6 @@ describe("game analysis", () => {
     expect(await findBlunderButton()).toBeInTheDocument();
   }, 50_000);
 
-  // Cache reuse is `game-analysis-query.test.tsx`'s: `renderApp` hands
-  // every call a fresh `QueryClient`.
-
   it("steps through the game", async () => {
     const { user } = await openGame(gradedPlies());
 
@@ -145,8 +141,8 @@ describe("game analysis", () => {
   });
 
   it("moves the board with the move list", async () => {
-    // The squares are unnamed divs, so the live region is what makes
-    // what the board shows readable at all.
+    // The squares are unnamed divs, so the live region is what makes the
+    // board readable.
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
 
@@ -161,8 +157,8 @@ describe("game analysis", () => {
   }, 30_000);
 
   it("shows the board from the seat you played", async () => {
-    // Backwards here makes every position on the screen wrong in a way
-    // that looks deliberate.
+    // Backwards here makes every position wrong in a way that looks
+    // deliberate.
     const game = aGame({ perspective: "black", whiteName: "magnus", blackName: ME });
     addGames(game);
     stageAnalysis(gradedPlies());
@@ -192,7 +188,6 @@ describe("game analysis", () => {
   }, 30_000);
 
   it("shows a contextual message when the game itself cannot be loaded", async () => {
-    // A stale id must not leave a spinner, nor blame the analysis.
     await renderApp({ path: "/games/does-not-exist" });
 
     expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
@@ -213,8 +208,8 @@ describe("game analysis", () => {
   }, 30_000);
 
   it("offers no suggestion when the report names no best move", async () => {
-    // Reports written before `bestMove` became nullable store "" for
-    // absent, and are still read back from IndexedDB.
+    // Reports written before `bestMove` became nullable store "" and are
+    // still read back from IndexedDB.
     const moves = gradedPlies();
     moves[3] = aGradedPly(4, { category: "blunder", bestMove: "" });
     const { user } = await openGame(moves);
@@ -234,7 +229,6 @@ describe("game analysis", () => {
   });
 
   it("shows the moves even while the engine is still working", async () => {
-    // Nothing graded: the board and move list never wait on the engine.
     const { user } = await openGame([]);
 
     expect(await screen.findByRole("button", { name: /Qxf7#/ })).toBeInTheDocument();
@@ -247,7 +241,6 @@ describe("game analysis", () => {
   it("keeps progress up while the rest of the game is still being graded", async () => {
     const moves = gradedPlies();
     moves[0] = aGradedPly(1, { category: "blunder" });
-    // The run is demonstrably still in progress, not finished short.
     vi.mocked(analyzeGameInBrowser).mockImplementation(
       plyPass([moves[0]!], { finished: false }),
     );
@@ -263,8 +256,8 @@ describe("game analysis", () => {
   }, 20_000);
 
   it("reads a game that starts from a position, with Black to play", async () => {
-    // [SetUp]/[FEN] means ply 1 is not always White's: counting
-    // half-moves would credit every grade to the wrong player.
+    // With [SetUp]/[FEN], ply 1 is not always White's, so counting
+    // half-moves credits every grade to the wrong player.
     const game = aGame({ whiteName: "white_player", blackName: "black_player" });
     addGames(game);
     stageMovetext(
@@ -307,8 +300,8 @@ describe("game analysis", () => {
   });
 
   it("does not leave a previous game's moves on screen after switching games", async () => {
-    // The screen's concern only: a run still going must never render as
-    // if it belonged to the game open now. The first pass never ends.
+    // A run still going must not render as the open game's. The first pass
+    // never ends.
     const first = aGame();
     addGames(first);
     vi.mocked(analyzeGameInBrowser).mockImplementation(plyPass([], { finished: false }));
@@ -324,10 +317,7 @@ describe("game analysis", () => {
   }, 30_000);
 });
 
-/**
- * The last crumb names the game being read. Dates sit at midday UTC so
- * the calendar day holds in any timezone.
- */
+/** Dates sit at midday UTC, so the calendar day holds in any timezone. */
 describe("game breadcrumb", () => {
   const PLAYED_AT = "2026-08-22T12:00:00.000Z";
 
@@ -336,7 +326,6 @@ describe("game breadcrumb", () => {
     vi.mocked(analyzeGameInBrowser).mockReset();
   });
 
-  /** The page's own crumb, not the trail leading to it. */
   const openCrumb = async (overrides: Partial<Game>) => {
     const game = aGame({ playedAt: PLAYED_AT, ...overrides });
     addGames(game);
@@ -376,7 +365,7 @@ describe("game breadcrumb", () => {
   });
 
   it("gives each source its own mark", async () => {
-    // Decorative, so it has no accessible handle: its markup is the only
+    // Decorative, so it has no accessible handle and its markup is the
     // evidence.
     const icons: (string | undefined)[] = [];
     for (const source of ["chess_com", "lichess", "pgn"] as const) {

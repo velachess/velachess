@@ -1,8 +1,7 @@
 /**
- * The reusable half of a data table: TanStack Table stays headless and
- * this renders what it hands back. Columns, filters and copy belong to
- * the screen. Manual mode throughout — the server filters, sorts and
- * pages, so the table is told the row count rather than deriving it.
+ * TanStack Table stays headless and this renders what it hands back;
+ * columns, filters and copy belong to the screen. Manual mode throughout:
+ * the server filters, sorts and pages, so the table is told the row count.
  */
 import {
   columnVisibilityFeature,
@@ -26,8 +25,8 @@ import {
   TableRow,
 } from "./table.tsx";
 
-// v9 tree-shakes anything unregistered, including the APIs that read
-// cells — `getVisibleCells` comes from the visibility feature.
+// v9 tree-shakes anything unregistered, including the APIs that read cells:
+// `getVisibleCells` comes from the visibility feature.
 export const features = tableFeatures({ columnVisibilityFeature, rowPaginationFeature });
 
 export type DataTableFeatures = typeof features;
@@ -46,11 +45,10 @@ const DEFAULT_SKELETON_ROWS = [
 export interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[];
   data: TData[];
-  /** Shown in place of rows when there are none. */
   empty: React.ReactNode;
   loading?: boolean;
   skeletonRows?: number;
-  /** Row click — the screen decides what opening a row means. */
+  /** The screen decides what opening a row means. */
   onRowClick?: (row: TData) => void;
 }
 
@@ -71,8 +69,8 @@ export function DataTable<TData extends RowData>({
       : Array.from({ length: skeletonRows }, (_, row) => `row-${row + 1}`);
 
   return (
-    // `shrink-0` is load-bearing: this wrapper clips for its rounded
-    // border, so shrinking slices the last row instead of scrolling.
+    // `shrink-0` is load-bearing: this wrapper clips for its rounded border,
+    // so shrinking slices the last row instead of scrolling.
     <div className="shrink-0 overflow-hidden rounded-md border">
       <Table>
         <TableHeader>
@@ -141,7 +139,7 @@ export interface DataTablePaginationProps {
   total: number;
   onPageChange: (page: number) => void;
   label: string;
-  /** "1–25 of 203" — the app owns its words and its number formatting. */
+  /** "1–25 of 203", in the app's own words and number formatting. */
   summary: React.ReactNode;
   previousLabel: string;
   nextLabel: string;
@@ -160,8 +158,8 @@ export function DataTablePagination({
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    // Outside the scroll area by contract — a pager that scrolls away is
-    // unreachable exactly when you want it.
+    // Outside the scroll area: a pager that scrolls away is unreachable
+    // exactly when you want it.
     <div className="flex shrink-0 items-center justify-between gap-4 border-t px-6 py-3">
       <span className="text-sm text-muted-foreground">{summary}</span>
       <Pagination aria-label={label} className="mx-0 w-auto justify-end">

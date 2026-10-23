@@ -1,7 +1,6 @@
 /**
- * ListAccounts — every handle this user tracks, with its sync state.
- * `syncStatus` (not just `lastSyncedAt`) lets a client tell "still syncing"
- * from "gave up".
+ * `syncStatus`, not just `lastSyncedAt`, is what lets a client tell "still
+ * syncing" from "gave up".
  */
 import type { AccountPlatform } from "@velachess/infra-platforms";
 
@@ -26,16 +25,15 @@ export interface ListAccountsDeps {
 }
 
 /**
- * The accounts a user tracks, oldest first. Sync state reads off each
- * account's newest job: while it is active, its status and id; once it
- * has finished, `idle` — with its error when it failed, so the next success
- * clears it.
+ * Sync state reads off each account's newest job: its status and id while
+ * active, then `idle` with the error it failed on, which the next success
+ * clears.
  */
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
   const accounts = await deps.listTrackedAccountsByUser(userId);
   return accounts.map(({ latestJobId, latestJobStatus, latestJobError, ...account }) => {
-    // A predicate, so `latestJobStatus` stays narrowed below: `syncStatus`
-    // is the active status itself, never `succeeded` or `failed`.
+    // A predicate, so `latestJobStatus` stays narrowed: `syncStatus` is the
+    // active status itself, never `succeeded` or `failed`.
     const active = isActiveSyncStatus(latestJobStatus);
     return Object.assign(account, {
       syncStatus: active ? latestJobStatus : ("idle" as const),

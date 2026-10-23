@@ -1,10 +1,6 @@
 /**
- * Composition root for the auth module's one slice: adapts the real
- * Better Auth instance, DB client, and advisory lock into the narrow
- * functions bootstrap-user declared. Shared between main.ts (production
- * boot) and apps/server/tests/auth.test.ts (the same wiring, over the
- * harness's Postgres and Better Auth instances) so both exercise the
- * identical adapter.
+ * Shared between main.ts and apps/server/tests/auth.test.ts, so production
+ * boot and the suite exercise the same adapter.
  */
 import type { Auth } from "@velachess/infra-auth";
 import { countUsers, markEmailVerified, writeAvatarState } from "@velachess/infra-db";
@@ -31,9 +27,9 @@ export function buildBootstrapUserDeps(
 }
 
 /**
- * The only place the file store and the user module meet. Each builder
- * hands the slice the exact functions it declared, so no route file and no
- * slice ever holds a `FileStore` or a `Database`.
+ * The only place the file store and the user module meet: each builder
+ * hands the slice the functions it declared, so no route and no slice holds
+ * a `FileStore` or a `Database`.
  */
 export function buildSetAvatarDeps(db: Database, files: FileStore): SetAvatarDeps {
   return {

@@ -59,7 +59,7 @@ function pastedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
-/** Distinct games, as many as asked: a unique external id and movetext per row. */
+/** A unique external id and movetext per row. */
 const manyGames = (count: number) =>
   Array.from({ length: count }, (_, i) =>
     chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
@@ -71,7 +71,7 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   beforeEach(async () => {
     await db.delete(games);
     await db.delete(trackedAccounts);
-    // Accounts can no longer exist unowned, so every test gets an owner.
+    // An account cannot exist unowned.
     ownerId = (await createUser(db)).id;
   });
 
@@ -98,10 +98,9 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   });
 
   it("two accounts tracking the same real game both keep their own copy", async () => {
-    // The bug this constraint fixes: two different tracked accounts (any
-    // two users, or the same user twice) independently sync the same
-    // real chess.com game. Each must get its own complete history —
-    // dedup happens within an account, never across accounts.
+    // Two tracked accounts independently syncing the same real game each
+    // get their own complete history: dedup happens within an account,
+    // never across them.
     const other = (await createUser(db)).id;
     const accountA = (await insertTrackedAccount(
       db,
