@@ -27,7 +27,7 @@ libs/accounts     tracked-account lifecycle: connect, list, sync, disconnect
 libs/games        the game record: read, list and import PGN
 libs/analysis     pure Stockfish score/classification policy, run browser-side
 libs/user         the person: first-user bootstrap and profile avatar
-libs/infra        db, queue, engine, logger, platforms, storage, and auth
+libs/infra        db, queue, engine, logger, platforms, storage, auth, and email
 libs/chess        chess rules and notation
 libs/ui           shared design system and chess presentation
 libs/fixtures     pure test data
@@ -115,10 +115,11 @@ fix whichever is wrong.
 | analysis | `@velachess/analysis` | `libs/analysis/` |
 | user     | `@velachess/user`     | `libs/user/`     |
 
-`libs/infra/*`'s seven packages are `@velachess/infra-db`,
+`libs/infra/*`'s eight packages are `@velachess/infra-db`,
 `@velachess/infra-queue`, `@velachess/infra-engine`,
 `@velachess/infra-logger`, `@velachess/infra-platforms`,
-`@velachess/infra-storage`, and `@velachess/infra-auth` — the `infra-`
+`@velachess/infra-storage`, `@velachess/infra-auth`, and
+`@velachess/infra-email` — the `infra-`
 prefix keeps them visually distinct
 from business modules at the import site, including from the business
 `@velachess/user` above.

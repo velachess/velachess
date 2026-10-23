@@ -12,6 +12,9 @@ import { GameReview, loadGameReview } from "../games/review/index.ts";
 import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
 import { ConnectAccount, startSyncEvents } from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
+import { ForgotPasswordScreen } from "../auth/password-reset/forgot-password-screen.tsx";
+import { ResetPasswordScreen } from "../auth/password-reset/reset-password-screen.tsx";
+import { resetPasswordSearchSchema } from "../auth/password-reset/reset-password-search.ts";
 import { AccountScreen } from "../settings/account/account-screen.tsx";
 import { AppearanceScreen } from "../settings/appearance/appearance-screen.tsx";
 import { ConnectionsScreen } from "../settings/connections/connections-screen.tsx";
@@ -188,6 +191,25 @@ function TestLoginRoute() {
   );
 }
 
+// Mirrors `routes/forgot-password.tsx` and `routes/reset-password.tsx`.
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/forgot-password",
+  component: ForgotPasswordScreen,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reset-password",
+  validateSearch: resetPasswordSearchSchema,
+  component: TestResetPasswordRoute,
+});
+
+function TestResetPasswordRoute() {
+  const { token } = resetPasswordRoute.useSearch();
+  return <ResetPasswordScreen {...(token ? { token } : {})} />;
+}
+
 let crashRouteThrows = false;
 
 export function makeCrashRouteThrow() {
@@ -224,5 +246,7 @@ export const testRouteTree = rootRoute.addChildren([
     ]),
   ]),
   loginRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   crashRoute,
 ]);

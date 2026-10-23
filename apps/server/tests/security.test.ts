@@ -232,7 +232,9 @@ describe("what sits above the session gate", () => {
 
     // Public, so it carries capability flags and nothing identifying.
     const config = await (await harness.app.request("/config")).json();
-    expect(config).toEqual({ signInMethods: { password: true, google: false } });
+    expect(config).toEqual({
+      signInMethods: { password: true, google: false, passwordReset: false },
+    });
 
     // Auth answers without a session, but that is Better Auth, not one of
     // our routes.

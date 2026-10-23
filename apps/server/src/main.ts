@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import postgres from "postgres";
 
 import { createAuth } from "@velachess/infra-auth";
+import { createAuthEmailSender } from "@velachess/infra-email";
 import { createFileStore } from "@velachess/infra-storage";
 import { bootstrapUser } from "@velachess/user";
 import {
@@ -69,13 +70,18 @@ const authConfig = {
 };
 
 // Sign-up closed: a self-hosted instance on a network must not accept
-// account creation from anyone who finds it.
-const auth = createAuth(authConfig);
+// account creation from anyone who finds it. Email exists only when Resend
+// is configured.
+const auth = createAuth({
+  ...authConfig,
+  ...(env.email ? { sendEmail: createAuthEmailSender(env.email) } : {}),
+});
 
 // Out of band, and only into an empty user table: there is no HTTP setup
 // endpoint, a design with four CVEs to its name elsewhere. Creation goes
 // through Better Auth's sign-up path, so it needs a signup-enabled instance,
-// and this one exists for the call below and is never mounted.
+// and this one exists for the call below and is never mounted. No sender:
+// the first user is marked verified, so there is nothing to email.
 const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 const bootstrap = await bootstrapUser(
   buildBootstrapUserDeps(db, bootstrapAuth, lock),
@@ -91,7 +97,11 @@ const app = createApp({
   trustedOrigins: authEnv.trustedOrigins,
   // Derived from the same resolved env the auth instance is built from, so
   // the screen and the server cannot disagree about what exists.
-  signInMethods: { password: true, google: Boolean(authEnv.google) },
+  signInMethods: {
+    password: true,
+    google: Boolean(authEnv.google),
+    passwordReset: Boolean(env.email),
+  },
   syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,

@@ -24,7 +24,7 @@ export const TEST_USER: TestSessionUser = {
 
 /** Google off by default, like the real server, so a test that wants the
  * button says so and every other one proves its absence. */
-let signInMethods = { password: true, google: false };
+let signInMethods = { password: true, google: false, passwordReset: false };
 
 /** Bumped per upload, like the real cache buster, so a replacement
  * produces a different URL. */
@@ -33,6 +33,7 @@ let avatarVersion = 1;
 export function signInMethodsAre(methods: {
   password?: boolean;
   google?: boolean;
+  passwordReset?: boolean;
 }): void {
   signInMethods = { ...signInMethods, ...methods };
 }
@@ -45,6 +46,16 @@ export function linkedProvidersAre(providers: string[]): void {
 }
 
 export const TEST_PASSWORD = "dev-password";
+
+/** The one token `/reset-password` accepts, as if it came from the email. */
+export const RESET_TOKEN = "valid-reset-token";
+
+/** Signs in as an account whose address was never confirmed: Better Auth's 403. */
+let emailVerified = true;
+
+export function emailIsUnverified(): void {
+  emailVerified = false;
+}
 
 type AuthScenario =
   | { kind: "signed-out" }
@@ -70,8 +81,9 @@ export function sessionUnavailable(): void {
 
 export function resetAuthScenario(): void {
   scenario = { kind: "signed-in", user: TEST_USER };
-  signInMethods = { password: true, google: false };
+  signInMethods = { password: true, google: false, passwordReset: false };
   linkedProviders = ["credential"];
+  emailVerified = true;
   avatarVersion = 1;
 }
 
@@ -118,6 +130,13 @@ export const authHandlers = [
       );
     }
 
+    if (!emailVerified) {
+      return HttpResponse.json(
+        { code: "EMAIL_NOT_VERIFIED", message: "Email not verified" },
+        { status: 403 },
+      );
+    }
+
     sessionActive();
     return HttpResponse.json({
       redirect: false,
@@ -125,6 +144,45 @@ export const authHandlers = [
       user: sessionBody(TEST_USER).user,
     });
   }),
+
+  // The app's language travels with every auth request: it picks the
+  // language of the email this one sends. Refused without it, so a client
+  // that stops sending it fails by name.
+  http.post<never, { email?: string }>(
+    `${BASE}/request-password-reset`,
+    async ({ request }) => {
+      const body = await request.json();
+      if (!body.email?.includes("@") || request.headers.get("accept-language") !== "en") {
+        return HttpResponse.json({ code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      // Better Auth's answer whether or not the address has an account.
+      return HttpResponse.json({
+        status: true,
+        message:
+          "If this email exists in our system, check your email for the reset link",
+      });
+    },
+  ),
+
+  http.post<never, { newPassword?: string; token?: string }>(
+    `${BASE}/reset-password`,
+    async ({ request }) => {
+      const body = await request.json();
+      if (body.token !== RESET_TOKEN) {
+        return HttpResponse.json(
+          { code: "INVALID_TOKEN", message: "Invalid token" },
+          { status: 400 },
+        );
+      }
+      if (!body.newPassword || body.newPassword.length < 8) {
+        return HttpResponse.json(
+          { code: "PASSWORD_TOO_SHORT", message: "Password too short" },
+          { status: 400 },
+        );
+      }
+      return HttpResponse.json({ status: true });
+    },
+  ),
 
   http.post(`${BASE}/sign-out`, () => {
     sessionInactive();

@@ -16,6 +16,7 @@
     "@velachess/accounts": "workspace:*",
     "@velachess/infra-auth": "workspace:*",
     "@velachess/infra-db": "workspace:*",
+    "@velachess/infra-email": "workspace:*",
     "@velachess/games": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
     "@velachess/infra-platforms": "workspace:*",

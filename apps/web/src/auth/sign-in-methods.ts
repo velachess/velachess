@@ -7,10 +7,11 @@ import { queryOptions } from "../libs/react-query.ts";
 export interface SignInMethods {
   password: boolean;
   google: boolean;
+  passwordReset: boolean;
 }
 
 // On failure, offer the method every instance has.
-const FALLBACK: SignInMethods = { password: true, google: false };
+const FALLBACK: SignInMethods = { password: true, google: false, passwordReset: false };
 
 export const signInMethodsQuery = queryOptions({
   queryKey: ["auth", "sign-in-methods"] as const,

@@ -9,7 +9,7 @@ export interface Credentials {
   password: string;
 }
 
-export type SignInFailure = "invalid-credentials" | "unavailable";
+export type SignInFailure = "invalid-credentials" | "email-not-verified" | "unavailable";
 
 // The code, not the status: a bare 401 can be a proxy or an outage, which
 // must not read as "wrong password". INVALID_EMAIL is a real 400 for a
@@ -45,6 +45,8 @@ export async function signIn(credentials: Credentials): Promise<SessionUser> {
   }
 
   if (result.error) {
+    if (result.error.code === "EMAIL_NOT_VERIFIED")
+      throw new SignInError("email-not-verified");
     const rejected =
       typeof result.error.code === "string" &&
       CREDENTIAL_REJECTION_CODES.has(result.error.code);

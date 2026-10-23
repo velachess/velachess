@@ -66,7 +66,11 @@ const configRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            signInMethods: z.object({ password: z.boolean(), google: z.boolean() }),
+            signInMethods: z.object({
+              password: z.boolean(),
+              google: z.boolean(),
+              passwordReset: z.boolean(),
+            }),
           }),
         },
       },

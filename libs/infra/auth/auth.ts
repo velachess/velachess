@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 // The minimal entrypoint is the official initializer "without Kysely", which
 // is this setup: persistence through the Drizzle adapter, migrations Drizzle's.
@@ -6,6 +8,10 @@ import { betterAuth } from "better-auth/minimal";
 
 import type { Database } from "@velachess/infra-db";
 import { schema } from "@velachess/infra-db";
+import type { AuthEmail } from "@velachess/infra-email";
+import { logger } from "@velachess/infra-logger";
+
+type SendAuthEmail = (email: AuthEmail) => Promise<void>;
 
 export interface AuthConfig {
   db: Database;
@@ -37,13 +43,54 @@ export interface AuthConfig {
    * whole site's sign-in shares one 3-per-10s budget.
    */
   trustedProxies?: string[];
+  /** Turns on email verification and password reset. Absent, neither exists
+   * and sign-in behaves exactly as without email. */
+  sendEmail?: SendAuthEmail;
 }
 
 /** Exported so the pinned test and the Google Cloud console value in
  * self-host.md have one source. */
 export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
 
+// Better Auth builds its own links from baseURL + basePath ("/auth"), which
+// the browser cannot reach; these are spelled under the `/api` proxy instead.
+const VERIFY_EMAIL_PATH = "/api/auth/verify-email";
+const RESET_PASSWORD_PATH = "/reset-password";
+
+const authLogger = logger.child({ component: "auth" });
+
+function appLink(baseUrl: string, path: string, params: Record<string, string>): string {
+  const url = new URL(path, baseUrl);
+  for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
+  return url.href;
+}
+
+function deliverWith(sendEmail: SendAuthEmail) {
+  return ({
+    token,
+    request,
+    ...email
+  }: Omit<AuthEmail, "acceptLanguage" | "idempotencyKey"> & {
+    token: string;
+    request: Request | undefined;
+  }): Promise<void> => {
+    // Not awaited: Better Auth awaits this callback, and the send's latency
+    // would tell a caller whether the address has an account.
+    void sendEmail({
+      ...email,
+      acceptLanguage: request?.headers.get("accept-language") ?? null,
+      // Hashed: a verification token is a JWT, longer than Resend's 256-char limit.
+      idempotencyKey: `${email.template}/${createHash("sha256").update(token).digest("hex")}`,
+    }).catch((error: unknown) => {
+      authLogger.error({ error, template: email.template }, "auth email was not sent");
+    });
+    return Promise.resolve();
+  };
+}
+
 export function createAuth(config: AuthConfig) {
+  const deliver = config.sendEmail && deliverWith(config.sendEmail);
+
   return betterAuth({
     baseURL: config.baseUrl,
     // The API serves auth under /auth/*; the web app's dev proxy adds the
@@ -76,7 +123,43 @@ export function createAuth(config: AuthConfig) {
       enabled: true,
       // Closed by default; see AuthConfig.allowSignUp.
       disableSignUp: !config.allowSignUp,
+      ...(deliver
+        ? {
+            requireEmailVerification: true,
+            revokeSessionsOnPasswordReset: true,
+            sendResetPassword: ({ user, token }, request) =>
+              deliver({
+                template: "reset-password",
+                to: user.email,
+                url: appLink(config.baseUrl, RESET_PASSWORD_PATH, { token }),
+                token,
+                request,
+              }),
+          }
+        : {}),
     },
+
+    // `sendOnSignIn` is the way back in for a password account created
+    // before email was configured: its refused sign-in sends the link.
+    ...(deliver
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            sendOnSignIn: true,
+            sendVerificationEmail: ({ user, token }, request) =>
+              deliver({
+                template: "verify-email",
+                to: user.email,
+                url: appLink(config.baseUrl, VERIFY_EMAIL_PATH, {
+                  token,
+                  callbackURL: "/login",
+                }),
+                token,
+                request,
+              }),
+          },
+        }
+      : {}),
 
     // The only route to public sign-up that does not drag in password
     // reset, email verification and SMTP. The whole key is conditional so an

@@ -125,3 +125,27 @@ describe("who owns user.image", () => {
     expect(options.account).toEqual({ modelName: "authAccounts" });
   });
 });
+
+const sendEmail = async () => {};
+
+describe("email", () => {
+  it("is absent without a sender, so sign-in stays as it was", () => {
+    const { options } = createAuth(base);
+    expect(options.emailAndPassword?.sendResetPassword).toBeUndefined();
+    expect(options.emailAndPassword?.requireEmailVerification).toBeUndefined();
+    expect(options.emailVerification).toBeUndefined();
+  });
+
+  it("with a sender, verifies addresses and revokes sessions on reset", () => {
+    const { options } = createAuth({ ...base, sendEmail });
+    expect(options.emailAndPassword).toMatchObject({
+      requireEmailVerification: true,
+      revokeSessionsOnPasswordReset: true,
+      disableSignUp: true,
+    });
+    expect(options.emailVerification).toMatchObject({
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+    });
+  });
+});
