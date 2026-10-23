@@ -667,6 +667,11 @@ describe("a variation played on the board", () => {
     await playOnBoard(user, "f1", "b5");
 
     await vi.waitFor(() => expect(evaluationReads()).toBe("—"));
+    // The bar keeps the fill it had, and stops reporting it as a share:
+    // what is on screen is the previous position's.
+    expect(
+      screen.getByRole("meter", { name: "Evaluation" }).getAttribute("aria-valuenow"),
+    ).toBeNull();
   });
 
   it("keeps claiming nothing as the line moves on without an answer", async () => {

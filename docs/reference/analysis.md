@@ -223,4 +223,8 @@ cannot disagree about what produced them.
   search and nothing else. A variation still waiting on its search — or
   whose search failed, was cancelled or was superseded — reads as
   unavailable (`UNKNOWN_EVALUATION` in `review/move-presentation.ts`),
-  because the report's number is about a position nobody is looking at
+  because the report's number is about a position nobody is looking at.
+  Unavailable is `whiteShare: null`, not an even share: `libs/ui`'s
+  `EvalBar` then holds the fill it last drew and stops reporting it as
+  `aria-valuenow`, so the 300 ms transition animates once, to the answer,
+  instead of sliding through the middle and back
