@@ -286,30 +286,6 @@ describe("playing a variation", () => {
     expect(store.evaluation()).toBeNull();
   });
 
-  it("re-asks for the position the line walked back onto, ignoring the halted search", async () => {
-    // A -> B -> A. The first search was halted when the line moved on, so
-    // it never delivers even though the engine eventually answers it; the
-    // number on screen comes from the search the walk back started.
-    const first = makeControllableEval({ score: { cp: 999 }, bestMove: "e7e5" });
-    const rest = makeControllableEval({ score: { cp: 1 }, bestMove: "e7e5" });
-    evaluate.mockImplementationOnce(first.run).mockImplementation(rest.run);
-
-    const store = openReview();
-    play(store, "e2", "e4");
-    play(store, "e7", "e5");
-    act(() => store.getState().previous());
-    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
-
-    first.answer();
-    await flush();
-    expect(first.wasHalted()).toBe(true);
-    expect(store.evaluation()).toBeNull();
-
-    rest.answer();
-    await flush();
-    expect(store.evaluation()).toEqual({ cp: 1 });
-  });
-
   it("keeps the variation when the engine fails, rather than losing the moves", async () => {
     const pending = makeControllableEval({ score: { cp: 0 }, bestMove: null });
     evaluate.mockImplementation(pending.run);
@@ -339,56 +315,40 @@ describe("navigating a variation", () => {
     expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
   });
 
-  it("walks back down the line one move at a time, re-asking for each position", async () => {
-    const answers = [
-      makeControllableEval({ score: { cp: 1 }, bestMove: null }),
-      makeControllableEval({ score: { cp: 2 }, bestMove: null }),
-      makeControllableEval({ score: { cp: 3 }, bestMove: null }),
-    ];
-    evaluate.mockImplementation(() => answers[0]!.run());
-
-    const store = openReview();
-    play(store, "e2", "e4");
-    play(store, "e7", "e5");
-    expect(store.getState().variation?.cursor).toBe(2);
-
-    act(() => store.getState().previous());
-    expect(store.getState().variation?.cursor).toBe(1);
-    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
-    // Four searches: one per position shown, the walked-back one included.
-    expect(evaluate).toHaveBeenCalledTimes(3);
-  });
-
-  it("leaves the variation at its first move, without stepping the game", () => {
+  it("freezes the game's timeline: neither direction steps while a line is open", () => {
     evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
     play(store, "e2", "e4");
 
-    expect(selectCanGoBack(store.getState())).toBe(true);
-    act(() => store.getState().previous());
+    expect(selectCanGoBack(store.getState())).toBe(false);
+    expect(selectCanGoForward(store.getState(), game)).toBe(false);
 
-    expect(store.getState().variation).toBeNull();
-    expect(store.evaluation()).toBeNull();
+    act(() => store.getState().previous());
+    act(() => store.getState().next());
+
+    // Stepping is the game's own, and a line is not on it: nothing moved,
+    // and the board is still showing the line.
     expect(store.getState().ply).toBe(0);
-    expect(selectFen(store.getState(), game)).toBe(START);
+    expect(store.getState().variation?.moves.map((move) => move.san)).toEqual(["e4"]);
+    expect(selectFen(store.getState(), game)).toBe(AFTER_E4);
   });
 
-  it("replaces the continuation when a move is played after walking back", () => {
+  it("plays on past the end of the game, where the timeline has nothing left", () => {
     evaluate.mockImplementation(
       makeControllableEval({ score: { cp: 0 }, bestMove: null }).run,
     );
     const store = openReview();
-    play(store, "e2", "e4");
-    play(store, "e7", "e5");
-    act(() => store.getState().previous());
+    act(() => store.getState().goToPly(1));
+    expect(selectCanGoForward(store.getState(), game)).toBe(false);
 
-    expect(play(store, "d7", "d5")).toBe(true);
+    expect(play(store, "e7", "e5")).toBe(true);
+    expect(play(store, "g1", "f3")).toBe(true);
 
     expect(store.getState().variation?.moves.map((move) => move.san)).toEqual([
-      "e4",
-      "d5",
+      "e5",
+      "Nf3",
     ]);
   });
 
@@ -437,7 +397,7 @@ describe("the engine session a review owns", () => {
 
     play(store, "e2", "e4");
     play(store, "e7", "e5");
-    act(() => store.getState().previous());
+    play(store, "g1", "f3");
 
     expect(evaluate).toHaveBeenCalledTimes(3);
     expect(createStockfishEvaluator).toHaveBeenCalledTimes(1);

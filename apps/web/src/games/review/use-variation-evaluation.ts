@@ -53,8 +53,8 @@ export function useVariationEvaluation(fen: string | null): WhitePovScore | null
 
   /**
    * React's cleanup is the rule: everything that makes this position stop
-   * being the one on screen — a further move, walking the line back, the
-   * variation ending, the screen going away — runs the same teardown, so
+   * being the one on screen — a further move, the line ending, the screen
+   * going away — runs the same teardown, so
    * the engine is told to stop instead of being left searching for an
    * answer nobody will read. `cancel()` is what reaches the search: a
    * generator's `return()` would queue behind the `next()` already

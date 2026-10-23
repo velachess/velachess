@@ -92,13 +92,12 @@ export function selectFen(state: ReviewData, game: ReviewGame): string {
 }
 
 /**
- * Previous doubles as the way out of a variation — there is no exit
- * button, just the line to walk back down. Exploring from the very first
- * position has no real move behind it, so the variation itself is what
- * keeps Previous available.
+ * Both ends of the game's own timeline, which a variation freezes: while
+ * a line is on the board neither direction steps it, and the way back is
+ * the scoresheet, which ends the line.
  */
 export function selectCanGoBack(state: ReviewData): boolean {
-  return state.ply > 0 || state.variation !== null;
+  return state.variation === null && state.ply > 0;
 }
 
 export function selectCanGoForward(state: ReviewData, game: ReviewGame): boolean {
@@ -152,7 +151,8 @@ export function goToPlyState(
   };
 }
 
-/** Blocked for as long as a variation is on the board. */
+/** Both blocked for as long as a variation is on the board: stepping is
+ * the game's timeline, and a line is not on it. */
 export function nextReviewState(
   state: ReviewData,
   game: ReviewGame,
@@ -161,22 +161,11 @@ export function nextReviewState(
   return goToPlyState(state, game, state.ply + 1);
 }
 
-/** Down the variation first, one move at a time, then back into the game. */
 export function previousReviewState(
   state: ReviewData,
   game: ReviewGame,
 ): ReviewTransition | null {
-  const { variation } = state;
-
-  if (variation && variation.cursor > 1) {
-    return {
-      data: { variation: { ...variation, cursor: variation.cursor - 1 } },
-      announce: null,
-    };
-  }
-  if (variation) {
-    return { data: { variation: null }, announce: null };
-  }
+  if (state.variation) return null;
   return goToPlyState(state, game, state.ply - 1);
 }
 

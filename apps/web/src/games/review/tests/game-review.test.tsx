@@ -645,16 +645,22 @@ describe("a variation played on the board", () => {
     expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
   });
 
-  it("leaves the line on Previous, back onto the game", async () => {
+  it("leaves the line on the scoresheet, with the controls frozen until then", async () => {
     const { user } = await openGame(gradedPlies());
-    await findBlunderButton();
+    const blunder = await findBlunderButton();
 
     await playOnBoard(user, "e2", "e4");
-    await user.click(screen.getByRole("button", { name: "Previous move" }));
 
-    expect(screen.getByText("The starting position.")).toBeInTheDocument();
+    // The game's timeline is not where the line lives, so neither button
+    // steps while it is on the board.
+    expect(screen.getByRole("button", { name: "Previous move" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next move" })).toBeDisabled();
+
+    await user.click(blunder);
+
+    expect(screen.getByRole("button", { name: "Previous move" })).toBeEnabled();
     // Back to the report's own reading for the position on screen.
-    await vi.waitFor(() => expect(evaluationReads()).toBe("0.0"));
+    await vi.waitFor(() => expect(evaluationReads()).toBe("0.1"));
   });
 
   it("stops explaining the real game's move, which is not what is on screen", async () => {
