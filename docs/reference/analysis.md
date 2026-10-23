@@ -58,8 +58,23 @@ to fire an effect once it has already rendered. `prefetchQuery` rather
 than `ensureQueryData` because it never rejects: a browser that cannot run
 the engine fails the analysis, not the navigation. The call is wrapped in
 `createClientOnlyFn`, because a loader runs on the server too and
-Stockfish is a Web Worker. There is no explicit re-run affordance, and
-reopening a game reads the cached report rather than searching again.
+Stockfish is a Web Worker. Reopening a game reads the cached report rather
+than searching again.
+
+A pass that failed is the one thing a screen can re-run.
+`review/analysis-progress.tsx` offers it beside the failure it already
+reports, and the restart is `resetQueries` on that game's exact analysis
+key — not `refetch`. The distinction matters: after a reset the entry is
+pristine, so `experimental_streamedQuery` does not read the new pass as a
+refetch and accumulates from its `initialValue` regardless of what its
+`refetchMode` default is. The whole pass runs again from ply 1; a failure
+stored nothing, so there is no progress to resume and the grades the dead
+pass had collected are discarded with it. The action exists only in the
+failed branch, because nothing reads the stream's abort signal: resetting
+over a running pass would leave two of them filling one cache entry. An
+errored entry is also refetched once on its own, when a screen mounts over
+it — React Query invalidates a query it failed — so a browser that cannot
+run the engine fails twice before it reports anything.
 
 Two Workers can run at once, one per session, and the sessions do not
 coordinate: the whole-game pass is not interrupted by a variation someone

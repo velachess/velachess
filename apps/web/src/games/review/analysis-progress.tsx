@@ -1,11 +1,12 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
-import { Alert, AlertTitle } from "@velachess/ui/components/alert";
+import { Alert, AlertAction, AlertTitle } from "@velachess/ui/components/alert";
+import { Button } from "@velachess/ui/components/button";
 import { Progress } from "@velachess/ui/components/progress";
 import { Spinner } from "@velachess/ui/components/spinner";
 
-import { useQuery } from "../../libs/react-query.ts";
+import { useQuery, useQueryClient } from "../../libs/react-query.ts";
 import { gameAnalysisQuery, selectProgress } from "./game-analysis-query.ts";
 import type { ProgressReading } from "./game-analysis-query.ts";
 import type { ReplayableGame } from "./game-record.ts";
@@ -13,6 +14,7 @@ import type { ReplayableGame } from "./game-record.ts";
 const STATUS_COPY = {
   preparing: msg`Preparing analysis…`,
   loadError: msg`Couldn't load analysis.`,
+  tryAgain: msg`Try again`,
 } as const;
 
 const analyzingLabel = (graded: number, total: number) =>
@@ -39,13 +41,30 @@ export interface AnalysisProgressProps {
  * deepening search redraws this bar and nothing else. */
 export function AnalysisProgress({ game, totalPlies }: AnalysisProgressProps) {
   const { i18n } = useLingui();
-  const analysis = useQuery({ ...gameAnalysisQuery(game), select: selectProgress });
+  const queryClient = useQueryClient();
+  const analysisQuery = gameAnalysisQuery(game);
+  const analysis = useQuery({ ...analysisQuery, select: selectProgress });
 
+  // Reset, not refetch: a pristine entry is not a refetch to
+  // `experimental_streamedQuery`, so the new pass accumulates from its
+  // `initialValue` whatever that helper's `refetchMode` default becomes.
+  const restartAnalysis = () => {
+    void queryClient.resetQueries({ queryKey: analysisQuery.queryKey, exact: true });
+  };
+
+  // Only a failed pass offers the restart: nothing reads the stream's
+  // abort signal, so resetting over a running one would leave two passes
+  // filling the same cache entry.
   if (analysis.isError) {
     return (
       <div className="shrink-0 border-b p-3">
         <Alert variant="destructive">
           <AlertTitle>{i18n._(STATUS_COPY.loadError)}</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={restartAnalysis}>
+              {i18n._(STATUS_COPY.tryAgain)}
+            </Button>
+          </AlertAction>
         </Alert>
       </div>
     );

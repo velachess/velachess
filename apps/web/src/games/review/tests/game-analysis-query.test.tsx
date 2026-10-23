@@ -98,6 +98,11 @@ function stagedPass() {
       failure = error;
       wake();
     },
+    /** What a restarted pass meets: the staged events replay from ply 1,
+     * and the engine no longer dies on them. */
+    recover() {
+      failure = null;
+    },
   };
 }
 
@@ -260,5 +265,43 @@ describe("gameAnalysisQuery", () => {
     expect(screen.result.current.error).toBe(boom);
     expect(reported).not.toHaveBeenCalled();
     expect(getBackendStatus()).toBe("available");
+  });
+
+  it("restarts a failed pass when the entry is reset, and leaves none behind", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const pass = stagedPass();
+    const screen = mountConsumer(queryClient);
+    await vi.waitFor(() => expect(pass.started).toBe(1));
+
+    pass.grade(1);
+    await vi.waitFor(() => expect(screen.result.current.data).toHaveLength(1));
+
+    await act(async () => {
+      pass.fail(new Error("Engine failed twice evaluating something"));
+      await vi.waitFor(() => expect(screen.result.current.isError).toBe(true));
+    });
+
+    // The failing pass released its stream on the way out, so the restart
+    // cannot be a second one running beside it.
+    expect(pass.closed).toBe(1);
+
+    pass.recover();
+    act(() => {
+      void queryClient.resetQueries({
+        queryKey: gameAnalysisQuery(game).queryKey,
+        exact: true,
+      });
+    });
+
+    await vi.waitFor(() => expect(pass.started).toBe(2));
+    expect(screen.result.current.isError).toBe(false);
+
+    const report = [aGradedPly(1), aGradedPly(2)];
+    pass.complete(report);
+
+    // The new pass's report, not the failed one's grades plus this one's.
+    await vi.waitFor(() => expect(screen.result.current.data).toEqual(report));
+    expect(pass.started).toBe(2);
+    expect(pass.closed).toBe(2);
   });
 });
