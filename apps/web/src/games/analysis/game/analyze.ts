@@ -36,6 +36,7 @@ async function* searchPosition(
       type: ANALYSIS_EVENT.POSITION_UPDATE,
       live: { ply, fen, update: step.value },
     };
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a stream is pulled one value at a time, and the engine searches one position at a time
     step = await search.next();
   }
 

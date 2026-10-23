@@ -22,6 +22,7 @@ import {
  * return value is where it is — which `for await` would discard. */
 async function settledEvaluation(search: PositionSearch) {
   let step = await search.next();
+  // oxlint-disable-next-line eslint/no-await-in-loop -- draining a stream is sequential by definition: the next value exists only once this one arrived
   while (!step.done) step = await search.next();
   return step.value;
 }

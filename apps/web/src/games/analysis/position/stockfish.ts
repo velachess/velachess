@@ -90,6 +90,7 @@ function searchPosition(session: EngineSessionHandle, fen: string): PositionSear
       while (true) {
         while (pending.length > 0) yield pending.shift()!;
         if (finished) break;
+        // oxlint-disable-next-line eslint/no-await-in-loop -- waits for the next line this one search produces; there is no second search to run beside it
         await new Promise<void>((resolve) => {
           wake = resolve;
         });
