@@ -3,7 +3,7 @@
  * engine score to that share is `@velachess/analysis`'s.
  */
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { cn } from "../lib/utils.ts";
 import type { BoardSide } from "./board.tsx";
@@ -33,13 +33,18 @@ export function EvalBar({
   className,
 }: EvalBarProps) {
   // Held rather than reset to even: a slide through the middle and back
-  // animates a reading nobody produced.
+  // animates a reading nobody produced. Recorded after the paint it
+  // describes, so render stays pure.
   const drawn = useRef(SHARE_EVEN);
-  if (whiteShare !== null) {
-    drawn.current = Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
-  }
+  const share =
+    whiteShare === null
+      ? drawn.current
+      : Math.min(SHARE_MAX, Math.max(SHARE_MIN, whiteShare));
 
-  const share = drawn.current;
+  useEffect(() => {
+    drawn.current = share;
+  }, [share]);
+
   const whitePercent = share * PERCENT_MAX;
   const whiteAtBottom = orientation === "white";
   const whiteLeads = share >= SHARE_EVEN;
