@@ -1,9 +1,7 @@
 /**
- * [WORKER] — the sync pg-boss handler and the process lifecycle around
- * it. Behavior lives in the business modules under libs/; the handler
- * composes a slice's deps and calls it. pg-boss owns the rest: a handler
- * that returns completes its job, one that throws fails it, and the queue's
- * policy decides retry, backoff and dead letter.
+ * pg-boss owns the delivery: a handler that returns completes its job, one
+ * that throws fails it, and the queue's policy decides retry, backoff and
+ * dead letter.
  *
  * Analysis has no worker handler — it runs browser-side (Stockfish WASM),
  * not queued here. See PR #155 and docs/reference/analysis.md.
@@ -26,54 +24,46 @@ export interface WorkerDeps {
 }
 
 export class Worker {
-  // A plain field, not a parameter property: `main.ts` runs under Node's
-  // `--experimental-strip-types`, which strips types only and rejects the
-  // TypeScript-only `constructor(private deps)` shorthand.
+  // A plain field: `main.ts` runs under Node's `--experimental-strip-types`,
+  // which rejects the TypeScript-only `constructor(private deps)` shorthand.
   readonly #deps: WorkerDeps;
 
   constructor(deps: WorkerDeps) {
     this.#deps = deps;
   }
 
-  /** Registration is awaited: startup fails loudly if a handler cannot
-   * register instead of logging "consuming" over a dead one. `boss.start`
-   * is a no-op on a boss already started (the test harness's). */
+  /** Registration is awaited, so startup fails rather than logging
+   * "consuming" over a dead handler. `boss.start` is a no-op on an
+   * already-started boss. */
   async start(): Promise<void> {
     const { boss, db, log = workerLogger } = this.#deps;
     await boss.start();
     await ensureQueues(boss);
 
-    // No DLQ handlers on purpose: consuming a dead letter completes it and
-    // destroys the operator's options. Dead jobs stay visible in the
-    // dashboard (`pnpm queue:dashboard`): a failed sync is revived by
-    // *retrying* it there, which keeps its id — the sync job's id — while
-    // a redrive of the DLQ copy mints a new id the slice cannot resolve.
+    // No DLQ handler: consuming a dead letter completes it and takes away
+    // the operator's options. A failed sync is revived by retrying it in the
+    // dashboard, which keeps the sync job's id, where a redrive of the DLQ
+    // copy mints one the slice cannot resolve.
 
-    // Both providers ask for one request at a time. A job calls its provider
-    // sequentially, so one job per provider group across every node is one
+    // Both providers ask for one request at a time, and a job calls its
+    // provider sequentially, so one job per group across every node is one
     // request in flight per provider.
     await boss.work(QUEUES.sync, { groupConcurrency: 1 }, async (jobs) => {
       for (const job of jobs) {
         const fields = { queue: QUEUES.sync, jobId: job.id };
         log.info(fields, "job start");
-        // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
-        await syncAccount(buildSyncAccountDeps(db, this.#deps.sync), job).catch(
-          failed(log, fields),
-        );
+        try {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- pg-boss delivers this queue's batch one job at a time
+          await syncAccount(buildSyncAccountDeps(db, this.#deps.sync), job);
+        } catch (error) {
+          log.error({ err: error, ...fields }, "job failed");
+          throw error;
+        }
       }
     });
   }
 
-  /** In-flight jobs finish, new fetches stop. */
   stop(): Promise<void> {
     return this.#deps.boss.stop({ graceful: true });
   }
-}
-
-/** Logs the failure with the job's fields, then lets pg-boss have it. */
-function failed(log: Logger, fields: Record<string, unknown>) {
-  return (error: unknown): never => {
-    log.error({ err: error, ...fields }, "job failed");
-    throw error;
-  };
 }
