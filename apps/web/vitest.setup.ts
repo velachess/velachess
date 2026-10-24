@@ -25,12 +25,12 @@ import { resetDevice } from "./src/test/device.ts";
 import { server } from "./src/test/server.ts";
 
 /**
- * `onUnhandledRequest: "error"` is load-bearing: without it a request
+ * `onUnhandledFrame: "error"` is load-bearing: without it a request
  * nobody described falls through to the real network, where it hangs or
  * quietly succeeds.
  */
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: "error" });
+  server.listen({ onUnhandledFrame: "error" });
 
   // jsdom implements no scrolling, and the router restores scroll position
   // on every navigation, logging a "Not implemented" error that reads as a
