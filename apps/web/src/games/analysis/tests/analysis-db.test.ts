@@ -7,7 +7,12 @@ import { POLICY_VERSION } from "@velachess/analysis";
 import { openDB } from "../../../libs/idb.ts";
 import { aGradedPly } from "../../../test/games.ts";
 import { ENGINE_BUILD } from "../../../engine/index.ts";
-import { getReport, resetAnalysisDbForTests, saveReport } from "../analysis-db.ts";
+import {
+  eraseAnalysisReports,
+  getReport,
+  resetAnalysisDbForTests,
+  saveReport,
+} from "../analysis-db.ts";
 import { ANALYSIS_DEPTH, type GameAnalysisReport } from "../types.ts";
 
 afterEach(async () => {
@@ -129,5 +134,30 @@ describe("storage that refuses", () => {
 
     await saveReport("game-1", GRADED);
     await expect(getReport("game-1")).resolves.not.toBeNull();
+  });
+});
+
+async function databaseNames() {
+  return (await indexedDB.databases()).map((database) => database.name);
+}
+
+describe("erasing every report", () => {
+  it("deletes the database, and a pass finishing afterwards writes nothing back", async () => {
+    await saveReport("game-1", GRADED);
+
+    await eraseAnalysisReports();
+    await saveReport("game-2", GRADED);
+
+    expect(await databaseNames()).not.toContain(DB_NAME);
+    await expect(getReport("game-2")).resolves.toBeNull();
+  });
+
+  it("does not wait on a connection that never closes", async () => {
+    await saveReport("game-1", GRADED);
+    const stubborn = await openDB(DB_NAME, 1);
+
+    await expect(eraseAnalysisReports()).resolves.toBeUndefined();
+
+    stubborn.close();
   });
 });

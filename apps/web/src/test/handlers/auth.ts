@@ -40,6 +40,13 @@ export const RESET_TOKEN = "valid-reset-token";
 
 let emailVerified = true;
 
+/** Signed in more than a day ago, so deleting needs the password. */
+let sessionFresh = true;
+
+export function sessionIsOld(): void {
+  sessionFresh = false;
+}
+
 export function emailIsUnverified(): void {
   emailVerified = false;
 }
@@ -69,6 +76,7 @@ export function resetAuthScenario(): void {
   signInMethods = { password: true, google: false, passwordReset: false };
   linkedProviders = ["credential"];
   emailVerified = true;
+  sessionFresh = true;
   avatarVersion = 1;
 }
 
@@ -170,6 +178,27 @@ export const authHandlers = [
   http.post(`${BASE}/sign-out`, () => {
     sessionInactive();
     return HttpResponse.json({ success: true });
+  }),
+
+  http.post<never, { password?: string }>(`${BASE}/delete-user`, async ({ request }) => {
+    if (scenario.kind !== "signed-in") {
+      return HttpResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
+    }
+    const { password } = await request.json();
+    if (password !== undefined && password !== TEST_PASSWORD) {
+      return HttpResponse.json(
+        { code: "INVALID_PASSWORD", message: "Invalid password" },
+        { status: 400 },
+      );
+    }
+    if (password === undefined && !sessionFresh) {
+      return HttpResponse.json(
+        { code: "SESSION_EXPIRED", message: "Session expired" },
+        { status: 400 },
+      );
+    }
+    sessionInactive();
+    return HttpResponse.json({ success: true, message: "User deleted" });
   }),
 
   http.post(`${BASE}/sign-in/social`, () =>

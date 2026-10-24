@@ -10,6 +10,8 @@
 import { api, parseResponse } from "../../api/index.ts";
 import { authClient } from "../../auth/client.ts";
 import { sessionQueryKey } from "../../auth/session.ts";
+import { eraseAnalysisReports } from "../../games/analysis/index.ts";
+import { useMyAccounts } from "../../games/import/index.ts";
 import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
 
 /** Better Auth's provider id for email+password. */
@@ -88,5 +90,51 @@ export function useRemoveAvatar() {
       await api.me.avatar.$delete();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
+  });
+}
+
+export type DeleteAccountFailure = "wrong-password" | "sign-in-again" | "unavailable";
+
+class DeleteAccountError extends Error {
+  readonly reason: DeleteAccountFailure;
+
+  constructor(reason: DeleteAccountFailure) {
+    super(`could not delete account: ${reason}`);
+    this.name = "DeleteAccountError";
+    this.reason = reason;
+  }
+}
+
+function deleteAccountFailureOf(code: string | undefined): DeleteAccountFailure {
+  if (code === "INVALID_PASSWORD") return "wrong-password";
+  if (code === "SESSION_EXPIRED") return "sign-in-again";
+  return "unavailable";
+}
+
+export function deleteAccountFailure(error: unknown): DeleteAccountFailure {
+  if (error instanceof DeleteAccountError) return error.reason;
+  return "unavailable";
+}
+
+/**
+ * Without a password Better Auth accepts only a session signed in within
+ * the last day, which is the proof a Google-only account has to offer.
+ */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (proof: { password?: string }) => {
+      const { error } = await authClient.deleteUser(proof);
+      if (error) throw new DeleteAccountError(deleteAccountFailureOf(error.code));
+    },
+    // Success only: a refused delete leaves the account, and this device
+    // keeps showing it.
+    onSuccess: async () => {
+      queryClient.setQueryData(sessionQueryKey, null);
+      queryClient.clear();
+      useMyAccounts.setState({ accounts: [] });
+      await eraseAnalysisReports();
+    },
   });
 }

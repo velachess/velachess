@@ -48,13 +48,13 @@ msgstr "{white} vs {black}"
 
 #: src/app-shell/user-menu.tsx:29
 #: src/routes/_app/settings/account.tsx:7
-#: src/settings/account/account-screen.tsx:12
+#: src/settings/account/account-screen.tsx:13
 #: src/settings/layout/navigation.ts:29
-#: src/test/routes.tsx:132
+#: src/test/routes.tsx:112
 msgid "Account"
 msgstr "Account"
 
-#: src/auth/sign-in/sign-in-screen.tsx:46
+#: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "An account already exists with that email. Sign in with your password instead."
 msgstr "An account already exists with that email. Sign in with your password instead."
 
@@ -74,7 +74,7 @@ msgstr "Analyzing move {ply} of {total} — depth {depth}…"
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
-#: src/test/routes.tsx:153
+#: src/test/routes.tsx:133
 msgid "Appearance"
 msgstr "Appearance"
 
@@ -141,6 +141,7 @@ msgid "By name"
 msgstr "By name"
 
 #: src/settings/account/avatar-field.tsx:39
+#: src/settings/account/delete-account.tsx:42
 #: src/settings/connections/connections-screen.tsx:70
 msgid "Cancel"
 msgstr "Cancel"
@@ -195,7 +196,7 @@ msgstr "Color"
 msgid "Confirm new password"
 msgstr "Confirm new password"
 
-#: src/auth/sign-in/sign-in-screen.tsx:48
+#: src/auth/sign-in/sign-in-screen.tsx:46
 msgid "Confirm your email first. We sent a new link to your inbox."
 msgstr "Confirm your email first. We sent a new link to your inbox."
 
@@ -220,25 +221,29 @@ msgstr "Connection removed"
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:55
 #: src/settings/layout/navigation.ts:30
-#: src/test/routes.tsx:139
+#: src/test/routes.tsx:119
 msgid "Connections"
 msgstr "Connections"
 
-#: src/auth/sign-in/sign-in-screen.tsx:30
+#: src/auth/sign-in/sign-in-screen.tsx:28
 msgid "Continue to VelaChess"
 msgstr "Continue to VelaChess"
 
-#: src/auth/sign-in/sign-in-screen.tsx:42
+#: src/auth/sign-in/sign-in-screen.tsx:40
 msgid "Continue with Google"
 msgstr "Continue with Google"
 
-#: src/auth/sign-in/sign-in-screen.tsx:31
+#: src/auth/sign-in/sign-in-screen.tsx:29
 msgid "Continue with Google or sign in with your account credentials."
 msgstr "Continue with Google or sign in with your account credentials."
 
 #: src/games/list/columns.tsx:27
 msgid "Correspondence"
 msgstr "Correspondence"
+
+#: src/settings/account/delete-account.tsx:50
+msgid "Couldn't delete your account. Try again."
+msgstr "Couldn't delete your account. Try again."
 
 #: src/games/import/accounts/use-sync-settlement-toast.ts:11
 msgid "Couldn't finish syncing"
@@ -267,7 +272,7 @@ msgstr "Couldn't reach that account"
 
 #: src/auth/password-reset/forgot-password-screen.tsx:29
 #: src/auth/password-reset/reset-password-screen.tsx:33
-#: src/auth/sign-in/sign-in-screen.tsx:38
+#: src/auth/sign-in/sign-in-screen.tsx:36
 msgid "Couldn't reach the server. Try again in a moment."
 msgstr "Couldn't reach the server. Try again in a moment."
 
@@ -303,6 +308,10 @@ msgstr "Couldn't sync your games"
 msgid "Crop your picture"
 msgstr "Crop your picture"
 
+#: src/settings/account/delete-account.tsx:34
+msgid "Danger zone"
+msgstr "Danger zone"
+
 #: src/app-shell/user-menu.tsx:34
 #: src/settings/appearance/appearance-screen.tsx:17
 msgid "Dark"
@@ -311,6 +320,23 @@ msgstr "Dark"
 #: src/games/list/columns.tsx:18
 msgid "Date"
 msgstr "Date"
+
+#: src/settings/account/delete-account.tsx:36
+#: src/settings/account/delete-account.tsx:43
+msgid "Delete account"
+msgstr "Delete account"
+
+#: src/settings/account/delete-account.tsx:37
+msgid "Delete your account?"
+msgstr "Delete your account?"
+
+#: src/settings/account/delete-account.tsx:35
+msgid "Deleting your account is permanent."
+msgstr "Deleting your account is permanent."
+
+#: src/settings/account/delete-account.tsx:44
+msgid "Deleting…"
+msgstr "Deleting…"
 
 #: src/settings/connections/connections-screen.tsx:67
 msgid "Disconnect"
@@ -327,7 +353,7 @@ msgid "Draw"
 msgstr "Draw"
 
 #: src/auth/password-reset/forgot-password-screen.tsx:24
-#: src/auth/sign-in/sign-in-screen.tsx:33
+#: src/auth/sign-in/sign-in-screen.tsx:31
 #: src/settings/account/profile-form.tsx:27
 msgid "Email"
 msgstr "Email"
@@ -344,7 +370,7 @@ msgstr "Enter a name."
 msgid "Enter your account's email and we'll send you a link to choose a new password."
 msgstr "Enter your account's email and we'll send you a link to choose a new password."
 
-#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/auth/sign-in/sign-in-screen.tsx:37
 msgid "Enter your email."
 msgstr "Enter your email."
 
@@ -352,7 +378,8 @@ msgstr "Enter your email."
 msgid "Enter your name so your games can be told apart from your opponents'."
 msgstr "Enter your name so your games can be told apart from your opponents'."
 
-#: src/auth/sign-in/sign-in-screen.tsx:41
+#: src/auth/sign-in/sign-in-screen.tsx:39
+#: src/settings/account/delete-account.tsx:40
 msgid "Enter your password."
 msgstr "Enter your password."
 
@@ -377,20 +404,24 @@ msgstr "Every game you've imported, and how it went."
 msgid "Filters"
 msgstr "Filters"
 
-#: src/auth/sign-in/sign-in-screen.tsx:47
+#: src/settings/account/delete-account.tsx:49
+msgid "For your security, sign out and sign back in, then try again."
+msgstr "For your security, sign out and sign back in, then try again."
+
+#: src/auth/sign-in/sign-in-screen.tsx:45
 msgid "Forgot password?"
 msgstr "Forgot password?"
 
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:9
 #: src/settings/layout/navigation.ts:33
-#: src/test/routes.tsx:160
+#: src/test/routes.tsx:140
 msgid "Gameplay"
 msgstr "Gameplay"
 
 #: src/games/list/games-list.tsx:22
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:77
+#: src/test/routes.tsx:62
 msgid "Games"
 msgstr "Games"
 
@@ -414,11 +445,11 @@ msgstr "Good"
 msgid "Google"
 msgstr "Google"
 
-#: src/auth/sign-in/sign-in-screen.tsx:45
+#: src/auth/sign-in/sign-in-screen.tsx:43
 msgid "Google sign-in didn't complete. Try again."
 msgstr "Google sign-in didn't complete. Try again."
 
-#: src/auth/sign-in/sign-in-screen.tsx:44
+#: src/auth/sign-in/sign-in-screen.tsx:42
 msgid "Google sign-in was cancelled."
 msgstr "Google sign-in was cancelled."
 
@@ -471,7 +502,7 @@ msgstr "Importing…"
 msgid "Inaccuracy"
 msgstr "Inaccuracy"
 
-#: src/auth/sign-in/sign-in-screen.tsx:37
+#: src/auth/sign-in/sign-in-screen.tsx:35
 msgid "Invalid email or password."
 msgstr "Invalid email or password."
 
@@ -526,7 +557,7 @@ msgstr "Language"
 #: src/routes/_app/settings/language-region.tsx:7
 #: src/settings/language-region/language-region-screen.tsx:18
 #: src/settings/layout/navigation.ts:31
-#: src/test/routes.tsx:146
+#: src/test/routes.tsx:126
 msgid "Language & region"
 msgstr "Language & region"
 
@@ -654,7 +685,7 @@ msgstr "Opening not recognised"
 msgid "Opponent"
 msgstr "Opponent"
 
-#: src/auth/sign-in/sign-in-screen.tsx:43
+#: src/auth/sign-in/sign-in-screen.tsx:41
 msgid "Or continue with"
 msgstr "Or continue with"
 
@@ -662,7 +693,8 @@ msgstr "Or continue with"
 msgid "Or paste the moves"
 msgstr "Or paste the moves"
 
-#: src/auth/sign-in/sign-in-screen.tsx:34
+#: src/auth/sign-in/sign-in-screen.tsx:32
+#: src/settings/account/delete-account.tsx:39
 msgid "Password"
 msgstr "Password"
 
@@ -809,7 +841,7 @@ msgstr "Set — you can sign in with your email and password."
 #: src/app-shell/user-menu.tsx:30
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:117
+#: src/test/routes.tsx:97
 msgid "Settings"
 msgstr "Settings"
 
@@ -818,11 +850,11 @@ msgid "Show the engine's move on the board"
 msgstr "Show the engine's move on the board"
 
 #: src/auth/password-reset/reset-password-screen.tsx:30
-#: src/auth/sign-in/sign-in-screen.tsx:35
+#: src/auth/sign-in/sign-in-screen.tsx:33
 msgid "Sign in"
 msgstr "Sign in"
 
-#: src/auth/sign-in/sign-in-screen.tsx:32
+#: src/auth/sign-in/sign-in-screen.tsx:30
 msgid "Sign in with your account credentials."
 msgstr "Sign in with your account credentials."
 
@@ -834,7 +866,7 @@ msgstr "Sign out"
 msgid "Sign-in methods"
 msgstr "Sign-in methods"
 
-#: src/auth/sign-in/sign-in-screen.tsx:36
+#: src/auth/sign-in/sign-in-screen.tsx:34
 msgid "Signing in…"
 msgstr "Signing in…"
 
@@ -895,18 +927,22 @@ msgstr "System default follows your browser's language."
 msgid "System follows your operating system's setting."
 msgstr "System follows your operating system's setting."
 
-#: src/auth/sign-in/sign-in-screen.tsx:49
+#: src/auth/sign-in/sign-in-screen.tsx:47
 msgid "That confirmation link is invalid or has expired. Sign in to get a new one."
 msgstr "That confirmation link is invalid or has expired. Sign in to get a new one."
 
 #: src/auth/password-reset/forgot-password-screen.tsx:25
-#: src/auth/sign-in/sign-in-screen.tsx:40
+#: src/auth/sign-in/sign-in-screen.tsx:38
 msgid "That doesn't look like an email address."
 msgstr "That doesn't look like an email address."
 
 #: src/settings/account/avatar-field.tsx:47
 msgid "That image is too large. Choose one under 8 MB."
 msgstr "That image is too large. Choose one under 8 MB."
+
+#: src/settings/account/delete-account.tsx:48
+msgid "That password isn't right."
+msgstr "That password isn't right."
 
 #: src/games/import/accounts/sources.ts:11
 msgid "That username is too long"
@@ -958,6 +994,10 @@ msgstr "Try again in a moment."
 #: src/chess-sounds/sound-toggle.tsx:12
 msgid "Turn move sounds on"
 msgstr "Turn move sounds on"
+
+#: src/settings/account/delete-account.tsx:41
+msgid "Type {CONFIRMATION} to confirm"
+msgstr "Type {CONFIRMATION} to confirm"
 
 #: src/games/list/columns.tsx:22
 #: src/games/review/game-result.tsx:12
@@ -1023,7 +1063,7 @@ msgstr "Your games are the syllabus"
 msgid "Your handle is all it takes. We read the public archive and stop there."
 msgstr "Your handle is all it takes. We read the public archive and stop there."
 
-#: src/settings/account/account-screen.tsx:13
+#: src/settings/account/account-screen.tsx:14
 msgid "Your identity on this instance, and how you sign in to it."
 msgstr "Your identity on this instance, and how you sign in to it."
 
@@ -1034,6 +1074,10 @@ msgstr "Your name in these games"
 #: src/auth/password-reset/reset-password-screen.tsx:29
 msgid "Your password was changed. Sign in with the new one."
 msgstr "Your password was changed. Sign in with the new one."
+
+#: src/settings/account/delete-account.tsx:38
+msgid "Your profile, connected accounts, imported games and picture are erased from this instance. This can't be undone."
+msgstr "Your profile, connected accounts, imported games and picture are erased from this instance. This can't be undone."
 
 #: src/settings/account/avatar-field.tsx:38
 msgid "Zoom"

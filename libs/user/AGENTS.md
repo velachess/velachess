@@ -1,17 +1,27 @@
 # Agent Guide — `libs/user`
 
 Extends `../../AGENTS.md`. Owns the VelaChess person: who they are here and
-what they look like. Two behaviors today — first-user bootstrap (creating
-the first user from env-var credentials) and the profile avatar.
+what they look like. Three behaviors today — first-user bootstrap (creating
+the first user from env-var credentials), the profile avatar, and account
+deletion.
 
 Packaged as `@velachess/user` — distinct from `libs/infra/auth`'s
 `@velachess/infra-auth`, which owns the Better Auth mechanism itself, not
 these behaviors.
 
-`index.ts` exports: `bootstrapUser`, `bootstrapCredentialsFromEnv`; types
-`BootstrapUserCredentials`, `BootstrapOutcome`, `BootstrapUserDeps`,
-`CountUsers`, `SignUpEmail`, `SignUpEmailInput`, `SignUpEmailResult`,
-`MarkEmailVerified`, `TryAcquireLock`.
+`index.ts` exports: `bootstrapUser`, `bootstrapCredentialsFromEnv`,
+`setAvatar`, `removeAvatar`, `readAvatar`, `deleteAccount`,
+`AVATAR_MAX_BYTES`; types `BootstrapUserCredentials`, `BootstrapOutcome`,
+`BootstrapUserDeps`, `CountUsers`, `SignUpEmail`, `SignUpEmailInput`,
+`SignUpEmailResult`, `MarkEmailVerified`, `TryAcquireLock`, `AvatarMediaType`,
+`AvatarSource`, `SetAvatarDeps`, `SetAvatarOutcome`, `RemoveAvatarDeps`,
+`ReadAvatarDeps`, `StoredAvatar`, `DeleteAccountDeps`.
+
+`deleteAccount` is Better Auth's `user.deleteUser.beforeDelete`, wired
+through `AuthConfig.deleteAccount` in the composition root, so identity
+proof (password or a fresh session) stays Better Auth's. It removes the
+avatar object first and then the user in one transaction; any user may
+delete themselves, the only user of an instance included.
 
 Does not own, and must not grow: the Better Auth configuration and session
 resolution (`libs/infra/auth`, `apps/server/src/middleware/session.ts`), or

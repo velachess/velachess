@@ -9,6 +9,7 @@ import { createAuth, type Auth } from "@velachess/infra-auth";
 import type { AuthEmail } from "@velachess/infra-email";
 import { createFileStore } from "@velachess/infra-storage";
 import { syncAccount } from "@velachess/accounts";
+import { deleteAccount } from "@velachess/user";
 import {
   claimSyncAttempt,
   createSyncNotifications,
@@ -28,6 +29,7 @@ import {
 } from "@velachess/test-utils";
 
 import { buildReadinessChecks } from "../src/composition/health.ts";
+import { buildDeleteAccountDeps } from "../src/composition/user.ts";
 import { createApp } from "../src/server.ts";
 import { createRedisClient } from "../src/redis.ts";
 import type { ApiDeps } from "../src/deps.ts";
@@ -41,6 +43,7 @@ export interface AuthedApp {
 export interface ApiHarness extends LoopHarness {
   app: ReturnType<typeof createApp>;
   deps: ApiDeps;
+  filesRoot: string;
   auth: Auth;
   bootstrapAuth: Auth;
   runSync: (syncId: string, fetchOverride?: typeof fetch) => Promise<void>;
@@ -80,10 +83,16 @@ export async function createApiHarness(
     secret: "test-secret-at-least-32-characters-long",
     secureCookies: false,
   };
-  const auth = createAuth({ ...authConfig, ...(sendEmail ? { sendEmail } : {}) });
-  const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
-
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
+  const files = createFileStore(filesRoot);
+
+  const auth = createAuth({
+    ...authConfig,
+    ...(sendEmail ? { sendEmail } : {}),
+    deleteAccount: (userId) =>
+      deleteAccount(buildDeleteAccountDeps(harness.db, files), userId),
+  });
+  const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 
   const redis = harnessRedis();
 
@@ -97,7 +106,7 @@ export async function createApiHarness(
     ),
     syncQueue: harness.syncQueue,
     lock: harness.lock,
-    files: createFileStore(filesRoot),
+    files,
     sync,
     redis,
     readinessChecks: buildReadinessChecks(harness.db, harness.boss),
@@ -172,6 +181,7 @@ export async function createApiHarness(
     ...harness,
     app,
     deps,
+    filesRoot,
     auth,
     bootstrapAuth,
     runSync,

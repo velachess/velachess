@@ -1,7 +1,7 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 
 import type { Database } from "../client.ts";
-import { users, type User } from "../schema.ts";
+import { syncJobs, users, verifications, type User } from "../schema.ts";
 
 export async function countUsers(db: Database) {
   const [row] = await db.select({ n: count() }).from(users);
@@ -44,6 +44,22 @@ export async function writeAvatarState(
     .update(users)
     .set({ image: next.image, avatarSource: next.avatarSource })
     .where(eq(users.id, userId));
+}
+
+/** See docs/explanation/modules/db.md: one transaction, owned rows by cascade. */
+export async function deleteUser(db: Database, userId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    // Jobs, then the user — the order every sync writer takes them, the
+    // user through the games' FK. Deleting the user first deadlocked
+    // against a sync mid-commit.
+    await tx
+      .select({ id: syncJobs.id })
+      .from(syncJobs)
+      .where(eq(syncJobs.userId, userId))
+      .for("update");
+    await tx.delete(verifications).where(eq(verifications.value, userId));
+    await tx.delete(users).where(eq(users.id, userId));
+  });
 }
 
 let seq = 0;

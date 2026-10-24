@@ -17,13 +17,19 @@ const DB_NAME = "velachess-analysis";
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<AnalysisDbSchema>> | undefined;
+let erased = false;
 
 function openAnalysisDb(): Promise<IDBPDatabase<AnalysisDbSchema>> {
+  if (erased) return Promise.reject(new Error("analysis storage was erased in this tab"));
   // Cleared on failure: a memoized rejection would keep storage off for
   // the life of the tab.
   dbPromise ??= openDB<AnalysisDbSchema>(DB_NAME, DB_VERSION, {
     upgrade(db) {
       db.createObjectStore("report", { keyPath: "gameId" });
+    },
+    // Another tab deleting the database waits on every open connection.
+    blocking() {
+      void closeAnalysisDb();
     },
   }).catch((error: unknown) => {
     dbPromise = undefined;
@@ -68,9 +74,32 @@ export async function saveReport(
   }
 }
 
-export async function resetAnalysisDbForTests(): Promise<void> {
+async function closeAnalysisDb(): Promise<void> {
   const opening = dbPromise;
   dbPromise = undefined;
   await opening?.then((db) => db.close()).catch(() => {});
+}
+
+/**
+ * Every report on this device, for when the account they came from is gone.
+ * Storage stays off in this tab afterwards: a pass still running would
+ * otherwise write its report back.
+ */
+export async function eraseAnalysisReports(): Promise<void> {
+  erased = true;
+  await closeAnalysisDb();
+  await new Promise<void>((resolve) => {
+    // A tab that never closes its connection keeps the delete queued; the
+    // caller stops waiting rather than hanging on it.
+    deleteDB(DB_NAME, { blocked: () => resolve() }).then(resolve, (error: unknown) => {
+      console.warn("Failed to delete stored game analysis reports", error);
+      resolve();
+    });
+  });
+}
+
+export async function resetAnalysisDbForTests(): Promise<void> {
+  erased = false;
+  await closeAnalysisDb();
   await deleteDB(DB_NAME);
 }

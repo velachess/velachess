@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { createAuth } from "@velachess/infra-auth";
 import { createAuthEmailSender } from "@velachess/infra-email";
 import { createFileStore } from "@velachess/infra-storage";
-import { bootstrapUser } from "@velachess/user";
+import { bootstrapUser, deleteAccount } from "@velachess/user";
 import {
   createDb,
   createSyncNotifications,
@@ -16,7 +16,7 @@ import { createBoss, ensureQueues, makeSyncQueue } from "@velachess/infra-queue"
 import { createApp } from "./server.ts";
 import { resolveApiEnv } from "./env.ts";
 import { createRedisClient } from "./redis.ts";
-import { buildBootstrapUserDeps } from "./composition/user.ts";
+import { buildBootstrapUserDeps, buildDeleteAccountDeps } from "./composition/user.ts";
 import { buildReadinessChecks } from "./composition/health.ts";
 
 const apiLogger = logger.child({ component: "api" });
@@ -59,9 +59,13 @@ const authConfig = {
   ...(authEnv.trustedProxies ? { trustedProxies: authEnv.trustedProxies } : {}),
 };
 
+const files = createFileStore(env.storage.root);
+const deleteAccountDeps = buildDeleteAccountDeps(db, files);
+
 const auth = createAuth({
   ...authConfig,
   ...(env.email ? { sendEmail: createAuthEmailSender(env.email) } : {}),
+  deleteAccount: (userId) => deleteAccount(deleteAccountDeps, userId),
 });
 
 const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
@@ -83,7 +87,7 @@ const app = createApp({
   syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,
-  files: createFileStore(env.storage.root),
+  files,
   redis,
   readinessChecks: buildReadinessChecks(db, boss),
 });
