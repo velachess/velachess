@@ -10,7 +10,6 @@ export interface AuthEmail {
   template: AuthEmailTemplate;
   to: string;
   url: string;
-  /** The triggering request's header; picks the email's language. */
   acceptLanguage: string | null;
   idempotencyKey: string;
 }

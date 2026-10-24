@@ -9,7 +9,6 @@ import {
 } from "@velachess/ui/components/card";
 import { VelaChessMark } from "@velachess/ui/icons";
 
-/** The frame every screen reachable without a session shares. */
 export function AuthCard({
   title,
   description,

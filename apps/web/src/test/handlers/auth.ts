@@ -1,18 +1,12 @@
 import { http, HttpResponse } from "msw";
 
-/** Shapes copied from real responses. jsdom simulates no cookies, so
- * `sessionActive()`/`sessionInactive()` set the state directly. */
-
 const BASE = "/api/auth";
 
 export interface TestSessionUser {
   id: string;
   email: string;
   name: string;
-  /** Absent by default, so most of the suite runs the initials
-   * fallback. */
   image?: string | null;
-  /** Absent by default: most of the suite is somebody mid-first-run. */
   onboardedAt?: string | null;
 }
 
@@ -22,12 +16,8 @@ export const TEST_USER: TestSessionUser = {
   name: "VelaChess User",
 };
 
-/** Google off by default, like the real server, so a test that wants the
- * button says so and every other one proves its absence. */
 let signInMethods = { password: true, google: false, passwordReset: false };
 
-/** Bumped per upload, like the real cache buster, so a replacement
- * produces a different URL. */
 let avatarVersion = 1;
 
 export function signInMethodsAre(methods: {
@@ -38,7 +28,6 @@ export function signInMethodsAre(methods: {
   signInMethods = { ...signInMethods, ...methods };
 }
 
-/** As `/list-accounts` reports them. */
 let linkedProviders: string[] = ["credential"];
 
 export function linkedProvidersAre(providers: string[]): void {
@@ -47,10 +36,8 @@ export function linkedProvidersAre(providers: string[]): void {
 
 export const TEST_PASSWORD = "dev-password";
 
-/** The one token `/reset-password` accepts, as if it came from the email. */
 export const RESET_TOKEN = "valid-reset-token";
 
-/** Signs in as an account whose address was never confirmed: Better Auth's 403. */
 let emailVerified = true;
 
 export function emailIsUnverified(): void {
@@ -62,7 +49,6 @@ type AuthScenario =
   | { kind: "signed-in"; user: TestSessionUser }
   | { kind: "unavailable" };
 
-// The default the rest of the suite runs under.
 let scenario: AuthScenario = { kind: "signed-in", user: TEST_USER };
 
 export function sessionActive(user: TestSessionUser = TEST_USER): TestSessionUser {
@@ -74,7 +60,6 @@ export function sessionInactive(): void {
   scenario = { kind: "signed-out" };
 }
 
-/** The lookup itself fails: not signed out, but no answer. */
 export function sessionUnavailable(): void {
   scenario = { kind: "unavailable" };
 }
@@ -107,7 +92,6 @@ function sessionBody(user: TestSessionUser) {
 }
 
 export const authHandlers = [
-  // Not under BASE: this one is our API, not Better Auth's.
   http.get("/api/config", () => HttpResponse.json({ signInMethods })),
 
   http.get(`${BASE}/get-session`, () => {
@@ -145,9 +129,6 @@ export const authHandlers = [
     });
   }),
 
-  // The app's language travels with every auth request: it picks the
-  // language of the email this one sends. Refused without it, so a client
-  // that stops sending it fails by name.
   http.post<never, { email?: string }>(
     `${BASE}/request-password-reset`,
     async ({ request }) => {
@@ -155,7 +136,6 @@ export const authHandlers = [
       if (!body.email?.includes("@") || request.headers.get("accept-language") !== "en") {
         return HttpResponse.json({ code: "VALIDATION_ERROR" }, { status: 400 });
       }
-      // Better Auth's answer whether or not the address has an account.
       return HttpResponse.json({
         status: true,
         message:
@@ -189,9 +169,6 @@ export const authHandlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // Better Auth answers with the provider's authorization URL for the
-  // client to navigate to. jsdom does not navigate, which is why the
-  // assertions are on the request.
   http.post(`${BASE}/sign-in/social`, () =>
     HttpResponse.json({
       url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",
@@ -214,20 +191,11 @@ export const authHandlers = [
   http.post(`${BASE}/update-user`, async ({ request }) => {
     const body = (await request.json()) as { name?: string };
     if (scenario.kind === "signed-in" && body.name) {
-      // The app reads the name back from the session, so this has to
-      // actually change it.
       scenario = { kind: "signed-in", user: { ...scenario.user, name: body.name } };
     }
     return HttpResponse.json({ status: true });
   }),
 
-  /**
-   * Avatar bytes go to our API, not Better Auth, but the URL lands on the
-   * same session.
-   *
-   * The body is checked rather than accepted, like the real route, so a
-   * screen test catches the client sending the wrong thing.
-   */
   http.post("/api/me/avatar", async ({ request }) => {
     const body = (await request.json()) as { image?: string };
     if (!body.image || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
@@ -248,7 +216,6 @@ export const authHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // Closed on the real server too: no frontend path may depend on it.
   http.post(`${BASE}/sign-up/email`, () =>
     HttpResponse.json(
       {

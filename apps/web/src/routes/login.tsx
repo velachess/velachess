@@ -4,12 +4,8 @@ import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { z } from "../libs/zod.ts";
 
-/**
- * The only route outside `_app`, with the mirrored guard. `redirect` is
- * validated as a path rather than a URL: it arrives on the address bar, and
- * unvalidated it is an open redirect.
- */
 const loginSearchSchema = z.object({
+  // A path, never a URL: unvalidated it is an open redirect.
   redirect: z
     .string()
     .refine((value) => value.startsWith("/") && !value.startsWith("//"), {
@@ -17,12 +13,6 @@ const loginSearchSchema = z.object({
     })
     .optional()
     .catch(undefined),
-  /**
-   * Better Auth appends `?error=<code>` when it sends the browser back here,
-   * after Google or a confirmation link. Bounded to a short token, which
-   * arrives on the address bar, so it is matched against the codes the screen
-   * knows and never rendered.
-   */
   error: z
     .string()
     .max(64)

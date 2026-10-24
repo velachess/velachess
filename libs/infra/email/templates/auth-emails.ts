@@ -4,8 +4,7 @@ import type { ActionEmailProps } from "./action-email.ts";
 
 type AuthEmailCopy = Omit<ActionEmailProps, "locale" | "url"> & { subject: string };
 
-// No macro transform runs on the server, so ids are explicit — spelled as the
-// English text, which is what a translator then reads as msgid in every .po.
+// Explicit ids, spelled as the English text: no macro transform runs on the server.
 const fallback = (i18n: I18n) =>
   i18n._({ id: "If the button doesn't work, open this link:" });
 

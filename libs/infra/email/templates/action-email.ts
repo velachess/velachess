@@ -56,7 +56,6 @@ const styles = {
   link: { color: "#18181b", wordBreak: "break-all" },
 } satisfies Record<string, CSSProperties>;
 
-/** One call to action with a copyable fallback link: the shape of every auth email. */
 export function ActionEmail(props: ActionEmailProps) {
   return jsxs(Html, {
     lang: props.locale,

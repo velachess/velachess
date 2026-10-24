@@ -13,7 +13,6 @@ function matchLocale(tag: string): EmailLocale | undefined {
   );
 }
 
-/** The recipient's language from the request that triggered the email. */
 export function emailLocaleOf(acceptLanguage: string | null): EmailLocale {
   const ranked = (acceptLanguage ?? "")
     .split(",")

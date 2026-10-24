@@ -2,11 +2,10 @@ import { z } from "zod";
 
 export interface EmailConfig {
   apiKey: string;
-  /** `Name <address>` or a bare address, as Resend's `from` accepts. */
   from: string;
 }
 
-/** Compose passes an unset variable as `""`, which means "not configured". */
+// Compose passes an unset variable as "".
 const optionalText = z
   .string()
   .trim()
@@ -15,7 +14,6 @@ const optionalText = z
 
 const senderAddress = (from: string) => /<([^<>]+)>$/.exec(from)?.[1] ?? from;
 
-// Messages name the variable and never echo a value: the key is a secret.
 const emailEnvSchema = z
   .object({ RESEND_API_KEY: optionalText, VELACHESS_EMAIL_FROM: optionalText })
   .refine((env) => !env.RESEND_API_KEY || env.VELACHESS_EMAIL_FROM, {
@@ -34,7 +32,6 @@ const emailEnvSchema = z
     },
   );
 
-/** Email is optional per instance: `null` turns verification and reset off. */
 export function resolveEmailEnv(
   env: Record<string, string | undefined>,
 ): EmailConfig | null {

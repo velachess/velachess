@@ -1,9 +1,4 @@
 // @vitest-environment node
-/**
- * Verification and password reset over HTTP, with the real Better Auth on
- * PGlite and a capturing sender in place of Resend. Links are followed the
- * way a browser would: through the `/api` prefix the web proxy strips.
- */
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,7 +70,6 @@ async function emailFor(to: string, template: AuthEmail["template"]): Promise<Au
   });
 }
 
-/** The browser reaches Better Auth under `/api`; the harness serves it bare. */
 const throughProxy = (link: URL) =>
   `${link.pathname.replace(/^\/api/, "")}${link.search}`;
 

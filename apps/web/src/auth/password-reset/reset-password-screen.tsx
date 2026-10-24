@@ -33,7 +33,7 @@ const RESET_COPY = {
   unavailable: msg`Couldn't reach the server. Try again in a moment.`,
 } as const;
 
-/** Better Auth's default `minPasswordLength`; the server enforces it too. */
+// Better Auth's default `minPasswordLength`.
 const MIN_PASSWORD_LENGTH = 8;
 
 type ResetScreenState = "form" | PasswordResetOutcome;

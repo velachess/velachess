@@ -7,7 +7,6 @@ export interface OutgoingEmail {
   subject: string;
   html: string;
   text: string;
-  /** Resend replays the first response for 24 h instead of sending twice. */
   idempotencyKey: string;
 }
 

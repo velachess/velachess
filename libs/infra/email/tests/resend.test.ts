@@ -14,8 +14,6 @@ const EMAIL = {
   idempotencyKey: "reset-password/abc",
 };
 
-/** The real SDK over a stubbed `fetch`: what is under test is how its
- * `{ data, error }` answer is read, so the SDK itself stays real. */
 function resendAnswers(status: number, body: unknown) {
   const fetchMock = vi.fn<typeof fetch>(async () => Response.json(body, { status }));
   vi.stubGlobal("fetch", fetchMock);

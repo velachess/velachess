@@ -25,18 +25,7 @@ import { resolveSession } from "../auth/session.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
-/**
- * `routeTree.gen.ts` is generated and gitignored, so a test cannot import
- * the real tree without a build. This mirrors it where it counts: the ids
- * `getRouteApi` looks routes up by, the `_app` session guard the whole app
- * stands behind, `/login` outside it, and the search schema, imported
- * rather than restated.
- *
- * The app shell is included because global UX, like the backend outage
- * banner, lives in the layout rather than in a slice.
- */
-// The guards below resolve the session through this client, as `_app`
-// does.
+// Built by hand: `routeTree.gen.ts` is generated and gitignored.
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClientType }>()();
 
 const appRoute = createRoute({
@@ -57,7 +46,6 @@ const appRoute = createRoute({
 
 function TestAppLayout() {
   const queryClient = useQueryClient();
-  // Like `routes/_app.tsx`: the sync stream belongs to the wall.
   useEffect(() => startSyncEvents(queryClient), [queryClient]);
 
   return (
@@ -68,9 +56,6 @@ function TestAppLayout() {
   );
 }
 
-// A real layout, because `useBreadcrumbTrail` reads this route's
-// `staticData` off an ancestor match, which exists only when
-// `/games/$gameId` nests under `/games`.
 const gamesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/games",
@@ -96,8 +81,6 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
-  // Like `routes/_app/games/$gameId.tsx`: opening a game starts its
-  // analysis, and that is the route's job.
   loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
   component: GameReview,
 });
@@ -108,9 +91,6 @@ const importRoute = createRoute({
   component: ConnectAccount,
 });
 
-// Nested for real, like /games: the account screen is reached from the
-// shell's user menu, so the link resolves against the tree the menu renders
-// inside.
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/settings",
@@ -161,15 +141,11 @@ const gameplayRoute = createRoute({
   component: GameplayScreen,
 });
 
-// Public, and the mirror of the guard above: already signed in means there
-// is nothing to do here.
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search["redirect"] === "string" ? search["redirect"] : undefined,
-    // Like the real route: an OAuth failure comes back on the address bar,
-    // and the screen renders a message rather than the code.
     error: typeof search["error"] === "string" ? search["error"] : undefined,
   }),
   beforeLoad: async ({ context, search }) => {
@@ -191,7 +167,6 @@ function TestLoginRoute() {
   );
 }
 
-// Mirrors `routes/forgot-password.tsx` and `routes/reset-password.tsx`.
 const forgotPasswordRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/forgot-password",

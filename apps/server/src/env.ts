@@ -1,8 +1,3 @@
-/**
- * The API's environment, validated in one place before main.ts opens a
- * connection. Each integration keeps its own rules: this file validates only
- * what is the server's alone and delegates the rest to its owner.
- */
 import { z } from "zod";
 
 import { resolveAuthEnv, type ResolvedAuthEnv } from "@velachess/infra-auth";
@@ -18,7 +13,6 @@ import { resolveRedisEnv, type ResolvedRedisEnv } from "./redis.ts";
 const DEFAULT_PORT = 3000;
 const PORT_ERROR = "PORT must be an integer between 1 and 65535";
 
-// Error messages never echo the value: a database URL routinely carries a password.
 const apiEnvSchema = z.object({
   DATABASE_URL: z.url({
     protocol: /^postgres(ql)?$/,
@@ -41,7 +35,6 @@ export interface ResolvedApiEnv {
   redis: ResolvedRedisEnv;
   auth: ResolvedAuthEnv;
   storage: ResolvedStorageEnv;
-  /** `null` when Resend is not configured. */
   email: EmailConfig | null;
   bootstrapCredentials: BootstrapUserCredentials | null;
 }

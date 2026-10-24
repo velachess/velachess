@@ -1,6 +1,5 @@
 import { authClient } from "../client.ts";
 
-/** Resolves whether or not the address has an account: Better Auth never says. */
 export async function requestPasswordReset(email: string): Promise<void> {
   const { error } = await authClient.requestPasswordReset({ email });
   if (error) throw new Error(`password reset request failed: ${error.status}`);
