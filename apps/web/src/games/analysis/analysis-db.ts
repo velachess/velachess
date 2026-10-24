@@ -81,20 +81,26 @@ async function closeAnalysisDb(): Promise<void> {
 }
 
 /**
- * Every report on this device, for when the account they came from is gone.
+ * The whole store, shared by every account this browser has signed in to.
  * Storage stays off in this tab afterwards: a pass still running would
  * otherwise write its report back.
  */
-export async function eraseAnalysisReports(): Promise<void> {
+export async function eraseAnalysisReports(): Promise<"erased" | "blocked" | "failed"> {
   erased = true;
   await closeAnalysisDb();
-  await new Promise<void>((resolve) => {
-    // A tab that never closes its connection keeps the delete queued; the
-    // caller stops waiting rather than hanging on it.
-    deleteDB(DB_NAME, { blocked: () => resolve() }).then(resolve, (error: unknown) => {
-      console.warn("Failed to delete stored game analysis reports", error);
-      resolve();
-    });
+  return new Promise((resolve) => {
+    // A blocked delete stays queued and may still finish or fail after the
+    // caller has its answer; both settle here. `Promise.resolve()` turns a
+    // synchronous throw from IndexedDB into the same failure.
+    Promise.resolve()
+      .then(() => deleteDB(DB_NAME, { blocked: () => resolve("blocked") }))
+      .then(
+        () => resolve("erased"),
+        (error: unknown) => {
+          console.warn("Failed to erase the analysis storage", error);
+          resolve("failed");
+        },
+      );
   });
 }
 

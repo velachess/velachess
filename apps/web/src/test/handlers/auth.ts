@@ -40,13 +40,6 @@ export const RESET_TOKEN = "valid-reset-token";
 
 let emailVerified = true;
 
-/** Signed in more than a day ago, so deleting needs the password. */
-let sessionFresh = true;
-
-export function sessionIsOld(): void {
-  sessionFresh = false;
-}
-
 export function emailIsUnverified(): void {
   emailVerified = false;
 }
@@ -76,7 +69,6 @@ export function resetAuthScenario(): void {
   signInMethods = { password: true, google: false, passwordReset: false };
   linkedProviders = ["credential"];
   emailVerified = true;
-  sessionFresh = true;
   avatarVersion = 1;
 }
 
@@ -188,12 +180,6 @@ export const authHandlers = [
     if (password !== undefined && password !== TEST_PASSWORD) {
       return HttpResponse.json(
         { code: "INVALID_PASSWORD", message: "Invalid password" },
-        { status: 400 },
-      );
-    }
-    if (password === undefined && !sessionFresh) {
-      return HttpResponse.json(
-        { code: "SESSION_EXPIRED", message: "Session expired" },
         { status: 400 },
       );
     }

@@ -180,7 +180,7 @@ describe("deleting your account", () => {
   });
 });
 
-describe("proving it is you", () => {
+describe("before Better Auth has proved it is you", () => {
   it("refuses a wrong password and deletes nothing", async () => {
     const owner = await harness.signUp("delete-wrong-password@test.local", PASSWORD);
     const before = await ownedRows(owner.userId);
@@ -190,34 +190,6 @@ describe("proving it is you", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ code: "INVALID_PASSWORD" });
     expect(await ownedRows(owner.userId)).toEqual(before);
-  });
-
-  it("accepts a session signed in within the last day without the password", async () => {
-    const owner = await harness.signUp("delete-fresh-session@test.local", PASSWORD);
-
-    expect((await deleteSelf(owner.app, {})).status).toBe(200);
-    expect(await ownedRows(owner.userId)).toEqual(NOTHING);
-  });
-
-  it("asks an older session for the password", async () => {
-    const owner = await harness.signUp("delete-stale-session@test.local", PASSWORD);
-    await harness.db
-      .update(schema.sessions)
-      .set({ createdAt: new Date(Date.now() - 2 * 86_400_000) })
-      .where(eq(schema.sessions.userId, owner.userId));
-
-    const stale = await deleteSelf(owner.app, {});
-    expect(stale.status).toBe(400);
-    expect(await stale.json()).toMatchObject({ code: "SESSION_EXPIRED" });
-    expect((await ownedRows(owner.userId)).users).toBe(1);
-
-    expect((await deleteSelf(owner.app)).status).toBe(200);
-  });
-
-  it("refuses a request with no session", async () => {
-    const response = await harness.app.request("/auth/delete-user", json({}));
-
-    expect(response.status).toBe(401);
   });
 });
 

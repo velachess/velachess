@@ -141,23 +141,34 @@ async function databaseNames() {
   return (await indexedDB.databases()).map((database) => database.name);
 }
 
-describe("erasing every report", () => {
-  it("deletes the database, and a pass finishing afterwards writes nothing back", async () => {
+describe("erasing the analysis storage", () => {
+  it("erases it, and a pass finishing afterwards writes nothing back", async () => {
     await saveReport("game-1", GRADED);
 
-    await eraseAnalysisReports();
+    await expect(eraseAnalysisReports()).resolves.toBe("erased");
     await saveReport("game-2", GRADED);
 
     expect(await databaseNames()).not.toContain(DB_NAME);
     await expect(getReport("game-2")).resolves.toBeNull();
   });
 
-  it("does not wait on a connection that never closes", async () => {
+  it("answers blocked without waiting while another connection holds it open", async () => {
     await saveReport("game-1", GRADED);
-    const stubborn = await openDB(DB_NAME, 1);
+    const otherTab = await openDB(DB_NAME, 1);
 
-    await expect(eraseAnalysisReports()).resolves.toBeUndefined();
+    await expect(eraseAnalysisReports()).resolves.toBe("blocked");
+    expect(await databaseNames()).toContain(DB_NAME);
 
-    stubborn.close();
+    otherTab.close();
+    await vi.waitFor(async () => expect(await databaseNames()).not.toContain(DB_NAME));
+  });
+
+  it("answers failed when the browser refuses the delete", async () => {
+    await saveReport("game-1", GRADED);
+    vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => {
+      throw new DOMException("denied", "SecurityError");
+    });
+
+    await expect(eraseAnalysisReports()).resolves.toBe("failed");
   });
 });

@@ -2,19 +2,19 @@ import "fake-indexeddb/auto";
 
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   resetAnalysisDbForTests,
   saveReport,
 } from "../../../games/analysis/analysis-db.ts";
+import { openDB } from "../../../libs/idb.ts";
 import { useMyAccounts } from "../../../games/import/index.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { aGradedPly } from "../../../test/games.ts";
 import {
   linkedProvidersAre,
   sessionActive,
-  sessionIsOld,
   TEST_PASSWORD,
 } from "../../../test/handlers/auth.ts";
 import { renderApp } from "../../../test/render.tsx";
@@ -23,6 +23,7 @@ import { server } from "../../../test/server.ts";
 const ANALYSIS_DB = "velachess-analysis";
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await resetAnalysisDbForTests();
 });
 
@@ -37,6 +38,15 @@ async function openDeleteDialog() {
 
 async function analysisDatabases() {
   return (await indexedDB.databases()).map((database) => database.name);
+}
+
+async function confirmDeletion(password: string | null = TEST_PASSWORD) {
+  const opened = await openDeleteDialog();
+  const { user, dialog } = opened;
+  if (password !== null) await user.type(dialog.getByLabelText("Password"), password);
+  await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
+  await user.click(dialog.getByRole("button", { name: "Delete account" }));
+  return opened;
 }
 
 describe("deleting the account", () => {
@@ -115,69 +125,102 @@ describe("deleting the account", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
   });
 
-  it("says so when the password is wrong, and keeps the dialog open", async () => {
+  it.each([
+    [400, "INVALID_PASSWORD", "That password isn't right."],
+    [
+      400,
+      "SESSION_EXPIRED",
+      "For your security, sign out and sign back in, then try again.",
+    ],
+    [500, "INTERNAL_SERVER_ERROR", "Couldn't delete your account. Try again."],
+  ])(
+    "a %i %s refusal keeps the dialog open with its reason and forgets nothing",
+    async (status, code, reason) => {
+      sessionActive();
+      deviceHasImported();
+      server.use(
+        http.post("/api/auth/delete-user", () => HttpResponse.json({ code }, { status })),
+      );
+
+      const { router, dialog } = await confirmDeletion();
+
+      expect(await dialog.findByText(reason)).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/settings/account");
+      expect(useMyAccounts.getState().accounts).not.toEqual([]);
+    },
+  );
+
+  it("does not take an account it cannot check for a password as passwordless", async () => {
     sessionActive();
-    const { user, router, dialog } = await openDeleteDialog();
-
-    await user.type(dialog.getByLabelText("Password"), "not-the-password");
-    await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
-    await user.click(dialog.getByRole("button", { name: "Delete account" }));
-
-    expect(await dialog.findByText("That password isn't right.")).toBeInTheDocument();
-    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe("/settings/account");
-  });
-
-  it("asks a Google-only account on an old session to sign in again", async () => {
-    sessionActive();
-    linkedProvidersAre(["google"]);
-    sessionIsOld();
-    const { user, dialog } = await openDeleteDialog();
-
-    expect(dialog.queryByLabelText("Password")).not.toBeInTheDocument();
-    await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
-    await user.click(dialog.getByRole("button", { name: "Delete account" }));
-
-    expect(
-      await dialog.findByText(
-        "For your security, sign out and sign back in, then try again.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("says so when the server fails, and forgets nothing", async () => {
-    sessionActive();
-    deviceHasImported();
     server.use(
-      http.post("/api/auth/delete-user", () =>
+      http.get("/api/auth/list-accounts", () =>
         HttpResponse.json({ message: "boom" }, { status: 500 }),
       ),
     );
     const { user, dialog } = await openDeleteDialog();
 
-    await user.type(dialog.getByLabelText("Password"), TEST_PASSWORD);
-    await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
-    await user.click(dialog.getByRole("button", { name: "Delete account" }));
-
     expect(
-      await dialog.findByText("Couldn't delete your account. Try again."),
+      await dialog.findByText("Couldn't check how you sign in."),
     ).toBeInTheDocument();
-    expect(useMyAccounts.getState().accounts).not.toEqual([]);
+    await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
+    expect(dialog.getByRole("button", { name: "Delete account" })).toBeDisabled();
   });
 
-  it("signs out and forgets this device's copy of the account", async () => {
+  it("asks a Google-only account for no password", async () => {
+    sessionActive();
+    linkedProvidersAre(["google"]);
+
+    const { router, dialog } = await confirmDeletion(null);
+
+    expect(dialog.queryByLabelText("Password")).not.toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+  });
+});
+
+describe("after the account is deleted", () => {
+  it("signs out and erases this browser's analysis storage", async () => {
     sessionActive();
     deviceHasImported();
     await saveReport("game-1", [aGradedPly(1)]);
     expect(await analysisDatabases()).toContain(ANALYSIS_DB);
-    const { user, router, dialog } = await openDeleteDialog();
 
-    await user.type(dialog.getByLabelText("Password"), TEST_PASSWORD);
-    await user.type(dialog.getByLabelText("Type DELETE to confirm"), "DELETE");
-    await user.click(dialog.getByRole("button", { name: "Delete account" }));
+    const { router } = await confirmDeletion();
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(useMyAccounts.getState().accounts).toEqual([]);
     expect(await analysisDatabases()).not.toContain(ANALYSIS_DB);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("warns when another tab keeps the analysis storage from being erased", async () => {
+    sessionActive();
+    await saveReport("game-1", [aGradedPly(1)]);
+    const otherTab = await openDB(ANALYSIS_DB, 1);
+
+    const { router } = await confirmDeletion();
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(
+      await screen.findByText(
+        "Analyses saved in this browser weren't erased yet: another VelaChess tab is using them. Close your other tabs, or clear this site's data.",
+      ),
+    ).toBeInTheDocument();
+    otherTab.close();
+  });
+
+  it("says so when the browser refuses to erase the analysis storage", async () => {
+    sessionActive();
+    vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => {
+      throw new DOMException("denied", "SecurityError");
+    });
+
+    const { router } = await confirmDeletion();
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(
+      await screen.findByText(
+        "Analyses saved in this browser couldn't be erased. Clear this site's data to remove them.",
+      ),
+    ).toBeInTheDocument();
   });
 });

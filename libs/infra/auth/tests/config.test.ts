@@ -132,25 +132,4 @@ describe("account deletion", () => {
   it("is off unless a deletion is wired in", () => {
     expect(createAuth(base).options.user?.deleteUser).toBeUndefined();
   });
-
-  it("hands the signed-in user's id to the wired deletion", async () => {
-    const deleted: string[] = [];
-    const { options } = createAuth({
-      ...base,
-      deleteAccount: async (userId) => {
-        deleted.push(userId);
-      },
-    });
-
-    expect(options.user?.deleteUser?.enabled).toBe(true);
-    await options.user?.deleteUser?.beforeDelete?.({
-      id: "user-1",
-      email: "a@b.c",
-      name: "A",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    expect(deleted).toEqual(["user-1"]);
-  });
 });

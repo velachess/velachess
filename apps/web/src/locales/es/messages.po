@@ -54,12 +54,24 @@ msgstr ""
 msgid "Account"
 msgstr ""
 
+#: src/settings/account/delete-account.tsx:51
+msgid "Account deleted"
+msgstr ""
+
 #: src/auth/sign-in/sign-in-screen.tsx:44
 msgid "An account already exists with that email. Sign in with your password instead."
 msgstr ""
 
 #: src/route-error.tsx:15
 msgid "An unexpected error interrupted this screen."
+msgstr ""
+
+#: src/settings/account/delete-account.tsx:53
+msgid "Analyses saved in this browser couldn't be erased. Clear this site's data to remove them."
+msgstr ""
+
+#: src/settings/account/delete-account.tsx:52
+msgid "Analyses saved in this browser weren't erased yet: another VelaChess tab is using them. Close your other tabs, or clear this site's data."
 msgstr ""
 
 #: src/games/review/analysis-progress.tsx:21
@@ -141,7 +153,7 @@ msgid "By name"
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:39
-#: src/settings/account/delete-account.tsx:42
+#: src/settings/account/delete-account.tsx:45
 #: src/settings/connections/connections-screen.tsx:70
 msgid "Cancel"
 msgstr ""
@@ -241,6 +253,10 @@ msgstr ""
 msgid "Correspondence"
 msgstr ""
 
+#: src/settings/account/delete-account.tsx:42
+msgid "Couldn't check how you sign in."
+msgstr ""
+
 #: src/settings/account/delete-account.tsx:50
 msgid "Couldn't delete your account. Try again."
 msgstr ""
@@ -308,7 +324,7 @@ msgstr ""
 msgid "Crop your picture"
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:34
+#: src/settings/account/delete-account.tsx:35
 msgid "Danger zone"
 msgstr ""
 
@@ -321,20 +337,20 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:36
-#: src/settings/account/delete-account.tsx:43
+#: src/settings/account/delete-account.tsx:37
+#: src/settings/account/delete-account.tsx:46
 msgid "Delete account"
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:37
+#: src/settings/account/delete-account.tsx:38
 msgid "Delete your account?"
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:35
+#: src/settings/account/delete-account.tsx:36
 msgid "Deleting your account is permanent."
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:44
+#: src/settings/account/delete-account.tsx:47
 msgid "Deleting…"
 msgstr ""
 
@@ -379,7 +395,7 @@ msgid "Enter your name so your games can be told apart from your opponents'."
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:39
-#: src/settings/account/delete-account.tsx:40
+#: src/settings/account/delete-account.tsx:41
 msgid "Enter your password."
 msgstr ""
 
@@ -694,7 +710,7 @@ msgid "Or paste the moves"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:32
-#: src/settings/account/delete-account.tsx:39
+#: src/settings/account/delete-account.tsx:40
 msgid "Password"
 msgstr ""
 
@@ -982,6 +998,7 @@ msgstr ""
 
 #: src/games/review/analysis-progress.tsx:17
 #: src/route-error.tsx:16
+#: src/settings/account/delete-account.tsx:43
 msgid "Try again"
 msgstr ""
 
@@ -995,7 +1012,7 @@ msgstr ""
 msgid "Turn move sounds on"
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:41
+#: src/settings/account/delete-account.tsx:44
 msgid "Type {CONFIRMATION} to confirm"
 msgstr ""
 
@@ -1075,8 +1092,8 @@ msgstr ""
 msgid "Your password was changed. Sign in with the new one."
 msgstr ""
 
-#: src/settings/account/delete-account.tsx:38
-msgid "Your profile, connected accounts, imported games and picture are erased from this instance. This can't be undone."
+#: src/settings/account/delete-account.tsx:39
+msgid "Your profile, connected accounts, imported games and picture are erased from this instance, and the analyses saved in this browser are cleared. This can't be undone."
 msgstr ""
 
 #: src/settings/account/avatar-field.tsx:38
