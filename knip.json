@@ -43,6 +43,10 @@
     "libs/infra/db": {
       "entry": ["**/*.test.{ts,tsx}"],
       "project": ["**/*.{ts,tsx}"]
+    },
+    "libs/infra/email": {
+      "entry": ["lingui.config.ts", "**/*.test.ts"],
+      "project": ["**/*.ts"]
     }
   }
 }

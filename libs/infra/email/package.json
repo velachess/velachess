@@ -1,0 +1,28 @@
+{
+  "name": "@velachess/infra-email",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "i18n:extract": "lingui extract --clean",
+    "i18n:compile": "lingui compile --typescript"
+  },
+  "dependencies": {
+    "@lingui/core": "^6.9.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-email": "6.11.3",
+    "resend": "^6.34.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@lingui/cli": "^6.9.0",
+    "@types/react": "^19.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

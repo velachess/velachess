@@ -1,7 +1,4 @@
-# Global composition — everything that spans the whole system lives here;
-# each app's own image recipe lives next to the app (apps/*/Dockerfile).
-# Run from the repo root:
-#   docker compose -f docker/docker-compose.yml up
+# Run from the repo root: docker compose -f docker/docker-compose.yml up
 name: velachess
 
 services:
@@ -34,9 +31,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # One-shot release step: applies pending drizzle migrations, then exits.
-  # api and worker only start after it succeeds — `up` always boots on a
-  # migrated schema. Idempotent: an already-migrated db is a fast no-op.
+  # Applies pending migrations, then exits; api and worker wait for it.
   migrate:
     build:
       context: ..
@@ -58,39 +53,25 @@ services:
       DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
       REDIS_URL: redis://redis:6379
       PORT: "3000"
-      # Self-hosted auth: everything local, no VelaChess cloud involved.
-      # Both required values fail fast here AND at boot — the server
-      # validates its own env (libs/infra/auth/env.ts) so compose is a
-      # convenience, not the security boundary.
       VELACHESS_AUTH_SECRET: ${VELACHESS_AUTH_SECRET:?set a random 32+ char secret — openssl rand -base64 32}
-      # Explicit, no default: the image runs NODE_ENV=production, where a
-      # silently-defaulted base URL is refused at boot anyway.
       VELACHESS_BASE_URL: ${VELACHESS_BASE_URL:?set the public URL, e.g. http://localhost:3000}
       VELACHESS_TRUSTED_ORIGINS: ${VELACHESS_TRUSTED_ORIGINS:-}
-      # Google sign-in: both or neither (libs/infra/auth/env.ts refuses to
-      # boot with only one set).
+      # Both or neither.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      # Reverse proxies in front of this container, if any — see
-      # docs/how-to/self-host.md#behind-a-reverse-proxy.
+      # Both or neither.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      VELACHESS_EMAIL_FROM: ${VELACHESS_EMAIL_FROM:-}
       VELACHESS_TRUSTED_PROXIES: ${VELACHESS_TRUSTED_PROXIES:-}
-      # TEMPORARY: first boot creates this user into an empty user table;
-      # later boots skip. Deliberately optional — the lifecycle ends with
-      # removing both from .env after first login (docs/how-to/self-host.md,
-      # step 6), and an installation with users ignores them either way.
+      # First user only; remove from .env after first login.
       VELACHESS_BOOTSTRAP_USER_EMAIL: ${VELACHESS_BOOTSTRAP_USER_EMAIL:-}
       VELACHESS_BOOTSTRAP_USER_PASSWORD: ${VELACHESS_BOOTSTRAP_USER_PASSWORD:-}
-      # Uploaded files — profile pictures today. Absolute, and a mount
-      # point rather than a path in the image: the library refuses a
-      # relative root in production precisely because that writes into the
-      # container layer, where `up --build` deletes it.
+      # Must be a mounted volume: the container layer is lost on rebuild.
       VELACHESS_STORAGE_DIR: /data
     volumes:
       - velachess_files:/data
     ports:
-      # Host side overridable — 3000 is a popular port (AdGuard, Grafana…).
-      # The container always listens on 3000; point VITE_API_TARGET at
-      # whatever host port you pick.
+      # Host port overridable; point VITE_API_TARGET at it.
       - "${VELACHESS_API_PORT:-3000}:3000"
     healthcheck:
       test:
@@ -134,10 +115,7 @@ services:
 
 volumes:
   velachess_pgdata:
-  # Belongs in the backup set alongside the database: losing it degrades
-  # every custom avatar to initials, which the UI handles, but the images
-  # are gone.
+  # Back up with the database: it holds uploaded avatars.
   velachess_files:
-  # Rate-limit counters only — no backup needed; losing it resets every
-  # budget to empty.
+  # Rate-limit counters only; no backup needed.
   velachess_redisdata:

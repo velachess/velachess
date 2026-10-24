@@ -6,6 +6,7 @@ import { hc } from "hono/client";
 import { Redis } from "ioredis";
 
 import { createAuth, type Auth } from "@velachess/infra-auth";
+import type { AuthEmail } from "@velachess/infra-email";
 import { createFileStore } from "@velachess/infra-storage";
 import { syncAccount } from "@velachess/accounts";
 import {
@@ -32,9 +33,6 @@ import { createRedisClient } from "../src/redis.ts";
 import type { ApiDeps } from "../src/deps.ts";
 import type { AppType } from "../src/server.ts";
 
-/** `api` is the same `hc<AppType>` client `apps/web` builds, so a test gets
- * the route's real response type instead of casting the body. `request`
- * stays for SSE and anything else outside the RPC surface. */
 export interface AuthedApp {
   request: (input: string, init?: RequestInit) => Promise<Response>;
   api: ReturnType<typeof hc<AppType>>;
@@ -44,12 +42,7 @@ export interface ApiHarness extends LoopHarness {
   app: ReturnType<typeof createApp>;
   deps: ApiDeps;
   auth: Auth;
-  /** The signup-enabled twin main.ts builds for bootstrap, never mounted on
-   * HTTP: the mounted `auth` keeps its sign-up closed, like production. */
   bootstrapAuth: Auth;
-  /** The worker's part of a sync the API scheduled, run inline as its first
-   * delivery. The override replaces the harness fetch for this delivery
-   * alone, so a test can pause mid-sync without pausing the connect. */
   runSync: (syncId: string, fetchOverride?: typeof fetch) => Promise<void>;
   signIn: (email: string, password: string) => Promise<string>;
   signUp: (
@@ -58,20 +51,14 @@ export interface ApiHarness extends LoopHarness {
   ) => Promise<{ userId: string; cookie: string; app: AuthedApp }>;
 }
 
-/** The harness app's baseUrl, and so the one origin its CSRF check
- * trusts. */
 export const ORIGIN = "http://localhost";
 
-/** The real one when `REDIS_URL` is set, otherwise a port nothing answers
- * on, so every limiter check fails open at once. */
 function harnessRedis(): Redis {
   const url = process.env["REDIS_URL"];
   if (url) return createRedisClient(url);
   return unreachableRedis();
 }
 
-/** No reconnects, so each command fails immediately rather than retrying
- * against a host that never answers. */
 export function unreachableRedis(): Redis {
   const redis = new Redis("redis://127.0.0.1:1", {
     maxRetriesPerRequest: 1,
@@ -82,22 +69,18 @@ export function unreachableRedis(): Redis {
 }
 
 export async function createApiHarness(
-  /** The archive GET /games reads through to. */
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
+  { sendEmail }: { sendEmail?: (email: AuthEmail) => Promise<void> } = {},
 ): Promise<ApiHarness> {
   const harness = await createLoopHarness();
 
-  // The real Better Auth over the harness database, so the suite logs in
-  // the way production does. Secure cookies off: no TLS here.
   const authConfig = {
     db: harness.db,
     baseUrl: ORIGIN,
     secret: "test-secret-at-least-32-characters-long",
     secureCookies: false,
   };
-  const auth = createAuth(authConfig);
-  // Like production: the mounted instance rejects POST
-  // /auth/sign-up/email.
+  const auth = createAuth({ ...authConfig, ...(sendEmail ? { sendEmail } : {}) });
   const bootstrapAuth = createAuth({ ...authConfig, allowSignUp: true });
 
   const filesRoot = await mkdtemp(path.join(tmpdir(), "velachess-api-files-"));
@@ -108,26 +91,18 @@ export async function createApiHarness(
     db: harness.db,
     auth,
     trustedOrigins: [ORIGIN],
-    // Unconfigured here: auth.test.ts builds its own instance where the
-    // provider matters.
-    signInMethods: { password: true, google: false },
-    // PGlite listens on its one session, which is the session the worker
-    // twin below commits on.
+    signInMethods: { password: true, google: false, passwordReset: Boolean(sendEmail) },
     syncNotifications: createSyncNotifications((channel, onNotify) =>
       harness.pglite.listen(channel, onNotify),
     ),
     syncQueue: harness.syncQueue,
     lock: harness.lock,
-    // A real store over a temp dir, so a test proves the bytes
-    // round-trip.
     files: createFileStore(filesRoot),
     sync,
     redis,
     readinessChecks: buildReadinessChecks(harness.db, harness.boss),
   };
 
-  // apps/worker/src/composition/accounts.ts builds the equivalent for
-  // production; apps never share a composition helper.
   const runSync = async (syncId: string, fetchOverride?: typeof fetch) => {
     const job = await deliverSyncJob(harness.boss, syncId);
     const deliveryFetch = fetchOverride ?? sync?.fetch;
@@ -150,12 +125,9 @@ export async function createApiHarness(
 
   const app = createApp(deps);
 
-  // A browser attaches `Origin` to every unsafe request and `app.request`
-  // attaches nothing, while the CSRF middleware reads a missing
-  // Content-Type as something a form could have sent — so every bodyless
-  // POST would meet a 403 no real client sees. A test that wants to look
-  // cross-site passes its own `origin`, which wins.
   type AppRequest = typeof app.request;
+  // Browsers send `Origin` on unsafe requests and `app.request` does not, so
+  // the CSRF check would refuse every bodyless POST a real client never sees.
   const honoRequest: AppRequest = app.request.bind(app);
   app.request = ((...args: Parameters<AppRequest>) => {
     const [input, init, ...rest] = args;
@@ -173,15 +145,11 @@ export async function createApiHarness(
     if (!response.ok) throw new Error(`sign-in failed: ${response.status}`);
     const cookie = response.headers.get("set-cookie");
     if (!cookie) throw new Error("sign-in set no cookie");
-    // The Cookie header wants `name=value`; Set-Cookie carries
-    // attributes.
     return cookie.split(";")[0]!;
   };
 
   const asUser = (cookie: string): AuthedApp => {
     const authedFetch: typeof fetch = async (input, init) => {
-      // `new Headers(...)` normalizes whatever shape the caller passed,
-      // which an object spread would lose.
       const headers = new Headers(init?.headers);
       headers.set("cookie", cookie);
       return app.request(input, { ...init, headers });
