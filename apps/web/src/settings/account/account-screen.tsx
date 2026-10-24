@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react";
 
 import { Separator } from "@velachess/ui/components/separator";
 
+import { DeleteAccount } from "./delete-account.tsx";
 import { ProfileForm } from "./profile-form.tsx";
 import { SignInMethods } from "./sign-in-methods.tsx";
 import { sessionQuery } from "../../auth/session.ts";
@@ -32,6 +33,8 @@ export function AccountScreen() {
       <ProfileForm user={user} />
       <Separator />
       <SignInMethods />
+      <Separator />
+      <DeleteAccount />
     </div>
   );
 }

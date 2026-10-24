@@ -16,9 +16,17 @@ const base = {
 describe("rate limiting", () => {
   it("is stored in the database, under our table", () => {
     const { options } = createAuth(base);
-    expect(options.rateLimit).toEqual({
+    expect(options.rateLimit).toMatchObject({
       storage: "database",
       modelName: "authRateLimits",
+    });
+  });
+
+  it("holds account deletion to the sign-in limit, since it checks a password", () => {
+    const { options } = createAuth(base);
+    expect(options.rateLimit?.customRules?.["/delete-user"]).toEqual({
+      window: 10,
+      max: 3,
     });
   });
 });
@@ -117,5 +125,11 @@ describe("email", () => {
       sendOnSignUp: true,
       sendOnSignIn: true,
     });
+  });
+});
+
+describe("account deletion", () => {
+  it("is off unless a deletion is wired in", () => {
+    expect(createAuth(base).options.user?.deleteUser).toBeUndefined();
   });
 });

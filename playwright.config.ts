@@ -24,6 +24,17 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "account",
+      testDir: "./e2e/account",
+      // A cold dev server compiles the settings route on first visit.
+      expect: { timeout: 30_000 },
+      use: {
+        ...devices["Desktop Chrome"],
+        trace: "retain-on-failure",
+        screenshot: "only-on-failure",
+      },
+    },
+    {
       name: "site-capture",
       testDir: "./e2e/capture",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },

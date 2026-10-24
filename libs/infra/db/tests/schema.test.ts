@@ -4,6 +4,8 @@ import {
   perspectiveSchema,
   resultSchema,
 } from "@velachess/infra-platforms";
+import { is } from "drizzle-orm";
+import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -11,6 +13,8 @@ import {
   perspectiveEnum,
   platformEnum,
   resultEnum,
+  schema as tables,
+  users,
 } from "@velachess/infra-db";
 
 /**
@@ -37,5 +41,29 @@ describe("enum derivation", () => {
     for (const platform of accountPlatformSchema.options) {
       expect(gameSourceSchema.options).toContain(platform);
     }
+  });
+});
+
+/**
+ * Deleting an account is one `DELETE FROM users`: a table that names a user
+ * without cascading would make it fail, or outlive the person it belongs to.
+ */
+describe("what a user owns", () => {
+  it("every foreign key to users cascades on delete", () => {
+    const toUsers = Object.values(tables)
+      .filter((table) => is(table, PgTable))
+      .flatMap((table) => {
+        const config = getTableConfig(table);
+        return config.foreignKeys
+          .filter((key) => key.reference().foreignTable === users)
+          .map((key) => ({ table: config.name, onDelete: key.onDelete }));
+      })
+      .toSorted((a, b) => a.table.localeCompare(b.table));
+
+    expect(toUsers).toEqual(
+      ["auth_accounts", "games", "sessions", "sync_jobs", "tracked_accounts"].map(
+        (table) => ({ table, onDelete: "cascade" }),
+      ),
+    );
   });
 });

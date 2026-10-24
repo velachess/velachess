@@ -10,6 +10,8 @@
 import { api, parseResponse } from "../../api/index.ts";
 import { authClient } from "../../auth/client.ts";
 import { sessionQueryKey } from "../../auth/session.ts";
+import { eraseAnalysisReports } from "../../games/analysis/index.ts";
+import { useMyAccounts } from "../../games/import/index.ts";
 import { queryOptions, useMutation, useQueryClient } from "../../libs/react-query.ts";
 
 /** Better Auth's provider id for email+password. */
@@ -88,5 +90,29 @@ export function useRemoveAvatar() {
       await api.me.avatar.$delete();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sessionQueryKey }),
+  });
+}
+
+/**
+ * Without a password Better Auth accepts only a session signed in within
+ * the last day, which is the proof a Google-only account has to offer.
+ * Resolves to what became of this browser's analysis storage: the account
+ * is gone by then whatever the answer.
+ */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (proof: { password?: string }) => {
+      const { error } = await authClient.deleteUser(proof);
+      if (error) {
+        throw new Error(`could not delete account (${error.status})`, { cause: error });
+      }
+
+      queryClient.setQueryData(sessionQueryKey, null);
+      queryClient.clear();
+      useMyAccounts.setState({ accounts: [] });
+      return eraseAnalysisReports();
+    },
   });
 }

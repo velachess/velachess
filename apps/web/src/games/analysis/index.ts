@@ -7,6 +7,7 @@ export { MOVE_CATEGORIES, scoreToWinChance } from "@velachess/analysis";
 export type { GradedPly, MoveCategory, WhitePovScore } from "@velachess/analysis";
 
 export { analyzeGameInBrowser } from "./game/analyze.ts";
+export { eraseAnalysisReports } from "./analysis-db.ts";
 
 /** One engine session per evaluator: its owner keeps it while positions
  * keep coming and disposes it when they stop. */

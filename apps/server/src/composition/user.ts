@@ -3,11 +3,17 @@
  * boot and the suite exercise the same adapter.
  */
 import type { Auth } from "@velachess/infra-auth";
-import { countUsers, markEmailVerified, writeAvatarState } from "@velachess/infra-db";
+import {
+  countUsers,
+  deleteUser,
+  markEmailVerified,
+  writeAvatarState,
+} from "@velachess/infra-db";
 import type { Database, ExecutionLock } from "@velachess/infra-db";
 import type { FileStore } from "@velachess/infra-storage";
 import type {
   BootstrapUserDeps,
+  DeleteAccountDeps,
   ReadAvatarDeps,
   RemoveAvatarDeps,
   SetAvatarDeps,
@@ -47,4 +53,14 @@ export function buildRemoveAvatarDeps(db: Database, files: FileStore): RemoveAva
 
 export function buildReadAvatarDeps(files: FileStore): ReadAvatarDeps {
   return { getAvatarObject: (key) => files.get(key) };
+}
+
+export function buildDeleteAccountDeps(
+  db: Database,
+  files: FileStore,
+): DeleteAccountDeps {
+  return {
+    removeAvatarObject: (key) => files.remove(key),
+    deleteUser: (userId) => deleteUser(db, userId),
+  };
 }

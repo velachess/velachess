@@ -44,3 +44,9 @@ current Better Auth option.
   cannot reach. Sends are not awaited: Better Auth awaits the callback, and
   latency would reveal whether an address has an account. The bootstrap twin
   gets no sender.
+- `deleteAccount`, when passed, enables `POST /auth/delete-user` and runs as
+  `beforeDelete`. It deletes everything itself in one transaction: Better
+  Auth's own delete runs sessions, accounts and the user as separate
+  statements outside any transaction, and finds nothing left after it.
+  Identity proof is Better Auth's (password, or a session younger than
+  `freshAge`). The bootstrap twin gets no `deleteAccount`.

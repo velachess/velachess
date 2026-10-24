@@ -38,6 +38,16 @@ provider_profiles                   avatar + flair per (platform, username),
                                     no owner
 ```
 
+Deleting an account is `deleteUser`, run as Better Auth's `beforeDelete`
+because Better Auth's own delete takes sessions, accounts and the user in
+separate statements, where a failure between them strands a user with no
+credential to retry with. It is one transaction that locks the user's
+`sync_jobs` rows first, the order sync writers take them, then deletes the
+`users` row and lets the cascades take everything above. Reset-password
+`verifications` carry the user id as a value rather than a key, so the same
+transaction deletes them by value. `provider_profiles` has no owner and is
+left alone.
+
 The API's own rate limiter is Redis-backed
 (`apps/server/src/middleware/rate-limit.ts`, see `docs/explanation/apps/api.md`),
 not a table here — only Better Auth's (`auth_rate_limits`) lives in Postgres.
