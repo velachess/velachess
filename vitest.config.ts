@@ -26,7 +26,8 @@ export default defineConfig({
         test: {
           ...backendTest,
           name: "e2e",
-          // `e2e/capture/` is Playwright, not Vitest: it stays out of this project.
+          // `e2e/capture/` and `e2e/analysis/` are Playwright, not Vitest:
+          // a nested glob would pull them in, so this one is top level only.
           include: ["e2e/*.spec.ts"],
         },
         resolve: { alias: aliases },

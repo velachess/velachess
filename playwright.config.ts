@@ -25,7 +25,22 @@ export default defineConfig({
   projects: [
     {
       name: "site-capture",
+      testDir: "./e2e/capture",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "analysis-review",
+      testDir: "./e2e/analysis",
+      // A depth-14 pass over a real Worker outlasts the 30s/5s defaults,
+      // and every wait here is an auto-retrying assertion rather than a
+      // sleep.
+      timeout: 120_000,
+      expect: { timeout: 30_000 },
+      use: {
+        ...devices["Desktop Chrome"],
+        trace: "retain-on-failure",
+        screenshot: "only-on-failure",
+      },
     },
   ],
 });
