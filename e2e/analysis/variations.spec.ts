@@ -77,15 +77,19 @@ test("holds the bar's fill while the line is being searched", async ({ page }) =
   // One snapshot of the pending bar, so the share and the fill cannot be
   // read either side of the answer landing.
   const pending = await page
-    .waitForFunction(() => {
-      const bar = document.querySelector('[role="meter"]');
-      if (!bar || bar.getAttribute("aria-valuetext") !== "—") return null;
-      const drawn = bar.querySelector('[data-slot="eval-bar-fill"]');
-      return {
-        share: bar.getAttribute("aria-valuenow"),
-        height: drawn instanceof HTMLElement ? drawn.style.height : null,
-      };
-    }, SEARCH)
+    .waitForFunction(
+      () => {
+        const bar = document.querySelector('[role="meter"]');
+        if (!bar || bar.getAttribute("aria-valuetext") !== "—") return null;
+        const drawn = bar.querySelector('[data-slot="eval-bar-fill"]');
+        return {
+          share: bar.getAttribute("aria-valuenow"),
+          height: drawn instanceof HTMLElement ? drawn.style.height : null,
+        };
+      },
+      undefined,
+      SEARCH,
+    )
     .then((handle) => handle.jsonValue());
 
   // `waitForFunction` only resolves on a truthy value, which the types do
