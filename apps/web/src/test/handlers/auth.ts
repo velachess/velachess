@@ -104,30 +104,33 @@ export const authHandlers = [
     return HttpResponse.json(sessionBody(scenario.user));
   }),
 
-  http.post(`${BASE}/sign-in/email`, async ({ request }) => {
-    const body = (await request.json()) as { email?: string; password?: string };
+  http.post<never, { email?: string; password?: string }>(
+    `${BASE}/sign-in/email`,
+    async ({ request }) => {
+      const body = await request.json();
 
-    if (body.email !== TEST_USER.email || body.password !== TEST_PASSWORD) {
-      return HttpResponse.json(
-        { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
-        { status: 401 },
-      );
-    }
+      if (body.email !== TEST_USER.email || body.password !== TEST_PASSWORD) {
+        return HttpResponse.json(
+          { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" },
+          { status: 401 },
+        );
+      }
 
-    if (!emailVerified) {
-      return HttpResponse.json(
-        { code: "EMAIL_NOT_VERIFIED", message: "Email not verified" },
-        { status: 403 },
-      );
-    }
+      if (!emailVerified) {
+        return HttpResponse.json(
+          { code: "EMAIL_NOT_VERIFIED", message: "Email not verified" },
+          { status: 403 },
+        );
+      }
 
-    sessionActive();
-    return HttpResponse.json({
-      redirect: false,
-      token: "session-token",
-      user: sessionBody(TEST_USER).user,
-    });
-  }),
+      sessionActive();
+      return HttpResponse.json({
+        redirect: false,
+        token: "session-token",
+        user: sessionBody(TEST_USER).user,
+      });
+    },
+  ),
 
   http.post<never, { email?: string }>(
     `${BASE}/request-password-reset`,
@@ -188,16 +191,16 @@ export const authHandlers = [
     ),
   ),
 
-  http.post(`${BASE}/update-user`, async ({ request }) => {
-    const body = (await request.json()) as { name?: string };
+  http.post<never, { name?: string }>(`${BASE}/update-user`, async ({ request }) => {
+    const body = await request.json();
     if (scenario.kind === "signed-in" && body.name) {
       scenario = { kind: "signed-in", user: { ...scenario.user, name: body.name } };
     }
     return HttpResponse.json({ status: true });
   }),
 
-  http.post("/api/me/avatar", async ({ request }) => {
-    const body = (await request.json()) as { image?: string };
+  http.post<never, { image?: string }>("/api/me/avatar", async ({ request }) => {
+    const body = await request.json();
     if (!body.image || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
       return HttpResponse.json({ error: "invalid body" }, { status: 400 });
     }
