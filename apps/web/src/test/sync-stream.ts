@@ -10,6 +10,7 @@ import type { SYNC_SETTLED_EVENT_NAMES } from "../games/import/index.ts";
 type Controller = ReadableStreamDefaultController<Uint8Array>;
 
 const encoder = new TextEncoder();
+const KEEP_ALIVE = ": keep-alive\n\n";
 const streams = new Set<Controller>();
 
 /** Stays open until dropped, never closed by the handler. */
@@ -19,6 +20,11 @@ export function openSyncStream(): ReadableStream<Uint8Array> {
     start(ctrl) {
       controller = ctrl;
       streams.add(ctrl);
+      // The keep-alive the real route writes on its heartbeat, sent here
+      // as the stream opens: msw 3 holds the response until a stream's
+      // first chunk, so without it `fetch` never resolves and no client
+      // ever sees the stream open (mswjs/msw#2821).
+      ctrl.enqueue(encoder.encode(KEEP_ALIVE));
     },
     cancel() {
       streams.delete(controller);
