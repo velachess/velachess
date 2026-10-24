@@ -172,6 +172,21 @@ export const authHandlers = [
     return HttpResponse.json({ success: true });
   }),
 
+  http.post<never, { password?: string }>(`${BASE}/delete-user`, async ({ request }) => {
+    if (scenario.kind !== "signed-in") {
+      return HttpResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
+    }
+    const { password } = await request.json();
+    if (password !== undefined && password !== TEST_PASSWORD) {
+      return HttpResponse.json(
+        { code: "INVALID_PASSWORD", message: "Invalid password" },
+        { status: 400 },
+      );
+    }
+    sessionInactive();
+    return HttpResponse.json({ success: true, message: "User deleted" });
+  }),
+
   http.post(`${BASE}/sign-in/social`, () =>
     HttpResponse.json({
       url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",

@@ -113,6 +113,11 @@ absent, nothing happens. Removing them simply means the password stops
 existing anywhere on disk. Change the account's password in-app if you
 want the value gone in every sense.
 
+Any user can delete their own account in Settings → Account, the last
+one included. An instance left with no users and these variables still set
+provisions the bootstrap user again on its next start; with them removed it
+stays empty until you set them and restart.
+
 `VELACHESS_AUTH_SECRET` stays. That one is permanent (see above).
 
 ### 7. Verify

@@ -15,6 +15,7 @@ import {
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
+  deleteUser,
   games,
   claimSyncAttempt,
   markSyncRunning,
@@ -23,6 +24,7 @@ import {
   schema,
   syncJobs,
   insertTrackedAccount,
+  users,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
 
@@ -199,5 +201,46 @@ describe.skipIf(!url)("concurrent writers on Postgres", async () => {
     ]);
 
     expect([mine, theirs].filter(Boolean)).toHaveLength(1);
+  });
+  it("deleting a user during a sync's final write waits for it instead of deadlocking", async () => {
+    const owner = await anAccount();
+    const job = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
+    const run = (await markSyncRunning(db, job.id))!;
+    const sync = heldTransaction(
+      (tx) => claimSyncAttempt(tx, { id: job.id, startedAt: run.startedAt }),
+      (tx) => saveGames(tx, [lateGame], owner),
+    );
+    await sync.didFirst;
+
+    const deleting = deleteUser(db, owner.userId);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    sync.release();
+
+    await expect(sync.committed).resolves.toBeUndefined();
+    await expect(deleting).resolves.toBeUndefined();
+    expect(await gamesOf(owner.userId)).toEqual([]);
+    expect(await db.select().from(users).where(eq(users.id, owner.userId))).toEqual([]);
+  });
+
+  it("deleting a user waiting on an in-flight import deletes that game too", async () => {
+    const owner = await anAccount();
+    const insert = heldInsert(owner);
+    await insert.didInsert;
+
+    const deleting = deleteUser(db, owner.userId);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    insert.release();
+    await insert.committed;
+    await deleting;
+
+    expect(await gamesOf(owner.userId)).toEqual([]);
+  });
+
+  it("a sync write after the user is deleted fails instead of writing", async () => {
+    const owner = await anAccount();
+    await deleteUser(db, owner.userId);
+
+    await expect(saveGames(otherDb, [lateGame], owner)).rejects.toThrow();
+    expect(await gamesOf(owner.userId)).toEqual([]);
   });
 });

@@ -22,6 +22,8 @@ export interface AuthConfig {
   // visitor shares one sign-in rate-limit bucket.
   trustedProxies?: string[];
   sendEmail?: SendAuthEmail;
+  /** Present, it turns on `POST /auth/delete-user`. */
+  deleteAccount?: (userId: string) => Promise<void>;
 }
 
 export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
@@ -62,6 +64,7 @@ function deliverWith(sendEmail: SendAuthEmail) {
 
 export function createAuth(config: AuthConfig) {
   const deliver = config.sendEmail && deliverWith(config.sendEmail);
+  const { deleteAccount } = config;
 
   return betterAuth({
     baseURL: config.baseUrl,
@@ -136,6 +139,9 @@ export function createAuth(config: AuthConfig) {
     rateLimit: {
       storage: "database",
       modelName: "authRateLimits",
+      // Better Auth's strict default covers sign-in and change-password but
+      // not this, which checks a password too.
+      customRules: { "/delete-user": { window: 10, max: 3 } },
     },
 
     user: {
@@ -144,6 +150,14 @@ export function createAuth(config: AuthConfig) {
       additionalFields: {
         onboardedAt: { type: "date", required: false, input: false },
       },
+      ...(deleteAccount
+        ? {
+            deleteUser: {
+              enabled: true,
+              beforeDelete: (user) => deleteAccount(user.id),
+            },
+          }
+        : {}),
     },
     session: {
       modelName: "sessions",
