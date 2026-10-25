@@ -6,7 +6,8 @@
       "numberOfRuns": 5,
       "settings": {
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
-        "throttlingMethod": "devtools"
+        "throttlingMethod": "devtools",
+        "chromeFlags": "--no-sandbox"
       }
     },
     "assert": {
