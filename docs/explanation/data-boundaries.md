@@ -144,7 +144,7 @@ must not import a backend module to learn the active sets coincide.
 
 Slice vocabularies are a deliberate exception to all three: a slice names
 the states it answers with in its own words rather than importing a
-callee's type, and `libs/analysis`'s slices say so at each declaration.
+callee's type.
 
 ## Mirror plus drift guard, when sharing is forbidden
 
@@ -156,9 +156,6 @@ Some duplication is **mandated**, not sloppy:
 - `apps/web` does not depend on `@velachess/infra-platforms`, and should not:
   that package carries provider HTTP clients a browser has no business
   bundling.
-- `libs/infra/db/schema.ts` must stay loadable by drizzle-kit's plain TS
-  loader, which is why `StoredGradedPly` is declared there instead of imported
-  from `libs/analysis`.
 - `libs/chess` is the pure package `apps/web` bundles. It could import
   `libs/infra/platforms` — `domain-stays-pure` does not forbid that edge — but
   must not: that package carries provider HTTP clients. So `GameResult` is
@@ -169,9 +166,9 @@ For these, the answer is not to force the import. It is to mirror the shape
 and make a drift **fail the build**, in the module that owns the concept:
 
 ```ts
-// libs/analysis/tests/analyze-game.test.ts
-const toStoredDriftCheck: StoredGradedPly = {} as GradedPly;
-const fromStoredDriftCheck: GradedPly = {} as StoredGradedPly;
+// libs/infra/platforms/tests/result-vocabulary.test.ts
+const toChessResult: GameResult = {} as StoredGameResult;
+const fromChessResult: StoredGameResult = {} as GameResult;
 ```
 
 Mutual assignability, checked at typecheck, in the test file of the module

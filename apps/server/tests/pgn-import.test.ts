@@ -106,8 +106,11 @@ describe("POST /games/import", () => {
     expect((await alice.request("/games/import", body)).status).toBe(200);
     expect((await bob.request("/games/import", body)).status).toBe(200);
 
-    expect((await library(alice)).total).toBe(2);
-    expect((await library(bob)).total).toBe(2);
+    const aliceIds = (await library(alice)).games.map(({ id }) => id);
+    const bobIds = (await library(bob)).games.map(({ id }) => id);
+    expect(aliceIds).toHaveLength(2);
+    expect(bobIds).toHaveLength(2);
+    expect(bobIds.filter((id) => aliceIds.includes(id))).toEqual([]);
   });
 
   it("unparseable chunks are rejected without sinking the parseable ones", async () => {

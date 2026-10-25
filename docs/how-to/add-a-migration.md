@@ -33,7 +33,7 @@ pnpm db:migrate
 
 **5. Write the query beside it.** A migration with no query is a column
 nobody reads. Queries live in `libs/infra/db/queries/`, grouped by concern
-(`games.ts`, `status.ts`, `analysis.ts`, `tracked-accounts.ts`, …), not one file per table.
+(`games.ts`, `status.ts`, `sync-jobs.ts`, `tracked-accounts.ts`, …), not one file per table.
 
 **6. Test it over the real migrations.** The `db` project boots PGlite
 and runs every migration before the first assertion, so a test that

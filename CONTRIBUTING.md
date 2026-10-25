@@ -83,7 +83,7 @@ apps/web              TanStack Start SPA — one folder per domain slice
 libs/ui           design system — theme, shadcn primitives, chess board
 libs/accounts     tracked-account lifecycle: connect, list, refresh
 libs/games        the game record: read, list and import PGN
-libs/analysis     move classification, the Stockfish job lifecycle
+libs/analysis     pure Stockfish score/classification policy, run browser-side
 libs/user         the person: first-user bootstrap and profile avatar
 libs/chess        chess rules, PGN, FEN/EPD
 libs/infra/platforms       chess.com / Lichess sync
@@ -119,8 +119,8 @@ local hooks when you mean to.
 
 - One concern per PR. No unrelated refactors.
 - Behavior changes come with tests.
-- New API routes must be documented in `apps/server/src/openapi.ts` — the
-  anti-drift test fails the suite otherwise.
+- New API routes are declared with `createRoute` and mounted with
+  `.openapi()` — the anti-drift test fails the suite otherwise.
 - Contract changes update the matching doc under `docs/explanation/`.
 
 ## Pull request evidence

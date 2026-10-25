@@ -246,7 +246,6 @@ describe("api routes", () => {
 
   it("accounts: delete frees the provider slot and takes the account's games with it", async () => {
     const solo = (await harness.signUp("disconnect@api.test")).app;
-    const other = (await harness.signUp("not-the-owner@api.test")).app;
 
     const account = await parseResponse(
       solo.api.accounts.$post({ json: { platform: "chess_com", username: "Looper" } }),
@@ -255,10 +254,6 @@ describe("api routes", () => {
     await harness.runSync(account.syncId);
     const gamesBefore = await parseResponse(solo.api.games.$get({ query: {} }));
     expect(gamesBefore.total).toBeGreaterThan(0);
-
-    expect(
-      (await other.api.accounts[":id"].$delete({ param: { id: account.id } })).status,
-    ).toBe(404);
 
     expect(
       (await solo.api.accounts[":id"].$delete({ param: { id: account.id } })).status,
@@ -399,9 +394,8 @@ describe("sync jobs", () => {
     expect(library.total).toBe(0);
   });
 
-  it("GET /syncs/:id follows the job to its outcome, for its owner only", async () => {
+  it("GET /syncs/:id follows the job to its outcome", async () => {
     const { app } = await harness.signUp("sync-status@api.test");
-    const stranger = (await harness.signUp("sync-stranger@api.test")).app;
     const account = await connected(app, LOOPER_USERNAME);
 
     const queued = await parseResponse(
@@ -428,9 +422,6 @@ describe("sync jobs", () => {
       progress: { gamesFetched: 2, gamesInserted: 2 },
     });
 
-    expect(
-      (await stranger.api.syncs[":id"].$get({ param: { id: account.syncId } })).status,
-    ).toBe(404);
     expect(
       (await app.api.syncs[":id"].$get({ param: { id: randomUUID() } })).status,
     ).toBe(404);

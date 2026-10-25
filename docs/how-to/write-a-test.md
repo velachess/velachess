@@ -72,10 +72,16 @@ Rules that have each cost this repository a bug:
   test that depends on the one above it cannot be run by name, and one
   failure becomes ten.
 - **Cover the refusals, not just the answer.** 404 on an unknown id, 429
-  on a cooldown, 409 on a failed analysis. Those are the branches nobody
-  exercises by hand.
-- **A new route goes in `apps/server/src/openapi.ts`**, or
-  `openapi.test.ts` fails — deliberately.
+  on a cooldown, 409 on a provider already connected. Those are the
+  branches nobody exercises by hand.
+- **Prove isolation with a stranger's real record.** Another user's
+  existing id answers exactly like an unknown one, a refused mutation
+  leaves the owner's state as the owner's own routes report it, and a list
+  or stream that excludes the stranger also shows the caller's own data —
+  an empty answer passes for a broken one. The "ownership isolation" block
+  in `apps/server/tests/auth.test.ts` is the reference.
+- **A new route is declared with `createRoute` and mounted with
+  `.openapi()`**, or `openapi.test.ts` fails — deliberately.
 - **Never reach past the route** to assert on a table when the response
   already carries the fact.
 

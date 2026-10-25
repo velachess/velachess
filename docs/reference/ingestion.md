@@ -18,9 +18,10 @@ Three sources land in one games table:
 ## Ownership and identity
 
 Chess.com and Lichess handles identify public data; they do not authenticate a
-VelaChess user. A tracked account belongs to the authenticated user and is
-unique by user, platform, and normalized username. Two users may therefore
-track the same public handle with independent cursors and game histories.
+VelaChess user. A tracked account belongs to the authenticated user, who
+tracks at most one handle per platform (`(user_id, platform)` is unique).
+Two users may therefore track the same public handle with independent
+cursors and game histories.
 
 Games are owned directly: `games.user_id` is not null and every read scopes on
 it. `games.account_id` is provenance only — which connected handle produced

@@ -3,6 +3,8 @@
  * Everything here goes through HTTP the way a browser would: real Better
  * Auth sign-up, a real session cookie, and the middleware production runs.
  */
+import { randomUUID } from "node:crypto";
+
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -12,6 +14,12 @@ import { createAuth, GOOGLE_CALLBACK_PATH } from "@velachess/infra-auth";
 import { eq } from "drizzle-orm";
 
 import { schema } from "@velachess/infra-db";
+import {
+  LISTER_AS_BLACK_PGN,
+  LISTER_AS_WHITE_PGN,
+  LISTER_USERNAME,
+  LOOPER_USERNAME,
+} from "@velachess/fixtures";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
@@ -358,59 +366,173 @@ describe("the session gate", () => {
   });
 });
 
+async function connectLooper(app: AuthedApp) {
+  const account = await parseResponse(
+    app.api.accounts.$post({
+      json: { platform: "chess_com", username: LOOPER_USERNAME },
+    }),
+  );
+  if (!account.syncId) throw new Error("expected a first sync on a fresh connect");
+  return { id: account.id, syncId: account.syncId };
+}
+
+/** Every user gets the same public handle and the same file, so two
+ * libraries hold identical games and only ownership tells them apart. */
+async function aUserWithALibrary(email: string) {
+  const { app } = await harness.signUp(email);
+  const account = await connectLooper(app);
+  await harness.runSync(account.syncId);
+  const imported = await app.request(
+    "/games/import",
+    json({
+      pgn: `${LISTER_AS_WHITE_PGN}\n${LISTER_AS_BLACK_PGN}`,
+      participation: { mode: "byName", playerName: LISTER_USERNAME },
+    }),
+  );
+  expect(imported.status).toBe(200);
+
+  const library = await parseResponse(app.api.games.$get({ query: {} }));
+  const firstOf = (source: string) =>
+    library.games.find((game) => game.source === source)!.id;
+  return {
+    app,
+    account,
+    gameIds: library.games.map((game) => game.id),
+    syncedGameId: firstOf("chess_com"),
+    pastedGameId: firstOf("pgn"),
+  };
+}
+
 describe("ownership isolation", () => {
-  let alice: AuthedApp;
-  let bob: AuthedApp;
+  it("a stranger's game answers exactly like an unknown one, synced or pasted", async () => {
+    const alice = await aUserWithALibrary("game-alice@test.local");
+    const bob = await aUserWithALibrary("game-bob@test.local");
 
-  beforeAll(async () => {
-    alice = (await harness.signUp("alice@test.local")).app;
-    bob = (await harness.signUp("bob@test.local")).app;
+    const unknown = await bob.app.request(`/games/${randomUUID()}`);
+    expect(unknown.status).toBe(404);
+    const notFound = await unknown.json();
+
+    for (const id of [alice.syncedGameId, alice.pastedGameId]) {
+      expect((await alice.app.request(`/games/${id}`)).status).toBe(200);
+      const theirs = await bob.app.request(`/games/${id}`);
+      expect(theirs.status).toBe(404);
+      expect(await theirs.json()).toEqual(notFound);
+    }
   });
 
-  it("two users track the same public username independently", async () => {
-    // Usernames are public, so each user gets their own connection row.
-    const aliceAccount = await parseResponse(
-      alice.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
+  it("a stranger's account id is refused for every operation, and nothing changes", async () => {
+    const alice = await aUserWithALibrary("account-alice@test.local");
+    const bob = await aUserWithALibrary("account-bob@test.local");
+    const accountGames = () =>
+      parseResponse(
+        alice.app.api.accounts[":id"].games.$get({ param: { id: alice.account.id } }),
+      );
+    const before = {
+      accounts: await parseResponse(alice.app.api.accounts.$get()),
+      accountGames: await accountGames(),
+      library: await parseResponse(alice.app.api.games.$get({ query: {} })),
+    };
+    expect(before.accounts).toEqual([
+      expect.objectContaining({
+        id: alice.account.id,
+        syncStatus: "idle",
+        activeSyncId: null,
+      }),
+    ]);
+
+    for (const [method, path] of [
+      ["GET", `/accounts/${alice.account.id}/games`],
+      ["POST", `/accounts/${alice.account.id}/sync`],
+      ["DELETE", `/accounts/${alice.account.id}`],
+    ] as const) {
+      const response = await bob.app.request(path, { method });
+      expect(response.status, `${method} ${path}`).toBe(404);
+      expect(await response.json()).toEqual({ error: "account not found" });
+    }
+
+    expect(await parseResponse(alice.app.api.accounts.$get())).toEqual(before.accounts);
+    expect(await accountGames()).toEqual(before.accountGames);
+    expect(await parseResponse(alice.app.api.games.$get({ query: {} }))).toEqual(
+      before.library,
     );
-    if (!aliceAccount.syncId) throw new Error("expected a first sync on a fresh connect");
-    await harness.runSync(aliceAccount.syncId);
-
-    const bobAccount = await parseResponse(
-      bob.api.accounts.$post({ json: { platform: "chess_com", username: "looper" } }),
-    );
-    if (!bobAccount.syncId) throw new Error("expected a first sync on a fresh connect");
-    await harness.runSync(bobAccount.syncId);
-
-    expect(bobAccount.id).not.toBe(aliceAccount.id);
-
-    const aliceList = await parseResponse(alice.api.accounts.$get());
-    const bobList = await parseResponse(bob.api.accounts.$get());
-    expect(aliceList.map((a) => a.id)).toContain(aliceAccount.id);
-    expect(bobList.map((a) => a.id)).toContain(bobAccount.id);
-  });
-
-  it("a stranger's account id answers 404, for reads and for sync", async () => {
-    const [aliceAccount] = await parseResponse(alice.api.accounts.$get());
-
-    expect((await bob.request(`/accounts/${aliceAccount!.id}/games`)).status).toBe(404);
     expect(
-      (await bob.request(`/accounts/${aliceAccount!.id}/sync`, { method: "POST" }))
+      (await parseResponse(bob.app.api.accounts.$get())).map(({ id }) => id),
+    ).toEqual([bob.account.id]);
+  });
+
+  it("a stranger's sync job reads as unknown, and syncing everything stays per user", async () => {
+    const alice = (await harness.signUp("sync-alice@test.local")).app;
+    const bob = (await harness.signUp("sync-bob@test.local")).app;
+    const aliceAccount = await connectLooper(alice);
+    const bobAccount = await connectLooper(bob);
+    const aliceJob = () =>
+      parseResponse(alice.api.syncs[":id"].$get({ param: { id: aliceAccount.syncId } }));
+    const queued = await aliceJob();
+    expect(queued).toMatchObject({
+      id: aliceAccount.syncId,
+      accountId: aliceAccount.id,
+      status: "queued",
+    });
+
+    const theirs = await bob.request(`/syncs/${aliceAccount.syncId}`);
+    const unknown = await bob.request(`/syncs/${randomUUID()}`);
+    expect(theirs.status).toBe(404);
+    expect(await theirs.json()).toEqual(await unknown.json());
+
+    expect(await parseResponse(bob.api.accounts.sync.$post())).toEqual({
+      syncIds: [bobAccount.syncId],
+    });
+    expect(await parseResponse(alice.api.accounts.sync.$post())).toEqual({
+      syncIds: [aliceAccount.syncId],
+    });
+    expect(await aliceJob()).toEqual(queued);
+  });
+
+  it("the library holds only the caller's games, under every filter and page", async () => {
+    await aUserWithALibrary("library-alice@test.local");
+    const bob = await aUserWithALibrary("library-bob@test.local");
+
+    // Bob's own library: looper's win and loss, both as White, and lister's
+    // win as White at 600 (rapid) and loss as Black at 180+2 (blitz).
+    const views = [
+      [{}, 4],
+      [{ color: "white" }, 3],
+      [{ color: "black" }, 1],
+      [{ outcome: "win" }, 2],
+      [{ outcome: "loss" }, 2],
+      [{ timeClass: "rapid" }, 1],
+      [{ timeClass: "blitz" }, 1],
+      [{ page: "2", pageSize: "1" }, 4],
+    ] as const;
+
+    for (const [query, total] of views) {
+      const page = await parseResponse(bob.app.api.games.$get({ query }));
+      expect(page.total, JSON.stringify(query)).toBe(total);
+      expect(page.games.length, JSON.stringify(query)).toBeGreaterThan(0);
+      expect(page.games.filter(({ id }) => !bob.gameIds.includes(id))).toEqual([]);
+    }
+  });
+
+  it("two users track the same public handle independently, and one leaving keeps the other whole", async () => {
+    const alice = await aUserWithALibrary("handle-alice@test.local");
+    const bob = await aUserWithALibrary("handle-bob@test.local");
+
+    expect(bob.account.id).not.toBe(alice.account.id);
+    expect(bob.account.syncId).not.toBe(alice.account.syncId);
+    expect(bob.gameIds.filter((id) => alice.gameIds.includes(id))).toEqual([]);
+    const aliceAccounts = await parseResponse(alice.app.api.accounts.$get());
+    expect(aliceAccounts.map(({ id }) => id)).toEqual([alice.account.id]);
+    const aliceLibrary = await parseResponse(alice.app.api.games.$get({ query: {} }));
+
+    expect(
+      (await bob.app.api.accounts[":id"].$delete({ param: { id: bob.account.id } }))
         .status,
-    ).toBe(404);
-  });
+    ).toBe(204);
 
-  it("a stranger's game is unreadable, unanalyzable and unwatchable", async () => {
-    const library = await parseResponse(alice.api.games.$get({ query: {} }));
-    const gameId = library.games[0]!.id;
-
-    // The stranger gets the 404 a missing id produces: the route never
-    // confirms which uuids exist.
-    expect((await alice.request(`/games/${gameId}`)).status).toBe(200);
-    expect((await bob.request(`/games/${gameId}`)).status).toBe(404);
-    expect((await bob.request(`/games/${gameId}/analysis`)).status).toBe(404);
-    expect(
-      (await bob.request(`/games/${gameId}/analyze`, { method: "POST" })).status,
-    ).toBe(404);
-    expect((await bob.request(`/games/${gameId}/analysis/events`)).status).toBe(404);
+    expect(await parseResponse(alice.app.api.accounts.$get())).toEqual(aliceAccounts);
+    expect(await parseResponse(alice.app.api.games.$get({ query: {} }))).toEqual(
+      aliceLibrary,
+    );
+    expect((await alice.app.request(`/games/${alice.syncedGameId}`)).status).toBe(200);
   });
 });
