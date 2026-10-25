@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-export interface EmailConfig {
-  apiKey: string;
-  from: string;
-}
-
 // Compose passes an unset variable as "".
 const optionalText = z
   .string()
@@ -30,15 +25,14 @@ const emailEnvSchema = z
       error:
         'VELACHESS_EMAIL_FROM must be an address or "Name <address>", e.g. VelaChess <no-reply@chess.example.com>',
     },
-  );
+  )
+  .transform(({ RESEND_API_KEY: apiKey, VELACHESS_EMAIL_FROM: from }) => {
+    if (!apiKey || !from) return null;
+    return { apiKey, from };
+  });
 
-export function resolveEmailEnv(
-  env: Record<string, string | undefined>,
-): EmailConfig | null {
-  const result = emailEnvSchema.safeParse(env);
-  if (!result.success) throw new Error(z.prettifyError(result.error));
+export type EmailConfig = NonNullable<z.infer<typeof emailEnvSchema>>;
 
-  const { RESEND_API_KEY: apiKey, VELACHESS_EMAIL_FROM: from } = result.data;
-  if (!apiKey || !from) return null;
-  return { apiKey, from };
+export function resolveEmailEnv(env: Record<string, string | undefined>) {
+  return emailEnvSchema.parse(env);
 }

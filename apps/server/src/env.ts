@@ -1,18 +1,11 @@
 import { z } from "zod";
 
-import { resolveAuthEnv, type ResolvedAuthEnv } from "@velachess/infra-auth";
-import { resolveEmailEnv, type EmailConfig } from "@velachess/infra-email";
-import { resolveStorageEnv, type ResolvedStorageEnv } from "@velachess/infra-storage";
-import {
-  bootstrapCredentialsFromEnv,
-  type BootstrapUserCredentials,
-} from "@velachess/user";
+import { resolveAuthEnv } from "@velachess/infra-auth";
+import { resolveEmailEnv } from "@velachess/infra-email";
+import { resolveStorageEnv } from "@velachess/infra-storage";
+import { bootstrapCredentialsFromEnv } from "@velachess/user";
 
-import { resolveRedisEnv, type ResolvedRedisEnv } from "./redis.ts";
-
-const DEFAULT_PORT = 3000;
-const PORT_ERROR = "PORT must be an integer between 1 and 65535";
-
+// Error messages never echo the value: both URLs routinely carry a password.
 const apiEnvSchema = z.object({
   DATABASE_URL: z.url({
     protocol: /^postgres(ql)?$/,
@@ -21,27 +14,23 @@ const apiEnvSchema = z.object({
         ? "DATABASE_URL is required"
         : "DATABASE_URL must be a postgres:// or postgresql:// URL",
   }),
+  REDIS_URL: z.url({
+    protocol: /^rediss?$/,
+    error: (issue) =>
+      issue.input === undefined
+        ? "REDIS_URL is required"
+        : "REDIS_URL must be a redis:// or rediss:// URL",
+  }),
   PORT: z.coerce
-    .number({ error: PORT_ERROR })
-    .int({ error: PORT_ERROR })
-    .min(1, { error: PORT_ERROR })
-    .max(65535, { error: PORT_ERROR })
-    .default(DEFAULT_PORT),
+    .number({ error: "PORT must be an integer between 1 and 65535" })
+    .int()
+    .min(1)
+    .max(65535)
+    .default(3000),
 });
 
-export interface ResolvedApiEnv {
-  databaseUrl: string;
-  port: number;
-  redis: ResolvedRedisEnv;
-  auth: ResolvedAuthEnv;
-  storage: ResolvedStorageEnv;
-  email: EmailConfig | null;
-  bootstrapCredentials: BootstrapUserCredentials | null;
-}
-
-export function resolveApiEnv(env: Record<string, string | undefined>): ResolvedApiEnv {
-  const result = apiEnvSchema.safeParse(env);
-  if (!result.success) throw new Error(z.prettifyError(result.error));
+export function resolveApiEnv(env: Record<string, string | undefined>) {
+  const { DATABASE_URL, REDIS_URL, PORT } = apiEnvSchema.parse(env);
 
   const auth = resolveAuthEnv(env);
   const email = resolveEmailEnv(env);
@@ -53,9 +42,9 @@ export function resolveApiEnv(env: Record<string, string | undefined>): Resolved
   }
 
   return {
-    databaseUrl: result.data.DATABASE_URL,
-    port: result.data.PORT,
-    redis: resolveRedisEnv(env),
+    databaseUrl: DATABASE_URL,
+    redisUrl: REDIS_URL,
+    port: PORT,
     auth,
     storage: resolveStorageEnv(env),
     email,

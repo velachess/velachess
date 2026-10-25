@@ -1,99 +1,68 @@
-/**
- * Every failure names the variable and the requirement, and none echoes
- * `VELACHESS_AUTH_SECRET`'s value.
- *
- * `production` is computed independently of envalid's own `isProduction`,
- * which treats an unset NODE_ENV as production — this repo's opposite.
- */
+import { z } from "zod";
 
-import { bool, cleanEnv, EnvError, makeValidator, str, url } from "envalid";
-
-/** The .env.example placeholder: booting production with it is
- * indistinguishable from having no secret. */
 const EXAMPLE_SECRET = "change-me-to-a-random-32-character-secret";
+const GENERATE_SECRET = "Generate one: openssl rand -base64 32";
 
-export interface ResolvedAuthEnv {
-  secret: string;
-  baseUrl: string;
-  /** Derived from the baseUrl scheme. */
-  secureCookies: boolean;
-  /** The baseUrl origin plus any `VELACHESS_TRUSTED_ORIGINS` entries. */
-  trustedOrigins: string[];
-  passwordSignIn: boolean;
-  /** Absent means the provider is not offered. */
-  google?: { clientId: string; clientSecret: string };
-  magicLink: boolean;
-  /** Absent behind a real proxy collapses every client into one rate-limit
-   * bucket; see `AuthConfig.trustedProxies`. */
-  trustedProxies?: string[];
-  /** Production over plain http: legal for a LAN self-host, and main.ts
-   * warns, because session cookies then ride unencrypted. */
-  insecureProductionTransport: boolean;
-}
+// Compose passes an unset variable as "".
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => value || undefined);
 
-// 32 characters is Better Auth's own floor, and `str()` has no minLength.
-const authSecret = makeValidator<string>((input) => {
-  if (input.length < 32) {
-    throw new EnvError(
-      "VELACHESS_AUTH_SECRET is too short — use at least 32 characters. " +
-        "Generate one: openssl rand -base64 32",
-    );
-  }
-  return input;
-});
-
-export function resolveAuthEnv(env: Record<string, string | undefined>): ResolvedAuthEnv {
-  const production = env["NODE_ENV"] === "production";
-
-  const cleaned = cleanEnv(
-    env,
-    {
-      VELACHESS_AUTH_SECRET: authSecret({
-        desc:
-          "VELACHESS_AUTH_SECRET is required — it signs session tokens. " +
-          "Generate one: openssl rand -base64 32",
-      }),
-      // A bare default, not devDefault: whether production may rely on it
-      // is the policy check below.
-      VELACHESS_BASE_URL: url({ default: "http://localhost:3000" }),
-      VELACHESS_TRUSTED_ORIGINS: str({ default: undefined }),
-      GOOGLE_CLIENT_ID: str({ default: undefined }),
-      GOOGLE_CLIENT_SECRET: str({ default: undefined }),
-      VELACHESS_PASSWORD_SIGN_IN: bool({ default: true }),
-      VELACHESS_MAGIC_LINK: bool({ default: false }),
-      VELACHESS_TRUSTED_PROXIES: str({ default: undefined }),
-    },
-    {
-      // envalid's default reporter logs and calls process.exit(1); this
-      // throws, so a bad env is provable without a process.
-      // `VELACHESS_BASE_URL` needs its own message because `url()`'s does
-      // not name the variable.
-      reporter: ({ errors }) => {
-        if (errors["VELACHESS_BASE_URL"]) {
-          throw new Error(
-            `VELACHESS_BASE_URL is not a valid URL: ${env["VELACHESS_BASE_URL"]}`,
-          );
-        }
-        const [first] = Object.entries(errors);
-        if (!first) return;
-        const [name, error] = first;
-        throw error.message.includes(name)
-          ? error
-          : new Error(`${name}: ${error.message}`);
-      },
-    },
+const commaList = z
+  .string()
+  .optional()
+  .transform(
+    (value) =>
+      value
+        ?.split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean) ?? [],
   );
 
-  if (production && cleaned.VELACHESS_AUTH_SECRET === EXAMPLE_SECRET) {
+const authEnvSchema = z.object({
+  // 32 characters is Better Auth's own floor.
+  VELACHESS_AUTH_SECRET: z
+    .string({
+      error: `VELACHESS_AUTH_SECRET is required — it signs session tokens. ${GENERATE_SECRET}`,
+    })
+    .min(32, {
+      error: `VELACHESS_AUTH_SECRET is too short — use at least 32 characters. ${GENERATE_SECRET}`,
+    }),
+  VELACHESS_BASE_URL: z
+    .url({
+      protocol: /^https?$/,
+      error: "VELACHESS_BASE_URL must be an http:// or https:// URL",
+    })
+    .optional(),
+  VELACHESS_TRUSTED_ORIGINS: commaList.pipe(
+    z.array(
+      z.url({
+        error: (issue) =>
+          `VELACHESS_TRUSTED_ORIGINS contains an invalid origin: ${String(issue.input)}`,
+      }),
+    ),
+  ),
+  GOOGLE_CLIENT_ID: optionalText,
+  GOOGLE_CLIENT_SECRET: optionalText,
+  VELACHESS_PASSWORD_SIGN_IN: z.stringbool().default(true),
+  VELACHESS_MAGIC_LINK: z.stringbool().default(false),
+  VELACHESS_TRUSTED_PROXIES: commaList,
+});
+
+export function resolveAuthEnv(env: Record<string, string | undefined>) {
+  const parsed = authEnvSchema.parse(env);
+  const production = env["NODE_ENV"] === "production";
+
+  if (production && parsed.VELACHESS_AUTH_SECRET === EXAMPLE_SECRET) {
     throw new Error(
       "VELACHESS_AUTH_SECRET is still the .env.example placeholder — " +
-        "production needs its own secret. Generate one: openssl rand -base64 32",
+        `production needs its own secret. ${GENERATE_SECRET}`,
     );
   }
 
-  // Against the raw value, not the defaulted one — production must say
-  // where it's served, not inherit the machine-local default.
-  if (production && env["VELACHESS_BASE_URL"] === undefined) {
+  if (production && !parsed.VELACHESS_BASE_URL) {
     throw new Error(
       "VELACHESS_BASE_URL is required in production — the public URL the " +
         "app is served on (e.g. https://chess.example.com, or " +
@@ -101,48 +70,20 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     );
   }
 
-  // url() only checks that it parses — the scheme restriction is ours.
-  const baseUrl = cleaned.VELACHESS_BASE_URL;
-  const parsed = new URL(baseUrl);
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new Error(`VELACHESS_BASE_URL must be http:// or https://, got: ${baseUrl}`);
-  }
+  const baseUrl = parsed.VELACHESS_BASE_URL ?? "http://localhost:3000";
+  const { origin, protocol } = new URL(baseUrl);
+  const secureCookies = protocol === "https:";
 
-  // No switch to weaken this for convenience — https always means Secure.
-  const secureCookies = parsed.protocol === "https:";
-
-  // The app's own origin is always trusted; anything beyond it is deliberate.
-  const trustedOrigins = [parsed.origin];
-  if (cleaned.VELACHESS_TRUSTED_ORIGINS) {
-    for (const entry of cleaned.VELACHESS_TRUSTED_ORIGINS.split(",")) {
-      const candidate = entry.trim();
-      if (!candidate) continue;
-      try {
-        trustedOrigins.push(new URL(candidate).origin);
-      } catch {
-        throw new Error(
-          `VELACHESS_TRUSTED_ORIGINS contains an invalid origin: ${candidate}`,
-        );
-      }
-    }
-  }
-
-  // Half-configured means someone intended Google and stopped halfway —
-  // Better Auth would accept the empty half and only fail at the redirect.
-  const googleId = cleaned.GOOGLE_CLIENT_ID?.trim();
-  const googleSecret = cleaned.GOOGLE_CLIENT_SECRET?.trim();
-  if (Boolean(googleId) !== Boolean(googleSecret)) {
+  // Better Auth accepts an empty half and only fails at the redirect.
+  const { GOOGLE_CLIENT_ID: clientId, GOOGLE_CLIENT_SECRET: clientSecret } = parsed;
+  if (Boolean(clientId) !== Boolean(clientSecret)) {
     throw new Error(
       "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together — " +
         "set both to enable Google sign-in, or neither to disable it",
     );
   }
-  const google =
-    googleId && googleSecret
-      ? { clientId: googleId, clientSecret: googleSecret }
-      : undefined;
 
-  if (!cleaned.VELACHESS_PASSWORD_SIGN_IN && !google && !cleaned.VELACHESS_MAGIC_LINK) {
+  if (!parsed.VELACHESS_PASSWORD_SIGN_IN && !clientId && !parsed.VELACHESS_MAGIC_LINK) {
     throw new Error(
       "There is no way to sign in: VELACHESS_PASSWORD_SIGN_IN is false and " +
         "neither Google (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) nor " +
@@ -150,19 +91,20 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     );
   }
 
-  const trustedProxies = cleaned.VELACHESS_TRUSTED_PROXIES?.split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  const trustedProxies = parsed.VELACHESS_TRUSTED_PROXIES;
 
   return {
-    secret: cleaned.VELACHESS_AUTH_SECRET,
+    secret: parsed.VELACHESS_AUTH_SECRET,
     baseUrl,
     secureCookies,
-    trustedOrigins,
-    passwordSignIn: cleaned.VELACHESS_PASSWORD_SIGN_IN,
-    ...(google ? { google } : {}),
-    magicLink: cleaned.VELACHESS_MAGIC_LINK,
-    ...(trustedProxies?.length ? { trustedProxies } : {}),
+    trustedOrigins: [
+      origin,
+      ...parsed.VELACHESS_TRUSTED_ORIGINS.map((entry) => new URL(entry).origin),
+    ],
+    passwordSignIn: parsed.VELACHESS_PASSWORD_SIGN_IN,
+    ...(clientId && clientSecret ? { google: { clientId, clientSecret } } : {}),
+    magicLink: parsed.VELACHESS_MAGIC_LINK,
+    ...(trustedProxies.length > 0 ? { trustedProxies } : {}),
     insecureProductionTransport: production && !secureCookies,
   };
 }

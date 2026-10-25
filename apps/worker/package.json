@@ -13,7 +13,8 @@
     "@velachess/accounts": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
-    "@velachess/infra-queue": "workspace:*"
+    "@velachess/infra-queue": "workspace:*",
+    "zod": "^4.6.7"
   },
   "type": "module"
 }

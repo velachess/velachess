@@ -14,7 +14,7 @@
     "@velachess/infra-logger": "workspace:*",
     "better-auth": "1.7.7",
     "drizzle-orm": "^0.45.2",
-    "envalid": "^8.2.0"
+    "zod": "^4.6.7"
   },
   "type": "module",
   "exports": {

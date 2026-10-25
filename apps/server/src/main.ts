@@ -22,10 +22,11 @@ import { buildReadinessChecks } from "./composition/health.ts";
 const apiLogger = logger.child({ component: "api" });
 
 const env = resolveApiEnv(process.env);
-const { databaseUrl, auth: authEnv } = env;
+const { databaseUrl } = env;
+const { passwordSignIn, magicLink, insecureProductionTransport, ...authEnv } = env.auth;
 
 const db = createDb(databaseUrl);
-const redis = createRedisClient(env.redis.url);
+const redis = createRedisClient(env.redisUrl);
 redis.on("error", (error: Error) => apiLogger.error({ error }, "redis error"));
 const boss = createBoss(databaseUrl);
 boss.on("error", (error) => apiLogger.error({ error }, "pg-boss error"));
@@ -41,7 +42,7 @@ const syncNotifications = createSyncNotifications(async (channel, onNotify, onLi
 });
 await syncNotifications.ready;
 
-if (authEnv.insecureProductionTransport) {
+if (insecureProductionTransport) {
   apiLogger.warn(
     { baseUrl: authEnv.baseUrl },
     "production is served over plain http — session cookies ride " +
@@ -49,23 +50,15 @@ if (authEnv.insecureProductionTransport) {
   );
 }
 
-const authConfig = {
-  db,
-  baseUrl: authEnv.baseUrl,
-  secret: authEnv.secret,
-  secureCookies: authEnv.secureCookies,
-  trustedOrigins: authEnv.trustedOrigins,
-  ...(authEnv.google ? { google: authEnv.google } : {}),
-  ...(authEnv.trustedProxies ? { trustedProxies: authEnv.trustedProxies } : {}),
-};
+const authConfig = { db, ...authEnv };
 
 const files = createFileStore(env.storage.root);
 const deleteAccountDeps = buildDeleteAccountDeps(db, files);
 
 const auth = createAuth({
   ...authConfig,
-  passwordSignIn: authEnv.passwordSignIn,
-  magicLink: authEnv.magicLink,
+  passwordSignIn,
+  magicLink,
   ...(env.email ? { sendEmail: createAuthEmailSender(env.email) } : {}),
   deleteAccount: (userId) => deleteAccount(deleteAccountDeps, userId),
 });

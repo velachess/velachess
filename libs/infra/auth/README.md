@@ -9,7 +9,7 @@ tenant scoping, and route mounting stay with the business modules under
 
 - Internal: `@velachess/infra-db` for the Drizzle adapter and schema.
 - External runtime: Better Auth, `@better-auth/drizzle-adapter`, Drizzle ORM,
-  and envalid.
+  and Zod.
 
 ## Usage / Development
 

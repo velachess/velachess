@@ -67,13 +67,28 @@ describe("the base URL", () => {
         VELACHESS_AUTH_SECRET: STRONG,
         VELACHESS_BASE_URL: "not a url",
       }),
-    ).toThrowError(/VELACHESS_BASE_URL is not a valid URL/);
+    ).toThrowError(/VELACHESS_BASE_URL must be an http:\/\/ or https:\/\/ URL/);
     expect(() =>
       resolveAuthEnv({
         VELACHESS_AUTH_SECRET: STRONG,
         VELACHESS_BASE_URL: "ftp://chess.example.com",
       }),
-    ).toThrowError(/must be http:\/\/ or https:\/\//);
+    ).toThrowError(/VELACHESS_BASE_URL must be an http:\/\/ or https:\/\/ URL/);
+  });
+});
+
+describe("unset variables", () => {
+  it("boots when compose passes every optional variable as an empty string", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_TRUSTED_ORIGINS: "",
+      GOOGLE_CLIENT_ID: "",
+      GOOGLE_CLIENT_SECRET: " ",
+      VELACHESS_TRUSTED_PROXIES: "",
+    });
+    expect(resolved.trustedOrigins).toEqual(["http://localhost:3000"]);
+    expect(resolved.google).toBeUndefined();
+    expect(resolved.trustedProxies).toBeUndefined();
   });
 });
 

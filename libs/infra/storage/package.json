@@ -7,9 +7,6 @@
   "scripts": {
     "test": "vitest run"
   },
-  "dependencies": {
-    "envalid": "^8.2.0"
-  },
   "type": "module",
   "exports": {
     ".": "./index.ts",
