@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveApiEnv } from "../src/env.ts";
-import { resolveRedisEnv } from "../src/redis.ts";
 
 const CANARY = "leak-canary-0123456789";
 
@@ -33,7 +32,7 @@ describe("resolveApiEnv", () => {
 
     expect(env.databaseUrl).toBe(VALID.DATABASE_URL);
     expect(env.port).toBe(8080);
-    expect(env.redis.url).toBe(VALID.REDIS_URL);
+    expect(env.redisUrl).toBe(VALID.REDIS_URL);
     expect(env.auth.baseUrl).toBe("http://localhost:3000");
     expect(env.storage.root).toBe("/data");
     expect(env.bootstrapCredentials).toEqual({
@@ -141,28 +140,22 @@ describe("resolveApiEnv", () => {
     ).toThrowError(/VELACHESS_STORAGE_DIR must be an absolute path in production/);
   });
 
-  it("leaves Redis rules to resolveRedisEnv", () => {
-    const { REDIS_URL: _omitted, ...env } = VALID;
-
-    expect(() => resolveApiEnv(env)).toThrowError(/REDIS_URL is required/);
-  });
-});
-
-describe("resolveRedisEnv", () => {
   it.each(["redis://localhost:6380", "rediss://cache.example.com:6380/0"])(
-    "accepts %s",
+    "accepts REDIS_URL=%s",
     (url) => {
-      expect(resolveRedisEnv({ REDIS_URL: url })).toEqual({ url });
+      expect(resolveApiEnv({ ...VALID, REDIS_URL: url }).redisUrl).toBe(url);
     },
   );
 
   it("requires REDIS_URL", () => {
-    expect(() => resolveRedisEnv({})).toThrowError(/REDIS_URL is required/);
+    const { REDIS_URL: _omitted, ...env } = VALID;
+
+    expect(() => resolveApiEnv(env)).toThrowError(/REDIS_URL is required/);
   });
 
   it("rejects a REDIS_URL that is not redis:// or rediss://, without echoing it", () => {
     const error = errorOf(() =>
-      resolveRedisEnv({ REDIS_URL: `https://user:${CANARY}@cache.example.com` }),
+      resolveApiEnv({ ...VALID, REDIS_URL: `https://user:${CANARY}@cache.example.com` }),
     );
 
     expect(error.message).toMatch(/REDIS_URL must be a redis:\/\/ or rediss:\/\/ URL/);

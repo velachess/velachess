@@ -99,8 +99,6 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://velachess:velachess@postgres:5432/velachess
-      WORKER_ANALYSIS_CONCURRENCY: "4"
-      ANALYSIS_DEPTH: "12"
       WORKER_HEALTH_PORT: ${WORKER_HEALTH_PORT:-3003}
     healthcheck:
       test:
