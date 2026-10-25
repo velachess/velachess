@@ -12,16 +12,9 @@ import { abandonSyncJob, createSyncJob } from "@velachess/infra-db";
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
 
 let harness: ApiHarness;
-let owner: AuthedApp;
-let ownerId: string;
-let stranger: AuthedApp;
 
 beforeAll(async () => {
   harness = await createApiHarness();
-  const signedUp = await harness.signUp("owner@sync-events.test");
-  owner = signedUp.app;
-  ownerId = signedUp.userId;
-  stranger = (await harness.signUp("stranger@sync-events.test")).app;
 });
 
 afterAll(() => harness.close());
@@ -59,6 +52,7 @@ async function connectLooper(app: AuthedApp) {
 
 describe("GET /syncs/events", () => {
   it("announces the owner's sync once it lands, with the games already readable", async () => {
+    const owner = (await harness.signUp("lands@sync-events.test")).app;
     const events = await owner.request("/syncs/events");
     expect(events.status).toBe(200);
     expect(events.headers.get("content-type")).toContain("text/event-stream");
@@ -85,10 +79,12 @@ describe("GET /syncs/events", () => {
   });
 
   it("announces a job the api had to abandon as failed", async () => {
-    const accounts = await parseResponse(owner.api.accounts.$get());
+    const { app: owner, userId } = await harness.signUp("abandoned@sync-events.test");
+    const account = await connectLooper(owner);
+    await harness.runSync(account.syncId);
     const job = (await createSyncJob(harness.db, {
-      userId: ownerId,
-      accountId: accounts[0]!.id,
+      userId,
+      accountId: account.id,
       trigger: "manual",
     }))!;
     const events = await owner.request("/syncs/events");
@@ -101,23 +97,27 @@ describe("GET /syncs/events", () => {
     expect(text).not.toContain("sync.completed");
   });
 
-  it("tells a stranger nothing about it", async () => {
-    const theirs = await stranger.request("/syncs/events");
-    const accounts = await parseResponse(owner.api.accounts.$get());
-    const job = (await createSyncJob(harness.db, {
-      userId: ownerId,
-      accountId: accounts[0]!.id,
-      trigger: "manual",
-    }))!;
+  it("tells a stranger nothing of another user's sync, while announcing their own", async () => {
+    const alice = (await harness.signUp("alice@sync-events.test")).app;
+    const bob = (await harness.signUp("bob@sync-events.test")).app;
+    const aliceAccount = await connectLooper(alice);
+    const bobAccount = await connectLooper(bob);
+    const bobEvents = await bob.request("/syncs/events");
 
-    await abandonSyncJob(harness.db, job.id);
-    const text = await readSome(theirs, 800);
+    await harness.runSync(aliceAccount.syncId);
+    await harness.runSync(bobAccount.syncId);
+    const text = await readSome(bobEvents);
 
-    expect(text).not.toContain("sync.");
-    expect(text).not.toContain(job.id);
+    // The positive half is what makes the negative one evidence: a stream
+    // that announced nothing at all would pass it too.
+    expect(text).toContain("event: sync.completed");
+    expect(text).toContain(`id: ${bobAccount.syncId}`);
+    expect(text).not.toContain(aliceAccount.syncId);
+    expect(text).not.toContain(aliceAccount.id);
   });
 
   it("ends when the client leaves", async () => {
+    const owner = (await harness.signUp("leaves@sync-events.test")).app;
     const controller = new AbortController();
     const events = await owner.request("/syncs/events", { signal: controller.signal });
     const reading = events.body!.getReader().read();
