@@ -210,17 +210,57 @@ Emails go out in the language the person's app is set to (English,
 Português (Brasil) or Español). They are sent in the background: a Resend
 outage is logged by the API and never changes the answer a visitor sees.
 
+## Sign-in with an email link (optional)
+
+Set `VELACHESS_MAGIC_LINK=true`, with email configured. The sign-in screen
+then asks for an address and emails a link to it. The link works once and
+expires after 5 minutes, and only a hash of it is stored. Following it
+signs the person in, and creates the account when the address is new —
+public registration, as with Google. Better Auth allows 5 link requests and
+5 link checks a minute per client; its limiter runs in production only.
+
+Without email, `VELACHESS_MAGIC_LINK=true` refuses to boot. While Resend is
+down, people who sign in only by link cannot get in; Google and passwords
+are unaffected.
+
+A link that proves an address whose account was never confirmed first
+strips that account of every password, Google link and session it had:
+whoever registered the address without owning it keeps nothing. Bootstrap
+and Google accounts are confirmed, so they are never touched. For the same
+reason Google sign-in never joins an unconfirmed account
+(`account_not_linked`).
+
+## Password sign-in
+
+On by default. `VELACHESS_PASSWORD_SIGN_IN=false` turns it off for every
+account — the form disappears and `POST /auth/sign-in/email` answers 400 —
+leaving Google and the email link; with neither configured, startup
+refuses. An account that only has a password then signs in by email link.
+Bootstrap still creates the first user. No configuration opens password
+registration.
+
+## Sessions
+
+A session lasts 7 days and is extended back to 7 days when used more than a
+day after its last extension. Deleting the account without a password needs
+a session less than a day old. These are Better Auth's defaults, set
+explicitly in `libs/infra/auth/auth.ts`. Settings → Account → **Sign out
+everywhere** ends every session of the account, this one included.
+
 ## What refuses to boot, and why
 
-| Condition                                                            | Behavior                                                                                                        |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `VELACHESS_AUTH_SECRET` missing or under 32 chars                    | Startup fails; the error names the variable and how to generate one. The value is never printed.                |
-| Production with the `.env.example` placeholder secret                | Startup fails — a copied example file is indistinguishable from no secret.                                      |
-| Production without `VELACHESS_BASE_URL`                              | Startup fails — cookies and trusted origins for a defaulted localhost would belong to a host nobody is on.      |
-| One of `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` without the other | Startup fails — half a provider is a button that fails at the redirect instead of at boot.                      |
-| One of `RESEND_API_KEY` / `VELACHESS_EMAIL_FROM` without the other   | Startup fails — half an email setup is a reset link that never arrives.                                         |
-| `VELACHESS_EMAIL_FROM` that is not an address or `Name <address>`    | Startup fails; the error names the variable. The API key is never printed.                                      |
-| Production with an `http://` base URL                                | Boots, with a loud warning: put TLS in front. `Secure` cookies follow the actual transport and are never faked. |
+| Condition                                                                         | Behavior                                                                                                        |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `VELACHESS_AUTH_SECRET` missing or under 32 chars                                 | Startup fails; the error names the variable and how to generate one. The value is never printed.                |
+| Production with the `.env.example` placeholder secret                             | Startup fails — a copied example file is indistinguishable from no secret.                                      |
+| Production without `VELACHESS_BASE_URL`                                           | Startup fails — cookies and trusted origins for a defaulted localhost would belong to a host nobody is on.      |
+| One of `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` without the other              | Startup fails — half a provider is a button that fails at the redirect instead of at boot.                      |
+| One of `RESEND_API_KEY` / `VELACHESS_EMAIL_FROM` without the other                | Startup fails — half an email setup is a reset link that never arrives.                                         |
+| `VELACHESS_EMAIL_FROM` that is not an address or `Name <address>`                 | Startup fails; the error names the variable. The API key is never printed.                                      |
+| `VELACHESS_PASSWORD_SIGN_IN=false` with neither Google nor `VELACHESS_MAGIC_LINK` | Startup fails — nobody could sign in.                                                                           |
+| `VELACHESS_MAGIC_LINK=true` without email                                         | Startup fails — the link would never be sent.                                                                   |
+| Production with an `http://` base URL                                             | Boots, with a loud warning: put TLS in front. `Secure` cookies follow the actual transport and are never faked. |
 
-These rules live in `libs/infra/auth/env.ts` and, for email,
-`libs/infra/email/env.ts`, with unit tests beside them.
+These rules live in `libs/infra/auth/env.ts`, `libs/infra/email/env.ts` and,
+for the link's need for email, `apps/server/src/env.ts`, with tests beside
+them.

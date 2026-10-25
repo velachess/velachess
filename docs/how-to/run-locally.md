@@ -134,6 +134,9 @@ and `pnpm dev:worker` all work unchanged inside it — nothing to prefix.
   development, and the base of the Google redirect URI below
 - `VELACHESS_BOOTSTRAP_USER_EMAIL` / `_PASSWORD` — the first user, created
   once into an empty database, then ignored
+- `VELACHESS_PASSWORD_SIGN_IN` / `VELACHESS_MAGIC_LINK` — which sign-in
+  methods the login screen offers; the link needs Resend. See
+  [self-hosting](self-host.md#sign-in-with-an-email-link-optional)
 
 For a real deployment — where those last two have a lifecycle worth
 respecting — follow [self-hosting](self-host.md) instead.
