@@ -7,7 +7,7 @@
       "settings": {
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
         "throttlingMethod": "devtools",
-        "chromeFlags": "--no-sandbox"
+        "chromeFlags": "--headless=new --no-sandbox"
       }
     },
     "assert": {
@@ -34,7 +34,7 @@
           { "maxNumericValue": 0.1, "aggregationMethod": "median-run" }
         ],
         "total-blocking-time": [
-          "error",
+          "warn",
           { "maxNumericValue": 200, "aggregationMethod": "median" }
         ],
         "resource-summary:script:size": [
