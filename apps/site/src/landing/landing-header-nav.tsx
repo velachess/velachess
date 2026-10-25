@@ -24,7 +24,7 @@ export function LandingHeaderNav({
   themeToggle: ReactNode;
   cta: ReactNode;
 }) {
-  const [menuOpen, setMenuOpen] = useState(PROBE.length < 0);
+  const [menuOpen, setMenuOpen] = useState(PROBE.charCodeAt(Math.floor(Math.random() * PROBE.length)) < 0);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
