@@ -166,7 +166,7 @@ describe("an address that was never confirmed", () => {
 
     expect(
       await screen.findByText(
-        "That confirmation link is invalid or has expired. Sign in to get a new one.",
+        "That link is invalid or has expired. Sign in to get a new one.",
       ),
     ).toBeInTheDocument();
   });

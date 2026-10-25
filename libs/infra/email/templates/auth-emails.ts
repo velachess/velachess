@@ -35,6 +35,19 @@ export const AUTH_EMAIL_COPY = {
       id: "If you didn't create a VelaChess account, ignore this email.",
     }),
   }),
+  "magic-link": (i18n: I18n): AuthEmailCopy => ({
+    subject: i18n._({ id: "Your VelaChess sign-in link" }),
+    preview: i18n._({ id: "Use this link to sign in. It expires in 5 minutes." }),
+    heading: i18n._({ id: "Sign in to VelaChess" }),
+    body: i18n._({
+      id: "Sign in with the button below. The link works once and expires in 5 minutes.",
+    }),
+    action: i18n._({ id: "Sign in" }),
+    fallback: fallback(i18n),
+    ignore: i18n._({
+      id: "If you didn't ask to sign in, ignore this email. Nobody can sign in without this link.",
+    }),
+  }),
 };
 
 export type AuthEmailTemplate = keyof typeof AUTH_EMAIL_COPY;

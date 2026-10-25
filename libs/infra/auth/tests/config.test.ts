@@ -100,7 +100,7 @@ describe("who owns user.image", () => {
   it("passes no account-linking option that could overwrite it either", () => {
     const { options } = createAuth(base);
 
-    expect(options.account).toEqual({ modelName: "authAccounts" });
+    expect(options.account?.accountLinking).toEqual({ requireLocalEmailVerified: true });
   });
 });
 
@@ -131,5 +131,19 @@ describe("email", () => {
 describe("account deletion", () => {
   it("is off unless a deletion is wired in", () => {
     expect(createAuth(base).options.user?.deleteUser).toBeUndefined();
+  });
+});
+
+describe("sessions", () => {
+  it("keeps Better Auth's lifetime and refresh, and no cookie cache", () => {
+    const { options } = createAuth(base);
+    // A cookie cache would let a revoked session through until it expires.
+    expect(options.session).toMatchObject({
+      expiresIn: 7 * 24 * 60 * 60,
+      updateAge: 24 * 60 * 60,
+      freshAge: 24 * 60 * 60,
+    });
+    expect("cookieCache" in options.session).toBe(false);
+    expect("secondaryStorage" in options).toBe(false);
   });
 });

@@ -22,6 +22,7 @@ import { GameplayScreen } from "../settings/gameplay/gameplay-screen.tsx";
 import { LanguageRegionScreen } from "../settings/language-region/language-region-screen.tsx";
 import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
+import { signInMethodsQuery } from "../auth/sign-in-methods.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
 
@@ -154,6 +155,7 @@ const loginRoute = createRoute({
 
     throw redirect({ to: search.redirect ?? "/", replace: true });
   },
+  loader: ({ context }) => context.queryClient.ensureQueryData(signInMethodsQuery),
   component: TestLoginRoute,
 });
 

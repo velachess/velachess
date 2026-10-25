@@ -43,13 +43,22 @@ export function resolveApiEnv(env: Record<string, string | undefined>): Resolved
   const result = apiEnvSchema.safeParse(env);
   if (!result.success) throw new Error(z.prettifyError(result.error));
 
+  const auth = resolveAuthEnv(env);
+  const email = resolveEmailEnv(env);
+  if (auth.magicLink && !email) {
+    throw new Error(
+      "VELACHESS_MAGIC_LINK needs email to send the link — set RESEND_API_KEY " +
+        "and VELACHESS_EMAIL_FROM",
+    );
+  }
+
   return {
     databaseUrl: result.data.DATABASE_URL,
     port: result.data.PORT,
     redis: resolveRedisEnv(env),
-    auth: resolveAuthEnv(env),
+    auth,
     storage: resolveStorageEnv(env),
-    email: resolveEmailEnv(env),
+    email,
     bootstrapCredentials: bootstrapCredentialsFromEnv(env),
   };
 }

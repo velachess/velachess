@@ -159,7 +159,9 @@ visitors to `/login`, preserving the requested path. `/login` mirrors the
 guard and sends an authenticated visitor back to the product.
 `/forgot-password` and `/reset-password` sit beside it, public too; the
 sign-in screen links to the first only when `GET /config` reports
-`passwordReset`.
+`passwordReset`. `/login` loads `GET /config` before rendering and shows only
+the methods it reports; with both the email link and passwords on, the link
+leads and the password form is one click away.
 
 Guards run before components exist, so session resolution returns a defined
 authenticated/unauthenticated state instead of leaking a rejected query. The

@@ -23,7 +23,14 @@ async function stageAccountDeletion(page: Page) {
 
   await page.route("**/api/config", (route) =>
     route.fulfill({
-      json: { signInMethods: { password: true, google: false, passwordReset: false } },
+      json: {
+        signInMethods: {
+          password: true,
+          passwordReset: false,
+          google: false,
+          magicLink: false,
+        },
+      },
     }),
   );
   await page.route("**/api/auth/list-accounts", (route) =>

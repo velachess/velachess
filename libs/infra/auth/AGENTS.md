@@ -19,11 +19,30 @@ current Better Auth option.
 - `basePath: "/auth"`, not Better Auth's default `/api/auth` — matches the
   `/api` prefix the browser already sees. Changing it breaks every client
   call without a matching client-side change.
-- `disableSignUp: !config.allowSignUp` — closed by default. A
-  network-reachable self-host must not accept signups from anyone who
-  finds it; the first user comes from env-var bootstrap via a separate
-  signup-enabled instance never mounted on HTTP (`apps/server/src/main.ts`).
-  Don't flip the default.
+- `disableSignUp: !config.allowSignUp` — password sign-up is closed on
+  the mounted instance, always. The first user comes from env-var
+  bootstrap via a separate signup-enabled instance never mounted on HTTP
+  (`apps/server/src/main.ts`). Public registration exists only through
+  Google and the magic link, each an explicit operator choice. Don't flip
+  the default.
+- `passwordSignIn` maps to `emailAndPassword.enabled` and defaults to on;
+  the bootstrap twin never passes it, so provisioning is independent of it.
+- `magicLink` adds Better Auth's plugin only when `sendEmail` is present.
+  Tokens are stored hashed (`storeToken: "hashed"`), live 5 minutes and
+  are consumed on first use; the link is rebuilt under `/api` like the
+  verification link. Verifying an unconfirmed account strips its earlier
+  accounts and sessions (Better Auth's `revokeUnprovenAccountAccess`).
+- `accountLinking.requireLocalEmailVerified: true` is stated, not
+  inherited: a Google sign-in must never join an account whose address
+  nobody proved. `apps/server/tests/account-linking.test.ts` fails without
+  it.
+- `session` states Better Auth's defaults (7 days, extended daily, fresh
+  for a day) so an upgrade cannot move them silently. No `cookieCache` and
+  no `secondaryStorage`: revoking a session must refuse its very next
+  request.
+- `GET /config` reads `auth.$context` — the resolved options, social
+  providers and plugins — so the capability flags cannot drift from what
+  this file configured.
 - `generateId: "uuid"` — matches `users.id`'s column type in the Drizzle
   schema. Changing it breaks the schema contract, not just this library.
 - `modelName`/`fields` on each model (`users`, `sessions`, `authAccounts`,

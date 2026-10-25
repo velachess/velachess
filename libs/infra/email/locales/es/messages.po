@@ -8,6 +8,36 @@ msgstr ""
 "Language: es\n"
 
 #. js-lingui-explicit-id
+#: templates/auth-emails.ts:39
+msgid "Your VelaChess sign-in link"
+msgstr "Tu enlace para entrar en VelaChess"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:40
+msgid "Use this link to sign in. It expires in 5 minutes."
+msgstr "Usa este enlace para entrar. Caduca en 5 minutos."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:41
+msgid "Sign in to VelaChess"
+msgstr "Entra en VelaChess"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:42
+msgid "Sign in with the button below. The link works once and expires in 5 minutes."
+msgstr "Entra con el botón de abajo. El enlace funciona una sola vez y caduca en 5 minutos."
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:45
+msgid "Sign in"
+msgstr "Entrar"
+
+#. js-lingui-explicit-id
+#: templates/auth-emails.ts:47
+msgid "If you didn't ask to sign in, ignore this email. Nobody can sign in without this link."
+msgstr "Si no pediste entrar, ignora este correo. Nadie puede entrar sin este enlace."
+
+#. js-lingui-explicit-id
 #: templates/auth-emails.ts:9
 msgid "If the button doesn't work, open this link:"
 msgstr "Si el botón no funciona, abre este enlace:"

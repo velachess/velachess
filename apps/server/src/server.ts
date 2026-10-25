@@ -58,14 +58,15 @@ const configRoute = createRoute({
   summary: "Sign-in methods this instance actually offers",
   responses: {
     200: {
-      description: "Capability flags only — see SignInMethods in deps.ts",
+      description: "Capability flags only, read from the running Better Auth instance",
       content: {
         "application/json": {
           schema: z.object({
             signInMethods: z.object({
               password: z.boolean(),
-              google: z.boolean(),
               passwordReset: z.boolean(),
+              google: z.boolean(),
+              magicLink: z.boolean(),
             }),
           }),
         },
@@ -100,7 +101,23 @@ export function createApp(deps: ApiDeps) {
       .use("*", csrf({ origin: deps.trustedOrigins })),
   )
     .route("/health", healthRoutes(buildHealthDeps(deps.readinessChecks)))
-    .openapi(configRoute, (c) => c.json({ signInMethods: deps.signInMethods }, 200))
+    .openapi(configRoute, async (c) => {
+      const { options, socialProviders } = await deps.auth.$context;
+      const password = options.emailAndPassword?.enabled === true;
+      return c.json(
+        {
+          signInMethods: {
+            password,
+            passwordReset:
+              password && options.emailAndPassword?.sendResetPassword !== undefined,
+            google: socialProviders.some((provider) => provider.id === "google"),
+            magicLink:
+              options.plugins?.some((plugin) => plugin.id === "magic-link") ?? false,
+          },
+        },
+        200,
+      );
+    })
     .doc31("/openapi.json", {
       openapi: "3.1.0",
       info: {

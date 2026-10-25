@@ -1,12 +1,15 @@
 import { createAuthClient } from "better-auth/react";
-import { inferAdditionalFields } from "better-auth/client/plugins";
+import { inferAdditionalFields, magicLinkClient } from "better-auth/client/plugins";
 
 import { apiBaseUrl } from "../api/index.ts";
 import { i18n } from "../i18n/index.ts";
 
 export const authClient = createAuthClient({
   basePath: `${apiBaseUrl}/auth`,
-  plugins: [inferAdditionalFields({ user: { onboardedAt: { type: "date" } } })],
+  plugins: [
+    inferAdditionalFields({ user: { onboardedAt: { type: "date" } } }),
+    magicLinkClient(),
+  ],
   fetchOptions: {
     // Resolved per call: binding at import runs before MSW patches `fetch`.
     customFetchImpl: (...args) => globalThis.fetch(...args),

@@ -20,8 +20,9 @@ The order in `src/server.ts` is part of the security and availability contract:
 6. product route groups.
 
 Health and documentation remain available without a database-backed session.
-The sign-in capability endpoint exposes booleans only: `password`, `google`,
-and `passwordReset` (true when email is configured). Better Auth owns its own
+The sign-in capability endpoint exposes booleans only — `password`,
+`passwordReset`, `google` and `magicLink` — read from the running Better Auth
+instance rather than kept beside it. Better Auth owns its own
 routes and throttling — password reset and email verification included, with no
 email endpoint of ours; the general API limiter sits after session resolution so
 its key is the authenticated user.
