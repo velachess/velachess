@@ -26,7 +26,7 @@
     },
     "@velachess/site#lighthouse": {
       "dependsOn": ["@velachess/site#test"],
-      "outputs": [".lighthouseci/reports/**"]
+      "cache": false
     },
     "typecheck": {},
     "@velachess/web#typecheck": {

@@ -1,9 +1,33 @@
 name: Site quality
 
+# Lighthouse audits the public site, so it runs only when what the site
+# renders or how it is measured changed. `libs/ui` is in because the site
+# renders its components, icons, theme and tokens; its chess, charts and
+# layout code never reach the site. Not a required check: a required check
+# under a `paths:` filter would stay pending on every other pull request.
 on:
   push:
     branches: [main]
+    paths: &site-inputs
+      - apps/site/**
+      - libs/ui/package.json
+      - libs/ui/src/components/**
+      - libs/ui/src/icons/**
+      - libs/ui/src/lib/**
+      - libs/ui/src/styles/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .node-version
+      - turbo.json
+      - .github/actions/setup/**
+      - .github/workflows/site-quality.yml
+      - "!**/*.md"
+      - "!**/tests/**"
+      - "!**/*.test.ts"
+      - "!**/*.test.tsx"
   pull_request:
+    paths: *site-inputs
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,48 +42,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - uses: ./.github/actions/setup
 
-      # A pull request runs the gate only when the site or the design
-      # system it renders changed; a push to main always runs it, so drift
-      # arriving through a dependency still fails somewhere.
-      #
-      # `turbo --affected` cannot express that: the site depends on
-      # @velachess/ui, and a root-file edit (lockfile, root package.json,
-      # turbo.json) marks every package affected — which is how a
-      # five-run Lighthouse gate ended up blocking pull requests that
-      # never touched apps/site.
-      #
-      # The workflow itself stays unfiltered on purpose. A `paths:` filter
-      # under `on:` would leave the required `Site quality / Lighthouse`
-      # check permanently pending on every other pull request; skipped
-      # steps inside a job that did run report green.
-      - name: Decide whether the site changed
-        id: scope
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      # The repo's pinned Playwright Chromium rather than the runner's Chrome,
+      # which the image updates under us.
+      - name: Install Chromium
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if git diff --quiet "$BASE_SHA" HEAD -- apps/site libs/ui; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "No apps/site or libs/ui change — skipping Lighthouse."
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
+          pnpm exec playwright install --with-deps chromium
+          echo "CHROME_PATH=$(node -p "require('@playwright/test').chromium.executablePath()")" >> "$GITHUB_ENV"
 
       - name: Run site quality checks
-        if: steps.scope.outputs.run == 'true'
         run: pnpm exec turbo run lighthouse --filter=@velachess/site
 
-      - name: Upload Lighthouse reports
-        if: always() && steps.scope.outputs.run == 'true'
+      - name: Upload Lighthouse results
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: lighthouse-reports
-          path: apps/site/.lighthouseci/reports
+          name: lighthouse-results
+          path: apps/site/.lighthouseci
           if-no-files-found: ignore
