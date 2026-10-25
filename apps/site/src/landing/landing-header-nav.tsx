@@ -5,6 +5,8 @@ import { cn } from "@velachess/ui/lib/utils";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
+import { PROBE } from "./probe-bloat.ts";
+
 export function LandingHeaderNav({
   menuLabel,
   closeMenuLabel,
@@ -22,7 +24,7 @@ export function LandingHeaderNav({
   themeToggle: ReactNode;
   cta: ReactNode;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(PROBE.length < 0);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
