@@ -13,53 +13,71 @@ permissions:
   contents: read
 
 jobs:
-  lighthouse:
-    name: Lighthouse
+  changes:
+    name: Site changes
     runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.diff.outputs.site }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      # Any git failure (a force-pushed or first push has no usable base)
+      # lands in the else branch and runs Lighthouse.
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git diff --quiet "$BASE...HEAD" -- \
+            apps/site \
+            libs/ui/package.json libs/ui/src/components libs/ui/src/icons libs/ui/src/lib libs/ui/src/styles \
+            package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version turbo.json \
+            .github/actions/setup .github/workflows/site-quality.yml \
+            ':(exclude,glob)**/*.md' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/*.test.ts' ':(exclude,glob)**/*.test.tsx'
+          then
+            echo "site=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "site=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  lighthouse:
+    name: Lighthouse
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
-      # A pull request runs the gate only when the site or the design
-      # system it renders changed; a push to main always runs it, so drift
-      # arriving through a dependency still fails somewhere.
-      #
-      # `turbo --affected` cannot express that: the site depends on
-      # @velachess/ui, and a root-file edit (lockfile, root package.json,
-      # turbo.json) marks every package affected — which is how a
-      # five-run Lighthouse gate ended up blocking pull requests that
-      # never touched apps/site.
-      #
-      # The workflow itself stays unfiltered on purpose. A `paths:` filter
-      # under `on:` would leave the required `Site quality / Lighthouse`
-      # check permanently pending on every other pull request; skipped
-      # steps inside a job that did run report green.
-      - name: Decide whether the site changed
-        id: scope
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      - name: Install Chromium
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if git diff --quiet "$BASE_SHA" HEAD -- apps/site libs/ui; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "No apps/site or libs/ui change — skipping Lighthouse."
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
+          pnpm exec playwright install --with-deps chromium
+          echo "CHROME_PATH=$(node -p "require('@playwright/test').chromium.executablePath()")" >> "$GITHUB_ENV"
 
       - name: Run site quality checks
-        if: steps.scope.outputs.run == 'true'
         run: pnpm exec turbo run lighthouse --filter=@velachess/site
 
-      - name: Upload Lighthouse reports
-        if: always() && steps.scope.outputs.run == 'true'
+      - name: Annotate results
+        if: always() && hashFiles('apps/site/.lighthouseci/assertion-results.json') != ''
+        working-directory: apps/site/.lighthouseci
+        run: |
+          jq -r '"::notice title=Run::benchmark index \(.environment.benchmarkIndex | round), performance \(.categories.performance.score), TBT \(.audits["total-blocking-time"].numericValue | round) ms, LCP \(.audits["largest-contentful-paint"].numericValue | round) ms"' lhr-*.json
+          jq -r '.[] | "::\(if .level == "error" then "error" else "warning" end) title=\(.auditId)\(if .auditProperty then ":" + .auditProperty else "" end)::\(.operator) \(.expected), found \(.actual), runs \(.values | map(round) | join(" "))"' assertion-results.json
+
+      - name: Upload Lighthouse results
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: lighthouse-reports
-          path: apps/site/.lighthouseci/reports
+          name: lighthouse-results
+          path: apps/site/.lighthouseci
           if-no-files-found: ignore
+
+  gate:
+    name: Site quality
+    needs: [changes, lighthouse]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.result != 'success' || (needs.changes.outputs.site == 'true' && needs.lighthouse.result != 'success')
+        run: exit 1

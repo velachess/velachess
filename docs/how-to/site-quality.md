@@ -16,9 +16,15 @@ pnpm site:capture
 pnpm site:quality
 ```
 
-`site:quality` builds the production static export, validates its HTML and metadata, serves `apps/site/out` with Lighthouse CI's built-in static server, and runs five mobile Lighthouse executions.
+`site:quality` builds the production static export, validates its HTML and metadata, serves `apps/site/out` with Lighthouse CI's built-in static server, and runs five mobile Lighthouse executions. Lighthouse CI and Lighthouse are pinned by the lockfile. CI uses the Playwright Chromium pinned there too; for the same browser locally, set `CHROME_PATH=$(node -p "require('@playwright/test').chromium.executablePath()")`. Chrome runs headless with `--no-sandbox`, which the runner's AppArmor policy requires for a browser not installed as a system package.
 
-The representative median run must score at least 90 Performance, 95 Accessibility, 95 Best Practices, and exactly 100 SEO. LCP is capped at 2.5 seconds, CLS at 0.1, and total blocking time at 200 ms. Total blocking time is a lab proxy, not an INP measurement.
+Blocking, on the median run unless noted:
+
+- Performance at least 90, Accessibility and Best Practices at least 95, SEO 100.
+- Median LCP under 2.5 s and CLS under 0.1.
+- At most 215,000 bytes of script (206,617 today) and no third-party request.
+
+Warning only: median total blocking time under 200 ms.
 
 ## Why the run uses real throttling
 
@@ -38,21 +44,57 @@ budget and failed pull requests for a paint that had already happened.
 Largest Contentful Paint is a Core Web Vitals paint metric, and the budget is
 there to gate the paint. Real throttling measures it: the same build reports
 about 1.6 s with a 50 ms spread across runs, against 2.6 s with a 200 ms spread
-under simulation. The trade is reproducibility — real throttling is more
-exposed to runner CPU noise than a model is — which the five runs, the median
-aggregation and the remaining margin absorb.
+under simulation. The trade is reproducibility: real throttling is more
+exposed to runner CPU noise, which the five runs and the median absorb for LCP
+but not for total blocking time.
+
+## Why total blocking time only warns
+
+Real throttling slows the CPU relative to the machine, and `ubuntu-latest`
+machines differ: Lighthouse's benchmark index ranged from about 2,400 to 4,400
+across CI runs of this site. On the slowest machines the same build measured a
+median total blocking time from about 160 ms to 220 ms on different runs, on the
+fastest about 20 ms; LCP stayed at 1.60–1.68 s everywhere. A 200 ms gate on that
+number fails at random. Regressions are still caught:
+
+- Performance blocks and gives total blocking time 30% of its score: one second
+  of main-thread work on load drops it to 77.
+- The script budget catches added JavaScript on any machine: 45 KB more script
+  failed it on a runner where Performance still scored 100.
 
 Never lower a threshold merely to make CI pass. Diagnose the regression first, without removing useful content or degrading the experience for a score.
 
 ## CI check
 
-`.github/workflows/site-quality.yml` publishes the `Site quality / Lighthouse` check. Configure that exact check as required in the `main` branch protection rule. The workflow is deliberately separate from deployment.
+`.github/workflows/site-quality.yml` runs on every pull request and push to
+`main`, in three jobs:
 
-A pull request runs the gate only when `apps/site` or `libs/ui` changed; a push
-to `main` always runs it, so drift that arrives through a dependency still
-fails somewhere. The workflow itself stays unfiltered: a `paths:` filter under
-`on:` would leave the required check permanently pending on every other pull
-request, whereas steps skipped inside a job that did run report green.
+1. `Site changes` diffs the change against its base with `git diff` pathspecs:
+   `apps/site`, the `libs/ui` folders the site renders (`components`, `icons`,
+   `lib`, `styles`, plus `libs/ui/package.json`), the root manifests, lockfile,
+   `.node-version`, `turbo.json`, the setup action and the workflow, excluding
+   Markdown and tests. If git cannot compute the diff, it counts as a site
+   change.
+2. `Lighthouse` runs only for a site change.
+3. `Site quality` always runs. It fails when `Site changes` failed, or when the
+   site changed and `Lighthouse` did not succeed, including when it was
+   cancelled. It passes when the site did not change.
+
+To make the gate required, add the status check `Site quality` (source: GitHub
+Actions) to the `main` ruleset next to `Static analysis`, `Tests and build` and
+`Analyze`. Never require `Lighthouse`: it is skipped on changes that do not
+touch the site.
+
+## Troubleshooting
+
+- Each run posts a notice with its benchmark index, Performance, total blocking
+  time and LCP, and each failed or warned assertion posts an annotation with all
+  five values. Compare benchmark indexes before calling a slower run a
+  regression.
+- The `lighthouse-results` artifact holds `apps/site/.lighthouseci`: every run's
+  JSON and HTML report plus `assertion-results.json`, failed runs included.
+- Raise the script budget only in the pull request that needs the bytes, and
+  state why.
 
 ## Production monitoring
 

@@ -98,7 +98,6 @@ export function ThemeToggle({
 }: {
   labels: { toggle: string; system: string; light: string; dark: string };
 }) {
-  const { resolvedTheme } = useTheme();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -113,11 +112,8 @@ export function ThemeToggle({
           />
         }
       >
-        {resolvedTheme === "dark" ? (
-          <Moon className="size-4" />
-        ) : (
-          <Sun className="size-4" />
-        )}
+        <Sun className="size-4 dark:hidden" />
+        <Moon className="hidden size-4 dark:block" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <ThemeRadioItems labels={labels} anchorRef={triggerRef} />

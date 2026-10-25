@@ -6,7 +6,8 @@
       "numberOfRuns": 5,
       "settings": {
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
-        "throttlingMethod": "devtools"
+        "throttlingMethod": "devtools",
+        "chromeFlags": "--headless=new --no-sandbox"
       }
     },
     "assert": {
@@ -33,8 +34,16 @@
           { "maxNumericValue": 0.1, "aggregationMethod": "median-run" }
         ],
         "total-blocking-time": [
+          "warn",
+          { "maxNumericValue": 200, "aggregationMethod": "median" }
+        ],
+        "resource-summary:script:size": [
           "error",
-          { "maxNumericValue": 200, "aggregationMethod": "median-run" }
+          { "maxNumericValue": 215000, "aggregationMethod": "median" }
+        ],
+        "resource-summary:third-party:count": [
+          "error",
+          { "maxNumericValue": 0, "aggregationMethod": "median" }
         ]
       }
     },

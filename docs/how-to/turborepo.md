@@ -30,8 +30,9 @@ These dependencies express required inputs, not preferred visual ordering.
 ## Cache ownership
 
 Turbo caches finite tasks unless the graph says otherwise. Ordinary build
-output is `dist/**`; the site overrides that with `.next/**` and `out/**`, and
-Lighthouse records `.lighthouseci/reports/**`. If a task produces reusable files
+output is `dist/**`; the site overrides that with `.next/**` and `out/**`.
+Lighthouse is uncached, since a replayed measurement measures nothing, and
+passes `CHROME_PATH` through so strict environment mode does not drop it. If a task produces reusable files
 outside its declared outputs, a cache hit cannot restore them.
 
 `dev` and `start` are persistent and uncached. Database generation and migration
@@ -57,9 +58,10 @@ A filtered run is not the repository gate. Finish with the root command named
 in `docs/how-to/verify-a-change.md`.
 
 CI uses affected-package selection only where skipping unaffected work is part
-of that workflow's contract. Site quality runs `lighthouse --affected` with
-explicit `TURBO_SCM_BASE` and `TURBO_SCM_HEAD`; React Doctor uses
-`turbo ls --affected` to choose among the three React workspaces. Full CI still
+of that workflow's contract. React Doctor uses `turbo ls --affected` to choose
+among the three React workspaces. Site quality selects with `git diff`
+pathspecs instead: `--affected` also selects dependents and treats any root file
+as affecting everything (see `site-quality.md`). Full CI still
 runs architecture, unit/integration, E2E and build commands.
 
 ## Add or change a task
