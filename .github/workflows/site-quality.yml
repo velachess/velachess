@@ -1,30 +1,9 @@
 name: Site quality
 
-# Must not become a required check: under `paths` it would stay pending on
-# every pull request it skips.
 on:
   push:
     branches: [main]
-    paths: &site-inputs
-      - apps/site/**
-      - libs/ui/package.json
-      - libs/ui/src/components/**
-      - libs/ui/src/icons/**
-      - libs/ui/src/lib/**
-      - libs/ui/src/styles/**
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - .node-version
-      - turbo.json
-      - .github/actions/setup/**
-      - .github/workflows/site-quality.yml
-      - "!**/*.md"
-      - "!**/tests/**"
-      - "!**/*.test.ts"
-      - "!**/*.test.tsx"
   pull_request:
-    paths: *site-inputs
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,8 +13,38 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Site changes
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.diff.outputs.site }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Any git failure (a force-pushed or first push has no usable base)
+      # lands in the else branch and runs Lighthouse.
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git diff --quiet "$BASE...HEAD" -- \
+            apps/site \
+            libs/ui/package.json libs/ui/src/components libs/ui/src/icons libs/ui/src/lib libs/ui/src/styles \
+            package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version turbo.json \
+            .github/actions/setup .github/workflows/site-quality.yml \
+            ':(exclude,glob)**/*.md' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/*.test.ts' ':(exclude,glob)**/*.test.tsx'
+          then
+            echo "site=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "site=true" >> "$GITHUB_OUTPUT"
+          fi
+
   lighthouse:
     name: Lighthouse
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -49,6 +58,13 @@ jobs:
       - name: Run site quality checks
         run: pnpm exec turbo run lighthouse --filter=@velachess/site
 
+      - name: Annotate results
+        if: always() && hashFiles('apps/site/.lighthouseci/assertion-results.json') != ''
+        working-directory: apps/site/.lighthouseci
+        run: |
+          jq -r '"::notice title=Run::benchmark index \(.environment.benchmarkIndex | round), performance \(.categories.performance.score), TBT \(.audits["total-blocking-time"].numericValue | round) ms, LCP \(.audits["largest-contentful-paint"].numericValue | round) ms"' lhr-*.json
+          jq -r '.[] | "::\(if .level == "error" then "error" else "warning" end) title=\(.auditId)\(if .auditProperty then ":" + .auditProperty else "" end)::\(.operator) \(.expected), found \(.actual), runs \(.values | map(round) | join(" "))"' assertion-results.json
+
       - name: Upload Lighthouse results
         if: always()
         uses: actions/upload-artifact@v7
@@ -56,3 +72,12 @@ jobs:
           name: lighthouse-results
           path: apps/site/.lighthouseci
           if-no-files-found: ignore
+
+  gate:
+    name: Site quality
+    needs: [changes, lighthouse]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.changes.result != 'success' || (needs.changes.outputs.site == 'true' && needs.lighthouse.result != 'success')
+        run: exit 1

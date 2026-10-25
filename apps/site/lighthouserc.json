@@ -13,7 +13,7 @@
     "assert": {
       "assertions": {
         "categories:performance": [
-          "warn",
+          "error",
           { "minScore": 0.9, "aggregationMethod": "median-run" }
         ],
         "categories:accessibility": [
@@ -34,7 +34,7 @@
           { "maxNumericValue": 0.1, "aggregationMethod": "median-run" }
         ],
         "total-blocking-time": [
-          "warn",
+          "error",
           { "maxNumericValue": 200, "aggregationMethod": "median" }
         ],
         "resource-summary:script:size": [
