@@ -116,3 +116,17 @@ export function useDeleteAccount() {
     },
   });
 }
+
+export function useSignOutEverywhere() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await authClient.revokeSessions();
+      if (error) throw new Error(`could not sign out everywhere (${error.status})`);
+
+      queryClient.setQueryData(sessionQueryKey, null);
+      queryClient.clear();
+    },
+  });
+}

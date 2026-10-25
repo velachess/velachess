@@ -11,9 +11,10 @@ import {
   ItemTitle,
 } from "@velachess/ui/components/item";
 import { Skeleton } from "@velachess/ui/components/skeleton";
-import { GoogleIcon, KeyRoundIcon } from "@velachess/ui/icons";
+import { GoogleIcon, KeyRoundIcon, MailIcon } from "@velachess/ui/icons";
 
 import { accountMethodsQuery, PASSWORD_PROVIDER } from "./queries.ts";
+import { signInMethodsQuery } from "../../auth/sign-in-methods.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const METHODS_COPY = {
@@ -24,6 +25,8 @@ const METHODS_COPY = {
   googleActive: msg`Connected — you can sign in with Google.`,
   password: msg`Email and password`,
   passwordActive: msg`Set — you can sign in with your email and password.`,
+  emailLink: msg`Email link`,
+  emailLinkActive: msg`On — you can sign in with a link sent to your email.`,
 } as const;
 
 /** Read-only — unlinking the last method locks the person out, and that
@@ -31,6 +34,7 @@ const METHODS_COPY = {
 export function SignInMethods() {
   const { i18n } = useLingui();
   const methods = useQuery(accountMethodsQuery);
+  const { data: instance } = useQuery(signInMethodsQuery);
 
   const linked = new Set(methods.data?.map((method) => method.providerId));
 
@@ -58,18 +62,35 @@ export function SignInMethods() {
                   <ItemDescription>{i18n._(METHODS_COPY.googleActive)}</ItemDescription>
                 </ItemContent>
               </Item>
-              {linked.has(PASSWORD_PROVIDER) && <ItemSeparator />}
+              {(linked.has(PASSWORD_PROVIDER) || instance?.magicLink) && (
+                <ItemSeparator />
+              )}
             </>
           )}
 
           {linked.has(PASSWORD_PROVIDER) && (
+            <>
+              <Item>
+                <ItemMedia>
+                  <KeyRoundIcon className="size-5" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{i18n._(METHODS_COPY.password)}</ItemTitle>
+                  <ItemDescription>{i18n._(METHODS_COPY.passwordActive)}</ItemDescription>
+                </ItemContent>
+              </Item>
+              {instance?.magicLink && <ItemSeparator />}
+            </>
+          )}
+
+          {instance?.magicLink && (
             <Item>
               <ItemMedia>
-                <KeyRoundIcon className="size-5" />
+                <MailIcon className="size-5" />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>{i18n._(METHODS_COPY.password)}</ItemTitle>
-                <ItemDescription>{i18n._(METHODS_COPY.passwordActive)}</ItemDescription>
+                <ItemTitle>{i18n._(METHODS_COPY.emailLink)}</ItemTitle>
+                <ItemDescription>{i18n._(METHODS_COPY.emailLinkActive)}</ItemDescription>
               </ItemContent>
             </Item>
           )}

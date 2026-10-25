@@ -198,3 +198,49 @@ describe("trusted proxies", () => {
     expect(resolved.trustedProxies).toBeUndefined();
   });
 });
+
+describe("sign-in methods", () => {
+  it("offers a password and no magic link unless told otherwise", () => {
+    const resolved = resolveAuthEnv({ VELACHESS_AUTH_SECRET: STRONG });
+    expect(resolved.passwordSignIn).toBe(true);
+    expect(resolved.magicLink).toBe(false);
+  });
+
+  it("turns password sign-in off and a magic link on by name", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_PASSWORD_SIGN_IN: "false",
+      VELACHESS_MAGIC_LINK: "true",
+    });
+    expect(resolved.passwordSignIn).toBe(false);
+    expect(resolved.magicLink).toBe(true);
+  });
+
+  it("refuses to boot with no way to sign in", () => {
+    expect(() =>
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        VELACHESS_PASSWORD_SIGN_IN: "false",
+      }),
+    ).toThrowError(/no way to sign in.*VELACHESS_PASSWORD_SIGN_IN/s);
+  });
+
+  it("boots with password off when Google is configured", () => {
+    const resolved = resolveAuthEnv({
+      VELACHESS_AUTH_SECRET: STRONG,
+      VELACHESS_PASSWORD_SIGN_IN: "false",
+      GOOGLE_CLIENT_ID: "id.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "client-secret",
+    });
+    expect(resolved.passwordSignIn).toBe(false);
+  });
+
+  it("names the variable when a switch is not a boolean", () => {
+    expect(() =>
+      resolveAuthEnv({
+        VELACHESS_AUTH_SECRET: STRONG,
+        VELACHESS_MAGIC_LINK: "sometimes",
+      }),
+    ).toThrowError(/VELACHESS_MAGIC_LINK/);
+  });
+});

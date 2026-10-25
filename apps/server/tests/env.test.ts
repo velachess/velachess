@@ -63,6 +63,25 @@ describe("resolveApiEnv", () => {
     });
   });
 
+  it("refuses a magic link with no email to send it", () => {
+    const error = errorOf(() =>
+      resolveApiEnv({ ...VALID, VELACHESS_MAGIC_LINK: "true" }),
+    );
+
+    expect(error.message).toMatch(/VELACHESS_MAGIC_LINK.*RESEND_API_KEY/s);
+  });
+
+  it("turns a magic link on when Resend is configured", () => {
+    const env = resolveApiEnv({
+      ...VALID,
+      VELACHESS_MAGIC_LINK: "true",
+      RESEND_API_KEY: "re_live_key",
+      VELACHESS_EMAIL_FROM: "VelaChess <no-reply@chess.example.com>",
+    });
+
+    expect(env.auth.magicLink).toBe(true);
+  });
+
   it("refuses half an email configuration without echoing the key", () => {
     const error = errorOf(() => resolveApiEnv({ ...VALID, RESEND_API_KEY: CANARY }));
 

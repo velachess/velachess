@@ -16,15 +16,18 @@ export const TEST_USER: TestSessionUser = {
   name: "VelaChess User",
 };
 
-let signInMethods = { password: true, google: false, passwordReset: false };
+const DEFAULT_SIGN_IN_METHODS = {
+  password: true,
+  passwordReset: false,
+  google: false,
+  magicLink: false,
+};
+
+let signInMethods = DEFAULT_SIGN_IN_METHODS;
 
 let avatarVersion = 1;
 
-export function signInMethodsAre(methods: {
-  password?: boolean;
-  google?: boolean;
-  passwordReset?: boolean;
-}): void {
+export function signInMethodsAre(methods: Partial<typeof DEFAULT_SIGN_IN_METHODS>): void {
   signInMethods = { ...signInMethods, ...methods };
 }
 
@@ -39,6 +42,18 @@ export const TEST_PASSWORD = "dev-password";
 export const RESET_TOKEN = "valid-reset-token";
 
 let emailVerified = true;
+
+let magicLinkRefusal: number | null = null;
+
+export function magicLinkRefusedWith(status: number): void {
+  magicLinkRefusal = status;
+}
+
+let revokeFails = false;
+
+export function revokingSessionsFails(): void {
+  revokeFails = true;
+}
 
 export function emailIsUnverified(): void {
   emailVerified = false;
@@ -66,7 +81,9 @@ export function sessionUnavailable(): void {
 
 export function resetAuthScenario(): void {
   scenario = { kind: "signed-in", user: TEST_USER };
-  signInMethods = { password: true, google: false, passwordReset: false };
+  signInMethods = DEFAULT_SIGN_IN_METHODS;
+  magicLinkRefusal = null;
+  revokeFails = false;
   linkedProviders = ["credential"];
   emailVerified = true;
   avatarVersion = 1;
@@ -166,6 +183,26 @@ export const authHandlers = [
       return HttpResponse.json({ status: true });
     },
   ),
+
+  http.post<never, { email?: string; callbackURL?: string }>(
+    `${BASE}/sign-in/magic-link`,
+    async ({ request }) => {
+      if (magicLinkRefusal !== null) {
+        return HttpResponse.json({ message: "refused" }, { status: magicLinkRefusal });
+      }
+      const body = await request.json();
+      if (!body.email?.includes("@") || !body.callbackURL) {
+        return HttpResponse.json({ code: "VALIDATION_ERROR" }, { status: 400 });
+      }
+      return HttpResponse.json({ status: true });
+    },
+  ),
+
+  http.post(`${BASE}/revoke-sessions`, () => {
+    if (revokeFails) return HttpResponse.json({ message: "boom" }, { status: 500 });
+    sessionInactive();
+    return HttpResponse.json({ status: true });
+  }),
 
   http.post(`${BASE}/sign-out`, () => {
     sessionInactive();

@@ -5,8 +5,7 @@ import path from "node:path";
 import { hc } from "hono/client";
 import { Redis } from "ioredis";
 
-import { createAuth, type Auth } from "@velachess/infra-auth";
-import type { AuthEmail } from "@velachess/infra-email";
+import { createAuth, type Auth, type AuthConfig } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
 import { syncAccount } from "@velachess/accounts";
 import { deleteAccount } from "@velachess/user";
@@ -73,7 +72,9 @@ export function unreachableRedis(): Redis {
 
 export async function createApiHarness(
   sync: ApiDeps["sync"] = { fetch: chessComFixtureFetch() },
-  { sendEmail }: { sendEmail?: (email: AuthEmail) => Promise<void> } = {},
+  methods: Partial<
+    Pick<AuthConfig, "sendEmail" | "passwordSignIn" | "magicLink" | "google">
+  > = {},
 ): Promise<ApiHarness> {
   const harness = await createLoopHarness();
 
@@ -88,7 +89,7 @@ export async function createApiHarness(
 
   const auth = createAuth({
     ...authConfig,
-    ...(sendEmail ? { sendEmail } : {}),
+    ...methods,
     deleteAccount: (userId) =>
       deleteAccount(buildDeleteAccountDeps(harness.db, files), userId),
   });
@@ -100,7 +101,6 @@ export async function createApiHarness(
     db: harness.db,
     auth,
     trustedOrigins: [ORIGIN],
-    signInMethods: { password: true, google: false, passwordReset: Boolean(sendEmail) },
     syncNotifications: createSyncNotifications((channel, onNotify) =>
       harness.pglite.listen(channel, onNotify),
     ),

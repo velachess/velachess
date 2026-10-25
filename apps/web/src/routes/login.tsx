@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { resolveSession } from "../auth/session.ts";
+import { signInMethodsQuery } from "../auth/sign-in-methods.ts";
 import { z } from "../libs/zod.ts";
 
 const loginSearchSchema = z.object({
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/login")({
 
     throw redirect({ to: search.redirect ?? "/", replace: true });
   },
+  loader: ({ context }) => context.queryClient.ensureQueryData(signInMethodsQuery),
   component: LoginRoute,
 });
 

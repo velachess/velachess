@@ -64,6 +64,8 @@ const deleteAccountDeps = buildDeleteAccountDeps(db, files);
 
 const auth = createAuth({
   ...authConfig,
+  passwordSignIn: authEnv.passwordSignIn,
+  magicLink: authEnv.magicLink,
   ...(env.email ? { sendEmail: createAuthEmailSender(env.email) } : {}),
   deleteAccount: (userId) => deleteAccount(deleteAccountDeps, userId),
 });
@@ -79,11 +81,6 @@ const app = createApp({
   db,
   auth,
   trustedOrigins: authEnv.trustedOrigins,
-  signInMethods: {
-    password: true,
-    google: Boolean(authEnv.google),
-    passwordReset: Boolean(env.email),
-  },
   syncNotifications,
   syncQueue: makeSyncQueue(boss),
   lock,

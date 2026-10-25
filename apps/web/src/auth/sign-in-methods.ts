@@ -1,13 +1,14 @@
-import { api, parseResponse } from "../api/index.ts";
+import { api, parseResponse, type InferResponseType } from "../api/index.ts";
 import { queryOptions } from "../libs/react-query.ts";
 
-export interface SignInMethods {
-  password: boolean;
-  google: boolean;
-  passwordReset: boolean;
-}
+type SignInMethods = InferResponseType<typeof api.config.$get, 200>["signInMethods"];
 
-const FALLBACK: SignInMethods = { password: true, google: false, passwordReset: false };
+const FALLBACK: SignInMethods = {
+  password: true,
+  passwordReset: false,
+  google: false,
+  magicLink: false,
+};
 
 export const signInMethodsQuery = queryOptions({
   queryKey: ["auth", "sign-in-methods"] as const,

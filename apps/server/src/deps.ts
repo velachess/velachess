@@ -8,17 +8,10 @@ import type { FileStore } from "@velachess/infra-storage";
 import type { buildReadinessChecks } from "./composition/health.ts";
 import type { Redis } from "./redis.ts";
 
-interface SignInMethods {
-  password: boolean;
-  google: boolean;
-  passwordReset: boolean;
-}
-
 export interface ApiDeps {
   db: Database;
   auth: Auth;
   trustedOrigins: string[];
-  signInMethods: SignInMethods;
   syncQueue: SyncQueue;
   redis: Redis;
   lock: ExecutionLock;

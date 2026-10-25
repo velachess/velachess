@@ -6,7 +6,7 @@
  * which treats an unset NODE_ENV as production — this repo's opposite.
  */
 
-import { cleanEnv, EnvError, makeValidator, str, url } from "envalid";
+import { bool, cleanEnv, EnvError, makeValidator, str, url } from "envalid";
 
 /** The .env.example placeholder: booting production with it is
  * indistinguishable from having no secret. */
@@ -19,8 +19,10 @@ export interface ResolvedAuthEnv {
   secureCookies: boolean;
   /** The baseUrl origin plus any `VELACHESS_TRUSTED_ORIGINS` entries. */
   trustedOrigins: string[];
+  passwordSignIn: boolean;
   /** Absent means the provider is not offered. */
   google?: { clientId: string; clientSecret: string };
+  magicLink: boolean;
   /** Absent behind a real proxy collapses every client into one rate-limit
    * bucket; see `AuthConfig.trustedProxies`. */
   trustedProxies?: string[];
@@ -57,6 +59,8 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
       VELACHESS_TRUSTED_ORIGINS: str({ default: undefined }),
       GOOGLE_CLIENT_ID: str({ default: undefined }),
       GOOGLE_CLIENT_SECRET: str({ default: undefined }),
+      VELACHESS_PASSWORD_SIGN_IN: bool({ default: true }),
+      VELACHESS_MAGIC_LINK: bool({ default: false }),
       VELACHESS_TRUSTED_PROXIES: str({ default: undefined }),
     },
     {
@@ -70,8 +74,12 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
             `VELACHESS_BASE_URL is not a valid URL: ${env["VELACHESS_BASE_URL"]}`,
           );
         }
-        const [firstError] = Object.values(errors);
-        if (firstError) throw firstError;
+        const [first] = Object.entries(errors);
+        if (!first) return;
+        const [name, error] = first;
+        throw error.message.includes(name)
+          ? error
+          : new Error(`${name}: ${error.message}`);
       },
     },
   );
@@ -134,6 +142,14 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
       ? { clientId: googleId, clientSecret: googleSecret }
       : undefined;
 
+  if (!cleaned.VELACHESS_PASSWORD_SIGN_IN && !google && !cleaned.VELACHESS_MAGIC_LINK) {
+    throw new Error(
+      "There is no way to sign in: VELACHESS_PASSWORD_SIGN_IN is false and " +
+        "neither Google (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) nor " +
+        "VELACHESS_MAGIC_LINK is set",
+    );
+  }
+
   const trustedProxies = cleaned.VELACHESS_TRUSTED_PROXIES?.split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
@@ -143,7 +159,9 @@ export function resolveAuthEnv(env: Record<string, string | undefined>): Resolve
     baseUrl,
     secureCookies,
     trustedOrigins,
+    passwordSignIn: cleaned.VELACHESS_PASSWORD_SIGN_IN,
     ...(google ? { google } : {}),
+    magicLink: cleaned.VELACHESS_MAGIC_LINK,
     ...(trustedProxies?.length ? { trustedProxies } : {}),
     insecureProductionTransport: production && !secureCookies,
   };

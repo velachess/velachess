@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth/minimal";
+import { magicLink } from "better-auth/plugins/magic-link";
 
 import type { Database } from "@velachess/infra-db";
 import { schema } from "@velachess/infra-db";
@@ -17,7 +18,9 @@ export interface AuthConfig {
   secureCookies: boolean;
   trustedOrigins?: string[];
   allowSignUp?: boolean;
+  passwordSignIn?: boolean;
   google?: { clientId: string; clientSecret: string };
+  magicLink?: boolean;
   // Unset behind a proxy, Better Auth cannot resolve client IPs and every
   // visitor shares one sign-in rate-limit bucket.
   trustedProxies?: string[];
@@ -30,7 +33,11 @@ export const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
 
 // Better Auth's own links use basePath "/auth", which the browser cannot reach.
 const VERIFY_EMAIL_PATH = "/api/auth/verify-email";
+const MAGIC_LINK_PATH = "/api/auth/magic-link/verify";
 const RESET_PASSWORD_PATH = "/reset-password";
+
+const DAY_SECONDS = 24 * 60 * 60;
+const MAGIC_LINK_EXPIRES_IN_SECONDS = 5 * 60;
 
 const authLogger = logger.child({ component: "auth" });
 
@@ -86,7 +93,7 @@ export function createAuth(config: AuthConfig) {
     }),
 
     emailAndPassword: {
-      enabled: true,
+      enabled: config.passwordSignIn ?? true,
       disableSignUp: !config.allowSignUp,
       ...(deliver
         ? {
@@ -161,13 +168,41 @@ export function createAuth(config: AuthConfig) {
     },
     session: {
       modelName: "sessions",
+      expiresIn: 7 * DAY_SECONDS,
+      updateAge: DAY_SECONDS,
+      freshAge: DAY_SECONDS,
     },
     account: {
       modelName: "authAccounts",
+      // An address nobody proved must not absorb a Google sign-in: whoever
+      // registered it first would share the Google owner's account.
+      accountLinking: { requireLocalEmailVerified: true },
     },
     verification: {
       modelName: "verifications",
     },
+
+    plugins:
+      config.magicLink && deliver
+        ? [
+            magicLink({
+              storeToken: "hashed",
+              expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
+              sendMagicLink: ({ email, url, token }, ctx) =>
+                deliver({
+                  template: "magic-link",
+                  to: email,
+                  url: appLink(
+                    config.baseUrl,
+                    MAGIC_LINK_PATH,
+                    Object.fromEntries(new URL(url).searchParams),
+                  ),
+                  token,
+                  request: ctx?.request,
+                }),
+            }),
+          ]
+        : [],
 
     advanced: {
       database: {

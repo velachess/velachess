@@ -15,7 +15,7 @@ interface SocialSignInTargets {
 
 // Better Auth appends ?error= (or &error= when a query exists), and the
 // login route re-validates `redirect` as an internal path on arrival.
-function errorCallbackOf(redirect: string | undefined): string {
+export function errorCallbackOf(redirect: string | undefined): string {
   return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login";
 }
 

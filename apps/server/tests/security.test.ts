@@ -198,7 +198,12 @@ describe("what sits above the session gate", () => {
 
     const config = await (await harness.app.request("/config")).json();
     expect(config).toEqual({
-      signInMethods: { password: true, google: false, passwordReset: false },
+      signInMethods: {
+        password: true,
+        passwordReset: false,
+        google: false,
+        magicLink: false,
+      },
     });
 
     const session = await harness.app.request("/auth/get-session");

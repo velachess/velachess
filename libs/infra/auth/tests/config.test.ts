@@ -100,7 +100,7 @@ describe("who owns user.image", () => {
   it("passes no account-linking option that could overwrite it either", () => {
     const { options } = createAuth(base);
 
-    expect(options.account).toEqual({ modelName: "authAccounts" });
+    expect(options.account?.accountLinking).toEqual({ requireLocalEmailVerified: true });
   });
 });
 

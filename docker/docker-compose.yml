@@ -62,6 +62,9 @@ services:
       # Both or neither.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       VELACHESS_EMAIL_FROM: ${VELACHESS_EMAIL_FROM:-}
+      VELACHESS_PASSWORD_SIGN_IN: ${VELACHESS_PASSWORD_SIGN_IN:-true}
+      # Needs Resend.
+      VELACHESS_MAGIC_LINK: ${VELACHESS_MAGIC_LINK:-false}
       VELACHESS_TRUSTED_PROXIES: ${VELACHESS_TRUSTED_PROXIES:-}
       # First user only; remove from .env after first login.
       VELACHESS_BOOTSTRAP_USER_EMAIL: ${VELACHESS_BOOTSTRAP_USER_EMAIL:-}
