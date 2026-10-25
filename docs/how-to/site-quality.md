@@ -16,7 +16,7 @@ pnpm site:capture
 pnpm site:quality
 ```
 
-`site:quality` builds the production static export, validates its HTML and metadata, serves `apps/site/out` with Lighthouse CI's built-in static server, and runs five mobile Lighthouse executions. CI measures with the repository's pinned Playwright Chromium; to use the same browser locally, prefix the command with `CHROME_PATH=$(node -p "require('@playwright/test').chromium.executablePath()")`.
+`site:quality` builds the production static export, validates its HTML and metadata, serves `apps/site/out` with Lighthouse CI's built-in static server, and runs five mobile Lighthouse executions. CI measures with the repository's pinned Playwright Chromium, so a browser change arrives in the pull request that bumps Playwright rather than with a runner image update; to use the same browser locally, prefix the command with `CHROME_PATH=$(node -p "require('@playwright/test').chromium.executablePath()")`. Chrome runs with `--no-sandbox`: the runner's AppArmor policy blocks the user namespaces Chromium's sandbox needs for a browser not installed as a system package, and the page under audit is our own static export.
 
 Blocking: the representative median run scores at least 95 Accessibility, 95 Best Practices and exactly 100 SEO; median LCP stays under 2.5 seconds and CLS under 0.1; the page ships at most 215,000 bytes of script and makes no third-party request.
 
@@ -48,11 +48,13 @@ not.
 ## Why total blocking time warns instead of failing
 
 Real throttling slows the CPU by a factor of the machine it runs on, so total
-blocking time measures the runner as much as the page. Ten runs of one build on
-one machine gave a median of 294 ms idle and 692 ms with one core busy, with
-single runs from 173 ms to 1,536 ms. Performance moves with it, since total
-blocking time carries 30% of the score. LCP barely moved across the same runs
-(1.6–2.0 s). A blocking gate on these two numbers fails on a busy runner and
+blocking time measures the runner as much as the page. GitHub's `ubuntu-latest`
+hands out machines of different speed: across six CI runs of one build,
+Lighthouse's benchmark index ranged from about 2,400 to 4,100, and the median
+total blocking time from about 165 ms on the slowest to about 60 ms on the
+fastest. Locally, ten runs gave a median of 294 ms idle and 692 ms with one core
+busy. Performance moves with it, since total blocking time carries 30% of the
+score. LCP barely moved anywhere: 1.61–1.66 s across every CI run. A blocking gate on these two numbers fails on a busy runner and
 passes on a quiet one. The blocking script budget catches the main thing that
 raises them on a static page: more JavaScript to download and hydrate.
 
