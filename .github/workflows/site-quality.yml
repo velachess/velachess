@@ -54,6 +54,13 @@ jobs:
       - name: Run site quality checks
         run: pnpm exec turbo run lighthouse --filter=@velachess/site
 
+      - name: Diagnostics (temporary)
+        if: always()
+        working-directory: apps/site
+        run: |
+          node -e 'for (const f of require("fs").readdirSync(".lighthouseci").filter((f) => /^lhr-.*\.json$/.test(f))) { const r = require("./.lighthouseci/" + f); const a = r.audits; console.log(`::notice title=${f}::bench=${r.environment.benchmarkIndex} perf=${r.categories.performance.score} tbt=${Math.round(a["total-blocking-time"].numericValue)} lcp=${Math.round(a["largest-contentful-paint"].numericValue)} bp=${r.categories["best-practices"].score} consoleErrors=${a["errors-in-console"].details.items.length} chrome=${r.environment.hostUserAgent.match(/Chrome\/[\d.]+/)}`) }'
+          nproc
+
       - name: Upload Lighthouse results
         if: always()
         uses: actions/upload-artifact@v7
