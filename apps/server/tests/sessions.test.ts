@@ -87,6 +87,22 @@ describe("session lifetime", () => {
   });
 });
 
+describe("signing out", () => {
+  it("ends this session only; the account's other devices stay signed in", async () => {
+    const { cookie: laptop } = await harness.signUp("one-device@example.com");
+    const phone = await harness.signIn("one-device@example.com", "test-password-123");
+
+    const response = await harness.app.request("/auth/sign-out", {
+      method: "POST",
+      headers: { cookie: laptop },
+    });
+    expect(response.status).toBe(200);
+
+    expect((await games(laptop)).status).toBe(401);
+    expect((await games(phone)).status).toBe(200);
+  });
+});
+
 describe("signing out everywhere", () => {
   it("ends every session of the caller, the current one included, and nobody else's", async () => {
     const { cookie: laptop } = await harness.signUp("everywhere@example.com");

@@ -37,7 +37,9 @@ current Better Auth option.
   nobody proved. `apps/server/tests/account-linking.test.ts` fails without
   it.
 - `session` states Better Auth's defaults (7 days, extended daily, fresh
-  for a day) so an upgrade cannot move them silently.
+  for a day) so an upgrade cannot move them silently. No `cookieCache` and
+  no `secondaryStorage`: revoking a session must refuse its very next
+  request.
 - `GET /config` reads `auth.$context` — the resolved options, social
   providers and plugins — so the capability flags cannot drift from what
   this file configured.

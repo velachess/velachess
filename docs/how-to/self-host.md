@@ -242,10 +242,16 @@ registration.
 ## Sessions
 
 A session lasts 7 days and is extended back to 7 days when used more than a
-day after its last extension. Deleting the account without a password needs
-a session less than a day old. These are Better Auth's defaults, set
-explicitly in `libs/infra/auth/auth.ts`. Settings → Account → **Sign out
-everywhere** ends every session of the account, this one included.
+day after its last extension, so a device used at least once a week stays
+signed in indefinitely. Deleting the account without a password needs a
+session less than a day old. These are Better Auth's defaults, set explicitly
+in `libs/infra/auth/auth.ts`.
+
+**Sign out** ends this device's session only. Settings → Account → **Sign out
+everywhere** ends every session of the account, this one included — the way
+to cut off a device that is still renewing. Either takes effect on the next
+request: there is no session cookie cache, so every API call checks the
+session row.
 
 ## What refuses to boot, and why
 

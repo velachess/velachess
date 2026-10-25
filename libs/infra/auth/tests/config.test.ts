@@ -133,3 +133,17 @@ describe("account deletion", () => {
     expect(createAuth(base).options.user?.deleteUser).toBeUndefined();
   });
 });
+
+describe("sessions", () => {
+  it("keeps Better Auth's lifetime and refresh, and no cookie cache", () => {
+    const { options } = createAuth(base);
+    // A cookie cache would let a revoked session through until it expires.
+    expect(options.session).toMatchObject({
+      expiresIn: 7 * 24 * 60 * 60,
+      updateAge: 24 * 60 * 60,
+      freshAge: 24 * 60 * 60,
+    });
+    expect("cookieCache" in options.session).toBe(false);
+    expect("secondaryStorage" in options).toBe(false);
+  });
+});
