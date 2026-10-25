@@ -26,6 +26,11 @@ export function LandingHeaderNav({
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    const until = Date.now() + 1000;
+    while (Date.now() < until);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
