@@ -75,3 +75,4 @@ Lighthouse measures a controlled lab run. It does not replace field Core Web Vit
 ## Static export
 
 The deployable artifact is `apps/site/out`. Request-time rendering, middleware, server actions, dynamic cookies, and Next.js runtime image optimization are unavailable; the site keeps content static and uses fixed image dimensions with pre-generated WebP assets.
+Probe.
