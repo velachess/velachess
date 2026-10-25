@@ -154,6 +154,7 @@ msgstr "By name"
 
 #: src/settings/account/avatar-field.tsx:39
 #: src/settings/account/delete-account.tsx:45
+#: src/settings/account/sign-out-everywhere.tsx:27
 #: src/settings/connections/connections-screen.tsx:70
 msgid "Cancel"
 msgstr "Cancel"
@@ -328,7 +329,7 @@ msgstr "Couldn't save that. Try again."
 msgid "Couldn't send the link. Try again in a moment."
 msgstr "Couldn't send the link. Try again in a moment."
 
-#: src/settings/account/sign-out-everywhere.tsx:15
+#: src/settings/account/sign-out-everywhere.tsx:30
 msgid "Couldn't sign out everywhere. Try again."
 msgstr "Couldn't sign out everywhere. Try again."
 
@@ -441,6 +442,10 @@ msgstr "Evaluation"
 #: src/games/review/eval-graph.tsx:28
 msgid "Evaluation over the game"
 msgstr "Evaluation over the game"
+
+#: src/settings/account/sign-out-everywhere.tsx:26
+msgid "Every device signed in to this account is signed out, this one included. You can sign back in right after."
+msgstr "Every device signed in to this account is signed out, this one included. You can sign back in right after."
 
 #: src/games/list/games-list.tsx:23
 msgid "Every game you've imported, and how it went."
@@ -889,7 +894,7 @@ msgstr "Send reset link"
 msgid "Sending…"
 msgstr "Sending…"
 
-#: src/settings/account/sign-out-everywhere.tsx:11
+#: src/settings/account/sign-out-everywhere.tsx:22
 msgid "Sessions"
 msgstr "Sessions"
 
@@ -925,11 +930,16 @@ msgstr "Sign in with your account credentials."
 msgid "Sign out"
 msgstr "Sign out"
 
-#: src/settings/account/sign-out-everywhere.tsx:13
+#: src/settings/account/sign-out-everywhere.tsx:24
+#: src/settings/account/sign-out-everywhere.tsx:28
 msgid "Sign out everywhere"
 msgstr "Sign out everywhere"
 
-#: src/settings/account/sign-out-everywhere.tsx:12
+#: src/settings/account/sign-out-everywhere.tsx:25
+msgid "Sign out everywhere?"
+msgstr "Sign out everywhere?"
+
+#: src/settings/account/sign-out-everywhere.tsx:23
 msgid "Sign this account out on every device, this one included."
 msgstr "Sign this account out on every device, this one included."
 
@@ -942,7 +952,7 @@ msgid "Signing in…"
 msgstr "Signing in…"
 
 #: src/app-shell/user-menu.tsx:36
-#: src/settings/account/sign-out-everywhere.tsx:14
+#: src/settings/account/sign-out-everywhere.tsx:29
 msgid "Signing out…"
 msgstr "Signing out…"
 
