@@ -26,6 +26,7 @@
     },
     "@velachess/site#lighthouse": {
       "dependsOn": ["@velachess/site#test"],
+      "passThroughEnv": ["CHROME_PATH"],
       "cache": false
     },
     "typecheck": {},

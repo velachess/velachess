@@ -32,7 +32,9 @@ These dependencies express required inputs, not preferred visual ordering.
 Turbo caches finite tasks unless the graph says otherwise. Ordinary build
 output is `dist/**`; the site overrides that with `.next/**` and `out/**`.
 Lighthouse is uncached: it is a measurement, and replaying the last one would
-pass without measuring anything. If a task produces reusable files
+pass without measuring anything. It passes `CHROME_PATH` through, which strict
+environment mode would otherwise drop, so CI measures with the browser it
+installed. If a task produces reusable files
 outside its declared outputs, a cache hit cannot restore them.
 
 `dev` and `start` are persistent and uncached. Database generation and migration
