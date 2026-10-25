@@ -132,12 +132,63 @@ and `pnpm dev:worker` all work unchanged inside it — nothing to prefix.
 - `VELACHESS_AUTH_SECRET` — signs session tokens; 32+ characters
   (`openssl rand -base64 32`)
 - `VELACHESS_BASE_URL` — the origin the browser is on; `:5173` in
-  development
+  development, and the base of the Google redirect URI below
 - `VELACHESS_BOOTSTRAP_USER_EMAIL` / `_PASSWORD` — the first user, created
   once into an empty database, then ignored
 
 For a real deployment — where those last two have a lifecycle worth
 respecting — follow [self-hosting](self-host.md) instead.
+
+## Google sign-in (optional)
+
+With `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` unset, the login page
+offers only the password form. To turn Google on locally:
+
+1. In the [Google Auth Platform](https://support.google.com/cloud/answer/15544987),
+   set up the app with audience **External**. VelaChess asks only for
+   `openid`, `email` and `profile`, so any Google account can sign in
+   while the app is in Testing — no test users to add.
+2. Under **Clients**, create a **Web application** client with this
+   authorized redirect URI, and no JavaScript origins (the flow is a
+   server redirect):
+
+   ```text
+   http://localhost:5173/api/auth/callback/google
+   ```
+
+   Copy the secret now: the console shows it in full only once.
+
+3. In `.env` (git-ignored; never `.env.example`), set both:
+
+   ```dotenv
+   GOOGLE_CLIENT_ID=<id>.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=<secret>
+   ```
+
+   One without the other refuses to boot.
+
+4. Restart `pnpm dev`, open <http://localhost:5173/login> and choose
+   **Continue with Google**. The first Google sign-in creates the account.
+
+The redirect URI is `VELACHESS_BASE_URL` plus `/api/auth/callback/google`.
+`.env.example` sets the base URL to `http://localhost:5173` — the Vite
+server the browser uses — not the API on `:3000`: Vite proxies `/api` to
+the API, so Google returns to the same origin that holds the sign-in
+cookies. Better Auth's guide shows `localhost:3000`; that is not this
+repository's URL.
+
+Stay on `localhost`. `127.0.0.1:5173` is a different origin: sign-in
+starts there, Google returns to `localhost`, and the login page says
+"Google sign-in didn't complete" with `?error=state_mismatch` in the URL.
+To use another origin, change `VELACHESS_BASE_URL` and the redirect URI
+together.
+
+Google answering `redirect_uri_mismatch` means the console's URI differs
+from the one above — scheme, host, port and path must match exactly, and
+a console change can take a few minutes to apply.
+
+For a deployment, the redirect URI follows the public base URL — see
+[self-hosting](self-host.md#sign-in-with-google-optional).
 
 ## Verifying a change
 
