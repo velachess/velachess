@@ -112,8 +112,6 @@ export function ThemeToggle({
           />
         }
       >
-        {/* CSS picks the icon: a static export cannot know the theme, and
-            rendering it from state failed hydration for every light visitor. */}
         <Sun className="size-4 dark:hidden" />
         <Moon className="hidden size-4 dark:block" />
       </DropdownMenuTrigger>

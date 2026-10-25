@@ -1,10 +1,7 @@
 name: Site quality
 
-# Lighthouse audits the public site, so it runs only when what the site
-# renders or how it is measured changed. `libs/ui` is in because the site
-# renders its components, icons, theme and tokens; its chess, charts and
-# layout code never reach the site. Not a required check: a required check
-# under a `paths:` filter would stay pending on every other pull request.
+# Must not become a required check: under `paths` it would stay pending on
+# every pull request it skips.
 on:
   push:
     branches: [main]
@@ -44,8 +41,6 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
-      # The repo's pinned Playwright Chromium rather than the runner's Chrome,
-      # which the image updates under us.
       - name: Install Chromium
         run: |
           pnpm exec playwright install --with-deps chromium
