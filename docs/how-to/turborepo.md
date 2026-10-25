@@ -59,9 +59,9 @@ in `docs/how-to/verify-a-change.md`.
 
 CI uses affected-package selection only where skipping unaffected work is part
 of that workflow's contract. React Doctor uses `turbo ls --affected` to choose
-among the three React workspaces. Site quality uses a GitHub `paths` filter
-instead: `--affected` also selects dependents and treats any root file as
-affecting everything (see `site-quality.md`). Full CI still
+among the three React workspaces. Site quality selects with `git diff`
+pathspecs instead: `--affected` also selects dependents and treats any root file
+as affecting everything (see `site-quality.md`). Full CI still
 runs architecture, unit/integration, E2E and build commands.
 
 ## Add or change a task
