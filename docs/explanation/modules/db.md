@@ -111,11 +111,6 @@ it's built on data volume this project doesn't have. The upgrade path,
 if size or volume ever becomes a _measured_ problem, is En Croissant's
 simpler scheme, not Lichess's.
 
-`StoredGradedPly` is a structural mirror of `libs/analysis`'s `GradedPly`,
-kept only as a typecheck-time compatibility guard
-(`libs/analysis/tests/analyze-game.test.ts`) — it no longer
-backs a column; analysis is browser-only and persists nothing server-side.
-
 Every foreign key has an explicit `onDelete`, and every FK gets an explicit
 index (Drizzle does not auto-index FKs — a join on an unindexed FK column
 is a full table scan). The delete policies encode product decisions:
@@ -171,9 +166,8 @@ the same table definitions without forking them.
 on `pg_try_advisory_lock`. The acquisition is the check — no separate
 inspect step, so no TOCTOU — and session locks die with the connection, so
 a crashed executor never leaves a stale claim. An in-process set closes the
-gap that session locks are reentrant within one session. Analysis execution
-takes `analysis:<gameId>`, so one game is analyzed at a time; first-user
-bootstrap takes `bootstrap:first-user`.
+gap that session locks are reentrant within one session. Its only caller is
+first-user bootstrap, which takes `bootstrap:first-user`.
 
 ## Query layer
 
@@ -212,9 +206,10 @@ Everything else runs against a real Postgres via `tests/test-db.ts`:
 Postgres) otherwise — either way the suite applies the real migrations
 from `./migrations` first, so the schema under test is the schema that
 ships, and no environment skips the suite. The tests cover game dedup and
-cascades (`queries.test.ts`), the analysis cache (`analysis-flow.test.ts`),
-in-flight progress (`analysis-progress.test.ts`), perspective derivation
-(`game-perspective.test.ts`), and the game list (`status-flow.test.ts`).
+cascades (`queries.test.ts`), perspective derivation
+(`game-perspective.test.ts`), the game list (`status-flow.test.ts`), and
+sync jobs and their notifications (`sync-jobs.test.ts`,
+`sync-notifications.test.ts`).
 
 ## Layout
 

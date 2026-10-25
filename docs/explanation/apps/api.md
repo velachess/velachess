@@ -131,7 +131,7 @@ persistence and no server/worker leg — see `docs/reference/analysis.md`.
 
 `GET /syncs/events` is the session's one stream for syncs, with the same
 conventions: `sync.completed` / `sync.failed` frames carrying the sync id,
-keep-alives, no buffering. Unlike the analysis stream it is not derived from
+keep-alives, no buffering. It is not derived from
 polling rows: the transaction that settles a `sync_jobs` row notifies the
 `sync_job_changed` Postgres channel with the job id, the api holds one `LISTEN`
 on it (a dedicated connection, awaited at boot), and `watch-syncs` resolves

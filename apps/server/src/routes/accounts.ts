@@ -210,7 +210,7 @@ const accountGameWire = accountGameSchema.extend({ playedAt: wireDateOrNull });
 const accountGamesRoute = createRoute({
   method: "get",
   path: "/{id}/games",
-  summary: "Games of the account with analysis status",
+  summary: "Games this account imported",
   request: { params: idParamSchema },
   responses: {
     200: {
@@ -229,7 +229,7 @@ const deleteAccountRoute = createRoute({
   path: "/{id}",
   summary: "Stop tracking an account",
   description:
-    "Owner-scoped and permanent. The games this account imported are deleted with it, and their analyses with them; manually imported PGNs, which have no account, are untouched. Deleting frees that provider slot: the user can reconnect it, same or different handle, right after.",
+    "Owner-scoped and permanent. The games this account imported are deleted with it; manually imported PGNs, which have no account, are untouched. Deleting frees that provider slot: the user can reconnect it, same or different handle, right after.",
   request: { params: idParamSchema },
   responses: {
     204: { description: "Removed" },

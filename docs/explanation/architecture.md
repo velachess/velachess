@@ -10,7 +10,7 @@ rather than his.
 
 > Couple along the axis of change.
 
-The unit of the application is a **request/use case** — RequestAnalysis,
+The unit of the application is a **request/use case** — ConnectAccount,
 RequestSync, ImportPgn — not a technical layer. Code that changes with
 one behavior lives with that behavior. Changing a behavior should touch
 its slice, not a stack of global layers.
@@ -65,7 +65,7 @@ libs/
 The domain library `chess` is a stable concept with no DB/queue/provider
 dependency of its own, used across several modules and by the frontend too.
 A module-level pure policy that only one module's slices need (e.g.
-`libs/analysis/accuracy.ts`) lives at that module's root instead of a
+`libs/accounts/sync-status.ts`) lives at that module's root instead of a
 separate domain library — see the module doc comments for the current set.
 
 ## A slice

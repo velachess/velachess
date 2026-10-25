@@ -1,6 +1,6 @@
 # @velachess/infra-queue
 
-The queue library. It hides pg-boss behind analysis and sync queue ports,
+The queue library. It hides pg-boss behind the sync queue port,
 ensures queue policies, and provides send/status adapters; application code
 should depend on ports and should not reimplement delivery, retry, backoff, or
 dead-letter handling.

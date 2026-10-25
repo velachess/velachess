@@ -82,7 +82,6 @@ const watchSyncsRoute = createRoute({
   description:
     "A plain GET, so any EventSource client opens it directly. One stream per session, not per job: it announces every sync of the signed-in user that reaches a terminal state while it is open.\n\nEvents: `sync.completed` or `sync.failed`, the frame `id` set to the sync id, with `{ syncId, accountId, gamesInserted }`. No event is named `error`: that name collides with the one EventSource itself fires on transport failure. Sends `: keep-alive` comments so proxies do not close an idle stream, and `X-Accel-Buffering: no` so nginx does not buffer it.\n\nNot a record: a notification the server was not listening for is never replayed, and the stream ends when the server's own listener reconnects. A client that reconnects refreshes its accounts and games from the persisted rows, which are the only authority on a sync.",
   responses: {
-    // A literal schema, like the analysis stream in routes/games.ts.
     200: {
       description: "Event stream, open until the client leaves or the listener resets",
       content: { "text/event-stream": { schema: { type: "string" } } },
@@ -100,7 +99,6 @@ export function syncsRoutes(deps: { get: GetSyncDeps; watch: WatchSyncsDeps }) {
       // is not. The slice resolves every signal against the row and keeps
       // only the caller's; this maps what it yields onto frames.
       .openapi(watchSyncsRoute, (c) => {
-        // See routes/games.ts: proxies buffer a stream into a hang.
         c.header("X-Accel-Buffering", "no");
 
         // Subscribed before the response leaves, so a client refreshing its

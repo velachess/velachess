@@ -66,8 +66,8 @@ export async function saveGames(
   return { inserted };
 }
 
-/** Unscoped, for the worker and internal reads that already trust the id.
- * HTTP handlers use `getGameForUser`. */
+/** Unscoped by owner, so never an HTTP read: handlers use
+ * `getGameForUser`. */
 export async function getGame(db: Database, gameId: string) {
   const [game] = await db.select().from(games).where(eq(games.id, gameId));
   return game ?? null;
