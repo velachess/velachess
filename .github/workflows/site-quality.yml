@@ -60,6 +60,10 @@ jobs:
         run: |
           node -e 'for (const f of require("fs").readdirSync(".lighthouseci").filter((f) => /^lhr-.*\.json$/.test(f))) { const r = require("./.lighthouseci/" + f); const a = r.audits; console.log(`::notice title=${f}::bench=${r.environment.benchmarkIndex} perf=${r.categories.performance.score} tbt=${Math.round(a["total-blocking-time"].numericValue)} lcp=${Math.round(a["largest-contentful-paint"].numericValue)} bp=${r.categories["best-practices"].score} consoleErrors=${a["errors-in-console"].details.items.length} chrome=${r.environment.hostUserAgent.match(/Chrome\/[\d.]+/)}`) }'
           nproc
+          echo "::notice title=chrome::$("$CHROME_PATH" --version 2>&1 | tr '\n' ' ')"
+          echo "::notice title=launch::$("$CHROME_PATH" --headless=new --dump-dom about:blank 2>&1 | tail -3 | tr '\n' ' ' | cut -c1-600)"
+          echo "::notice title=launch-nosandbox::$("$CHROME_PATH" --headless=new --no-sandbox --dump-dom about:blank 2>&1 | tail -3 | tr '\n' ' ' | cut -c1-300)"
+          echo "::notice title=apparmor::$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>&1)"
 
       - name: Upload Lighthouse results
         if: always()
