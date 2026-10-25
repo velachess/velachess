@@ -108,6 +108,19 @@ test("deletes the account, signs out and forgets this browser's copy of it", asy
   expect(JSON.parse(remembered ?? "{}")).toMatchObject({ state: { accounts: [] } });
 });
 
+test("the danger zone is reachable by scrolling the account screen", async ({ page }) => {
+  await page.goto("/settings/account");
+  const deleteButton = page.getByRole("button", { name: "Delete account" });
+  await expect(deleteButton).toBeVisible();
+  await expect(deleteButton).not.toBeInViewport();
+
+  await page.mouse.move(640, 400);
+  await page.mouse.wheel(0, 2000);
+
+  await expect(deleteButton).toBeInViewport();
+  await page.screenshot({ path: test.info().outputPath("scrolled-to-danger-zone.png") });
+});
+
 test("a wrong password keeps the dialog open with the reason", async ({ page }) => {
   const dialog = await openDeleteDialog(page);
 
