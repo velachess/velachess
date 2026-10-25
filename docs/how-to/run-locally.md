@@ -178,9 +178,10 @@ cookies. Better Auth's guide shows `localhost:3000`; that is not this
 repository's URL.
 
 Stay on `localhost`. `127.0.0.1:5173` is a different origin: sign-in
-starts there, Google returns to `localhost`, and you land back on the
-login page with `?error=state_mismatch`. To use another origin, change
-`VELACHESS_BASE_URL` and the redirect URI together.
+starts there, Google returns to `localhost`, and the login page says
+"Google sign-in didn't complete" with `?error=state_mismatch` in the URL.
+To use another origin, change `VELACHESS_BASE_URL` and the redirect URI
+together.
 
 Google answering `redirect_uri_mismatch` means the console's URI differs
 from the one above — scheme, host, port and path must match exactly, and
