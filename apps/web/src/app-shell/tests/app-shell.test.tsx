@@ -3,18 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { desktopNav, renderApp } from "../../test/render.tsx";
 import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
-import { useSidebarStore } from "../sidebar-store.ts";
-
-const SIDEBAR_STORAGE_KEY = "velachess.sidebar";
 
 function sidebarState() {
   return document.querySelector("[data-slot=sidebar]")?.getAttribute("data-state");
-}
-
-function sidebarWidth() {
-  return document
-    .querySelector<HTMLElement>("[data-slot=sidebar-wrapper]")
-    ?.style.getPropertyValue("--sidebar-width");
 }
 
 describe("the desktop sidebar", () => {
@@ -40,16 +31,15 @@ describe("the desktop sidebar", () => {
     );
   });
 
-  it("remembers that it was collapsed", async () => {
+  it("collapses to icons and back with Cmd/Ctrl+B", async () => {
     sessionActive();
     await renderApp({ path: "/games" });
 
     fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+    await waitFor(() => expect(sidebarState()).toBe("collapsed"));
 
-    expect(sidebarState()).toBe("collapsed");
-    expect(JSON.parse(localStorage.getItem(SIDEBAR_STORAGE_KEY) ?? "{}")).toMatchObject({
-      state: { open: false },
-    });
+    fireEvent.keyDown(window, { key: "b", metaKey: true });
+    await waitFor(() => expect(sidebarState()).toBe("expanded"));
   });
 
   it("ignores Cmd/Ctrl+B on a small screen, where it is hidden", async () => {
@@ -62,28 +52,19 @@ describe("the desktop sidebar", () => {
     sessionActive();
     await renderApp({ path: "/games" });
 
-    fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+    const notPrevented = fireEvent.keyDown(window, { key: "b", ctrlKey: true });
 
+    expect(notPrevented).toBe(true);
     expect(sidebarState()).toBe("expanded");
-    expect(useSidebarStore.getState().open).toBe(true);
   });
 
-  it("restores the saved width and state on the next visit", async () => {
-    localStorage.setItem(
-      SIDEBAR_STORAGE_KEY,
-      JSON.stringify({ state: { open: true, width: 300 }, version: 1 }),
-    );
-    await useSidebarStore.persist.rehydrate();
+  it("offers a keyboard separator to resize the navigation", async () => {
     sessionActive();
-
     await renderApp({ path: "/games" });
 
-    expect(sidebarState()).toBe("expanded");
-    expect(sidebarWidth()).toBe("300px");
-    expect(screen.getByRole("separator", { name: "Resize navigation" })).toHaveAttribute(
-      "aria-valuenow",
-      "300",
-    );
+    expect(
+      screen.getByRole("separator", { name: "Resize navigation" }),
+    ).toBeInTheDocument();
   });
 });
 

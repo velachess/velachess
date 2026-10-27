@@ -84,7 +84,7 @@ another for it. `game-query-keys.ts` holds the React Query prefixes —
 `list` and `review` read those caches, `import` invalidates them when
 games land, and an invalidation only works if the write spells the key
 exactly as the read does. `game-sources.ts` holds each source's name and
-mark — the table, the breadcrumb, the connect form's tabs and the
+mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
 `import` builds its form metadata on top of that one, rather than

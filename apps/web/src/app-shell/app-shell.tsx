@@ -15,7 +15,6 @@ import { NavSidebar } from "@velachess/ui/layout/nav-sidebar";
 
 import { BackendStatusBanner } from "../backend-status/index.ts";
 import { activeNavId, NAV_ITEMS, NAV_ROUTES, type AppNavItem } from "./nav-items.ts";
-import { useSidebarStore } from "./sidebar-store.ts";
 import { SidebarUserMenu, UserMenu } from "./user-menu.tsx";
 
 const SHELL_COPY = {
@@ -67,21 +66,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { i18n } = useLingui();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const activeId = activeNavId(pathname);
-  const sidebar = useSidebarStore();
 
   return (
     <AppFrame
-      open={sidebar.open}
-      onOpenChange={sidebar.setOpen}
-      width={sidebar.width}
-      onWidthChange={sidebar.setWidth}
+      layoutId="velachess.sidebar-layout"
+      resizeLabel={i18n._(SHELL_COPY.resizeNav)}
       banner={<BackendStatusBanner />}
       skipLabel={i18n._(SHELL_COPY.skipToContent)}
       nav={
         <NavSidebar
           items={NAV_ITEMS}
           label={i18n._(SHELL_COPY.mainNav)}
-          resizeLabel={i18n._(SHELL_COPY.resizeNav)}
           activeId={activeId}
           header={<BrandLink />}
           footer={<SidebarUserMenu />}

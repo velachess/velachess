@@ -38,6 +38,14 @@ beforeAll(() => {
   // navigation.
   window.scrollTo = () => {};
 
+  layOutPanelGroups();
+
+  // jsdom has no Web Animations API. Base UI's scroll area calls it once a
+  // ResizeObserver reports; everything else in Base UI skips animation
+  // waits under its own flag, as it did when the API was simply missing.
+  Element.prototype.getAnimations = () => [];
+  Object.assign(globalThis, { BASE_UI_ANIMATIONS_DISABLED: true });
+
   // jsdom has no audio backend.
   HTMLMediaElement.prototype.play = () => Promise.resolve();
 
@@ -92,3 +100,99 @@ afterEach(() => {
 afterAll(() => {
   server.close();
 });
+
+/**
+ * jsdom lays nothing out, and react-resizable-panels measures its panels and
+ * hit-tests its separators. Laid out on a desktop-wide frame by each panel's
+ * flex-grow, the way the browser does, a synthetic pointer at (0, 0) lands on
+ * the sidebar instead of on a zero-sized separator, and collapsing has a
+ * width to collapse from.
+ */
+const FRAME = { width: 1440, height: 900 };
+
+function flexGrow(element: Element) {
+  if (!(element instanceof HTMLElement)) return 0;
+  return Number(element.style.flexGrow) || 1;
+}
+
+function panelWidth(panel: Element) {
+  const panels = Array.from(panel.parentElement?.children ?? []).filter((child) =>
+    child.hasAttribute("data-panel"),
+  );
+  const total = panels.reduce((sum, each) => sum + flexGrow(each), 0);
+  return (FRAME.width * flexGrow(panel)) / total;
+}
+
+function leftOf(element: Element) {
+  let left = 0;
+  for (const sibling of Array.from(element.parentElement?.children ?? [])) {
+    if (sibling === element) return left;
+    if (sibling.hasAttribute("data-panel")) left += panelWidth(sibling);
+  }
+  return left;
+}
+
+function resizeEntry(target: Element): ResizeObserverEntry {
+  const contentRect = target.getBoundingClientRect();
+  const size = [{ inlineSize: contentRect.width, blockSize: contentRect.height }];
+  return {
+    target,
+    contentRect,
+    borderBoxSize: size,
+    contentBoxSize: size,
+    devicePixelContentBoxSize: size,
+  };
+}
+
+/** Sizes only change through inline styles here, so a style mutation is when
+ * a ResizeObserver would fire. */
+class StyleResizeObserver {
+  #callback: ResizeObserverCallback;
+  #mutations = new MutationObserver((records) =>
+    this.#notify(
+      records.flatMap((record) =>
+        record.target instanceof Element ? [record.target] : [],
+      ),
+    ),
+  );
+
+  constructor(callback: ResizeObserverCallback) {
+    this.#callback = callback;
+  }
+
+  observe(target: Element) {
+    this.#mutations.observe(target, { attributes: true, attributeFilter: ["style"] });
+    queueMicrotask(() => this.#notify([target]));
+  }
+
+  unobserve() {}
+
+  disconnect() {
+    this.#mutations.disconnect();
+  }
+
+  #notify(targets: Element[]) {
+    this.#callback(targets.map(resizeEntry), this);
+  }
+}
+
+function layOutPanelGroups() {
+  globalThis.ResizeObserver = StyleResizeObserver;
+
+  const getBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.hasAttribute("data-panel") ? panelWidth(this) : 0;
+    },
+  });
+  HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+    if (this.hasAttribute("data-group"))
+      return new DOMRect(0, 0, FRAME.width, FRAME.height);
+    if (this.hasAttribute("data-panel"))
+      return new DOMRect(leftOf(this), 0, panelWidth(this), FRAME.height);
+    if (this.hasAttribute("data-separator"))
+      return new DOMRect(leftOf(this), 0, 1, FRAME.height);
+    return getBoundingClientRect.call(this);
+  };
+}

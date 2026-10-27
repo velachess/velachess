@@ -37,13 +37,13 @@ Regions are named and budgeted before any content exists. A screen fills a
 region instead of inventing its own page shape — the alternative produces
 "a padded scroll column that reads as a prototype".
 
-| Component                            | Contract                                                                                                                                                   |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AppFrame`                           | `nav` slot, `navFallback?` slot, `banner?`, children = main, and the sidebar's `open`/`width` preference. Owns skip-to-content and the responsive contract |
-| `NavSidebar`                         | the desktop sidebar over the registry `Sidebar`; resizable, collapses to icons; takes items as data and an `activeId`, and never routes                    |
-| `NavBar`                             | the mobile bottom tab bar shown through `navFallback`; same item/`activeId` contract as `NavSidebar`, icon-over-label instead of a tooltip                 |
-| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump                                                                    |
-| `PageHeader`                         | title, description, actions slot                                                                                                                           |
+| Component                            | Contract                                                                                                                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AppFrame`                           | `nav` slot, `navFallback?` slot, `banner?`, children = main, `resizeLabel` and the `layoutId` the sidebar layout is saved under. Owns skip-to-content and the responsive contract |
+| `NavSidebar`                         | the desktop sidebar over the registry `Sidebar`; resizable, collapses to icons; takes items as data and an `activeId`, and never routes                                           |
+| `NavBar`                             | the mobile bottom tab bar shown through `navFallback`; same item/`activeId` contract as `NavSidebar`, icon-over-label instead of a tooltip                                        |
+| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump                                                                                           |
+| `PageHeader`                         | breadcrumbs, title, description, actions and bottom slots; `compact` for a screen that needs the height                                                                           |
 
 **Structure arrives through slots, content through children.** That split
 is what makes the frame reusable: a route swaps the middle without knowing
@@ -58,15 +58,15 @@ implements it, not spread through media queries.
 
 The registry `Sidebar` is trimmed to what the frame uses: one left
 sidebar that collapses to icons, no mobile sheet (below `md` the frame
-shows `NavBar` instead). Its rail is a window splitter: dragging or the
-arrow keys resize between a minimum and a maximum, dragging past the
-midpoint to the icon width collapses it, and Enter, a click or
-<kbd>Cmd/Ctrl</kbd>+<kbd>B</kbd> toggle it. While dragging, the edge
-follows the pointer down to the icon width and settles within bounds on
-release, so crossing the midpoint never jumps. A drag previews on the
-wrapper's CSS variables and commits once on release, so it does not
-re-render the tree. The provider takes `open` and `width` controlled; the
-app persists them.
+shows `NavBar` instead). Sizing is not the sidebar's: the frame puts it in
+a `ResizablePanel` (shadcn Resizable over `react-resizable-panels`), and
+that panel is the one authority on width and collapse — minimum,
+maximum, collapsing to the icon width past the library's threshold,
+dragging, the separator's keyboard (arrows, Home/End, Enter to collapse
+or restore) and `useDefaultLayout` persistence. The sidebar only mirrors
+"collapsed" from the panel's `onResize` for its icon-only presentation,
+and <kbd>Cmd/Ctrl</kbd>+<kbd>B</kbd> goes through the panel's
+`collapse()`/`expand()`.
 
 ## Cards are widgets, rows are data
 

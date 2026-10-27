@@ -82,6 +82,7 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
+  staticData: { crumb: msg`Review` },
   loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
   component: GameReview,
 });

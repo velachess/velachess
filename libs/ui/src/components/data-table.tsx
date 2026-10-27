@@ -27,7 +27,7 @@ import {
 
 // v9 tree-shakes anything unregistered, including the APIs that read cells:
 // `getVisibleCells` comes from the visibility feature.
-export const features = tableFeatures({ columnVisibilityFeature, rowPaginationFeature });
+const features = tableFeatures({ columnVisibilityFeature, rowPaginationFeature });
 
 export type DataTableFeatures = typeof features;
 
@@ -160,7 +160,7 @@ export function DataTablePagination({
   return (
     // Outside the scroll area: a pager that scrolls away is unreachable
     // exactly when you want it.
-    <div className="flex shrink-0 items-center justify-between gap-4 border-t px-6 py-3">
+    <div className="flex shrink-0 items-center justify-between gap-4 border-t px-4 py-3 md:px-6">
       <span className="text-sm text-muted-foreground">{summary}</span>
       <Pagination aria-label={label} className="mx-0 w-auto justify-end">
         <PaginationContent className="gap-2">
