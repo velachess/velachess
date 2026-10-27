@@ -1,6 +1,7 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
+import { GripVerticalIcon } from "lucide-react";
 import * as React from "react";
 
 import { SIDEBAR_MEDIA_QUERY, SIDEBAR_WIDTH } from "../lib/sidebar.ts";
@@ -259,11 +260,13 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
       onPointerCancel={finishDrag}
       onKeyDown={handleKeyDown}
       className={cn(
-        "absolute inset-y-0 -right-4 z-20 flex w-4 -translate-x-1/2 cursor-ew-resize touch-none outline-hidden after:absolute after:inset-y-0 after:start-1/2 after:w-0.5 after:transition-colors hover:after:bg-sidebar-border focus-visible:after:bg-sidebar-ring in-data-resizing:after:bg-sidebar-ring motion-reduce:after:transition-none",
+        "group/rail absolute inset-y-0 -right-4 z-20 flex w-4 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center outline-hidden after:absolute after:inset-y-0 after:start-1/2 after:w-0.5 after:transition-colors hover:after:bg-sidebar-border focus-visible:after:bg-sidebar-ring in-data-resizing:after:bg-sidebar-ring motion-reduce:after:transition-none",
         className,
       )}
       {...props}
-    />
+    >
+      <GripVerticalIcon className="z-10 h-4 w-3 shrink-0 rounded-xs border border-sidebar-border bg-sidebar-border text-muted-foreground transition-colors group-hover/rail:text-sidebar-foreground group-focus-visible/rail:border-sidebar-ring group-focus-visible/rail:text-sidebar-foreground in-data-resizing:border-sidebar-ring in-data-resizing:text-sidebar-foreground motion-reduce:transition-none" />
+    </div>
   );
 }
 
