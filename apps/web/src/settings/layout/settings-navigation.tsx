@@ -33,7 +33,7 @@ export function SettingsNavigation() {
     <>
       <nav
         aria-label={i18n._(SETTINGS_NAV_LABEL)}
-        className="sticky top-0 hidden w-48 shrink-0 self-start md:block"
+        className="hidden w-48 shrink-0 self-start md:sticky md:top-6 md:block"
       >
         <ul className="flex flex-col gap-0.5">
           {top.map((item) => (
