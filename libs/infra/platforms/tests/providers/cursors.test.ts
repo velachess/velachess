@@ -8,6 +8,15 @@ import {
 } from "@velachess/infra-platforms";
 import { CHESS_COM_ARCHIVES_INDEX, CHESS_COM_ARCHIVE_MONTH } from "@velachess/fixtures";
 
+const chessComArchive: typeof globalThis.fetch = async (url) => {
+  const href = String(url);
+  if (href.endsWith("/games/archives"))
+    return new Response(JSON.stringify(CHESS_COM_ARCHIVES_INDEX));
+  if (href.endsWith("/2024/01"))
+    return new Response(JSON.stringify(CHESS_COM_ARCHIVE_MONTH));
+  return new Response(JSON.stringify({ games: [] }));
+};
+
 /**
  * One `jsonb` column stores both cursors, so the column cannot say which
  * shape it holds. These check the two properties a reader depends on: a
@@ -16,16 +25,9 @@ import { CHESS_COM_ARCHIVES_INDEX, CHESS_COM_ARCHIVE_MONTH } from "@velachess/fi
  */
 describe("cursor schemas", () => {
   it("round-trips the cursor fetchChessCom produces", async () => {
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
-      if (href.endsWith("/games/archives"))
-        return new Response(JSON.stringify(CHESS_COM_ARCHIVES_INDEX));
-      if (href.endsWith("/2024/01"))
-        return new Response(JSON.stringify(CHESS_COM_ARCHIVE_MONTH));
-      return new Response(JSON.stringify({ games: [] }));
-    }) as typeof globalThis.fetch;
-
-    const { cursor } = await fetchChessCom("test-player", null, { fetch });
+    const { cursor } = await fetchChessCom("test-player", null, {
+      fetch: chessComArchive,
+    });
 
     expect(cursor).not.toBeNull();
     expect(chessComCursorSchema.safeParse(cursor).success).toBe(true);
@@ -46,7 +48,7 @@ describe("cursor schemas", () => {
       "1. e4 e5 2. Nf3 1-0",
       "",
     ].join("\n");
-    const fetch = (async () => new Response(pgn)) as typeof globalThis.fetch;
+    const fetch: typeof globalThis.fetch = async () => new Response(pgn);
 
     const { cursor } = await fetchLichess("arex", null, { fetch });
 

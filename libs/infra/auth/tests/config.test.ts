@@ -1,10 +1,11 @@
+import { drizzle } from "drizzle-orm/postgres-js";
 import { describe, expect, it } from "vitest";
 
-import type { Database } from "@velachess/infra-db";
+import { schema, type Database } from "@velachess/infra-db";
 
 import { createAuth } from "../auth.ts";
 
-const db = {} as Database;
+const db: Database = drizzle.mock({ schema });
 
 const base = {
   db,

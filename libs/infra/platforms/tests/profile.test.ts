@@ -13,8 +13,6 @@ import {
   fetchLichessProfile,
 } from "../providers/profile.ts";
 
-/** Narrows the union, so a failed ask fails here rather than as an
- * undefined-field mismatch below. */
 function fetchedProfile(result: ProfileFetch) {
   if (result.status !== "fetched")
     throw new Error(`expected fetched, got ${result.status}`);
@@ -30,12 +28,7 @@ async function fetchedLichess(username: string, fetch: typeof globalThis.fetch) 
 }
 
 function respondWith(body: unknown, ok = true): typeof globalThis.fetch {
-  return (async () =>
-    ({
-      ok,
-      status: ok ? 200 : 404,
-      json: async () => body,
-    }) as Response) as typeof globalThis.fetch;
+  return async () => Response.json(body, { status: ok ? 200 : 404 });
 }
 
 const CHESS_COM_REAL = {
@@ -124,10 +117,10 @@ describe("fetchChessComProfile", () => {
   it("does not call out at all for a username that cannot exist", async () => {
     let called = false;
     const result = await fetchChessComProfile("!!bad!!", {
-      fetch: (async () => {
+      fetch: async () => {
         called = true;
-        return {} as Response;
-      }) as typeof globalThis.fetch,
+        return new Response();
+      },
     });
 
     expect(called).toBe(false);
@@ -152,8 +145,6 @@ describe("fetchLichessProfile", () => {
   });
 
   it("reads the flair off a real response, where it sits at the top level", async () => {
-    // `flair` is a sibling of `profile`, and an asset id rather than an
-    // image URL.
     const profile = await fetchedLichess(
       "DrNykterstein",
       respondWith(LICHESS_REAL_FLAIRED),
@@ -190,16 +181,7 @@ describe("fetchLichessProfile", () => {
 
   it("treats an unreadable body as failed, not as an empty answer", async () => {
     const result = await fetchChessComProfile("someone", {
-      fetch: async () =>
-        Object.assign(
-          {
-            ok: true,
-            json: async () => {
-              throw new Error("bad json");
-            },
-          },
-          {} as Response,
-        ),
+      fetch: async () => new Response("not json"),
     });
     expect(result).toEqual({ status: "failed", reason: "unavailable" });
   });

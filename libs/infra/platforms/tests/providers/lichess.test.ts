@@ -3,17 +3,17 @@ import { describe, expect, it } from "vitest";
 import { fetchLichess } from "@velachess/infra-platforms";
 import { LICHESS_PGN_EXPORT, LICHESS_VARIANT_PGN } from "@velachess/fixtures";
 
-function textResponse(body: string, status = 200): Response {
-  return new Response(body, { status });
+function answering(body: string, init?: ResponseInit): typeof globalThis.fetch {
+  return async () => new Response(body, init);
 }
 
 describe("fetchLichess", () => {
   it("rejects an invalid username before making any request", async () => {
     let called = false;
-    const fetch = (async () => {
+    const fetch: typeof globalThis.fetch = async () => {
       called = true;
-      return textResponse("");
-    }) as typeof globalThis.fetch;
+      return new Response("");
+    };
 
     await expect(fetchLichess("not valid!", null, { fetch })).rejects.toThrow(
       "Invalid Lichess username",
@@ -22,8 +22,7 @@ describe("fetchLichess", () => {
   });
 
   it("happy path: normalizes both games from a real export and advances the cursor", async () => {
-    const fetch = (async () =>
-      textResponse(LICHESS_PGN_EXPORT)) as typeof globalThis.fetch;
+    const fetch = answering(LICHESS_PGN_EXPORT);
 
     const result = await fetchLichess("arex", null, { fetch });
 
@@ -38,11 +37,11 @@ describe("fetchLichess", () => {
   it("requests Accept: application/x-chess-pgn, a contact-bearing User-Agent, and passes since= from the cursor", async () => {
     let capturedUrl = "";
     let capturedHeaders: HeadersInit | undefined;
-    const fetch = (async (url: string | URL, init?: RequestInit) => {
+    const fetch: typeof globalThis.fetch = async (url, init) => {
       capturedUrl = String(url);
       capturedHeaders = init?.headers;
-      return textResponse(LICHESS_PGN_EXPORT);
-    }) as typeof globalThis.fetch;
+      return new Response(LICHESS_PGN_EXPORT);
+    };
 
     await fetchLichess("arex", { sinceMs: 1704000000000 }, { fetch });
 
@@ -53,8 +52,7 @@ describe("fetchLichess", () => {
   });
 
   it("filters non-Standard variant games and reports them as unsupported-variant", async () => {
-    const fetch = (async () =>
-      textResponse(LICHESS_VARIANT_PGN)) as typeof globalThis.fetch;
+    const fetch = answering(LICHESS_VARIANT_PGN);
 
     const result = await fetchLichess("arex", null, { fetch });
 
@@ -71,13 +69,13 @@ describe("fetchLichess", () => {
   });
 
   it("an empty response means no new games since the cursor, not a failure", async () => {
-    const fetch = (async () => textResponse("")) as typeof globalThis.fetch;
+    const fetch = answering("");
     const result = await fetchLichess("arex", null, { fetch });
     expect(result).toEqual({ games: [], failures: [], cursor: null, complete: true });
   });
 
   it("maps a 404 to a permanent not-found failure", async () => {
-    const fetch = (async () => textResponse("", 404)) as typeof globalThis.fetch;
+    const fetch = answering("", { status: 404 });
     const result = await fetchLichess("gone-player", null, { fetch });
 
     expect(result.complete).toBe(false);
@@ -87,11 +85,10 @@ describe("fetchLichess", () => {
   });
 
   it("maps a 429 to a retryable rate-limited failure, carrying Retry-After", async () => {
-    const fetch = (async () =>
-      new Response("", {
-        status: 429,
-        headers: { "Retry-After": "7" },
-      })) as typeof globalThis.fetch;
+    const fetch = answering("", {
+      status: 429,
+      headers: { "Retry-After": "7" },
+    });
     const result = await fetchLichess("arex", null, { fetch });
     expect(result.failures[0]).toMatchObject({
       reason: "rate-limited",
@@ -102,8 +99,7 @@ describe("fetchLichess", () => {
   });
 
   it("a non-PGN 200 response is reported as invalid-response, not silently parsed as zero games", async () => {
-    const fetch = (async () =>
-      textResponse("<html>not pgn</html>")) as typeof globalThis.fetch;
+    const fetch = answering("<html>not pgn</html>");
     const result = await fetchLichess("arex", null, { fetch });
     expect(result.failures[0]).toMatchObject({ reason: "invalid-response" });
   });
