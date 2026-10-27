@@ -3,7 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Link } from "@tanstack/react-router";
 
-import { gameOutcomeFor, timeClassOf, type TimeClass } from "@velachess/chess";
+import { gameOutcomeFor, opposite, timeClassOf, type TimeClass } from "@velachess/chess";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { Badge } from "@velachess/ui/components/badge";
 import {
@@ -18,7 +18,7 @@ import { GAME_MARKS, TIME_CLASS_MARKS } from "../game-marks.ts";
 import { GAME_SOURCES } from "../game-sources.ts";
 import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
-import { formatClock, opponentSideOf } from "./game-presentation.ts";
+import { formatClock } from "./game-presentation.ts";
 import type { Game } from "./queries.ts";
 
 const GAME_ITEM_COPY = {
@@ -164,7 +164,9 @@ function Matchup({ game }: { game: Game }) {
 
 export function GameItem({ game }: { game: Game }) {
   const { i18n } = useLingui();
-  const opponentSide = opponentSideOf(game);
+  // Null when the game was never attributed: calling one of the players
+  // the opponent would invent a seat nobody knows.
+  const opponentSide = game.perspective === null ? null : opposite(game.perspective);
   const playedAt = game.playedAt
     ? i18n.date(new Date(game.playedAt), { day: "numeric", month: "short" })
     : null;

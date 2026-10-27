@@ -1,20 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aGame } from "../../../test/games.ts";
-import { formatClock, opponentSideOf } from "../game-presentation.ts";
-
-describe("who you played", () => {
-  it("names the other side", () => {
-    expect(opponentSideOf(aGame({ perspective: "white" }))).toBe("black");
-    expect(opponentSideOf(aGame({ perspective: "black" }))).toBe("white");
-  });
-
-  it("has no opponent when nobody knows which side was yours", () => {
-    // A pasted PGN we couldn't attribute: the row names both players
-    // rather than promoting one of them.
-    expect(opponentSideOf(aGame({ perspective: null }))).toBeNull();
-  });
-});
+import { formatClock } from "../game-presentation.ts";
 
 describe("the clock", () => {
   it("says minutes when the clock divides into them", () => {

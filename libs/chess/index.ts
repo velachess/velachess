@@ -10,6 +10,7 @@
 export { INITIAL_FEN, parseFen } from "chessops/fen";
 export { makeSan, parseSan } from "chessops/san";
 export type { Color, Outcome } from "chessops/types";
+export { opposite } from "chessops/util";
 
 export { positionFromFen } from "./position.ts";
 export type { Position } from "./position.ts";
