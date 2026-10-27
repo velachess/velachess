@@ -21,7 +21,7 @@ import { useQuery } from "../../libs/react-query.ts";
 
 const SIGN_IN_COPY = {
   title: msg`Continue to VelaChess`,
-  description: msg`Review your chess games with Stockfish.`,
+  description: msg`Review your chess games.`,
   switchToPassword: msg`Sign in with a password instead`,
   switchToLink: msg`Email me a sign-in link instead`,
   google: msg`Continue with Google`,

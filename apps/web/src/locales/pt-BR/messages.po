@@ -857,7 +857,7 @@ msgid "Review every game with Stockfish"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:24
-msgid "Review your chess games with Stockfish."
+msgid "Review your chess games."
 msgstr ""
 
 #: src/settings/account/profile-form.tsx:29

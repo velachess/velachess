@@ -54,9 +54,7 @@ describe("the Google button", () => {
     await renderApp({ path: "/login" });
 
     expect(await screen.findByText("Continue to VelaChess")).toBeInTheDocument();
-    expect(
-      screen.getByText("Review your chess games with Stockfish."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Review your chess games.")).toBeInTheDocument();
     expect(screen.queryByText(/sign up|create account/i)).not.toBeInTheDocument();
   });
 
@@ -66,9 +64,7 @@ describe("the Google button", () => {
     await renderApp({ path: "/login" });
 
     expect(await screen.findByText("Continue to VelaChess")).toBeInTheDocument();
-    expect(
-      screen.getByText("Review your chess games with Stockfish."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Review your chess games.")).toBeInTheDocument();
     expect(screen.queryByText(/Google/)).not.toBeInTheDocument();
   });
 
