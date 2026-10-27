@@ -7,18 +7,22 @@ import { Redis } from "ioredis";
 
 import { createAuth, type Auth, type AuthConfig } from "@velachess/infra-auth";
 import { createFileStore } from "@velachess/infra-storage";
-import { syncAccount } from "@velachess/accounts";
+import { syncAccount, warmProfiles } from "@velachess/accounts";
 import { deleteAccount } from "@velachess/user";
 import {
   claimSyncAttempt,
   createSyncNotifications,
+  findProviderProfiles,
   finishSyncJob,
   getTrackedAccount,
+  isProfileFresh,
   markSyncRunning,
   markTrackedAccountSynced,
   saveGames,
   updateTrackedAccountCursor,
+  upsertProviderProfile,
 } from "@velachess/infra-db";
+import { fetchPlayerProfile } from "@velachess/infra-platforms";
 import { QUEUES } from "@velachess/infra-queue";
 import {
   chessComFixtureFetch,
@@ -125,6 +129,20 @@ export async function createApiHarness(
         saveGames,
         updateTrackedAccountCursor,
         markTrackedAccountSynced,
+        warmProfiles: (platform, usernames) =>
+          warmProfiles(
+            {
+              findProviderProfiles: (seats) => findProviderProfiles(harness.db, seats),
+              upsertProviderProfile: async (seat, fetched) => {
+                await upsertProviderProfile(harness.db, seat, fetched);
+              },
+              isProfileFresh,
+              fetchProfile: (seat) =>
+                fetchPlayerProfile(seat, deliveryFetch ? { fetch: deliveryFetch } : {}),
+            },
+            platform,
+            usernames,
+          ),
         ...(deliveryFetch ? { fetch: deliveryFetch } : {}),
       },
       job,

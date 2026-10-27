@@ -84,8 +84,8 @@ avatar, flair and country are public metadata about a _player_, so the
 table has no `user_id` — an opponent gets a row because a game was opened
 against them, not because anyone tracked them, and two users reviewing
 games against the same opponent share one row and one refresh budget. The
-games list reads the table in one batch per page and never writes it: only
-opening a game spends a provider request.
+games list reads the table in one batch per page and never writes it;
+connecting, opening a game and finishing a sync are what fill it.
 `fetched_at` is stamped on every attempt, failed ones included: it is a
 refresh cursor, not a success log, so a dead provider is retried at the
 cadence instead of on every game open.

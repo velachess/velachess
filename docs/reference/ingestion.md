@@ -30,7 +30,11 @@ deletes the games it imported (manual PGNs stay); deleting a user takes them
 all.
 
 Provider profile metadata is public cache data keyed by platform and username.
-It does not own games, a cursor, or a user identity.
+It does not own games, a cursor, or a user identity. Three things fill it:
+connecting an account asks for that handle, opening a game asks for both
+seats, and a finished sync warms the handles it brought in — at most 25 per
+pass, one request at a time, skipping whatever is still fresh. Nothing fills
+it on a list read.
 
 Provider identity is unique by account, source, and external id when one
 exists — each account owns a complete, independent copy of whatever it

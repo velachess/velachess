@@ -137,15 +137,18 @@ describe("provider profile identity", () => {
     if (!created.syncId) throw new Error("expected a first sync on a fresh connect");
     await harness.runSync(created.syncId);
 
-    // Connect warmed my handle; the opponent's is a cold miss.
+    // Connect warmed my handle; the sync warmed the opponents it brought
+    // in, so the library has faces before anyone opens a game.
+    expect(sync.profileRequests).toContain("chess_com:rival");
+
     const before = sync.profileRequests.length;
     const game = await firstGameId(owner);
     const body = await openGame(owner, game);
     expect(body.whiteIdentity).toEqual(IDENTITY(CHESS_COM_AVATAR));
     expect(body.blackIdentity).toEqual(IDENTITY(RIVAL_AVATAR));
 
-    // One request for the one opponent, never a fan-out.
-    expect(sync.profileRequests.slice(before)).toEqual(["chess_com:rival"]);
+    // Nothing left to ask: the open reads the cache.
+    expect(sync.profileRequests.slice(before)).toEqual([]);
   });
 
   it("carries both seats' cached identity into the library, asking no provider", async () => {

@@ -53,6 +53,11 @@ type UpdateTrackedAccountCursor = (
   cursor: Cursor,
 ) => Promise<void>;
 type MarkTrackedAccountSynced = (tx: Tx, accountId: string) => Promise<void>;
+/** Identity for handles this pass saw, filled behind the games. */
+type WarmProfiles = (
+  platform: TrackedAccount["platform"],
+  usernames: readonly string[],
+) => Promise<void>;
 
 export interface SyncAccountDeps {
   markSyncRunning: MarkSyncRunning;
@@ -63,6 +68,7 @@ export interface SyncAccountDeps {
   saveGames: SaveGames;
   updateTrackedAccountCursor: UpdateTrackedAccountCursor;
   markTrackedAccountSynced: MarkTrackedAccountSynced;
+  warmProfiles: WarmProfiles;
   fetch?: FetchFn;
   /**
    * A stored cursor that did not parse as its account's platform shape.
@@ -151,9 +157,29 @@ export async function syncAccount(
       gamesInserted: progress.inserted + inserted,
     });
   });
+  // After the games are safe, and never at their expense: a provider that
+  // will not answer costs the decoration, not the pass that just committed.
+  try {
+    await deps.warmProfiles(account.platform, opponentsOf(fetched.games, account));
+  } catch {
+    /* empty */
+  }
+
   if (!fetched.complete) {
     throw new Error(`sync ${job.id} incomplete (${fetched.failures.length} failures)`);
   }
+}
+
+/** The people on the other side of the board: this account's own handle
+ * was warmed when it was connected. */
+function opponentsOf(
+  games: readonly NormalizedGame[],
+  account: TrackedAccount,
+): string[] {
+  const mine = account.username.toLowerCase();
+  return games
+    .flatMap((game) => [game.white.name, game.black.name])
+    .filter((name) => name.toLowerCase() !== mine);
 }
 
 /**

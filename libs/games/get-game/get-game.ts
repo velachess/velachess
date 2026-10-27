@@ -7,11 +7,7 @@
  */
 import type { Game, ProviderProfile, ProviderSeat } from "@velachess/infra-db";
 import type { FetchFn } from "@velachess/infra-platforms";
-import {
-  fetchChessComProfile,
-  fetchLichessProfile,
-  type ProfileFetch,
-} from "@velachess/infra-platforms";
+import { fetchPlayerProfile, type ProfileFetch } from "@velachess/infra-platforms";
 
 /** What the cache knows about a seat, minus its bookkeeping. */
 export type SeatIdentity = Pick<ProviderProfile, "avatarUrl" | "flair" | "countryCode">;
@@ -39,11 +35,8 @@ const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null, countryCode: n
 /** The fetchers fail soft by contract, a dead provider answering `failed`
  * rather than throwing, so an outage costs the decoration, not the
  * game. */
-async function fetchProfile(seat: ProviderSeat, doFetch: FetchFn | undefined) {
-  const opts = doFetch ? { fetch: doFetch } : {};
-  return seat.platform === "chess_com"
-    ? fetchChessComProfile(seat.username, opts)
-    : fetchLichessProfile(seat.username, opts);
+function fetchProfile(seat: ProviderSeat, doFetch: FetchFn | undefined) {
+  return fetchPlayerProfile(seat, doFetch ? { fetch: doFetch } : {});
 }
 
 /** Projected, so that bookkeeping never reaches a caller. */

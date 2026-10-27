@@ -133,3 +133,17 @@ export async function fetchLichessProfile(
     },
   };
 }
+
+/**
+ * The provider a seat belongs to decides which endpoint answers for it.
+ * Both callers — opening a game and warming a sync's new handles — ask the
+ * same question, so neither repeats the switch.
+ */
+export function fetchPlayerProfile(
+  seat: { platform: "chess_com" | "lichess"; username: string },
+  opts: { fetch?: FetchFn } = {},
+): Promise<ProfileFetch> {
+  return seat.platform === "chess_com"
+    ? fetchChessComProfile(seat.username, opts)
+    : fetchLichessProfile(seat.username, opts);
+}

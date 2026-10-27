@@ -21,13 +21,19 @@ the transaction that settles it (infra-db's `finishSyncJob` / `abandonSyncJob`);
 API's `GET /syncs/events` stream, resolving every id against the row — the
 signal proves nothing and is not durable. See `docs/reference/ingestion.md`.
 
+A finished sync warms provider profiles for the handles it brought in
+(`warm-profiles`), bounded per pass and after the games have committed, so
+a provider that will not answer costs the decoration rather than the sync.
+The list read never fetches one.
+
 `index.ts` exports: `importAccount`, `disconnectAccount`, `listAccounts`,
-`listGamesWithStatus`, `requestSync`, `getSync`, `watchSyncs`, `syncAccount`;
-types `ConnectAccountDeps`, `ConnectOutcome`, `Platform`,
+`listGamesWithStatus`, `requestSync`, `getSync`, `watchSyncs`, `syncAccount`,
+`warmProfiles`; types `ConnectAccountDeps`, `ConnectOutcome`, `Platform`,
 `DisconnectAccountDeps`, `DisconnectOutcome`, `ListAccountsDeps`,
 `TrackedAccountSummary`, `GameWithStatus`, `ListAccountGamesDeps`,
 `RequestSyncDeps`, `RequestSyncOutcome`, `GetSyncDeps`, `WatchSyncsDeps`,
-`SyncSettled`, `SyncAccountDeps`, `SyncDelivery`, `SyncDeps`.
+`SyncSettled`, `SyncAccountDeps`, `SyncDelivery`, `SyncDeps`,
+`WarmProfilesDeps`.
 
 Cross-module dependencies: none. Provider HTTP, the database and the queue
 are all reached through dependency types the composition root satisfies.

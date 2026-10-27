@@ -3,6 +3,7 @@
  * listable". */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { fetchPlayerProfile } from "@velachess/infra-platforms";
 import type { AccountPlatform, NormalizedGame } from "@velachess/infra-platforms";
 
 import type { Database } from "@velachess/infra-db";
@@ -12,6 +13,7 @@ import {
   createUser,
   deleteTrackedAccountAndGames,
   findProviderProfiles,
+  isProfileFresh,
   findTrackedAccountByPlatform,
   finishSyncJob,
   getTrackedAccount,
@@ -22,8 +24,8 @@ import {
   markTrackedAccountSynced,
   markUserOnboarded,
   saveGames,
-  updateTrackedAccountCursor,
   upsertProviderProfile,
+  updateTrackedAccountCursor,
   getSyncJobForUser,
   insertTrackedAccount,
 } from "@velachess/infra-db";
@@ -32,6 +34,7 @@ import {
   disconnectAccount,
   importAccount,
   syncAccount,
+  warmProfiles,
   type ConnectAccountDeps,
   type ConnectOutcome,
   type DisconnectAccountDeps,
@@ -73,6 +76,19 @@ function syncAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): SyncAccountDe
     saveGames,
     updateTrackedAccountCursor,
     markTrackedAccountSynced,
+    warmProfiles: (platform, usernames) =>
+      warmProfiles(
+        {
+          findProviderProfiles: (seats) => findProviderProfiles(db, seats),
+          upsertProviderProfile: async (seat, fetched) => {
+            await upsertProviderProfile(db, seat, fetched);
+          },
+          isProfileFresh,
+          fetchProfile: (seat) => fetchPlayerProfile(seat, fetch ? { fetch } : {}),
+        },
+        platform,
+        usernames,
+      ),
     ...(fetch ? { fetch } : {}),
   };
 }
