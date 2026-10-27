@@ -159,7 +159,7 @@ describe("the sync stream", () => {
     await waitFor(() => expect(openSyncStreams()).toBe(1));
 
     await act(() => router.navigate({ to: "/settings/connections" }));
-    await screen.findByText("Connect an account");
+    await screen.findByRole("heading", { name: "Chess accounts" });
     await act(() => router.navigate({ to: "/games" }));
     await screen.findByText("already-here");
     expect(connections.count).toBe(1);

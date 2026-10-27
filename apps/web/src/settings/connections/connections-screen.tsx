@@ -1,7 +1,9 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { Fragment, useState } from "react";
+import { Fragment, useId, useState, type ReactNode } from "react";
 
+import { Alert, AlertAction, AlertTitle } from "@velachess/ui/components/alert";
+import { Badge } from "@velachess/ui/components/badge";
 import { Button } from "@velachess/ui/components/button";
 import {
   Dialog,
@@ -18,12 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@velachess/ui/components/dropdown-menu";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@velachess/ui/components/empty";
-import {
   Item,
   ItemActions,
   ItemContent,
@@ -33,20 +29,22 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@velachess/ui/components/item";
-import { Separator } from "@velachess/ui/components/separator";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
+import { cn } from "@velachess/ui/lib/utils";
 
 import { GAME_SOURCES } from "../../games/game-sources.ts";
 import {
   ConnectAccount,
   isSyncInProgress,
+  SOURCE_ORDER,
   trackedAccountsQuery,
   useDisconnectAccount,
   useSyncAccount,
   useSyncSettlementToast,
+  type SourceId,
   type TrackedAccount,
 } from "../../games/import/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
@@ -54,11 +52,18 @@ import { SettingsSection } from "../layout/settings-section.tsx";
 
 const CONNECTIONS_COPY = {
   title: msg`Chess accounts`,
-  description: msg`Manage the chess accounts VelaChess imports games from.`,
+  description: msg`Where VelaChess imports your games from.`,
   loadError: msg`Couldn't load your connected accounts.`,
+  tryAgain: msg`Try again`,
+  connected: msg`Connected`,
+  notConnected: msg`Not connected`,
+  syncFailed: msg`Sync failed`,
+  syncingStatus: msg`Syncing`,
+  lastSynced: msg`Synced {date}`,
   neverSynced: msg`Not synced yet`,
-  syncing: msg`Syncing…`,
-  connect: msg`Connect an account`,
+  connect: msg`Connect`,
+  connectProvider: msg`Connect {platform}`,
+  connectDescription: msg`VelaChess reads your public games. No password needed.`,
   sync: msg`Sync games`,
   running: msg`Syncing…`,
   tooSoon: msg`Synced a moment ago`,
@@ -70,12 +75,9 @@ const CONNECTIONS_COPY = {
   disconnectDescription: msg`Removing the connection to {username} on {platform} also deletes the games VelaChess imported from it, and their analyses. This can't be undone. Games you imported from a PGN file are not affected.`,
   cancel: msg`Cancel`,
   disconnectConfirm: msg`Remove connection`,
-  disconnecting: msg`Removing…`,
   disconnectedTitle: msg`Connection removed`,
   disconnectFailedTitle: msg`Couldn't remove the connection`,
   disconnectFailedDescription: msg`Try again in a moment.`,
-  emptyTitle: msg`No chess accounts connected`,
-  emptyDescription: msg`Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish.`,
 } as const;
 
 const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
@@ -83,8 +85,7 @@ const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try ag
 const CONNECTIONS_VIEW_KIND = {
   LOADING: "loading",
   LOAD_ERROR: "load-error",
-  EMPTY: "empty",
-  CONNECTED: "connected",
+  READY: "ready",
 } as const;
 
 /** Sequential guards producing a discriminated union, like
@@ -92,8 +93,7 @@ const CONNECTIONS_VIEW_KIND = {
 type ConnectionsView =
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOADING }
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOAD_ERROR }
-  | { kind: typeof CONNECTIONS_VIEW_KIND.EMPTY }
-  | { kind: typeof CONNECTIONS_VIEW_KIND.CONNECTED; accounts: TrackedAccount[] };
+  | { kind: typeof CONNECTIONS_VIEW_KIND.READY; accounts: TrackedAccount[] };
 
 function connectionsView(
   isPending: boolean,
@@ -104,8 +104,7 @@ function connectionsView(
   if (isError) return { kind: CONNECTIONS_VIEW_KIND.LOAD_ERROR };
   // Neither pending nor errored, so the query succeeded and `data` is
   // defined: react-query's own guarantee.
-  if (data!.length === 0) return { kind: CONNECTIONS_VIEW_KIND.EMPTY };
-  return { kind: CONNECTIONS_VIEW_KIND.CONNECTED, accounts: data! };
+  return { kind: CONNECTIONS_VIEW_KIND.READY, accounts: data! };
 }
 
 /** The chess accounts games come from, not sign-in methods, which are
@@ -121,50 +120,167 @@ export function ConnectionsScreen() {
       description={i18n._(CONNECTIONS_COPY.description)}
     >
       {view.kind === CONNECTIONS_VIEW_KIND.LOADING && (
-        <Skeleton className="h-24 w-full" />
-      )}
-
-      {view.kind === CONNECTIONS_VIEW_KIND.LOAD_ERROR && (
-        <p className="text-sm text-muted-foreground">
-          {i18n._(CONNECTIONS_COPY.loadError)}
-        </p>
-      )}
-
-      {view.kind === CONNECTIONS_VIEW_KIND.CONNECTED && (
-        <ItemGroup className="rounded-lg border">
-          {view.accounts.map((account, index) => (
-            <Fragment key={account.id}>
-              <AccountRow account={account} />
-              {index < view.accounts.length - 1 && <ItemSeparator />}
+        <ItemGroup className="gap-0 rounded-lg border">
+          {SOURCE_ORDER.map((provider, index) => (
+            <Fragment key={provider}>
+              {index > 0 && <ItemSeparator className="my-0" />}
+              <Item className="px-4 py-3">
+                <Skeleton className="size-9 rounded-md" />
+                <ItemContent className="gap-1.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3.5 w-40" />
+                </ItemContent>
+              </Item>
             </Fragment>
           ))}
         </ItemGroup>
       )}
 
-      {view.kind === CONNECTIONS_VIEW_KIND.EMPTY && (
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyTitle>{i18n._(CONNECTIONS_COPY.emptyTitle)}</EmptyTitle>
-            <EmptyDescription>
-              {i18n._(CONNECTIONS_COPY.emptyDescription)}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+      {view.kind === CONNECTIONS_VIEW_KIND.LOAD_ERROR && (
+        <Alert variant="destructive">
+          <AlertTitle>{i18n._(CONNECTIONS_COPY.loadError)}</AlertTitle>
+          <AlertAction>
+            <Button variant="outline" size="sm" onClick={() => void accounts.refetch()}>
+              {i18n._(CONNECTIONS_COPY.tryAgain)}
+            </Button>
+          </AlertAction>
+        </Alert>
       )}
 
-      <Separator />
-
-      <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-medium">{i18n._(CONNECTIONS_COPY.connect)}</h3>
-        <ConnectAccount chrome="bare" redirectTo="/settings/connections" />
-      </section>
+      {view.kind === CONNECTIONS_VIEW_KIND.READY && (
+        <ItemGroup className="gap-0 rounded-lg border">
+          {SOURCE_ORDER.map((provider, index) => (
+            <Fragment key={provider}>
+              {index > 0 && <ItemSeparator className="my-0" />}
+              <ProviderRow
+                provider={provider}
+                account={view.accounts.find((account) => account.platform === provider)}
+              />
+            </Fragment>
+          ))}
+        </ItemGroup>
+      )}
     </SettingsSection>
   );
 }
 
-function AccountRow({ account }: { account: TrackedAccount }) {
+function ProviderRow({
+  provider,
+  account,
+}: {
+  provider: SourceId;
+  account: TrackedAccount | undefined;
+}) {
+  if (account) return <ConnectedRow account={account} />;
+  return <AvailableRow provider={provider} />;
+}
+
+/** The frame both rows share: the provider is the row's name, so a status
+ * or action never has to repeat it. */
+function ProviderItem({
+  provider,
+  status,
+  description,
+  actions,
+}: {
+  provider: SourceId;
+  status?: ReactNode;
+  description: ReactNode;
+  actions: ReactNode;
+}) {
+  const nameId = useId();
+  const { Icon, label, markClassName } = GAME_SOURCES[provider];
+
+  return (
+    <Item render={<li />} aria-labelledby={nameId} className="px-4 py-3">
+      <ItemMedia className="size-9 rounded-md bg-muted">
+        <Icon className={cn("size-5", markClassName)} />
+      </ItemMedia>
+      <ItemContent className="min-w-0 gap-0.5">
+        <ItemTitle>
+          <span id={nameId}>{label}</span>
+          {status}
+        </ItemTitle>
+        <ItemDescription>{description}</ItemDescription>
+      </ItemContent>
+      <ItemActions>{actions}</ItemActions>
+    </Item>
+  );
+}
+
+function AvailableRow({ provider }: { provider: SourceId }) {
   const { i18n } = useLingui();
-  const { Icon, label: platform } = GAME_SOURCES[account.platform];
+  const [open, setOpen] = useState(false);
+  const platform = GAME_SOURCES[provider].label;
+  const connectLabel = i18n._({
+    ...CONNECTIONS_COPY.connectProvider,
+    values: { platform },
+  });
+
+  return (
+    <>
+      <ProviderItem
+        provider={provider}
+        description={i18n._(CONNECTIONS_COPY.notConnected)}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={connectLabel}
+            onClick={() => setOpen(true)}
+          >
+            {i18n._(CONNECTIONS_COPY.connect)}
+          </Button>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{connectLabel}</DialogTitle>
+            <DialogDescription>
+              {i18n._(CONNECTIONS_COPY.connectDescription)}
+            </DialogDescription>
+          </DialogHeader>
+          <ConnectAccount
+            chrome="bare"
+            source={provider}
+            onImported={() => setOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+type AccountStatus = "syncing" | "failed" | "connected";
+
+function accountStatus(syncing: boolean, account: TrackedAccount): AccountStatus {
+  if (syncing) return "syncing";
+  if (account.lastSyncError !== null) return "failed";
+  return "connected";
+}
+
+function StatusBadge({ status }: { status: AccountStatus }) {
+  const { i18n } = useLingui();
+
+  if (status === "syncing") {
+    return (
+      <Badge variant="info">
+        <Spinner aria-hidden="true" data-icon="inline-start" />
+        {i18n._(CONNECTIONS_COPY.syncingStatus)}
+      </Badge>
+    );
+  }
+  if (status === "failed") {
+    return <Badge variant="destructive">{i18n._(CONNECTIONS_COPY.syncFailed)}</Badge>;
+  }
+  return <Badge variant="success">{i18n._(CONNECTIONS_COPY.connected)}</Badge>;
+}
+
+function ConnectedRow({ account }: { account: TrackedAccount }) {
+  const { i18n } = useLingui();
+  const platform = GAME_SOURCES[account.platform].label;
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const disconnect = useDisconnectAccount();
@@ -221,49 +337,54 @@ function AccountRow({ account }: { account: TrackedAccount }) {
   };
 
   return (
-    <Item>
-      <ItemMedia>
-        <Icon className="size-5" />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle>{account.username}</ItemTitle>
-        <ItemDescription>
-          {account.lastSyncedAt
-            ? i18n.date(new Date(account.lastSyncedAt), { dateStyle: "medium" })
-            : i18n._(CONNECTIONS_COPY.neverSynced)}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={i18n._(label)}
-          onClick={handleSync}
-          disabled={syncing}
-        >
-          {syncing ? <Spinner aria-hidden="true" /> : <RefreshCw />}
-        </Button>
+    <>
+      <ProviderItem
+        provider={account.platform}
+        status={<StatusBadge status={accountStatus(syncing, account)} />}
+        description={
+          <>
+            <span className="font-medium text-foreground">{account.username}</span>
+            <span aria-hidden="true"> · </span>
+            <LastSynced lastSyncedAt={account.lastSyncedAt} />
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={i18n._(label)}
+              onClick={handleSync}
+              disabled={syncing}
+            >
+              <RefreshCw />
+            </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={i18n._(CONNECTIONS_COPY.moreActions)}
-              >
-                <MoreVertical />
-              </Button>
-            }
-          />
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem variant="destructive" onClick={() => setConfirmOpen(true)}>
-              <Trash2 />
-              {i18n._(CONNECTIONS_COPY.disconnect)}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </ItemActions>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={i18n._(CONNECTIONS_COPY.moreActions)}
+                  >
+                    <MoreVertical />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  <Trash2 />
+                  {i18n._(CONNECTIONS_COPY.disconnect)}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent showCloseButton={!disconnect.isPending}>
@@ -292,15 +413,21 @@ function AccountRow({ account }: { account: TrackedAccount }) {
               disabled={disconnect.isPending}
               onClick={confirmDisconnect}
             >
-              {disconnect.isPending ? (
-                <Spinner aria-hidden="true" />
-              ) : (
-                i18n._(CONNECTIONS_COPY.disconnectConfirm)
-              )}
+              {disconnect.isPending && <Spinner aria-hidden="true" />}
+              {!disconnect.isPending && i18n._(CONNECTIONS_COPY.disconnectConfirm)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Item>
+    </>
   );
+}
+
+function LastSynced({ lastSyncedAt }: { lastSyncedAt: string | null }) {
+  const { i18n } = useLingui();
+
+  if (lastSyncedAt === null) return <span>{i18n._(CONNECTIONS_COPY.neverSynced)}</span>;
+
+  const date = i18n.date(new Date(lastSyncedAt), { dateStyle: "medium" });
+  return <span>{i18n._({ ...CONNECTIONS_COPY.lastSynced, values: { date } })}</span>;
 }

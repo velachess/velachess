@@ -45,14 +45,18 @@ export interface ConnectAccountProps {
   onImported?: () => void;
   /** `bare` drops the card, for a caller whose container is the heading. */
   chrome?: "card" | "bare";
+  /** Pins the form to one provider and drops the picker. */
+  source?: SourceId;
 }
 
 export function ConnectAccount({
   redirectTo = "/games",
   onImported,
   chrome = "card",
+  source: pinnedSourceId,
 }: ConnectAccountProps = {}) {
-  const sourceId = useSourceStore((state) => state.sourceId);
+  const pickedSourceId = useSourceStore((state) => state.sourceId);
+  const sourceId = pinnedSourceId ?? pickedSourceId;
   const selectSource = useSourceStore((state) => state.selectSource);
   const importGames = useImportGames();
   const accounts = useQuery(trackedAccountsQuery);
@@ -107,25 +111,27 @@ export function ConnectAccount({
           void form.handleSubmit();
         }}
       >
-        <Tabs
-          value={sourceId}
-          onValueChange={(next) => {
-            selectSource(next as SourceId);
-            form.reset();
-          }}
-        >
-          <TabsList className="w-full">
-            {SOURCE_ORDER.map((id) => {
-              const { Icon, label } = GAME_SOURCES[id];
-              return (
-                <TabsTrigger key={id} value={id}>
-                  <Icon data-icon="inline-start" />
-                  {label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
+        {pinnedSourceId === undefined && (
+          <Tabs
+            value={sourceId}
+            onValueChange={(next) => {
+              selectSource(next as SourceId);
+              form.reset();
+            }}
+          >
+            <TabsList className="w-full">
+              {SOURCE_ORDER.map((id) => {
+                const { Icon, label } = GAME_SOURCES[id];
+                return (
+                  <TabsTrigger key={id} value={id}>
+                    <Icon data-icon="inline-start" />
+                    {label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        )}
 
         {connectedHandle !== undefined && (
           <AlreadyConnectedNotice username={connectedHandle} platform={sourceName} />

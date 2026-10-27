@@ -13,6 +13,7 @@ interface TrackedAccountRow {
   platform: "chess_com" | "lichess";
   username: string;
   lastSyncedAt: string | null;
+  lastSyncError: "not-found" | "incomplete" | "internal" | null;
 }
 
 /** What the server says this user tracks. The onboarding reads it to tell
@@ -28,6 +29,7 @@ export function accountIsTracked(
     platform: account.platform ?? "chess_com",
     username: account.username,
     lastSyncedAt: account.lastSyncedAt ?? null,
+    lastSyncError: account.lastSyncError ?? null,
   };
   trackedAccounts = [...trackedAccounts, row];
   return row;
@@ -47,7 +49,7 @@ export const accountsHandlers = [
           ...account,
           syncStatus: active?.status ?? "idle",
           activeSyncId: active?.id ?? null,
-          lastSyncError: null,
+          lastSyncError: account.lastSyncError,
         };
       }),
     ),

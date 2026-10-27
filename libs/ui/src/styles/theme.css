@@ -34,6 +34,9 @@
      stop meaning "White is winning". */
   --eval-white: oklch(0.97 0.005 85);
   --eval-black: oklch(0.24 0.008 85);
+  /* Chess.com's own green, for its mark only. Never themed: a brand mark
+     keeps its colour on either canvas. */
+  --chess-com: #81b64c;
 }
 
 /* The product app inherits this dark default; theme-aware surfaces opt
@@ -181,6 +184,7 @@
   --color-move-blunder: var(--move-blunder);
   --color-eval-white: var(--eval-white);
   --color-eval-black: var(--eval-black);
+  --color-chess-com: var(--chess-com);
 
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
