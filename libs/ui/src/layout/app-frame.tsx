@@ -17,13 +17,10 @@ type SidebarPreference = Required<
 >;
 
 export interface AppFrameProps extends SidebarPreference {
-  /** The persistent navigation, hidden on small screens. */
   nav: React.ReactNode;
   /** Shown instead of `nav` below the sidebar breakpoint. */
   navFallback?: React.ReactNode;
-  /** A strip above the content. */
   banner?: React.ReactNode;
-  /** Label of the skip link. */
   skipLabel?: string;
   children: React.ReactNode;
   className?: string;

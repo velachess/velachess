@@ -1,3 +1,8 @@
+/**
+ * Responsive contract:
+ *   > 1024px   main | aside (width prop)
+ *   <= 1024px  aside drops below main instead of squeezing it
+ */
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";

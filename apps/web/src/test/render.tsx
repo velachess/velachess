@@ -24,7 +24,6 @@ import { testRouteTree } from "./routes.tsx";
 
 const ANY_PAGE = { color: null, outcome: null, timeClass: null, page: 1, pageSize: 1 };
 
-/** What `__root.tsx` gives every screen, in the same order. */
 function AppProviders({
   children,
   queryClient = createQueryClient(),
@@ -46,7 +45,6 @@ function AppProviders({
 }
 
 export interface RenderAppOptions {
-  /** Where memory history starts, search included. */
   path?: string;
   /** Leaves the library as the test staged it. By default an empty archive
    * gets one game, so the first-run overlay stays out of screens that are
@@ -54,15 +52,11 @@ export interface RenderAppOptions {
   emptyLibrary?: boolean;
 }
 
-/** `router.load()` is awaited inside `act`, so the caller gets the rendered
- * screen rather than a pending one. */
 export async function renderApp(options: RenderAppOptions = {}) {
   if (options.emptyLibrary !== true && readArchive(ANY_PAGE).total === 0) {
     addGames(aGame());
   }
 
-  // One client for the guards and the components — same wiring as
-  // router.tsx, so a guard's session and a screen's session can't disagree.
   const queryClient = createQueryClient();
   const router = createRouter({
     routeTree: testRouteTree,
@@ -71,7 +65,6 @@ export async function renderApp(options: RenderAppOptions = {}) {
     defaultErrorComponent: DefaultRouteError,
   });
 
-  // Mirrors router.tsx: one owner for "the API said 401".
   const releaseUnauthorized = onUnauthorized(() => {
     queryClient.setQueryData(sessionQueryKey, null);
     if (router.state.location.pathname === "/login") return;
@@ -91,22 +84,13 @@ export async function renderApp(options: RenderAppOptions = {}) {
   return { ...result, user, router, queryClient, releaseUnauthorized };
 }
 
-/**
- * `AppShell` renders the same destinations and account menu twice — the
- * desktop sidebar and a mobile bottom bar — and switches between them with
- * CSS alone. jsdom applies none, so both sit in the tree at once here; a
- * bare `screen` query for a nav label or the account button matches
- * twice. Screens that reach through the chrome incidentally (not testing
- * the nav itself) scope to the sidebar, the region that was here first.
- */
+/** jsdom applies no CSS, so the sidebar and the bottom bar both render;
+ * chrome queries scope to the sidebar. */
 export function desktopNav() {
   return within(screen.getByRole("navigation", { name: "Main" }));
 }
 
-/** Same reasoning as {@link desktopNav}: a nav item's label (`Games`,
- * `Settings`, …) sits in both navs too, so a page-content
- * assertion for the same word scopes to `main` — the one region that
- * isn't duplicated — rather than the whole document. */
+/** Nav labels sit in both navs, so page assertions scope to `main`. */
 export function mainContent() {
   return within(screen.getByRole("main"));
 }

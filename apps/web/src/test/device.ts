@@ -16,10 +16,8 @@ export function resetDevice(): void {
   useSidebarStore.setState(useSidebarStore.getInitialState(), true);
 }
 
-/** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. */
 export function deviceHasImported(): RememberedAccount {
   const account = archiveAccount();
-  // The server's side of the same fact — the onboarding asks it, not the device.
   accountIsTracked({
     id: account.id,
     platform: account.platform,

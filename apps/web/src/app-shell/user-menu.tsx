@@ -48,9 +48,6 @@ const USER_MENU_COPY = {
   signingOut: msg`Signing out…`,
 } as const;
 
-/** Who is signed in, the way into Settings and Appearance, and the way
- * out. Reads the session query the route guard already resolved — no
- * loading state. The bottom bar's trigger is the avatar alone. */
 export function UserMenu() {
   const { i18n } = useLingui();
   const { data: user } = useQuery(sessionQuery);
@@ -135,9 +132,8 @@ function UserMenuContent({
   const appearanceTriggerRef = useRef<HTMLDivElement>(null);
 
   async function handleSignOut() {
-    await signOut.mutateAsync().catch(() => {
-      // Cache is cleared by onSettled either way; navigate regardless.
-    });
+    // onSettled clears the cache either way.
+    await signOut.mutateAsync().catch(() => {});
     await navigate({ to: "/login", replace: true });
   }
 

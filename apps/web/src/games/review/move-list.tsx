@@ -92,7 +92,6 @@ interface MoveCellProps {
 }
 
 function MoveCell({ move, graded, currentPly, onSelectPly }: MoveCellProps) {
-  // An unplayed half-move at the end of an odd-length game.
   if (!move) return <span className="px-2 py-1 text-xs text-muted-foreground">…</span>;
 
   const category = gradeAtPly(graded, move.ply)?.category;

@@ -21,9 +21,7 @@ import { SidebarUserMenu, UserMenu } from "./user-menu.tsx";
 const SHELL_COPY = {
   skipToContent: msg`Skip to content`,
   mainNav: msg`Main`,
-  // Both regions offer the same destinations, only one is ever visible —
-  // but assistive tech should still be able to tell two landmarks apart
-  // by name rather than by which one happens to be `display: none`.
+  // Two landmarks with the same destinations need distinct names.
   mainNavBar: msg`Main, bottom bar`,
   resizeNav: msg`Resize navigation`,
 } as const;
@@ -36,9 +34,8 @@ function renderNavItem(item: AppNavItem, content: React.ReactNode) {
   );
 }
 
-/** `contents`: the link generates no box of its own, so `NavBar`'s
- * fixed-size slot — not the link's shrink-wrapped content — is what the
- * bar's flexbox sizes and what the click target visually is. */
+/** `contents`, so `NavBar`'s fixed-size slot, not the link, is what its
+ * flexbox sizes. */
 function renderBarItem(item: AppNavItem, content: React.ReactNode) {
   return (
     <Link to={NAV_ROUTES[item.id]} aria-label={item.label} className="contents">

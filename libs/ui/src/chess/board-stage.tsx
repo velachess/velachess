@@ -67,9 +67,7 @@ export function BoardColumn({
   );
 }
 
-/** Its own scroll boundary, so a long scoresheet never grows the screen.
- *
- * `overflow-clip` rather than `overflow-hidden`, which registers as a
+/** `overflow-clip` rather than `overflow-hidden`, which registers as a
  * scroll container and catches a sticky descendant before it reaches the
  * real scrolling ancestor. */
 export function BoardPanel({
@@ -116,7 +114,6 @@ export function BoardStageSkeleton({
 }: {
   /** Announced while the screen is empty; already translated. */
   label: string;
-  /** The panel's shape, when it is worth previewing. */
   panel?: React.ReactNode;
 }) {
   return (
