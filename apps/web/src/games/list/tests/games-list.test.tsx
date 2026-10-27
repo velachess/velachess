@@ -49,6 +49,20 @@ describe("games list", () => {
     expect(await screen.findByLabelText("You played black")).toBeInTheDocument();
   });
 
+  it("names where each game came from", async () => {
+    addGames(
+      aGame({ source: "chess_com", whiteName: "from-chess-com" }),
+      aGame({ source: "lichess", whiteName: "from-lichess" }),
+      aGame({ source: "pgn", whiteName: "from-a-file" }),
+    );
+
+    await renderApp();
+
+    expect(await screen.findByText("Chess.com")).toBeInTheDocument();
+    expect(screen.getByText("Lichess")).toBeInTheDocument();
+    expect(screen.getByText("PGN")).toBeInTheDocument();
+  });
+
   it("calls a game with no result unfinished", async () => {
     addGames(aGame({ result: "*" }));
 

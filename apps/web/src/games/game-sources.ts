@@ -5,7 +5,7 @@ import { ChessComIcon, FileText, LichessIcon } from "@velachess/ui/icons";
 export const GAME_SOURCES = {
   chess_com: { label: "Chess.com", Icon: ChessComIcon, markClassName: "text-chess-com" },
   lichess: { label: "Lichess", Icon: LichessIcon, markClassName: "text-foreground" },
-  pgn: { label: "PGN", Icon: FileText },
+  pgn: { label: "PGN", Icon: FileText, markClassName: "text-muted-foreground" },
 } as const;
 
 export type GameSource = keyof typeof GAME_SOURCES;
