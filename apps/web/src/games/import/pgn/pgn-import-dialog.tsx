@@ -156,6 +156,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     },
     onError: () => {
       toast.add({
+        id: "pgn-import-failed",
         type: "error",
         title: translate(RESULT_COPY.failedTitle),
         description: translate(RESULT_COPY.failedDescription),
@@ -291,6 +292,7 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
                 onChange={(event) =>
                   void handlePgnFileChange(event.currentTarget, field.handleChange, () =>
                     toast.add({
+                      id: "pgn-file-read-failed",
                       type: "error",
                       title: translate(COPY.fileReadFailed),
                     }),

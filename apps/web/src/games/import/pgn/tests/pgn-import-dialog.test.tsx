@@ -331,6 +331,22 @@ describe("pgn import", () => {
     expect(await screen.findByText("Import failed")).toBeInTheDocument();
   });
 
+  it("keeps one failure toast however often the import is retried", async () => {
+    stagePgnImport({ refuses: true });
+
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    paste('[Event "Doomed"]\n\n1. e4 e5 *');
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await user.click(screen.getByRole("button", { name: "Import" }));
+      await screen.findByText("Import failed");
+      await screen.findByRole("button", { name: "Import" });
+    }
+
+    expect(screen.getAllByText("Import failed")).toHaveLength(1);
+  });
+
   it("shows a loading state and locks the form while the import is in flight", async () => {
     server.use(
       http.post("/api/games/import", async () => {

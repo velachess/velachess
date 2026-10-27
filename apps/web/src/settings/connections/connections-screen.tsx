@@ -298,6 +298,7 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
   const sync = useSyncAccount({
     onTooSoon: (retryAfterSeconds) => {
       toast.add({
+        id: "sync-account-too-soon",
         type: "info",
         title: i18n._(CONNECTIONS_COPY.tooSoon),
         description: i18n._({
@@ -308,6 +309,7 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
     },
     onError: () => {
       toast.add({
+        id: "sync-account-failed",
         type: "error",
         title: i18n._(CONNECTIONS_COPY.failed),
         description: i18n._(CONNECTIONS_COPY.retry),

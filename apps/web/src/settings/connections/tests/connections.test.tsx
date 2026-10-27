@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 
 import {
   landSync,
@@ -111,6 +111,30 @@ describe("chess accounts", () => {
     expect(await screen.findByText("Synced a moment ago")).toBeInTheDocument();
     expect(screen.getByText("Try again in 30 seconds.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled();
+  });
+
+  it("keeps one cooldown toast however often the row is synced", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    let syncs = 0;
+    const countSync = ({ request }: { request: Request }) => {
+      if (request.method === "POST" && request.url.endsWith("/sync")) syncs += 1;
+    };
+    server.events.on("request:start", countSync);
+
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    for (let press = 1; press <= 3; press += 1) {
+      refuseRefreshFor(30);
+      await user.click(await screen.findByRole("button", { name: "Sync games" }));
+      await waitFor(() => expect(syncs).toBe(press));
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled(),
+      );
+    }
+    server.events.removeListener("request:start", countSync);
+
+    expect(screen.getAllByText("Synced a moment ago")).toHaveLength(1);
   });
 
   it("tells the user once the sync it started finishes", async () => {

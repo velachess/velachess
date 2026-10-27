@@ -82,6 +82,29 @@ describe("sync games button", () => {
     expect(await screen.findByText("Couldn't sync your games")).toBeInTheDocument();
   });
 
+  it("admits it once, however often it is retried", async () => {
+    server.use(
+      http.post("/api/accounts/sync", () =>
+        HttpResponse.json({ error: "boom" }, { status: 500 }),
+      ),
+    );
+    const syncs = countRequests("/api/accounts/sync");
+
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+
+    for (let press = 1; press <= 3; press += 1) {
+      await user.click(screen.getByRole("button", { name: "Sync games" }));
+      await waitFor(() => expect(syncs.count).toBe(press));
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled(),
+      );
+    }
+    syncs.stop();
+
+    expect(screen.getAllByText("Couldn't sync your games")).toHaveLength(1);
+  });
+
   it("fires a success toast once the sync it started lands", async () => {
     stageIncomingGames(aGame({ blackName: "just-arrived" }));
 

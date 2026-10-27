@@ -36,6 +36,7 @@ export function SyncGamesButton() {
   const sync = useSyncGames({
     onTooSoon: (retryAfterSeconds) => {
       toast.add({
+        id: "sync-games-too-soon",
         type: "info",
         title: i18n._(SYNC_COPY.tooSoon),
         description: i18n._({
@@ -46,6 +47,7 @@ export function SyncGamesButton() {
     },
     onError: () => {
       toast.add({
+        id: "sync-games-failed",
         type: "error",
         title: i18n._(SYNC_COPY.failed),
         description: i18n._(SYNC_COPY.retry),
