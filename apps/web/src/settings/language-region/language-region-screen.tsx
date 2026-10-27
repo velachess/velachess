@@ -11,7 +11,12 @@ import {
 } from "@velachess/ui/components/select";
 
 import { activateLocale } from "../../i18n/index.ts";
-import { LOCALE_OPTIONS, resolveLocale, type Locale } from "../../i18n/locale.ts";
+import {
+  isLocale,
+  LOCALE_OPTIONS,
+  resolveLocale,
+  type Locale,
+} from "../../i18n/locale.ts";
 import { useLocaleStore } from "../../i18n/locale-store.ts";
 import { SettingsSection } from "../layout/settings-section.tsx";
 
@@ -25,12 +30,24 @@ const LANGUAGE_COPY = {
 
 const SYSTEM_VALUE = "system" as const;
 
-/** Settings → Language: reads and writes the one locale
- * preference — `null` in the store means "System default". */
+/** `null` in the locale store means "System default". */
 export function LanguageRegionScreen() {
   const { i18n } = useLingui();
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
+
+  const applyLocale = (next: Locale | null) => {
+    setLocale(next);
+    void activateLocale(resolveLocale(next, navigator.languages));
+  };
+
+  const handleLocaleChange = (value: unknown) => {
+    if (value === SYSTEM_VALUE) {
+      applyLocale(null);
+      return;
+    }
+    if (typeof value === "string" && isLocale(value)) applyLocale(value);
+  };
 
   return (
     <SettingsSection
@@ -39,14 +56,7 @@ export function LanguageRegionScreen() {
     >
       <Field>
         <FieldLabel htmlFor="locale">{i18n._(LANGUAGE_COPY.language)}</FieldLabel>
-        <Select
-          value={locale ?? SYSTEM_VALUE}
-          onValueChange={(value) => {
-            const next = value === SYSTEM_VALUE ? null : (value as Locale);
-            setLocale(next);
-            void activateLocale(resolveLocale(next, navigator.languages));
-          }}
-        >
+        <Select value={locale ?? SYSTEM_VALUE} onValueChange={handleLocaleChange}>
           <SelectTrigger id="locale" className="w-full max-w-xs">
             <SelectValue />
           </SelectTrigger>

@@ -5,8 +5,6 @@ import { renderApp } from "../../../test/render.tsx";
 import { sessionActive } from "../../../test/handlers/auth.ts";
 import { useSoundPreferences } from "../../../chess-sounds/index.ts";
 
-/** Settings → Gameplay: the only place move sounds can be muted — not
- * duplicated in the account dropdown. */
 describe("gameplay", () => {
   it("keeps move sounds under a Sounds group", async () => {
     sessionActive();

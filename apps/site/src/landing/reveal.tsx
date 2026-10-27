@@ -1,14 +1,9 @@
 "use client";
 
 import { cn } from "@velachess/ui/lib/utils";
-import type { ComponentPropsWithoutRef, ElementType, Ref } from "react";
+import type { ComponentPropsWithoutRef, ElementType } from "react";
 import { useEffect, useRef, useState } from "react";
 
-/**
- * Scroll-reveal fade-up, once per element. Mirrors the framer-motion
- * `whileInView` behavior it replaced, without shipping an animation
- * library for a one-shot IntersectionObserver + CSS transition.
- */
 export function Reveal<T extends ElementType = "div">({
   as,
   amount = 0.3,
@@ -26,7 +21,7 @@ export function Reveal<T extends ElementType = "div">({
   durationMs?: number;
   distancePx?: number;
 } & ComponentPropsWithoutRef<T>) {
-  const Component = (as ?? "div") as ElementType;
+  const Component: ElementType = as ?? "div";
   const ref = useRef<Element>(null);
   const [revealed, setRevealed] = useState(false);
 
@@ -48,7 +43,7 @@ export function Reveal<T extends ElementType = "div">({
 
   return (
     <Component
-      ref={ref as Ref<Element>}
+      ref={ref}
       data-motion-reveal
       style={{
         ...style,

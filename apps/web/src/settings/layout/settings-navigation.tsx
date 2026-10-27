@@ -15,13 +15,16 @@ import {
   type SettingsSectionId,
 } from "./navigation.ts";
 
-/** Route-driven — active state and navigation both come from the URL, not
- * local state, so a direct link, a refresh, and back/forward all agree. */
 export function SettingsNavigation() {
   const { i18n } = useLingui();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const activeId = activeSettingsSectionId(pathname);
+
+  const handleTabChange = (value: unknown) => {
+    const item = SETTINGS_NAV_ITEMS.find(({ id }) => id === value);
+    if (item) void navigate({ to: SETTINGS_ROUTES[item.id] });
+  };
 
   const top = SETTINGS_NAV_ITEMS.filter((item) => item.group === undefined);
   const preferences = SETTINGS_NAV_ITEMS.filter((item) => item.group === "preferences");
@@ -49,15 +52,10 @@ export function SettingsNavigation() {
       </nav>
 
       <Tabs
-        // Always a defined value: base-ui's Tabs treats a controlled
-        // component switching to `undefined` as becoming uncontrolled,
-        // which throws mid-render. `activeId` is momentarily undefined on
-        // the render that fires while navigating away from /settings — the
-        // fallback keeps that render harmless instead of breaking it.
-        value={activeId ?? SETTINGS_NAV_ITEMS[0]!.id}
-        onValueChange={(value) => {
-          void navigate({ to: SETTINGS_ROUTES[value as SettingsSectionId] });
-        }}
+        // base-ui throws when a controlled Tabs value turns undefined, which
+        // `activeId` briefly is while navigating away from /settings.
+        value={activeId ?? "account"}
+        onValueChange={handleTabChange}
         className="md:hidden"
       >
         <TabsList variant="line" className="w-full overflow-x-auto">

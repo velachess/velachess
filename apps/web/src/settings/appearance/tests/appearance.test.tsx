@@ -4,13 +4,6 @@ import { screen } from "@testing-library/react";
 import { renderApp } from "../../../test/render.tsx";
 import { sessionActive } from "../../../test/handlers/auth.ts";
 
-/**
- * Settings → Appearance: the same theme provider the account dropdown's
- * quick toggle reads. Selecting an option applies the class immediately —
- * there is no separate "save" step, and no second theme state to drift
- * from the shared one.
- */
-
 describe("appearance", () => {
   it("offers System, Light and Dark as one choice, with the current theme selected", async () => {
     sessionActive();

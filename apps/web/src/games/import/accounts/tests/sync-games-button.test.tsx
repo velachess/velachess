@@ -16,7 +16,6 @@ import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 import { dropSyncStreams, openSyncStreams } from "../../../../test/sync-stream.ts";
 
-/** Counts requests under `prefix` from the moment it is called. */
 function countRequests(prefix: string) {
   let count = 0;
   const listener = ({ request }: { request: Request }) => {
@@ -33,10 +32,6 @@ function countRequests(prefix: string) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * The button asks, the worker syncs, the stream says when it landed, and
- * the button owes the person honesty about all three.
- */
 describe("sync games button", () => {
   beforeEach(() => {
     deviceHasImported();
@@ -50,7 +45,6 @@ describe("sync games button", () => {
     await screen.findByText("already-here");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    // Per the server's accounts, not this button's memory.
     expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
     expect(screen.queryByText("just-arrived")).not.toBeInTheDocument();
 
@@ -61,8 +55,6 @@ describe("sync games button", () => {
   });
 
   it("treats a cooldown as nothing to do, silently", async () => {
-    // The backend folds a cooling-down account out of its answer, so there
-    // is nothing new to watch.
     refuseRefreshFor(45);
 
     const { user } = await renderApp();
@@ -117,8 +109,6 @@ describe("sync games button", () => {
   });
 
   it("stays quiet for a sync nobody clicked this button for", async () => {
-    // A sync the button never watched refreshes the data but earns no
-    // toast.
     const job = scheduleSync("account-1", "connect");
 
     await renderApp();
@@ -131,8 +121,6 @@ describe("sync games button", () => {
   });
 
   it("follows a sync the server was already running, from any screen", async () => {
-    // A reload mid-sync: the accounts say one is on its way, and the button
-    // stays disabled until the stream says it landed.
     stageIncomingGames(aGame({ blackName: "just-arrived" }));
     const job = scheduleSync("account-1", "manual");
 
@@ -209,7 +197,6 @@ describe("the sync stream", () => {
     const accounts = countRequests("/api/accounts");
     const library = countRequests("/api/games");
 
-    // The games land while nobody can hear it.
     dropSyncStreams();
     const job = scheduleSync("account-1", "manual");
     job.gamesInserted = 1;

@@ -34,29 +34,34 @@ const apiFetch: typeof fetch = async (input, init) => {
 
 export const api = hc<AppType>(apiBaseUrl, { fetch: apiFetch });
 
-/**
- * The wait a 429 body carries, when it carries one. Both throttles on the
- * server — the rate-limit middleware and the sync cooldown — write
- * `retryAfterSeconds` into the body, precisely because this client can
- * only see a rejection's body, never its `Retry-After` header.
- */
+/** Both server throttles put `retryAfterSeconds` in the body: this client
+ * sees a rejection's body, never its `Retry-After` header. */
 function retryAfterOf(error: DetailedError): number | null {
-  const data = error.detail?.data as { retryAfterSeconds?: unknown } | undefined;
-  return typeof data?.retryAfterSeconds === "number" ? data.retryAfterSeconds : null;
+  const data: unknown = error.detail?.data;
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "retryAfterSeconds" in data &&
+    typeof data.retryAfterSeconds === "number"
+  ) {
+    return data.retryAfterSeconds;
+  }
+  return null;
 }
 
-/** The existing-connection identity a 409 on `POST /accounts` carries, or
- * `null` if the body didn't have the expected shape. */
 function providerConflictOf(
   error: DetailedError,
 ): { platform: string; username: string; accountId: string } | null {
-  const data = error.detail?.data as
-    | { platform?: unknown; username?: unknown; accountId?: unknown }
-    | undefined;
+  const data: unknown = error.detail?.data;
   if (
-    typeof data?.platform !== "string" ||
-    typeof data?.username !== "string" ||
-    typeof data?.accountId !== "string"
+    typeof data !== "object" ||
+    data === null ||
+    !("platform" in data) ||
+    !("username" in data) ||
+    !("accountId" in data) ||
+    typeof data.platform !== "string" ||
+    typeof data.username !== "string" ||
+    typeof data.accountId !== "string"
   ) {
     return null;
   }

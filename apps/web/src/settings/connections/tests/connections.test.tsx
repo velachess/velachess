@@ -17,13 +17,6 @@ import {
 import { sessionActive } from "../../../test/handlers/auth.ts";
 import { server } from "../../../test/server.ts";
 
-/**
- * Settings → Chess accounts: one row per provider, read at a glance —
- * connected or not, under which handle, and whether a sync is running or
- * failed. Composed from the same tracked-accounts query and mutations the
- * rest of the app already uses — no second source of truth.
- */
-
 async function providerRow(name: "Chess.com" | "Lichess") {
   return within(await screen.findByRole("listitem", { name }));
 }

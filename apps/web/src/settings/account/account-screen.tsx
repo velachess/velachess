@@ -16,7 +16,6 @@ const ACCOUNT_COPY = {
   description: msg`Your identity on this instance, and how you sign in to it.`,
 } as const;
 
-/** Settings → Account: who am I here, and how do I get back in. */
 export function AccountScreen() {
   const { i18n } = useLingui();
   const { data: user } = useQuery(sessionQuery);

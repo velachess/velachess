@@ -25,8 +25,6 @@ const THEME_OPTIONS = [
   { value: "dark", label: msg`Dark` },
 ] as const satisfies readonly { value: Theme; label: MessageDescriptor }[];
 
-/** Settings → Appearance: the same theme provider the account dropdown's
- * quick toggle reads — one piece of state, two entry points. */
 export function AppearanceScreen() {
   const { i18n } = useLingui();
   const { theme, setTheme } = useTheme();

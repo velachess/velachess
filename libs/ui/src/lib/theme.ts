@@ -3,6 +3,10 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "velachess-theme";
 
+export function isTheme(value: unknown): value is Theme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 export function resolveTheme(theme: Theme): ResolvedTheme {
   if (theme !== "system") return theme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -16,11 +20,8 @@ export function applyTheme(
   root.classList.add(resolved);
 }
 
-/** Inline, pre-hydration script source: resolves the stored/system theme and
- * applies its class before React mounts, so the first paint never shows the
- * wrong theme. Each app delivers this string through its own mechanism
- * (Next's `<Script beforeInteractive>`, a raw `<script>` in TanStack Start's
- * document shell). */
+/** Runs before React mounts, so the first paint never shows the wrong
+ * theme. */
 export function themeInitScript(options?: {
   storageKey?: string;
   defaultTheme?: Theme;

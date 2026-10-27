@@ -25,9 +25,6 @@ const GAMEPLAY_COPY = {
   moveSoundsHint: msg`Plays a sound for moves, captures, checks, and castling while reviewing a game.`,
 } as const;
 
-/** Settings → Gameplay: board preferences, grouped by what they act on.
- * Sound is the first — its on/off lives here only, not duplicated anywhere
- * else in the app. */
 export function GameplayScreen() {
   const { i18n } = useLingui();
   const moveSoundsId = useId();

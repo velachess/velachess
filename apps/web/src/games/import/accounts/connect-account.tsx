@@ -67,10 +67,8 @@ export function ConnectAccount({
   const source: ImportSource = IMPORT_SOURCES[sourceId];
   const sourceName = GAME_SOURCES[sourceId].label;
 
-  // One account per provider, so a tracked platform makes every username
-  // doomed and the form gives way to a note naming the handle that holds
-  // the slot. Not an error state: the usual way here is having connected a
-  // moment earlier, and a race answers a 409 carrying the same handle.
+  // One account per provider: a tracked platform, or a 409 from a race,
+  // replaces the form with a note naming the handle that holds the slot.
   const connectedHandle: string | undefined =
     accounts.data?.find((account) => account.platform === sourceId)?.username ??
     (isProviderAlreadyConnectedError(importGames.error) &&
@@ -102,6 +100,13 @@ export function ConnectAccount({
     },
   });
 
+  const handleSourceChange = (next: unknown) => {
+    const picked = SOURCE_ORDER.find((id) => id === next);
+    if (picked === undefined) return;
+    selectSource(picked);
+    form.reset();
+  };
+
   const body = (
     <>
       <form
@@ -112,13 +117,7 @@ export function ConnectAccount({
         }}
       >
         {pinnedSourceId === undefined && (
-          <Tabs
-            value={sourceId}
-            onValueChange={(next) => {
-              selectSource(next as SourceId);
-              form.reset();
-            }}
-          >
+          <Tabs value={sourceId} onValueChange={handleSourceChange}>
             <TabsList className="w-full">
               {SOURCE_ORDER.map((id) => {
                 const { Icon, label } = GAME_SOURCES[id];

@@ -23,9 +23,6 @@ describe("where someone belongs", () => {
   });
 
   it("is ready once it has", () => {
-    // Importing is a synchronous read: an account is remembered only after
-    // a response that already carried games. There is no delivery state
-    // left to verify, so the device alone decides.
     expect(importStatus([remembered()])).toBe("ready");
   });
 });
@@ -36,9 +33,6 @@ describe("what the device remembers", () => {
   });
 
   it("answers from the device alone", () => {
-    // Which chess account is selected is a browser fact — no request, and
-    // no bearing on who the person is. Identity moved to the server
-    // session; this only chooses what the games screen shows.
     const fetchSpy = vi.fn(() => {
       throw new Error("selecting an account must not reach the network");
     });
@@ -89,13 +83,11 @@ describe("importing", () => {
     const [input, init] = fetchSpy.mock.calls[0]!;
     const url = String(input instanceof Request ? input.url : input);
     expect(url).toContain("/api/accounts");
-    expect((init as RequestInit | undefined)?.method ?? "GET").toBe("POST");
-    expect(String((init as RequestInit | undefined)?.body)).toContain("YuriMutti");
+    expect(init?.method ?? "GET").toBe("POST");
+    expect(String(init?.body)).toContain("YuriMutti");
   });
 
   it("remembers the server's username, not the one that was typed", async () => {
-    // Platforms normalise, and the account this device owns has to match
-    // what the API will keep answering with.
     vi.stubGlobal("fetch", async () => archiveResponse(account, 201));
 
     const result = await importArchive(request("YuriMutti"));
@@ -117,8 +109,6 @@ describe("importing", () => {
   });
 
   it("throws and owns nothing when the platform has no such archive", async () => {
-    // A typo answers 404 here and now — there is no background job left to
-    // give up quietly hours later.
     vi.stubGlobal("fetch", async () =>
       archiveResponse({ error: "archive not found" }, 404),
     );

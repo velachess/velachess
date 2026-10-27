@@ -88,8 +88,6 @@ const CONNECTIONS_VIEW_KIND = {
   READY: "ready",
 } as const;
 
-/** Sequential guards producing a discriminated union, like
- * `onboarding-state.ts`'s `onboardingState()`. */
 type ConnectionsView =
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOADING }
   | { kind: typeof CONNECTIONS_VIEW_KIND.LOAD_ERROR }
@@ -101,14 +99,10 @@ function connectionsView(
   data: TrackedAccount[] | undefined,
 ): ConnectionsView {
   if (isPending) return { kind: CONNECTIONS_VIEW_KIND.LOADING };
-  if (isError) return { kind: CONNECTIONS_VIEW_KIND.LOAD_ERROR };
-  // Neither pending nor errored, so the query succeeded and `data` is
-  // defined: react-query's own guarantee.
-  return { kind: CONNECTIONS_VIEW_KIND.READY, accounts: data! };
+  if (isError || data === undefined) return { kind: CONNECTIONS_VIEW_KIND.LOAD_ERROR };
+  return { kind: CONNECTIONS_VIEW_KIND.READY, accounts: data };
 }
 
-/** The chess accounts games come from, not sign-in methods, which are
- * Account's. No account state lives here. */
 export function ConnectionsScreen() {
   const { i18n } = useLingui();
   const accounts = useQuery(trackedAccountsQuery);
@@ -175,8 +169,6 @@ function ProviderRow({
   return <AvailableRow provider={provider} />;
 }
 
-/** The frame both rows share: the provider is the row's name, so a status
- * or action never has to repeat it. */
 function ProviderItem({
   provider,
   status,
@@ -323,8 +315,8 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
     },
   });
 
-  // The server's word, not this row's memory, so a job it still holds reads
-  // as running after any reload.
+  // The server's status, not this row's, so a held job reads as running
+  // after a reload.
   const syncing = isSyncInProgress(sync.isPending, [account]);
   const label = syncing ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
 

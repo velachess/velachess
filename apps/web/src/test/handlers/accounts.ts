@@ -16,9 +16,6 @@ interface TrackedAccountRow {
   lastSyncError: "not-found" | "incomplete" | "internal" | null;
 }
 
-/** What the server says this user tracks. The onboarding reads it to tell
- * "never started" from "connected and empty" — the two states that used
- * to render identically as four zeroes. */
 let trackedAccounts: TrackedAccountRow[] = [];
 
 export function accountIsTracked(
@@ -39,7 +36,6 @@ export function resetTrackedAccounts(): void {
   trackedAccounts = [];
 }
 
-/** Sync contract incl. non-failure answers; 429 sends both a `Retry-After` header and the body field, per the status code contract. */
 export const accountsHandlers = [
   http.get("/api/accounts", () =>
     HttpResponse.json(
@@ -55,45 +51,45 @@ export const accountsHandlers = [
     ),
   ),
 
-  /** Connecting a handle is the only way to create one; 404 when the platform doesn't have it, matching the real route. */
-  http.post("/api/accounts", async ({ request }) => {
-    const body = (await request.json()) as { platform?: string; username?: string };
-    if (!body.platform || !body.username) {
-      return HttpResponse.json({ error: "invalid body" }, { status: 400 });
-    }
+  http.post<never, { platform?: string; username?: string }>(
+    "/api/accounts",
+    async ({ request }) => {
+      const body = await request.json();
+      if (!body.platform || !body.username) {
+        return HttpResponse.json({ error: "invalid body" }, { status: 400 });
+      }
 
-    if (!knowsPlayer(body.platform, body.username)) {
+      if (!knowsPlayer(body.platform, body.username)) {
+        return HttpResponse.json(
+          { error: "handle not found at the provider" },
+          { status: 404 },
+        );
+      }
+
+      const account = archiveAccount();
+      const known = trackedAccounts.some((tracked) => tracked.id === account.id);
+      if (!known) {
+        accountIsTracked({
+          id: account.id,
+          platform: account.platform,
+          username: account.username,
+          lastSyncedAt: account.lastSyncedAt,
+        });
+      }
       return HttpResponse.json(
-        { error: "handle not found at the provider" },
-        { status: 404 },
+        {
+          id: account.id,
+          platform: account.platform,
+          username: account.username,
+          syncId: known ? null : scheduleSync(account.id, "connect").id,
+        },
+        { status: 201 },
       );
-    }
+    },
+  ),
 
-    const account = archiveAccount();
-    const known = trackedAccounts.some((tracked) => tracked.id === account.id);
-    if (!known) {
-      accountIsTracked({
-        id: account.id,
-        platform: account.platform,
-        username: account.username,
-        lastSyncedAt: account.lastSyncedAt,
-      });
-    }
-    return HttpResponse.json(
-      {
-        id: account.id,
-        platform: account.platform,
-        username: account.username,
-        syncId: known ? null : scheduleSync(account.id, "connect").id,
-      },
-      { status: 201 },
-    );
-  }),
-
-  /** One request for every tracked row: an already-active job is reused
-   * (its id, no new job), a cooling-down or unknown row is folded out —
-   * mirrors `requestSync`'s own idempotency, the way the aggregate route
-   * only reuses it rather than adding logic of its own. */
+  /** Mirrors `requestSync`'s idempotency: an active job is reused, a
+   * cooling-down or unknown row is left out. */
   http.post("/api/accounts/sync", () => {
     const syncIds = trackedAccounts.flatMap((row) => {
       const active = activeSyncOf(row.id);
@@ -127,8 +123,6 @@ export const accountsHandlers = [
     );
   }),
 
-  /** Owner-scoped delete, mirroring the real route: unknown id answers the
-   * same 404 a never-tracked one would. */
   http.delete("/api/accounts/:id", ({ params }) => {
     const id = String(params["id"]);
     if (!trackedAccounts.some((account) => account.id === id)) {
