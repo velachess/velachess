@@ -33,6 +33,7 @@ src/
     list/           filter and page owned games
     game-query-keys.ts  the prefixes the game caches hang off
     game-sources.ts     what each source is called and the mark that stands for it
+    source-mark.tsx     that mark, drawn in the source's own colour
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -88,7 +89,9 @@ mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
 `import` builds its form metadata on top of that one, rather than
-carrying a second copy of the name and icon.
+carrying a second copy of the name and icon. `source-mark.tsx` is the one
+place that draws the mark, so its colour and default size cannot drift
+between those screens either.
 
 A slice owns its data (`queries.ts`), its screen, its constants and its
 tests. It never positions itself on the page — it returns content, and the

@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import { isProviderAlreadyConnectedError } from "../../../api/index.ts";
 import { GAME_SOURCES } from "../../game-sources.ts";
+import { SourceMark } from "../../source-mark.tsx";
 import { useQuery } from "../../../libs/react-query.ts";
 import { trackedAccountsQuery, useImportGames, type ImportRequest } from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";
@@ -119,15 +120,12 @@ export function ConnectAccount({
         {pinnedSourceId === undefined && (
           <Tabs value={sourceId} onValueChange={handleSourceChange}>
             <TabsList className="w-full">
-              {SOURCE_ORDER.map((id) => {
-                const { Icon, label } = GAME_SOURCES[id];
-                return (
-                  <TabsTrigger key={id} value={id}>
-                    <Icon data-icon="inline-start" />
-                    {label}
-                  </TabsTrigger>
-                );
-              })}
+              {SOURCE_ORDER.map((id) => (
+                <TabsTrigger key={id} value={id}>
+                  <SourceMark source={id} data-icon="inline-start" />
+                  {GAME_SOURCES[id].label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         )}

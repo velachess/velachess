@@ -1,11 +1,12 @@
 import type { I18n } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
-import { Fragment, type ComponentType } from "react";
+import { Fragment } from "react";
 
 import { gameOutcomeFor, type GameResult } from "@velachess/chess";
 
-import { GAME_SOURCES } from "../game-sources.ts";
+import { GAME_SOURCES, type GameSource } from "../game-sources.ts";
+import { SourceMark } from "../source-mark.tsx";
 import type { Game } from "../list/index.ts";
 import type { Seat } from "./board-view.ts";
 
@@ -34,8 +35,8 @@ const SCORE: Record<Exclude<GameResult, "*">, string> = {
 interface Fact {
   id: "date" | "source" | "result";
   text: string;
-  /** Shown before the text when present; omitted otherwise. */
-  Icon?: ComponentType<{ className?: string }>;
+  /** Its mark is shown before the text. */
+  source?: GameSource;
 }
 
 function playedOn(i18n: I18n, playedAt: string | null): string {
@@ -91,17 +92,18 @@ interface GameFactsProps {
 export function GameFacts({ game, mySeat }: GameFactsProps) {
   const { i18n } = useLingui();
 
-  const source = GAME_SOURCES[game.source];
   const facts: Fact[] = [
     { id: "date", text: playedOn(i18n, game.playedAt) },
-    { id: "source", text: source.label, Icon: source.Icon },
+    { id: "source", text: GAME_SOURCES[game.source].label, source: game.source },
     { id: "result", text: resultOf(i18n, game.result, mySeat) },
   ];
 
-  return facts.map(({ id, text, Icon }, index) => (
+  return facts.map(({ id, text, source }, index) => (
     <Fragment key={id}>
       {index > 0 && SEPARATOR}
-      {Icon && <Icon className="mr-1 inline size-3.5 align-text-bottom" />}
+      {source && (
+        <SourceMark source={source} className="mr-1 inline size-3.5 align-text-bottom" />
+      )}
       {text}
     </Fragment>
   ));
