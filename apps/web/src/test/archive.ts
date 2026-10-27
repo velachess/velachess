@@ -23,12 +23,9 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
 
 /** One seat's provider identity, which the server resolves from a shared
  * per-handle cache. */
-export interface SeatProfile {
-  avatarUrl: string | null;
-  flair: string | null;
-}
+export type SeatProfile = Game["whiteIdentity"];
 
-const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null };
+const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null, countryCode: null };
 
 interface ArchiveState {
   account: ArchiveAccount;

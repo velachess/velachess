@@ -46,7 +46,7 @@ describe("games list", () => {
 
     await renderApp();
 
-    expect(await screen.findByLabelText("You played black")).toBeInTheDocument();
+    expect(await screen.findByText("You played black")).toBeInTheDocument();
   });
 
   it("names where each game came from", async () => {
@@ -100,7 +100,7 @@ describe("games list", () => {
     await screen.findByRole("button", { name: /Filters/ });
 
     // The closed trigger says how many rules narrow the list.
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Filters/ })).toHaveTextContent("1");
 
     await user.click(screen.getByRole("button", { name: /Filters/ }));
 
@@ -121,12 +121,24 @@ describe("games list", () => {
 
     const { user } = await renderApp();
 
-    expect(await screen.findByText("1–25 / 30")).toBeInTheDocument();
+    expect(await screen.findByText("1–25 of 30 games")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    const next = screen.getByRole("button", { name: "Go to next page" });
+    // A real address, so the page survives a refresh or a shared link.
+    expect(next).toHaveAttribute("href", "/games?page=2");
 
-    expect(await screen.findByText("26–30 / 30")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    await user.click(next);
+
+    expect(await screen.findByText("26–30 of 30 games")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go to page 2" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    // The last page leads nowhere further.
+    expect(screen.getByRole("button", { name: "Go to next page" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("says there are no imported games when the library is empty", async () => {
@@ -139,7 +151,7 @@ describe("games list", () => {
     ).toBeInTheDocument();
   });
 
-  it("says the filters matched nothing rather than showing a blank table", async () => {
+  it("says the filters matched nothing rather than showing a blank list", async () => {
     addGames(aGame({ result: "1-0", perspective: "white" }));
 
     await renderApp({ path: "/games?outcome=loss" });
@@ -147,7 +159,7 @@ describe("games list", () => {
     expect(await screen.findByText("No games match these filters.")).toBeInTheDocument();
   });
 
-  it("shows one table error row when the archive could not be read", async () => {
+  it("says the archive could not be read, and nothing else", async () => {
     server.use(
       http.get("/api/games", () => HttpResponse.json({ error: "boom" }, { status: 500 })),
     );
@@ -155,11 +167,8 @@ describe("games list", () => {
     await renderApp();
 
     expect(await screen.findByText("Couldn't load games.")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Opponent" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Result" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
     expect(screen.queryByText("No games match these filters.")).not.toBeInTheDocument();
-    expect(screen.queryByText("No games imported yet.")).not.toBeInTheDocument();
   });
 
   it("does not present stale rows as success when a refetch fails", async () => {
@@ -179,13 +188,48 @@ describe("games list", () => {
     await user.click(await screen.findByRole("button", { name: "Win" }));
 
     expect(await screen.findByText("Couldn't load games.")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Opponent" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Result" })).toBeInTheDocument();
     expect(screen.queryByText("stale-opponent")).not.toBeInTheDocument();
     expect(screen.queryByText("fresh-opponent")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
     expect(screen.queryByText("No games match these filters.")).not.toBeInTheDocument();
-    expect(screen.queryByText("No games imported yet.")).not.toBeInTheDocument();
+  });
+
+  it("names both players when nothing attributed the game", async () => {
+    // An unattributed PGN has no seat of yours: promoting one player to
+    // "the opponent" would invent one, and so would a verdict.
+    addGames(
+      aGame({
+        source: "pgn",
+        perspective: null,
+        result: "1-0",
+        whiteName: "anon-white",
+        blackName: "anon-black",
+      }),
+    );
+
+    await renderApp();
+
+    expect(await screen.findByText("anon-white vs anon-black")).toBeInTheDocument();
+    expect(screen.getByText("1-0")).toBeInTheDocument();
+    expect(screen.queryByText("Win")).not.toBeInTheDocument();
+    expect(screen.queryByText("You played white")).not.toBeInTheDocument();
+  });
+
+  it("shows the opponent's cached flag, and nothing when there is none", async () => {
+    addGames(
+      aGame({
+        blackName: "flagged",
+        blackIdentity: { avatarUrl: null, flair: null, countryCode: "BR" },
+      }),
+      aGame({ blackName: "unflagged" }),
+    );
+
+    await renderApp();
+
+    await screen.findByText("flagged");
+    expect(screen.getByRole("img", { name: "Brazil" })).toBeInTheDocument();
+    // One game carries a country; the other must not borrow it.
+    expect(screen.getAllByRole("img", { name: "Brazil" })).toHaveLength(1);
   });
 
   it("links each row to its review", async () => {

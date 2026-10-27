@@ -11,6 +11,7 @@ import {
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
+  findProviderProfiles,
   findTrackedAccountByPlatform,
   finishSyncJob,
   getTrackedAccount,
@@ -53,6 +54,7 @@ let h: LoopHarness;
 function listGamesDeps(db: Database): ListGamesDeps {
   return {
     listGamesPage: (userId, filters, page) => listGamesPage(db, userId, filters, page),
+    findProviderProfiles: (seats) => findProviderProfiles(db, seats),
   };
 }
 

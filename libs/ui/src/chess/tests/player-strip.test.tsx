@@ -51,6 +51,11 @@ it("says nothing about a rating the platform did not report", () => {
   expect(screen.queryByText(/\(/)).toBeNull();
 });
 
+it("shows a rating of zero, which is a rating", () => {
+  render(<PlayerStrip name="kalipere" rating="0" />);
+  expect(screen.getByText("(0)")).toBeDefined();
+});
+
 it("names the flag from the code, so the two cannot drift apart", () => {
   const { unmount } = render(<PlayerStrip name="kalipere" countryCode="BR" />);
   expect(screen.getByRole("img", { name: "Brazil" })).toBeDefined();

@@ -197,6 +197,13 @@
       "when": 1791882429459,
       "tag": "0027_drop_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793140335065,
+      "tag": "0028_provider_profile_country",
+      "breakpoints": true
     }
   ]
 }

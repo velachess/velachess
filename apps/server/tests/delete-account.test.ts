@@ -162,7 +162,7 @@ describe("deleting your account", () => {
     await upsertProviderProfile(
       harness.db,
       { platform: "chess_com", username: LOOPER_USERNAME },
-      { status: "fetched", profile: { avatarUrl: null, flair: null } },
+      { status: "fetched", profile: { avatarUrl: null, flair: null, countryCode: null } },
     );
     const untouched = await ownedRows(bystander.userId);
 

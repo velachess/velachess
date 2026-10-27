@@ -18,30 +18,6 @@ export function seatOf(
   return resolveGamePerspective(game, mine) ?? "white";
 }
 
-export interface SeatIdentity {
-  /** Resolved server-side from the profile cache; absent when unknown. */
-  avatarUrl?: string;
-  /** A Lichess asset id beside the name, never an avatar. */
-  flair?: string;
-}
-
-/** Nulls become absent, so initials stand in. */
-export function seatIdentityOf(
-  identity:
-    | {
-        avatarUrl: string | null;
-        flair: string | null;
-      }
-    | undefined,
-): SeatIdentity {
-  if (!identity) return {};
-
-  return {
-    ...(identity.avatarUrl !== null ? { avatarUrl: identity.avatarUrl } : {}),
-    ...(identity.flair !== null ? { flair: identity.flair } : {}),
-  };
-}
-
 export function legalTargetsAt(fen: string, square: string): readonly LegalDestination[] {
   return positionFromFen(fen).unwrap(
     (position) => legalDestinations(position, square),

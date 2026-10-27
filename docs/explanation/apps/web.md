@@ -34,6 +34,7 @@ src/
     game-query-keys.ts  the prefixes the game caches hang off
     game-sources.ts     what each source is called and the mark that stands for it
     source-mark.tsx     that mark, drawn in the source's own colour
+    game-marks.ts       the icon that stands for a time class or an opening
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -89,7 +90,10 @@ mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
 `import` builds its form metadata on top of that one, rather than
-carrying a second copy of the name and icon. `source-mark.tsx` is the one
+carrying a second copy of the name and icon. `game-marks.ts` does the
+same for the ideas a game carries rather than its provenance — the time
+class and the opening — so an icon is a design call made once rather than
+an import picked at each call site. `source-mark.tsx` is the one
 place that draws the mark, so its colour and default size cannot drift
 between those screens either.
 
@@ -207,32 +211,42 @@ session the usual way. No completion toast: the list refreshing is the
 answer. Connecting invalidates `accounts` and the session; disconnecting,
 `accounts`, `games` and `game`.
 
-## Tables
+## Lists and tables
 
 `DataTable` in `@velachess/ui` is the reusable half only — TanStack Table
 stays headless and the component renders what it hands back. Columns,
-filters and copy belong to the screen, which is why `games/list` owns its
-`columns.tsx` and the library owns none of it.
-
+filters and copy belong to the screen, and the library owns none of them.
 Everything runs in manual mode: the server filters and pages, so the table
-is told the row count instead of deriving one. TanStack Table v9 tree-shakes
-any feature you don't register — including the API that reads cells, so
-`columnVisibilityFeature` is registered even though nothing toggles columns
-yet.
+is told the row count instead of deriving one. TanStack Table v9
+tree-shakes any feature you don't register — including the API that reads
+cells, so `columnVisibilityFeature` is registered even though nothing
+toggles columns yet.
 
-A screen with a pager is two regions, and only one scrolls: the table sits
-in a `min-h-0 flex-1 overflow-auto` box, the pager below it. Both pieces
-matter. `min-h-0` is what allows a flex child to be shorter than its
-content — without it the box grows past the frame and the frame's
-`overflow-hidden` slices whatever hangs out. And the table's own wrapper
-is `shrink-0`, because a flex child shrinks by default and that wrapper
-clips (it has to, for the rounded border) — so shrinking shows up as the
-last row cut in half rather than a scrollbar.
+The games library is not a table. A row there is one game's identity —
+board, opponent, result — so `games/list` composes `@velachess/ui`'s
+`Item` primitives instead: an `ItemGroup` with an `ItemSeparator` between
+rows, each `Item` rendered as a router `Link` through shadcn's `render`
+prop, so the whole row is one keyboard-reachable link.
 
-Cell logic that can be wrong lives in exported functions rather than JSX:
-`outcomeOf` reads the scoresheet from your seat ("1-0" is a win for one
-side and a loss for the other), `opponentOf` picks the other name,
-`formatClock` writes "3 min + 2". Tested directly, no rendering involved.
+That screen has one scroller: `PageHeader`, the rows and the pager sit
+inside a `min-h-0 flex-1 overflow-auto` box and move together, with
+nothing anchored. `min-h-0` is what allows a flex child to be shorter than
+its content — without it the box grows past the frame and the frame's
+`overflow-hidden` slices whatever hangs out. A page turn puts the scroller
+back at the top.
+
+Paging is `@velachess/ui`'s `Pagination`, given router links through
+TanStack's `createLink`: `page` lives in the URL, so a page survives a
+refresh and the back button works. Which numbers get a button — the
+window around the current page, both ends, an ellipsis across each gap —
+is a pure function in `games/list/games-pagination.tsx` with its own test.
+
+Logic that can be wrong lives in exported functions rather than JSX:
+`opponentSideOf` answers which seat the opponent had, and `null` when
+nothing attributed the game; `formatClock` writes "3 min + 2";
+`gameOutcomeFor` in `@velachess/chess` reads the scoresheet from your
+seat, because "1-0" is a win for one side and a loss for the other.
+Tested directly, no rendering involved.
 
 ## Text: every string is a message
 

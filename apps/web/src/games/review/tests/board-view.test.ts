@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { squaresOfUci } from "@velachess/chess";
 
 import { aReplay } from "../../../test/games.ts";
-import { legalTargetsAt, sanOfUciAt, seatIdentityOf, seatOf } from "../board-view.ts";
+import { legalTargetsAt, sanOfUciAt, seatOf } from "../board-view.ts";
 
 const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -27,30 +27,6 @@ describe("seatOf", () => {
   it("faces white when nothing identifies you", () => {
     expect(seatOf(game, ["someoneelse"])).toBe("white");
     expect(seatOf(game, [])).toBe("white");
-  });
-});
-
-/** Unknown means initials, never a broken picture. */
-describe("seatIdentityOf", () => {
-  it("carries the picture and flair a seat resolved to", () => {
-    expect(
-      seatIdentityOf({ avatarUrl: "https://example.com/pic.jpg", flair: null }),
-    ).toEqual({
-      avatarUrl: "https://example.com/pic.jpg",
-    });
-    expect(
-      seatIdentityOf({
-        avatarUrl: null,
-        flair: "people.santa-claus-light-skin-tone",
-      }),
-    ).toEqual({ flair: "people.santa-claus-light-skin-tone" });
-  });
-
-  it("answers nothing for a seat nobody could resolve", () => {
-    // Nulls collapse to absence: the initials fallback renders on no image
-    // at all, not an empty src.
-    expect(seatIdentityOf({ avatarUrl: null, flair: null })).toEqual({});
-    expect(seatIdentityOf(undefined)).toEqual({});
   });
 });
 

@@ -10,6 +10,10 @@ export const GAME_PGN = "1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0";
 
 export const GAME_SANS = ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#"] as const;
 
+/** The profile cache is empty until a test stages one; a row never
+ * invents a face. */
+const NO_IDENTITY = { avatarUrl: null, flair: null, countryCode: null } as const;
+
 let sequence = 0;
 
 export function resetGameIds(): void {
@@ -34,6 +38,8 @@ export function aGame(overrides: Partial<Game> = {}): Game {
     timeControlInitialSeconds: 600,
     timeControlIncrementSeconds: 0,
     openingName: "Sicilian Defense",
+    whiteIdentity: NO_IDENTITY,
+    blackIdentity: NO_IDENTITY,
     ...overrides,
   };
 }

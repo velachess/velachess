@@ -61,9 +61,17 @@ export const GAME_RESULT = ["1-0", "0-1", "1/2-1/2", "*"] as const;
 export const GAME_PERSPECTIVE = ["white", "black"] as const;
 export const GAME_SOURCE = ["chess_com", "lichess", "pgn"] as const;
 
+/** One seat's provider identity, which both reads carry. */
+const seatIdentitySchema = z.object({
+  avatarUrl: z.string().nullable(),
+  flair: z.string().nullable(),
+  countryCode: z.string().nullable(),
+});
+
 /**
  * Mirrors `listGamesPage`'s projection, which is inferred from a Drizzle
- * query rather than declared. `apps/web`'s games-list table reads these
+ * query rather than declared, plus the seat identities `openLibrary`
+ * attaches from the profile cache. `apps/web`'s games list reads these
  * fields directly, so a loose record is not an option, and `playedAt`
  * travels as ISO text.
  */
@@ -81,15 +89,13 @@ const gameListRowSchema = z.object({
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
   openingName: z.string().nullable(),
+  whiteIdentity: seatIdentitySchema,
+  blackIdentity: seatIdentitySchema,
 });
 
 /** `apps/web`'s `gameQuery` spreads this response straight into
  * `ReplayableGame` and reads `rawPgn` off it, so it needs real fields, not
  * a loose record; the timestamps travel as ISO text. */
-const seatIdentitySchema = z.object({
-  avatarUrl: z.string().nullable(),
-  flair: z.string().nullable(),
-});
 const gameDetailSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
@@ -134,7 +140,7 @@ const libraryRoute = createRoute({
   path: "/",
   summary: "The signed-in user's unified game library",
   description:
-    "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis runs in the browser when a game is opened, never on this list.",
+    "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. Both seats carry whatever the shared per-handle profile cache already holds (avatar, Lichess flair, country) — read in one batch for the page and never fetched here, so listing spends no provider request. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis runs in the browser when a game is opened, never on this list.",
   request: { query: libraryQuery },
   responses: {
     200: {

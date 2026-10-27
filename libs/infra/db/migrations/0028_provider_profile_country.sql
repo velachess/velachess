@@ -1,0 +1,1 @@
+ALTER TABLE "provider_profiles" ADD COLUMN "country_code" text;

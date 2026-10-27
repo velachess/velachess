@@ -5,35 +5,23 @@
  * through, so only the first open per handle per refresh window spends a
  * provider request.
  */
-import type { Game, ProviderSeat } from "@velachess/infra-db";
-import type { AccountPlatform, FetchFn } from "@velachess/infra-platforms";
+import type { Game, ProviderProfile, ProviderSeat } from "@velachess/infra-db";
+import type { FetchFn } from "@velachess/infra-platforms";
 import {
   fetchChessComProfile,
   fetchLichessProfile,
   type ProfileFetch,
 } from "@velachess/infra-platforms";
 
-export interface SeatIdentity {
-  /** Null when unknown, where initials stand in. */
-  avatarUrl: string | null;
-  /** A Lichess asset id decorating the name, never an avatar. */
-  flair: string | null;
-}
-
-interface CachedProfile {
-  platform: AccountPlatform;
-  username: string;
-  fetchedAt: Date;
-  avatarUrl: string | null;
-  flair: string | null;
-}
+/** What the cache knows about a seat, minus its bookkeeping. */
+export type SeatIdentity = Pick<ProviderProfile, "avatarUrl" | "flair" | "countryCode">;
 
 type GetGameForUser = (userId: string, gameId: string) => Promise<Game | null>;
-type FindProviderProfiles = (seats: ProviderSeat[]) => Promise<CachedProfile[]>;
+type FindProviderProfiles = (seats: ProviderSeat[]) => Promise<ProviderProfile[]>;
 type UpsertProviderProfile = (
   seat: ProviderSeat,
   fetched: ProfileFetch,
-) => Promise<{ avatarUrl: string | null; flair: string | null }>;
+) => Promise<SeatIdentity>;
 /** A profile stays fresh for a fixed window from when it was fetched. */
 type IsProfileFresh = (fetchedAt: Date) => boolean;
 
@@ -46,7 +34,7 @@ export interface GetGameDeps {
   fetch?: FetchFn;
 }
 
-const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null };
+const NO_IDENTITY: SeatIdentity = { avatarUrl: null, flair: null, countryCode: null };
 
 /** The fetchers fail soft by contract, a dead provider answering `failed`
  * rather than throwing, so an outage costs the decoration, not the
@@ -58,22 +46,25 @@ async function fetchProfile(seat: ProviderSeat, doFetch: FetchFn | undefined) {
     : fetchLichessProfile(seat.username, opts);
 }
 
+/** Projected, so that bookkeeping never reaches a caller. */
+function identityOf({ avatarUrl, flair, countryCode }: SeatIdentity): SeatIdentity {
+  return { avatarUrl, flair, countryCode };
+}
+
 /** Serves what the write-through kept, which after a failed ask is the
  * stored identity rather than the emptiness the outage produced. */
 async function resolveSeatIdentity(
   deps: GetGameDeps,
   seat: ProviderSeat,
-  cached: CachedProfile | null,
+  cached: ProviderProfile | null,
 ): Promise<SeatIdentity> {
   if (cached && deps.isProfileFresh(cached.fetchedAt)) {
-    return { avatarUrl: cached.avatarUrl, flair: cached.flair };
+    return identityOf(cached);
   }
 
-  const stored = await deps.upsertProviderProfile(
-    seat,
-    await fetchProfile(seat, deps.fetch),
+  return identityOf(
+    await deps.upsertProviderProfile(seat, await fetchProfile(seat, deps.fetch)),
   );
-  return { avatarUrl: stored.avatarUrl, flair: stored.flair };
 }
 
 export async function getGameForReview(
@@ -93,7 +84,7 @@ export async function getGameForReview(
   const blackSeat: ProviderSeat = { platform: game.source, username: game.blackName };
   const rows = await deps.findProviderProfiles([whiteSeat, blackSeat]);
   // Case-folded on both sides: the cache must not fork on case.
-  const rowOf = (seat: ProviderSeat): CachedProfile | null =>
+  const rowOf = (seat: ProviderSeat): ProviderProfile | null =>
     rows.find(
       (row) =>
         row.platform === seat.platform && row.username === seat.username.toLowerCase(),

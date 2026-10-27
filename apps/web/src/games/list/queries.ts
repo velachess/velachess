@@ -20,6 +20,8 @@ export type Game = Pick<
   | "timeControlInitialSeconds"
   | "timeControlIncrementSeconds"
   | "openingName"
+  | "whiteIdentity"
+  | "blackIdentity"
 >;
 
 /**

@@ -1,20 +1,25 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import type * as React from "react";
-import { useMemo } from "react";
+import { Fragment, useRef, type Ref, type ReactNode } from "react";
 
-import { timeClassOf, type TimeClass } from "@velachess/chess";
 import { buttonVariants } from "@velachess/ui/components/button";
-import { DataTable, DataTablePagination } from "@velachess/ui/components/data-table";
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyTitle,
+} from "@velachess/ui/components/empty";
+import { ItemGroup, ItemSeparator } from "@velachess/ui/components/item";
+import { Skeleton } from "@velachess/ui/components/skeleton";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
 import { PgnImportButton } from "../import/index.ts";
 import { SyncGamesButton } from "../import/index.ts";
-import { gamesColumns } from "./columns.tsx";
-import { activeFilterCount, PAGE_SIZE, type GamesSearch } from "./filters.ts";
+import { activeFilterCount, type GamesSearch } from "./filters.ts";
+import { GameItem } from "./game-item.tsx";
 import { GamesFilters } from "./games-filters.tsx";
+import { GamesPagination } from "./games-pagination.tsx";
 import { libraryQuery, type Game } from "./queries.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
@@ -25,37 +30,18 @@ const GAMES_COPY = {
   connect: msg`Connect an account`,
   emptyFilters: msg`No games match these filters.`,
   loadError: msg`Couldn't load games.`,
-  pagination: msg`Games pages`,
-  previous: msg`Previous`,
-  next: msg`Next`,
-  bullet: msg`Bullet`,
-  blitz: msg`Blitz`,
-  rapid: msg`Rapid`,
-  classical: msg`Classical`,
+  loading: msg`Loading games`,
 } as const;
 
 const route = getRouteApi("/_app/games/");
 
-/** The class is the shared rule's answer; this screen only names it. */
-const TIME_CLASS_COPY: Record<TimeClass, MessageDescriptor> = {
-  bullet: GAMES_COPY.bullet,
-  blitz: GAMES_COPY.blitz,
-  rapid: GAMES_COPY.rapid,
-  classical: GAMES_COPY.classical,
-};
-
-function timeClassCopy(game: Game) {
-  const timeClass = timeClassOf(
-    game.timeControlInitialSeconds,
-    game.timeControlIncrementSeconds,
-  );
-  return timeClass ? TIME_CLASS_COPY[timeClass] : null;
-}
+const SKELETON_ROWS = 6;
 
 export function GamesList() {
   const { i18n } = useLingui();
   const search = route.useSearch();
   const navigate = route.useNavigate();
+  const results = useRef<HTMLDivElement>(null);
 
   // One library, every source: no account has to exist for this read.
   const query = useQuery(libraryQuery(search));
@@ -63,18 +49,9 @@ export function GamesList() {
   const setSearch = (next: Partial<GamesSearch>) =>
     navigate({ search: (previous) => ({ ...previous, ...next }) });
 
-  const columns = useMemo(
-    () =>
-      gamesColumns({
-        translate: (message) => i18n._(message),
-        formatDate: (iso) => i18n.date(new Date(iso), { day: "numeric", month: "short" }),
-        timeClassLabel: (game) => {
-          const label = timeClassCopy(game);
-          return label ? i18n._(label) : null;
-        },
-      }),
-    [i18n],
-  );
+  const scrollToTop = () => {
+    if (results.current) results.current.scrollTop = 0;
+  };
 
   const actions = (
     <>
@@ -84,114 +61,128 @@ export function GamesList() {
     </>
   );
 
-  // An empty library is a dead end without a way out of it: the header's
-  // Sync button needs a connection to sync, so the empty row carries the
-  // one action that creates one. Filtered-to-nothing is a different
-  // emptiness — the games exist, the filters hide them.
-  const emptyMessage =
-    activeFilterCount(search) === 0 ? (
-      <div className="flex flex-col items-center gap-3">
-        <span>{i18n._(GAMES_COPY.emptyArchive)}</span>
-        <Link to="/import" className={buttonVariants({ size: "sm" })}>
-          {i18n._(GAMES_COPY.connect)}
-        </Link>
-      </div>
-    ) : (
-      i18n._(GAMES_COPY.emptyFilters)
-    );
-
   if (query.isPending) {
     return (
-      <GamesScreen actions={actions}>
-        <DataTable columns={columns} data={[]} loading empty={emptyMessage} />
+      <GamesScreen actions={actions} results={results}>
+        <GamesSkeleton />
       </GamesScreen>
     );
   }
 
   if (query.isError) {
     return (
-      <GamesScreen actions={actions}>
-        <DataTable
-          columns={columns}
-          data={[]}
-          loading={false}
-          empty={i18n._(GAMES_COPY.loadError)}
-        />
+      <GamesScreen actions={actions} results={results}>
+        <GamesEmpty title={i18n._(GAMES_COPY.loadError)} />
       </GamesScreen>
     );
   }
 
   return (
-    <GamesScreen
-      actions={actions}
-      pagination={
-        <GamesPagination
-          data={query.data}
-          page={search.page}
-          onPageChange={(page) => setSearch({ page })}
-        />
-      }
-    >
-      <DataTable
-        columns={columns}
-        data={query.data.games}
-        loading={false}
-        empty={emptyMessage}
-      />
+    <GamesScreen actions={actions} results={results}>
+      {query.data.games.length === 0 && <GamesEmptyLibrary search={search} />}
+      {query.data.games.length > 0 && (
+        <>
+          <GamesItems games={query.data.games} />
+          <GamesPagination
+            total={query.data.total}
+            page={search.page}
+            onNavigate={scrollToTop}
+          />
+        </>
+      )}
     </GamesScreen>
+  );
+}
+
+function GamesItems({ games }: { games: Game[] }) {
+  const { i18n } = useLingui();
+
+  return (
+    <ItemGroup aria-label={i18n._(GAMES_COPY.title)} className="gap-0">
+      {games.map((game, index) => (
+        <Fragment key={game.id}>
+          {index > 0 && <ItemSeparator className="my-0" />}
+          <GameItem game={game} />
+        </Fragment>
+      ))}
+    </ItemGroup>
+  );
+}
+
+function GamesSkeleton() {
+  const { i18n } = useLingui();
+
+  return (
+    <div aria-busy aria-label={i18n._(GAMES_COPY.loading)} className="flex flex-col">
+      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+        <div key={index} className="flex items-center gap-3 px-2 py-3 sm:px-3">
+          <Skeleton className="size-14 rounded-md sm:size-20" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+          <Skeleton className="h-5 w-14 rounded-4xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The header's Sync button needs a connection to sync, so an empty
+ * library carries the one action that creates one; filtered-to-nothing is
+ * a different emptiness. */
+function GamesEmptyLibrary({ search }: { search: GamesSearch }) {
+  const { i18n } = useLingui();
+
+  if (activeFilterCount(search) > 0) {
+    return <GamesEmpty title={i18n._(GAMES_COPY.emptyFilters)} />;
+  }
+
+  return (
+    <GamesEmpty title={i18n._(GAMES_COPY.emptyArchive)}>
+      <Link to="/import" className={buttonVariants({ size: "sm" })}>
+        {i18n._(GAMES_COPY.connect)}
+      </Link>
+    </GamesEmpty>
+  );
+}
+
+function GamesEmpty({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
+      </EmptyHeader>
+      {children && <EmptyContent>{children}</EmptyContent>}
+    </Empty>
   );
 }
 
 function GamesScreen({
   actions,
   children,
-  pagination,
+  results,
 }: {
-  actions: React.ReactNode;
-  children: React.ReactNode;
-  pagination?: React.ReactNode;
+  actions: ReactNode;
+  children: ReactNode;
+  results: Ref<HTMLDivElement>;
 }) {
   const { i18n } = useLingui();
 
   return (
     <>
-      <PageHeader
-        title={i18n._(GAMES_COPY.title)}
-        description={i18n._(GAMES_COPY.description)}
-        actions={actions}
-      />
-
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">{children}</div>
-        {pagination}
+      {/* One scroller: header, rows and pager move together. `relative`
+          is load-bearing — an `sr-only` label is absolutely positioned,
+          and with no positioned ancestor it stretches the document far
+          past the frame. */}
+      <div ref={results} className="relative min-h-0 flex-1 overflow-auto">
+        <PageHeader
+          title={i18n._(GAMES_COPY.title)}
+          description={i18n._(GAMES_COPY.description)}
+          actions={actions}
+        />
+        <div className="p-4 md:p-6">{children}</div>
       </div>
     </>
-  );
-}
-
-function GamesPagination({
-  data,
-  page,
-  onPageChange,
-}: {
-  data: { total: number };
-  page: number;
-  onPageChange: (page: number) => void;
-}) {
-  const { i18n } = useLingui();
-  const first = data.total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const last = Math.min(page * PAGE_SIZE, data.total);
-
-  return (
-    <DataTablePagination
-      page={page}
-      pageSize={PAGE_SIZE}
-      total={data.total}
-      onPageChange={onPageChange}
-      label={i18n._(GAMES_COPY.pagination)}
-      summary={`${i18n.number(first)}–${i18n.number(last)} / ${i18n.number(data.total)}`}
-      previousLabel={i18n._(GAMES_COPY.previous)}
-      nextLabel={i18n._(GAMES_COPY.next)}
-    />
   );
 }
