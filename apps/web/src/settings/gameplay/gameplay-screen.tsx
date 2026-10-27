@@ -4,6 +4,7 @@ import { useLingui } from "@lingui/react";
 import { Field, FieldDescription } from "@velachess/ui/components/field";
 
 import { SoundToggle } from "../../chess-sounds/index.ts";
+import { SettingsSection } from "../layout/settings-section.tsx";
 
 const GAMEPLAY_COPY = {
   title: msg`Gameplay`,
@@ -17,18 +18,14 @@ export function GameplayScreen() {
   const { i18n } = useLingui();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">{i18n._(GAMEPLAY_COPY.title)}</h2>
-        <p className="text-sm text-muted-foreground">
-          {i18n._(GAMEPLAY_COPY.description)}
-        </p>
-      </div>
-
+    <SettingsSection
+      title={i18n._(GAMEPLAY_COPY.title)}
+      description={i18n._(GAMEPLAY_COPY.description)}
+    >
       <Field>
         <SoundToggle />
         <FieldDescription>{i18n._(GAMEPLAY_COPY.soundHint)}</FieldDescription>
       </Field>
-    </div>
+    </SettingsSection>
   );
 }

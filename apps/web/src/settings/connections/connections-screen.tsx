@@ -50,9 +50,10 @@ import {
   type TrackedAccount,
 } from "../../games/import/index.ts";
 import { useQuery } from "../../libs/react-query.ts";
+import { SettingsSection } from "../layout/settings-section.tsx";
 
 const CONNECTIONS_COPY = {
-  title: msg`Connections`,
+  title: msg`Chess accounts`,
   description: msg`Manage the chess accounts VelaChess imports games from.`,
   loadError: msg`Couldn't load your connected accounts.`,
   neverSynced: msg`Not synced yet`,
@@ -115,14 +116,10 @@ export function ConnectionsScreen() {
   const view = connectionsView(accounts.isPending, accounts.isError, accounts.data);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">{i18n._(CONNECTIONS_COPY.title)}</h2>
-        <p className="text-sm text-muted-foreground">
-          {i18n._(CONNECTIONS_COPY.description)}
-        </p>
-      </div>
-
+    <SettingsSection
+      title={i18n._(CONNECTIONS_COPY.title)}
+      description={i18n._(CONNECTIONS_COPY.description)}
+    >
       {view.kind === CONNECTIONS_VIEW_KIND.LOADING && (
         <Skeleton className="h-24 w-full" />
       )}
@@ -161,7 +158,7 @@ export function ConnectionsScreen() {
         <h3 className="text-sm font-medium">{i18n._(CONNECTIONS_COPY.connect)}</h3>
         <ConnectAccount chrome="bare" redirectTo="/settings/connections" />
       </section>
-    </div>
+    </SettingsSection>
   );
 }
 

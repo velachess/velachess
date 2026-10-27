@@ -13,9 +13,10 @@ import {
 import { activateLocale } from "../../i18n/index.ts";
 import { LOCALE_OPTIONS, resolveLocale, type Locale } from "../../i18n/locale.ts";
 import { useLocaleStore } from "../../i18n/locale-store.ts";
+import { SettingsSection } from "../layout/settings-section.tsx";
 
 const LANGUAGE_COPY = {
-  title: msg`Language & region`,
+  title: msg`Language`,
   description: msg`Locale preferences for this device.`,
   language: msg`Language`,
   languageHint: msg`System default follows your browser's language.`,
@@ -24,7 +25,7 @@ const LANGUAGE_COPY = {
 
 const SYSTEM_VALUE = "system" as const;
 
-/** Settings → Language & region: reads and writes the one locale
+/** Settings → Language: reads and writes the one locale
  * preference — `null` in the store means "System default". */
 export function LanguageRegionScreen() {
   const { i18n } = useLingui();
@@ -32,14 +33,10 @@ export function LanguageRegionScreen() {
   const setLocale = useLocaleStore((state) => state.setLocale);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">{i18n._(LANGUAGE_COPY.title)}</h2>
-        <p className="text-sm text-muted-foreground">
-          {i18n._(LANGUAGE_COPY.description)}
-        </p>
-      </div>
-
+    <SettingsSection
+      title={i18n._(LANGUAGE_COPY.title)}
+      description={i18n._(LANGUAGE_COPY.description)}
+    >
       <Field>
         <FieldLabel htmlFor="locale">{i18n._(LANGUAGE_COPY.language)}</FieldLabel>
         <Select
@@ -64,6 +61,6 @@ export function LanguageRegionScreen() {
         </Select>
         <FieldDescription>{i18n._(LANGUAGE_COPY.languageHint)}</FieldDescription>
       </Field>
-    </div>
+    </SettingsSection>
   );
 }

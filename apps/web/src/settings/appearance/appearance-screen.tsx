@@ -6,6 +6,7 @@ import { ToggleGroup, ToggleGroupItem } from "@velachess/ui/components/toggle-gr
 import { Monitor, Moon, Sun } from "@velachess/ui/icons";
 import { useTheme } from "@velachess/ui/lib/theme-provider";
 import type { Theme } from "@velachess/ui/lib/theme";
+import { SettingsSection } from "../layout/settings-section.tsx";
 
 const APPEARANCE_COPY = {
   title: msg`Appearance`,
@@ -24,14 +25,10 @@ export function AppearanceScreen() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">{i18n._(APPEARANCE_COPY.title)}</h2>
-        <p className="text-sm text-muted-foreground">
-          {i18n._(APPEARANCE_COPY.description)}
-        </p>
-      </div>
-
+    <SettingsSection
+      title={i18n._(APPEARANCE_COPY.title)}
+      description={i18n._(APPEARANCE_COPY.description)}
+    >
       <Field>
         <FieldLabel>{i18n._(APPEARANCE_COPY.theme)}</FieldLabel>
         <ToggleGroup
@@ -57,6 +54,6 @@ export function AppearanceScreen() {
         </ToggleGroup>
         <FieldDescription>{i18n._(APPEARANCE_COPY.themeHint)}</FieldDescription>
       </Field>
-    </div>
+    </SettingsSection>
   );
 }

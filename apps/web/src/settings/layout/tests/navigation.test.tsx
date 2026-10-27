@@ -18,13 +18,22 @@ describe("settings navigation", () => {
 
     for (const label of [
       "Account",
-      "Connections",
-      "Language & region",
+      "Chess accounts",
+      "Language",
       "Appearance",
       "Gameplay",
     ]) {
       expect(await screen.findByRole("link", { name: label })).toBeInTheDocument();
     }
+  });
+
+  it("titles each section with its navigation label", async () => {
+    sessionActive();
+
+    await renderApp({ path: "/settings/connections" });
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Chess accounts" }),
+    ).toBeInTheDocument();
   });
 
   it("is reachable by direct navigation to each section", async () => {
@@ -43,7 +52,7 @@ describe("settings navigation", () => {
 
     const { user, router } = await renderApp({ path: "/settings/account" });
 
-    await user.click(await screen.findByRole("link", { name: "Connections" }));
+    await user.click(await screen.findByRole("link", { name: "Chess accounts" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe("/settings/connections"),

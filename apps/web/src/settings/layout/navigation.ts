@@ -2,6 +2,15 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import type { LinkProps } from "@tanstack/react-router";
 
+import {
+  ChessKnight,
+  CircleUserRound,
+  Languages,
+  Link2,
+  Palette,
+  type LucideIcon,
+} from "@velachess/ui/icons";
+
 export type SettingsSectionId =
   | "account"
   | "connections"
@@ -22,25 +31,33 @@ export const SETTINGS_ROUTES: Record<SettingsSectionId, SettingsRoute> = {
 export interface SettingsNavItem {
   id: SettingsSectionId;
   label: MessageDescriptor;
+  icon: LucideIcon;
   group?: "preferences";
 }
 
 const NAV_COPY = {
   account: msg`Account`,
-  connections: msg`Connections`,
-  languageRegion: msg`Language & region`,
+  connections: msg`Chess accounts`,
+  languageRegion: msg`Language`,
   appearance: msg`Appearance`,
   gameplay: msg`Gameplay`,
 } as const;
 
 export const PREFERENCES_GROUP_LABEL = msg`Preferences`;
 
+export const SETTINGS_NAV_LABEL = msg`Settings sections`;
+
 export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
-  { id: "account", label: NAV_COPY.account },
-  { id: "connections", label: NAV_COPY.connections },
-  { id: "language-region", label: NAV_COPY.languageRegion, group: "preferences" },
-  { id: "appearance", label: NAV_COPY.appearance, group: "preferences" },
-  { id: "gameplay", label: NAV_COPY.gameplay, group: "preferences" },
+  { id: "account", label: NAV_COPY.account, icon: CircleUserRound },
+  { id: "connections", label: NAV_COPY.connections, icon: Link2 },
+  {
+    id: "language-region",
+    label: NAV_COPY.languageRegion,
+    icon: Languages,
+    group: "preferences",
+  },
+  { id: "appearance", label: NAV_COPY.appearance, icon: Palette, group: "preferences" },
+  { id: "gameplay", label: NAV_COPY.gameplay, icon: ChessKnight, group: "preferences" },
 ];
 
 /** Longest match wins, same rule the main nav dock uses. */
