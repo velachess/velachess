@@ -208,7 +208,8 @@ describe("game analysis", () => {
   it("shows a contextual message when the game itself cannot be loaded", async () => {
     await renderApp({ path: "/games/does-not-exist" });
 
-    expect(await screen.findByText("Couldn't load analysis.")).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't load this game.")).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load analysis.")).toBeNull();
     expect(screen.queryByText("Loading the game…")).toBeNull();
   });
 

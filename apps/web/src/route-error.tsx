@@ -7,8 +7,11 @@ import {
   Empty,
   EmptyContent,
   EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
 } from "@velachess/ui/components/empty";
+import { OctagonXIcon } from "@velachess/ui/icons";
 
 const ROUTE_ERROR_COPY = {
   title: msg`Something went wrong.`,
@@ -24,10 +27,15 @@ export function DefaultRouteError({ error, reset }: ErrorComponentProps) {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center p-6">
       <Empty className="border-0">
-        <EmptyContent>
+        <EmptyHeader>
+          <EmptyMedia variant="icon" className="text-destructive">
+            <OctagonXIcon aria-hidden="true" />
+          </EmptyMedia>
           <EmptyTitle>{i18n._(ROUTE_ERROR_COPY.title)}</EmptyTitle>
           <EmptyDescription>{i18n._(ROUTE_ERROR_COPY.description)}</EmptyDescription>
-          {detail !== undefined && (
+        </EmptyHeader>
+        <EmptyContent>
+          {detail !== null && (
             <p className="text-muted-foreground max-w-sm text-center font-mono text-xs">
               {detail}
             </p>

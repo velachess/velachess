@@ -2,13 +2,19 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 
 import { BOARD_STAGE_WIDTH, BoardStage } from "@velachess/ui/chess/board-stage";
-import { Empty, EmptyDescription, EmptyHeader } from "@velachess/ui/components/empty";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@velachess/ui/components/empty";
 import { Skeleton } from "@velachess/ui/components/skeleton";
+import { OctagonXIcon } from "@velachess/ui/icons";
 import { cn } from "@velachess/ui/lib/utils";
 
 const REVIEW_COPY = {
   loading: msg`Loading the game…`,
-  loadError: msg`Couldn't load analysis.`,
+  loadError: msg`Couldn't load this game.`,
 } as const;
 
 const SCORESHEET_SKELETON_CELLS = Array.from(
@@ -24,7 +30,10 @@ export function GameError() {
     <div className="p-6">
       <Empty className="border-0">
         <EmptyHeader>
-          <EmptyDescription>{i18n._(REVIEW_COPY.loadError)}</EmptyDescription>
+          <EmptyMedia variant="icon" className="text-destructive">
+            <OctagonXIcon aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>{i18n._(REVIEW_COPY.loadError)}</EmptyTitle>
         </EmptyHeader>
       </Empty>
     </div>

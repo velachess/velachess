@@ -9,7 +9,7 @@ import {
   scheduleSync,
 } from "../../../test/archive.ts";
 import { ME } from "../../../test/games.ts";
-import { renderApp } from "../../../test/render.tsx";
+import { mainContent, renderApp } from "../../../test/render.tsx";
 import {
   accountIsTracked,
   resetTrackedAccounts,
@@ -199,7 +199,7 @@ describe("chess accounts", () => {
     expect(
       await screen.findByText("Couldn't load your connected accounts."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(mainContent().getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("removes a connection after confirming, and tells the user it worked", async () => {
@@ -210,8 +210,12 @@ describe("chess accounts", () => {
     await user.click(await screen.findByRole("button", { name: "More actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
 
-    expect(await screen.findByText("Remove connection?")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Remove connection" }));
+    const confirmation = await screen.findByRole("alertdialog", {
+      name: "Remove connection?",
+    });
+    await user.click(
+      within(confirmation).getByRole("button", { name: "Remove connection" }),
+    );
 
     expect(await screen.findByText("Connection removed")).toBeInTheDocument();
     expect(screen.queryByText("magnus")).not.toBeInTheDocument();

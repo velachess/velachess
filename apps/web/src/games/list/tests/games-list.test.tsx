@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { addGames } from "../../../test/archive.ts";
 import { deviceHasImported, resetDevice } from "../../../test/device.ts";
 import { ME, aGame } from "../../../test/games.ts";
-import { renderApp } from "../../../test/render.tsx";
+import { mainContent, renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
 
 /**
@@ -157,7 +157,9 @@ describe("games list", () => {
     expect(await screen.findByText("Couldn't load games.")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Opponent" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Result" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(
+      mainContent().queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("No games match these filters.")).not.toBeInTheDocument();
     expect(screen.queryByText("No games imported yet.")).not.toBeInTheDocument();
   });
@@ -183,7 +185,9 @@ describe("games list", () => {
     expect(screen.getByRole("columnheader", { name: "Result" })).toBeInTheDocument();
     expect(screen.queryByText("stale-opponent")).not.toBeInTheDocument();
     expect(screen.queryByText("fresh-opponent")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(
+      mainContent().queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("No games match these filters.")).not.toBeInTheDocument();
     expect(screen.queryByText("No games imported yet.")).not.toBeInTheDocument();
   });
