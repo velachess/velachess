@@ -36,7 +36,7 @@ does not restate it.
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every
-  domain spells identically) and `games/game-sources.ts` (each source's
+  domain spells identically) and `games/game-sources.tsx` (each source's
   name and mark) — at their common ancestor rather than borrowed from
   whichever domain happened to declare one.
 - `engine/` is the Stockfish sessions and the Workers they own — the

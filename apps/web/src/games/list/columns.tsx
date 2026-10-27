@@ -8,7 +8,7 @@ import { Badge } from "@velachess/ui/components/badge";
 import type { DataTableFeatures } from "@velachess/ui/components/data-table";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { GAME_SOURCES } from "../game-sources.ts";
+import { GAME_SOURCES, SourceMark } from "../game-sources.tsx";
 import type { Game } from "./queries.ts";
 
 const GAMES_COLUMNS_COPY = {
@@ -97,12 +97,12 @@ export function gamesColumns({ translate, formatDate, timeClassLabel }: ColumnDe
       id: "source",
       cell: ({ row }) => {
         const game = row.original;
-        const { Icon, label } = GAME_SOURCES[game.source];
         const playedWhite = game.perspective !== "black";
 
         return (
           <span className="flex items-center gap-2 text-muted-foreground">
-            <Icon className="size-4" aria-label={label} />
+            <SourceMark source={game.source} />
+            <span className="sr-only">{GAME_SOURCES[game.source].label}</span>
             <span
               aria-label={translate(
                 playedWhite

@@ -33,9 +33,8 @@ import { Skeleton } from "@velachess/ui/components/skeleton";
 import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
-import { cn } from "@velachess/ui/lib/utils";
 
-import { GAME_SOURCES } from "../../games/game-sources.ts";
+import { GAME_SOURCES, SourceMark } from "../../games/game-sources.tsx";
 import {
   ConnectAccount,
   isSyncInProgress,
@@ -181,12 +180,12 @@ function ProviderItem({
   actions: ReactNode;
 }) {
   const nameId = useId();
-  const { Icon, label, markClassName } = GAME_SOURCES[provider];
+  const { label } = GAME_SOURCES[provider];
 
   return (
     <Item render={<li />} aria-labelledby={nameId} className="px-4 py-3">
       <ItemMedia className="size-9 rounded-md bg-muted">
-        <Icon className={cn("size-5", markClassName)} />
+        <SourceMark source={provider} className="size-5" />
       </ItemMedia>
       <ItemContent className="min-w-0 gap-0.5">
         <ItemTitle>

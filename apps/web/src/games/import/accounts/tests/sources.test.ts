@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GAME_SOURCES } from "../../../game-sources.ts";
+import { GAME_SOURCES } from "../../../game-sources.tsx";
 import { IMPORT_SOURCES, INPUT_KINDS, SOURCE_IDS, SOURCE_ORDER } from "../sources.ts";
 
 /** Stands in for the active locale: renders a descriptor's source text. */
@@ -29,7 +29,7 @@ describe("the source catalogue", () => {
   });
 
   it("names and marks every source it offers, from the shared catalogue", () => {
-    // The tabs render the name and icon from `games/game-sources.ts`, so a
+    // The tabs render the name and icon from `games/game-sources.tsx`, so a
     // source the form offers and that map does not would render blank.
     for (const id of SOURCE_ORDER) {
       expect(GAME_SOURCES[id].label).toBeTruthy();

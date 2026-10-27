@@ -32,7 +32,7 @@ src/
       pgn/            paste or upload a PGN
     list/           filter and page owned games
     game-query-keys.ts  the prefixes the game caches hang off
-    game-sources.ts     what each source is called and the mark that stands for it
+    game-sources.tsx    what each source is called and the mark that stands for it
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -83,7 +83,7 @@ needs the exact same fact, and the alternative is one domain importing
 another for it. `game-query-keys.ts` holds the React Query prefixes —
 `list` and `review` read those caches, `import` invalidates them when
 games land, and an invalidation only works if the write spells the key
-exactly as the read does. `game-sources.ts` holds each source's name and
+exactly as the read does. `game-sources.tsx` holds each source's name and
 mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
