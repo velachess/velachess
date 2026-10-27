@@ -16,6 +16,10 @@ import type { AccountPlatform } from "@velachess/infra-platforms";
  * same row, so a dropped column fails to compile here too. */
 type SeatIdentity = Pick<ProviderProfile, "avatarUrl" | "flair" | "countryCode">;
 
+/** Only what a row shows: the cache's own bookkeeping is not this read's
+ * business. */
+type CachedSeat = SeatIdentity & Pick<ProviderProfile, "platform" | "username">;
+
 export interface Library {
   games: (GameRow & { whiteIdentity: SeatIdentity; blackIdentity: SeatIdentity })[];
   /** Matching the filters, not the page: the pager needs the whole
@@ -32,7 +36,7 @@ type ListGamesPage = (
 ) => Promise<{ rows: GameRow[]; total: number; page: number; pageSize: number }>;
 /** The cache and nothing else: asking a provider per row would spend one
  * request per seat on every page turn. */
-type FindProviderProfiles = (seats: ProviderSeat[]) => Promise<ProviderProfile[]>;
+type FindProviderProfiles = (seats: ProviderSeat[]) => Promise<CachedSeat[]>;
 
 export interface ListGamesDeps {
   listGamesPage: ListGamesPage;

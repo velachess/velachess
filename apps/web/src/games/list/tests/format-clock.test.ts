@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatClock } from "../game-presentation.ts";
+import { formatClock } from "../game-item.tsx";
 
 describe("the clock", () => {
   it("says minutes when the clock divides into them", () => {

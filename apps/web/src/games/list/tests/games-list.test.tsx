@@ -123,22 +123,34 @@ describe("games list", () => {
 
     expect(await screen.findByText("1–25 of 30 games")).toBeInTheDocument();
 
-    const next = screen.getByRole("button", { name: "Go to next page" });
     // A real address, so the page survives a refresh or a shared link.
+    const next = screen.getByRole("link", { name: "Go to next page" });
     expect(next).toHaveAttribute("href", "/games?page=2");
 
     await user.click(next);
 
     expect(await screen.findByText("26–30 of 30 games")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Go to page 2" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Go to page 2" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    // The last page leads nowhere further.
-    expect(screen.getByRole("button", { name: "Go to next page" })).toHaveAttribute(
+    // The last page leads nowhere further: no link, and it says so.
+    expect(screen.queryByRole("link", { name: "Go to next page" })).toBeNull();
+    expect(screen.getByLabelText("Go to next page")).toHaveAttribute(
       "aria-disabled",
       "true",
     );
+  });
+
+  it("does not call a page past the end an empty library", async () => {
+    // Thirty games exist; page 99 of them is empty, and offering "connect
+    // an account" there would be a lie about an archive that is full.
+    addGames(...Array.from({ length: 30 }, () => aGame()));
+
+    await renderApp({ path: "/games?page=99" });
+
+    expect(await screen.findByText("No games on this page.")).toBeInTheDocument();
+    expect(screen.queryByText(/No games yet/)).not.toBeInTheDocument();
   });
 
   it("says there are no imported games when the library is empty", async () => {

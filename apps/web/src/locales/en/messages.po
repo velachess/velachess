@@ -54,7 +54,7 @@ msgstr "{platform} is connected"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
-#: src/games/list/game-item.tsx:34
+#: src/games/list/game-item.tsx:32
 #: src/games/review/game-heading.tsx:18
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
@@ -138,7 +138,7 @@ msgid "Black"
 msgstr "Black"
 
 #: src/games/list/filters.ts:48
-#: src/games/list/game-item.tsx:40
+#: src/games/list/game-item.tsx:38
 msgid "Blitz"
 msgstr "Blitz"
 
@@ -159,7 +159,7 @@ msgid "Breadcrumb"
 msgstr "Breadcrumb"
 
 #: src/games/list/filters.ts:47
-#: src/games/list/game-item.tsx:39
+#: src/games/list/game-item.tsx:37
 msgid "Bullet"
 msgstr "Bullet"
 
@@ -218,7 +218,7 @@ msgid "Choose how you played before importing."
 msgstr "Choose how you played before importing."
 
 #: src/games/list/filters.ts:50
-#: src/games/list/game-item.tsx:42
+#: src/games/list/game-item.tsx:40
 msgid "Classical"
 msgstr "Classical"
 
@@ -288,7 +288,7 @@ msgstr "Couldn't finish syncing"
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
 
-#: src/games/list/games-list.tsx:32
+#: src/games/list/games-list.tsx:33
 msgid "Couldn't load games."
 msgstr "Couldn't load games."
 
@@ -385,7 +385,7 @@ msgid "Drag to reposition, and zoom to fill the circle."
 msgstr "Drag to reposition, and zoom to fill the circle."
 
 #: src/games/list/filters.ts:40
-#: src/games/list/game-item.tsx:37
+#: src/games/list/game-item.tsx:35
 #: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:11
 msgid "Draw"
@@ -632,7 +632,7 @@ msgstr "Lichess username"
 msgid "Light"
 msgstr "Light"
 
-#: src/games/list/games-list.tsx:33
+#: src/games/list/games-list.tsx:34
 msgid "Loading games"
 msgstr "Loading games"
 
@@ -645,7 +645,7 @@ msgid "Locale preferences for this device."
 msgstr "Locale preferences for this device."
 
 #: src/games/list/filters.ts:39
-#: src/games/list/game-item.tsx:36
+#: src/games/list/game-item.tsx:34
 #: src/games/review/game-heading.tsx:20
 msgid "Loss"
 msgstr "Loss"
@@ -711,6 +711,10 @@ msgstr "No games found for that username. Check the spelling and try again."
 #: src/games/list/games-list.tsx:31
 msgid "No games match these filters."
 msgstr "No games match these filters."
+
+#: src/games/list/games-list.tsx:32
+msgid "No games on this page."
+msgstr "No games on this page."
 
 #: src/games/list/games-list.tsx:29
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
@@ -802,7 +806,7 @@ msgid "Profile"
 msgstr "Profile"
 
 #: src/games/list/filters.ts:49
-#: src/games/list/game-item.tsx:41
+#: src/games/list/game-item.tsx:39
 msgid "Rapid"
 msgstr "Rapid"
 
@@ -1095,7 +1099,7 @@ msgstr "Try again in a moment."
 msgid "Type {CONFIRMATION} to confirm"
 msgstr "Type {CONFIRMATION} to confirm"
 
-#: src/games/list/game-item.tsx:38
+#: src/games/list/game-item.tsx:36
 #: src/games/review/game-heading.tsx:22
 #: src/games/review/game-result.tsx:12
 msgid "Unfinished"
@@ -1148,16 +1152,16 @@ msgid "White or Black applies to every game in this upload."
 msgstr "White or Black applies to every game in this upload."
 
 #: src/games/list/filters.ts:38
-#: src/games/list/game-item.tsx:35
+#: src/games/list/game-item.tsx:33
 #: src/games/review/game-heading.tsx:19
 msgid "Win"
 msgstr "Win"
 
-#: src/games/list/game-item.tsx:44
+#: src/games/list/game-item.tsx:42
 msgid "You played black"
 msgstr "You played black"
 
-#: src/games/list/game-item.tsx:43
+#: src/games/list/game-item.tsx:41
 msgid "You played white"
 msgstr "You played white"
 

@@ -51,8 +51,8 @@ const PageLink = createLink(PaginationLink);
 const PreviousLink = createLink(PaginationPrevious);
 const NextLink = createLink(PaginationNext);
 
-/** A direction that leads nowhere stays in place rather than moving the
- * controls under the cursor. */
+/** Kept in place rather than dropped: the controls must not shift under
+ * the cursor at the ends. */
 const AT_BOUNDARY = "pointer-events-none opacity-50";
 
 export interface GamesPaginationProps {

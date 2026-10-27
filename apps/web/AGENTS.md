@@ -28,7 +28,7 @@ does not restate it.
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
-- `games/` is four domains and four shared files. Review consumes Analysis;
+- `games/` is four domains and three shared files. Review consumes Analysis;
   Analysis never imports Review, `import` or `list`
   (`games-analysis-depends-on-no-sibling-domain`). Analysis produces
   `GradedPly[]` and Review reads it — `review/review-model.ts`,
@@ -37,12 +37,9 @@ does not restate it.
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every
   domain spells identically), `games/game-sources.ts` (each source's
-  name and mark), `games/source-mark.tsx` (that mark, drawn in the
-  source's colour) and `games/game-marks.ts` (the icon that stands for a
-  time class or an opening) — at their common ancestor rather than
-  borrowed from whichever domain happened to declare one. An icon for a
-  game's own idea is chosen in one of those maps, never imported from
-  `@velachess/ui/icons` at the call site.
+  name and mark) and `games/source-mark.tsx` (that mark, drawn in the
+  source's colour) — at their common ancestor rather than borrowed from
+  whichever domain happened to declare one.
 - `engine/` is the Stockfish sessions and the Workers they own — the
   infrastructure `games/analysis` runs on, a vertical of its own because
   it is not a capability. One rule (`engine-is-infrastructure`) keeps it

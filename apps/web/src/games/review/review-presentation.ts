@@ -23,6 +23,7 @@ export interface PlayerSeat {
   /** Of a resolvable handle; absent for everyone else. */
   avatarUrl: string | undefined;
   flair: string | undefined;
+  countryCode: string | undefined;
 }
 
 export interface ReviewPlayers {
@@ -53,6 +54,7 @@ function playerSeatOf(
     name: side === "white" ? game.whiteName : game.blackName,
     rating: rating === null ? undefined : formatRating(rating),
     avatarUrl: identity.avatarUrl ?? undefined,
+    countryCode: identity.countryCode ?? undefined,
     // The API carries the flair id; the address it is served from is
     // presentation.
     flair: identity.flair ? flairImageOf(identity.flair) : undefined,

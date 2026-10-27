@@ -45,6 +45,7 @@ export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
         rating={top.rating}
         avatarSrc={top.avatarUrl}
         flairSrc={top.flair}
+        countryCode={top.countryCode}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 
@@ -72,6 +73,7 @@ export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
         rating={bottom.rating}
         avatarSrc={bottom.avatarUrl}
         flairSrc={bottom.flair}
+        countryCode={bottom.countryCode}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 

@@ -14,11 +14,18 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@velachess/ui/components/item";
-import { GAME_MARKS, TIME_CLASS_MARKS } from "../game-marks.ts";
+import {
+  BookOpen,
+  ChevronRight,
+  Clock3,
+  Hourglass,
+  Timer,
+  Zap,
+} from "@velachess/ui/icons";
+
 import { GAME_SOURCES } from "../game-sources.ts";
 import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
-import { formatClock } from "./game-presentation.ts";
 import type { Game } from "./queries.ts";
 
 const GAME_ITEM_COPY = {
@@ -35,12 +42,29 @@ const GAME_ITEM_COPY = {
   playedBlack: msg`You played black`,
 } as const;
 
-const TIME_CLASS_LABELS: Record<TimeClass, MessageDescriptor> = {
-  bullet: GAME_ITEM_COPY.bullet,
-  blitz: GAME_ITEM_COPY.blitz,
-  rapid: GAME_ITEM_COPY.rapid,
-  classical: GAME_ITEM_COPY.classical,
+/** Chess has no conventional glyph for a time control, so the choice is
+ * made once here rather than at each use. */
+const TIME_CLASSES: Record<TimeClass, { label: MessageDescriptor; Mark: typeof Zap }> = {
+  bullet: { label: GAME_ITEM_COPY.bullet, Mark: Zap },
+  blitz: { label: GAME_ITEM_COPY.blitz, Mark: Timer },
+  rapid: { label: GAME_ITEM_COPY.rapid, Mark: Clock3 },
+  classical: { label: GAME_ITEM_COPY.classical, Mark: Hourglass },
 };
+
+/**
+ * From the clock, not the platform's label, which Lichess and chess.com
+ * word differently for the same game.
+ */
+export function formatClock(
+  initialSeconds: number | null,
+  incrementSeconds: number | null,
+) {
+  if (initialSeconds === null) return null;
+
+  const minutes = initialSeconds / 60;
+  const base = Number.isInteger(minutes) ? `${minutes} min` : `${initialSeconds}s`;
+  return incrementSeconds ? `${base} + ${incrementSeconds}` : base;
+}
 
 const OUTCOME_BADGE = {
   win: { label: GAME_ITEM_COPY.win, variant: "success" },
@@ -49,34 +73,12 @@ const OUTCOME_BADGE = {
   unfinished: { label: GAME_ITEM_COPY.unfinished, variant: "secondary" },
 } as const;
 
-const THUMBNAIL_COLUMNS = 4;
-const THUMBNAIL_SQUARES = THUMBNAIL_COLUMNS * THUMBNAIL_COLUMNS;
-
-/** A board with no position on it, until static FEN thumbnails exist. */
-function BoardThumbnail() {
-  return (
-    <div
-      aria-hidden
-      className="grid size-14 shrink-0 grid-cols-4 grid-rows-4 overflow-hidden rounded-md border sm:size-20"
-    >
-      {Array.from({ length: THUMBNAIL_SQUARES }, (_, index) => (
-        <div
-          key={index}
-          className={
-            (Math.floor(index / THUMBNAIL_COLUMNS) + index) % 2 === 0
-              ? "bg-board-light"
-              : "bg-board-dark"
-          }
-        />
-      ))}
-    </div>
-  );
-}
-
 function PlayedColor({ perspective }: { perspective: Game["perspective"] }) {
   const { i18n } = useLingui();
   if (perspective === null) return null;
 
+  // The side someone played is white or black, not light or dark theme:
+  // reading it off `foreground` inverted it between the two.
   const playedWhite = perspective === "white";
   return (
     <>
@@ -84,8 +86,8 @@ function PlayedColor({ perspective }: { perspective: Game["perspective"] }) {
         aria-hidden
         className={
           playedWhite
-            ? "size-2.5 shrink-0 rounded-xs bg-foreground"
-            : "size-2.5 shrink-0 rounded-xs border border-border bg-background"
+            ? "size-2.5 shrink-0 rounded-xs border border-border bg-white"
+            : "size-2.5 shrink-0 rounded-xs border border-border bg-black"
         }
       />
       <span className="sr-only">
@@ -103,7 +105,7 @@ function TimeControl({ game }: { game: Game }) {
   );
   if (!timeClass) return null;
 
-  const Mark = TIME_CLASS_MARKS[timeClass];
+  const { label, Mark } = TIME_CLASSES[timeClass];
   const clock = formatClock(
     game.timeControlInitialSeconds,
     game.timeControlIncrementSeconds,
@@ -111,7 +113,7 @@ function TimeControl({ game }: { game: Game }) {
   return (
     <span className="flex items-center gap-1.5">
       <Mark className="size-3.5" />
-      <span>{i18n._(TIME_CLASS_LABELS[timeClass])}</span>
+      <span>{i18n._(label)}</span>
       {clock && <span className="text-muted-foreground/80">{clock}</span>}
     </span>
   );
@@ -149,19 +151,6 @@ function Opponent({ game, side }: { game: Game; side: "white" | "black" }) {
   );
 }
 
-function Matchup({ game }: { game: Game }) {
-  const { i18n } = useLingui();
-
-  return (
-    <span className="truncate text-sm font-medium">
-      {i18n._({
-        ...GAME_ITEM_COPY.matchup,
-        values: { white: game.whiteName, black: game.blackName },
-      })}
-    </span>
-  );
-}
-
 export function GameItem({ game }: { game: Game }) {
   const { i18n } = useLingui();
   // Null when the game was never attributed: calling one of the players
@@ -179,13 +168,24 @@ export function GameItem({ game }: { game: Game }) {
       className="gap-3 rounded-md px-2 py-3 no-underline sm:px-3"
     >
       <ItemMedia>
-        <BoardThumbnail />
+        {/* Until static FEN thumbnails exist. */}
+        <div
+          aria-hidden
+          className="size-14 shrink-0 rounded-md border bg-muted sm:size-20"
+        />
       </ItemMedia>
 
       <ItemContent className="min-w-0 gap-1.5">
         <ItemTitle className="w-full min-w-0">
           {opponentSide && <Opponent game={game} side={opponentSide} />}
-          {!opponentSide && <Matchup game={game} />}
+          {!opponentSide && (
+            <span className="truncate text-sm font-medium">
+              {i18n._({
+                ...GAME_ITEM_COPY.matchup,
+                values: { white: game.whiteName, black: game.blackName },
+              })}
+            </span>
+          )}
         </ItemTitle>
 
         <ItemDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -199,7 +199,7 @@ export function GameItem({ game }: { game: Game }) {
 
           {game.openingName && (
             <span className="flex min-w-0 items-center gap-1.5">
-              <GAME_MARKS.opening className="size-3.5 shrink-0" />
+              <BookOpen className="size-3.5 shrink-0" />
               <span className="truncate">{game.openingName}</span>
             </span>
           )}
@@ -210,7 +210,7 @@ export function GameItem({ game }: { game: Game }) {
 
       <ItemActions className="ml-auto shrink-0 gap-2 sm:gap-3">
         <OutcomeBadge game={game} />
-        <GAME_MARKS.review aria-hidden className="size-4 text-muted-foreground" />
+        <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
       </ItemActions>
     </Item>
   );

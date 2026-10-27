@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { Fragment, useRef, type Ref, type ReactNode } from "react";
+import { useRef, type Ref, type ReactNode } from "react";
 
 import { buttonVariants } from "@velachess/ui/components/button";
 import {
@@ -29,6 +29,7 @@ const GAMES_COPY = {
   emptyArchive: msg`No games yet. Connect Chess.com or Lichess, or import a PGN.`,
   connect: msg`Connect an account`,
   emptyFilters: msg`No games match these filters.`,
+  emptyPage: msg`No games on this page.`,
   loadError: msg`Couldn't load games.`,
   loading: msg`Loading games`,
 } as const;
@@ -79,13 +80,18 @@ export function GamesList() {
 
   return (
     <GamesScreen actions={actions} results={results}>
-      {query.data.games.length === 0 && <GamesEmptyLibrary search={search} />}
+      {query.data.games.length === 0 && (
+        <GamesNothing search={search} total={query.data.total} />
+      )}
       {query.data.games.length > 0 && (
         <>
           <GamesItems games={query.data.games} />
+          {/* The page the rows came from, not the one in the URL: a read
+              in flight would otherwise number stale rows as the new
+              page. */}
           <GamesPagination
             total={query.data.total}
-            page={search.page}
+            page={query.data.page}
             onNavigate={scrollToTop}
           />
         </>
@@ -100,10 +106,10 @@ function GamesItems({ games }: { games: Game[] }) {
   return (
     <ItemGroup aria-label={i18n._(GAMES_COPY.title)} className="gap-0">
       {games.map((game, index) => (
-        <Fragment key={game.id}>
+        <li key={game.id} className="contents">
           {index > 0 && <ItemSeparator className="my-0" />}
           <GameItem game={game} />
-        </Fragment>
+        </li>
       ))}
     </ItemGroup>
   );
@@ -128,11 +134,14 @@ function GamesSkeleton() {
   );
 }
 
-/** The header's Sync button needs a connection to sync, so an empty
- * library carries the one action that creates one; filtered-to-nothing is
- * a different emptiness. */
-function GamesEmptyLibrary({ search }: { search: GamesSearch }) {
+/** Three emptinesses, and only one is a dead end: the header's Sync
+ * button needs a connection to sync, so an empty library carries the one
+ * action that creates one. */
+function GamesNothing({ search, total }: { search: GamesSearch; total: number }) {
   const { i18n } = useLingui();
+
+  // The library has games; this page of it does not.
+  if (total > 0) return <GamesEmpty title={i18n._(GAMES_COPY.emptyPage)} />;
 
   if (activeFilterCount(search) > 0) {
     return <GamesEmpty title={i18n._(GAMES_COPY.emptyFilters)} />;

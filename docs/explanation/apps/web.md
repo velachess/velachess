@@ -34,7 +34,6 @@ src/
     game-query-keys.ts  the prefixes the game caches hang off
     game-sources.ts     what each source is called and the mark that stands for it
     source-mark.tsx     that mark, drawn in the source's own colour
-    game-marks.ts       the icon that stands for a time class or an opening
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -90,10 +89,7 @@ mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
 `import` builds its form metadata on top of that one, rather than
-carrying a second copy of the name and icon. `game-marks.ts` does the
-same for the ideas a game carries rather than its provenance — the time
-class and the opening — so an icon is a design call made once rather than
-an import picked at each call site. `source-mark.tsx` is the one
+carrying a second copy of the name and icon. `source-mark.tsx` is the one
 place that draws the mark, so its colour and default size cannot drift
 between those screens either.
 
@@ -242,11 +238,10 @@ window around the current page, both ends, an ellipsis across each gap —
 is a pure function in `games/list/games-pagination.tsx` with its own test.
 
 Logic that can be wrong lives in exported functions rather than JSX:
-`opponentSideOf` answers which seat the opponent had, and `null` when
-nothing attributed the game; `formatClock` writes "3 min + 2";
-`gameOutcomeFor` in `@velachess/chess` reads the scoresheet from your
-seat, because "1-0" is a win for one side and a loss for the other.
-Tested directly, no rendering involved.
+`formatClock` writes "3 min + 2"; `opposite` and `gameOutcomeFor` in
+`@velachess/chess` answer which seat the opponent had and how the
+scoresheet reads from yours, because "1-0" is a win for one side and a
+loss for the other. Tested directly, no rendering involved.
 
 ## Text: every string is a message
 
