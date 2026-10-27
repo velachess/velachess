@@ -10,9 +10,13 @@ const PRODUCT_IMAGE_VARIANTS = {
   },
 } as const;
 
+function isProductImage(src: string): src is keyof typeof PRODUCT_IMAGE_VARIANTS {
+  return Object.hasOwn(PRODUCT_IMAGE_VARIANTS, src);
+}
+
 export default function productImageLoader({ src, width }: ImageLoaderProps) {
-  const variants = PRODUCT_IMAGE_VARIANTS[src as keyof typeof PRODUCT_IMAGE_VARIANTS];
-  if (variants === undefined) return src;
+  if (!isProductImage(src)) return src;
+  const variants = PRODUCT_IMAGE_VARIANTS[src];
   if (width <= SMALL_IMAGE_WIDTH) return variants.small;
   if (width <= MEDIUM_IMAGE_WIDTH) return variants.medium;
   // Next probes the loader with the image's intrinsic width to confirm it

@@ -151,15 +151,14 @@ describe("sync queue port", () => {
         attempts++;
         throw new Error("boom");
       });
-      void boss.work(QUEUES.syncDlq, async ([job]) => {
-        if ((job?.data as { marker?: string } | undefined)?.marker === marker) {
+      void boss.work<{ marker?: string }>(QUEUES.syncDlq, async ([job]) => {
+        if (job?.data.marker === marker) {
           resolve();
         }
       });
     });
 
     await dlqReceived;
-    // The original attempt plus at least one retry.
     expect(attempts).toBeGreaterThanOrEqual(2);
   }, 60_000);
 });

@@ -3,34 +3,39 @@ import { describe, expect, it } from "vitest";
 
 import { useWorkerTransport } from "../worker-transport.ts";
 
-/**
- * Stands in for a real browser Worker — just enough surface
- * (postMessage/addEventListener/removeEventListener/terminate) for the
- * transport to drive. `emit()` simulates the worker posting a message
- * back, `crash()` its native `error` event.
- */
-class FakeWorker {
-  readonly posted: string[] = [];
+class FakeWorker extends EventTarget implements Worker {
+  readonly posted: unknown[] = [];
   terminated = false;
+  onmessage = null;
+  onmessageerror = null;
+  onerror = null;
 
-  private readonly listeners = new Map<string, Set<(event: unknown) => void>>();
+  private listeners = 0;
 
-  postMessage(data: string): void {
+  postMessage(data: unknown): void {
     this.posted.push(data);
   }
 
-  addEventListener(type: string, listener: (event: unknown) => void): void {
-    const set = this.listeners.get(type) ?? new Set();
-    set.add(listener);
-    this.listeners.set(type, set);
+  override addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: AddEventListenerOptions | boolean,
+  ): void {
+    this.listeners += 1;
+    super.addEventListener(type, listener, options);
   }
 
-  removeEventListener(type: string, listener: (event: unknown) => void): void {
-    this.listeners.get(type)?.delete(listener);
+  override removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject | null,
+    options?: EventListenerOptions | boolean,
+  ): void {
+    this.listeners -= 1;
+    super.removeEventListener(type, listener, options);
   }
 
   listenerCount(): number {
-    return [...this.listeners.values()].reduce((total, set) => total + set.size, 0);
+    return this.listeners;
   }
 
   terminate(): void {
@@ -38,20 +43,13 @@ class FakeWorker {
   }
 
   emit(...data: string[]): void {
-    for (const value of data) {
-      for (const listener of this.listeners.get("message") ?? []) {
-        listener({ data: value });
-      }
-    }
+    for (const value of data)
+      this.dispatchEvent(new MessageEvent("message", { data: value }));
   }
 
   crash(): void {
-    for (const listener of this.listeners.get("error") ?? []) listener({});
+    this.dispatchEvent(new Event("error"));
   }
-}
-
-function asWorker(fake: FakeWorker): Worker {
-  return fake as unknown as Worker;
 }
 
 describe("useWorkerTransport", () => {
@@ -59,7 +57,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
       transport.send("uci");
     });
 
@@ -70,7 +68,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     const lines = await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
       worker.emit("id name Stockfish", "uciok");
 
       const first = yield* transport.lines.next();
@@ -85,7 +83,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     const line = await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
 
       const pending = yield* spawn(function* () {
         const result = yield* transport.lines.next();
@@ -107,7 +105,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     const result = await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
       worker.crash();
       return yield* transport.lines.next();
     });
@@ -119,7 +117,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     const result = await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
 
       const pending = yield* spawn(() => transport.lines.next());
       yield* sleep(0);
@@ -136,7 +134,7 @@ describe("useWorkerTransport", () => {
 
     await run(function* () {
       yield* scoped(function* () {
-        yield* useWorkerTransport(asWorker(worker));
+        yield* useWorkerTransport(worker);
         expect(worker.listenerCount()).toBe(2);
         expect(worker.terminated).toBe(false);
       });
@@ -150,7 +148,7 @@ describe("useWorkerTransport", () => {
     const worker = new FakeWorker();
 
     const lines = await run(function* () {
-      const transport = yield* useWorkerTransport(asWorker(worker));
+      const transport = yield* useWorkerTransport(worker);
       worker.emit("one", "two", "three");
 
       const seen: string[] = [];

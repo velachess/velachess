@@ -59,7 +59,6 @@ function pastedGame(overrides: Partial<NormalizedGame> = {}): NormalizedGame {
   };
 }
 
-/** A unique external id and movetext per row. */
 const manyGames = (count: number) =>
   Array.from({ length: count }, (_, i) =>
     chessComGame({ externalId: String(i), movetextHash: `hash-${i}` }),
@@ -197,11 +196,10 @@ describe("libs/infra/db (games + tracked accounts)", () => {
   );
 
   it("a failing batch rejects and keeps the batches already written", async () => {
-    const bad = chessComGame({
-      externalId: "bad",
-      movetextHash: "hash-bad",
-      source: "bogus" as NormalizedGame["source"],
-    });
+    const bad = Object.assign(
+      chessComGame({ externalId: "bad", movetextHash: "hash-bad" }),
+      { source: "bogus" },
+    );
 
     await expect(
       saveGames(db, [...manyGames(500), bad], { userId: ownerId }),

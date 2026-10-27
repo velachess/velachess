@@ -11,13 +11,17 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function respondingTo(route: (href: string) => Response): typeof globalThis.fetch {
+  return async (url) => route(String(url));
+}
+
 describe("fetchChessCom", () => {
   it("rejects an invalid username before making any request", async () => {
     let called = false;
-    const fetch = (async () => {
+    const fetch: typeof globalThis.fetch = async () => {
       called = true;
       return jsonResponse({});
-    }) as typeof globalThis.fetch;
+    };
 
     await expect(fetchChessCom("not a valid username!", null, { fetch })).rejects.toThrow(
       "Invalid Chess.com username",
@@ -27,14 +31,13 @@ describe("fetchChessCom", () => {
 
   it("happy path: bootstraps up to a year of months, normalizes games, skips in-progress and variant games", async () => {
     const requested: string[] = [];
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       requested.push(href);
       if (href.endsWith("/games/archives")) return jsonResponse(CHESS_COM_ARCHIVES_INDEX);
       if (href.endsWith("/2023/12")) return jsonResponse({ games: [] });
       if (href.endsWith("/2024/01")) return jsonResponse(CHESS_COM_ARCHIVE_MONTH);
       throw new Error(`unexpected request: ${href}`);
-    }) as typeof globalThis.fetch;
+    });
 
     const result = await fetchChessCom("test-player", null, { fetch });
 
@@ -62,13 +65,12 @@ describe("fetchChessCom", () => {
 
   it("resumes from a cursor, only fetching months at/after it", async () => {
     const requested: string[] = [];
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       requested.push(href);
       if (href.endsWith("/games/archives")) return jsonResponse(CHESS_COM_ARCHIVES_INDEX);
       if (href.endsWith("/2024/01")) return jsonResponse({ games: [] });
       throw new Error(`unexpected request: ${href}`);
-    }) as typeof globalThis.fetch;
+    });
 
     const cursor: ChessComCursor = { month: "2024/01", lastEndTime: 0 };
     await fetchChessCom("test-player", cursor, { fetch });
@@ -78,14 +80,13 @@ describe("fetchChessCom", () => {
   });
 
   it("a failed month becomes a SyncFailure and does not advance the cursor past it", async () => {
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives"))
         return jsonResponse({ archives: CHESS_COM_ARCHIVES_INDEX.archives });
       if (href.endsWith("/2023/12")) return new Response("server error", { status: 500 });
       if (href.endsWith("/2024/01")) return jsonResponse({ games: [] });
       throw new Error(`unexpected request: ${href}`);
-    }) as typeof globalThis.fetch;
+    });
 
     const cursor: ChessComCursor = { month: "2023/12", lastEndTime: 0 };
     const result = await fetchChessCom("test-player", cursor, { fetch });
@@ -100,19 +101,17 @@ describe("fetchChessCom", () => {
       },
     ]);
     expect(result.complete).toBe(false);
-    // Did not advance past the failed month.
     expect(result.cursor).toEqual(cursor);
   });
 
   it("a malformed month response becomes an invalid-response failure", async () => {
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives"))
         return jsonResponse({
           archives: ["https://api.chess.com/pub/player/test-player/games/2024/01"],
         });
       return jsonResponse({ not: "the expected shape" });
-    }) as typeof globalThis.fetch;
+    });
 
     const result = await fetchChessCom("test-player", null, { fetch });
     expect(result.failures).toEqual([
@@ -127,8 +126,7 @@ describe("fetchChessCom", () => {
   });
 
   it("reports a handle with no archives index as not found, for good", async () => {
-    const fetch = (async () =>
-      new Response("not found", { status: 404 })) as typeof globalThis.fetch;
+    const fetch = respondingTo(() => new Response("not found", { status: 404 }));
     const result = await fetchChessCom("test-player", null, { fetch });
 
     expect(result.complete).toBe(false);
@@ -138,22 +136,20 @@ describe("fetchChessCom", () => {
   });
 
   it("throws if the archives index fails any other way", async () => {
-    const fetch = (async () =>
-      new Response("unavailable", { status: 503 })) as typeof globalThis.fetch;
+    const fetch = respondingTo(() => new Response("unavailable", { status: 503 }));
     await expect(fetchChessCom("test-player", null, { fetch })).rejects.toThrow(
       "Chess.com returned no archives",
     );
   });
 
   it("maps a 429 on a month to a retryable rate-limited failure, carrying Retry-After", async () => {
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives"))
         return jsonResponse({
           archives: ["https://api.chess.com/pub/player/test-player/games/2024/01"],
         });
       return new Response("slow down", { status: 429, headers: { "Retry-After": "3" } });
-    }) as typeof globalThis.fetch;
+    });
 
     const result = await fetchChessCom("test-player", null, { fetch });
     expect(result.failures).toEqual([
@@ -169,12 +165,12 @@ describe("fetchChessCom", () => {
 
   it("sends a contact-bearing User-Agent", async () => {
     const headers: HeadersInit[] = [];
-    const fetch = (async (url: string | URL, init?: RequestInit) => {
+    const fetch: typeof globalThis.fetch = async (url, init) => {
       if (init?.headers) headers.push(init.headers);
       const href = String(url);
       if (href.endsWith("/games/archives")) return jsonResponse(CHESS_COM_ARCHIVES_INDEX);
       return jsonResponse({ games: [] });
-    }) as typeof globalThis.fetch;
+    };
 
     await fetchChessCom("test-player", null, { fetch });
     expect(new Headers(headers[0]).get("User-Agent")).toContain("velachess-ingest");
@@ -182,13 +178,12 @@ describe("fetchChessCom", () => {
 
   it("checkpoints after each successfully completed month, not after a failed one", async () => {
     const checkpoints: { cursor: ChessComCursor; gameCount: number }[] = [];
-    const fetch = (async (url: string | URL) => {
-      const href = String(url);
+    const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives")) return jsonResponse(CHESS_COM_ARCHIVES_INDEX);
       if (href.endsWith("/2023/12")) return jsonResponse(CHESS_COM_ARCHIVE_MONTH);
       if (href.endsWith("/2024/01")) return new Response("unavailable", { status: 503 });
       throw new Error(`unexpected request: ${href}`);
-    }) as typeof globalThis.fetch;
+    });
 
     const result = await fetchChessCom("test-player", null, {
       fetch,
@@ -197,7 +192,6 @@ describe("fetchChessCom", () => {
       },
     });
 
-    // One checkpoint, for 2023/12 alone — 2024/01 failed, so it never lands.
     expect(checkpoints).toEqual([
       { cursor: { month: "2023/12", lastEndTime: 1704133706 }, gameCount: 1 },
     ]);

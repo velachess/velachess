@@ -11,11 +11,17 @@ import {
 } from "@velachess/ui/components/select";
 
 import { activateLocale } from "../../i18n/index.ts";
-import { LOCALE_OPTIONS, resolveLocale, type Locale } from "../../i18n/locale.ts";
+import {
+  isLocale,
+  LOCALE_OPTIONS,
+  resolveLocale,
+  type Locale,
+} from "../../i18n/locale.ts";
 import { useLocaleStore } from "../../i18n/locale-store.ts";
+import { SettingsSection } from "../layout/settings-section.tsx";
 
 const LANGUAGE_COPY = {
-  title: msg`Language & region`,
+  title: msg`Language`,
   description: msg`Locale preferences for this device.`,
   language: msg`Language`,
   languageHint: msg`System default follows your browser's language.`,
@@ -24,32 +30,33 @@ const LANGUAGE_COPY = {
 
 const SYSTEM_VALUE = "system" as const;
 
-/** Settings → Language & region: reads and writes the one locale
- * preference — `null` in the store means "System default". */
+/** `null` in the locale store means "System default". */
 export function LanguageRegionScreen() {
   const { i18n } = useLingui();
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">{i18n._(LANGUAGE_COPY.title)}</h2>
-        <p className="text-sm text-muted-foreground">
-          {i18n._(LANGUAGE_COPY.description)}
-        </p>
-      </div>
+  const applyLocale = (next: Locale | null) => {
+    setLocale(next);
+    void activateLocale(resolveLocale(next, navigator.languages));
+  };
 
+  const handleLocaleChange = (value: unknown) => {
+    if (value === SYSTEM_VALUE) {
+      applyLocale(null);
+      return;
+    }
+    if (typeof value === "string" && isLocale(value)) applyLocale(value);
+  };
+
+  return (
+    <SettingsSection
+      title={i18n._(LANGUAGE_COPY.title)}
+      description={i18n._(LANGUAGE_COPY.description)}
+    >
       <Field>
         <FieldLabel htmlFor="locale">{i18n._(LANGUAGE_COPY.language)}</FieldLabel>
-        <Select
-          value={locale ?? SYSTEM_VALUE}
-          onValueChange={(value) => {
-            const next = value === SYSTEM_VALUE ? null : (value as Locale);
-            setLocale(next);
-            void activateLocale(resolveLocale(next, navigator.languages));
-          }}
-        >
+        <Select value={locale ?? SYSTEM_VALUE} onValueChange={handleLocaleChange}>
           <SelectTrigger id="locale" className="w-full max-w-xs">
             <SelectValue />
           </SelectTrigger>
@@ -64,6 +71,6 @@ export function LanguageRegionScreen() {
         </Select>
         <FieldDescription>{i18n._(LANGUAGE_COPY.languageHint)}</FieldDescription>
       </Field>
-    </div>
+    </SettingsSection>
   );
 }

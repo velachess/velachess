@@ -9,7 +9,10 @@ export type Locale = keyof typeof LOCALES;
 
 export const LOCALE_OPTIONS: { locale: Locale; label: string }[] = Object.entries(
   LOCALES,
-).map(([locale, label]) => ({ locale: locale as Locale, label }));
+).flatMap(([locale, label]) => {
+  if (!isLocale(locale)) return [];
+  return [{ locale, label }];
+});
 
 export const DEFAULT_LOCALE: Locale = "en";
 
@@ -17,7 +20,6 @@ export function isLocale(value: string): value is Locale {
   return value in LOCALES;
 }
 
-/** Pure so it can be tested without a DOM. */
 export function resolveLocale(
   stored: string | null,
   preferred: readonly string[],

@@ -43,7 +43,7 @@ function resolveKey(root: string, key: string): string {
 }
 
 function isMissing(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "ENOENT";
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
 
 export function createFileStore(root: string): FileStore {

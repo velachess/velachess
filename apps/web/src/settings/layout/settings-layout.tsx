@@ -21,9 +21,9 @@ export function SettingsLayout() {
         description={i18n._(SHELL_COPY.description)}
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-6 p-6 md:flex-row md:gap-10">
+        <div className="flex max-w-5xl flex-col gap-6 px-4 py-6 md:flex-row md:gap-8 md:px-6">
           <SettingsNavigation />
-          <div className="min-w-0 max-w-2xl flex-1">
+          <div className="min-w-0 max-w-3xl flex-1">
             <Outlet />
           </div>
         </div>

@@ -1,9 +1,4 @@
 // @vitest-environment node
-/**
- * The sync stream over the real harness: the worker's twin settles jobs on
- * the same PGlite session the api listens on, so what a browser would hear
- * is what pg_notify delivered on commit — nothing is pushed by hand.
- */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -65,11 +60,8 @@ describe("GET /syncs/events", () => {
 
     expect(text).toContain("event: sync.completed");
     expect(text).toContain(`id: ${account.syncId}`);
-    const frame = JSON.parse(text.split("data: ")[1]!.split("\n")[0]!) as {
-      syncId: string;
-      accountId: string;
-      gamesInserted: number;
-    };
+    const frame: { syncId: string; accountId: string; gamesInserted: number } =
+      JSON.parse(text.split("data: ")[1]!.split("\n")[0]!);
     expect(frame).toMatchObject({ syncId: account.syncId, accountId: account.id });
     expect(frame.gamesInserted).toBeGreaterThan(0);
     // Delivered on commit: the library a browser refetches on this frame is

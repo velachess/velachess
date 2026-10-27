@@ -20,13 +20,13 @@ function ShimmerButton({
   style,
   ...props
 }: ShimmerButtonProps) {
-  const shimmerStyle = {
+  const shimmerStyle: CSSProperties & Record<`--${string}`, string | number> = {
     "--spread": "90deg",
     "--shimmer-color": shimmerColor,
     "--speed": shimmerDuration,
     "--cut": shimmerSize,
     ...style,
-  } as CSSProperties & Record<`--${string}`, string | number>;
+  };
 
   return useRender({
     defaultTagName: "button",

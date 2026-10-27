@@ -1,7 +1,3 @@
-/**
- * The icon rail renders navigation it is given: items are data and the
- * caller says which is active, so it never imports a router.
- */
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";
@@ -16,14 +12,12 @@ export interface NavDockItem {
   badge?: number;
 }
 
-/** Generic over the caller's item, so ids keep their union. */
 export interface NavDockProps<TItem extends NavDockItem> {
   items: TItem[];
   /** `| undefined` because no active item is a real state, which
    * `exactOptionalPropertyTypes` tells apart from omitted. */
   activeId?: TItem["id"] | undefined;
-  renderItem: (item: TItem, content: React.ReactNode) => React.ReactNode;
-  /** Accessible name for the landmark. */
+  renderItem: (item: TItem, content: React.ReactNode) => React.ReactElement;
   label?: string;
   brand?: React.ReactNode;
   /** Separate from `items` because it is not navigation: it never takes
@@ -56,12 +50,10 @@ export function NavDock<TItem extends NavDockItem>({
       {items.map((item) => (
         <Tooltip key={item.id}>
           <TooltipTrigger
-            render={
-              renderItem(
-                item,
-                <NavDockButtonContent item={item} isActive={item.id === activeId} />,
-              ) as React.ReactElement
-            }
+            render={renderItem(
+              item,
+              <NavDockButtonContent item={item} isActive={item.id === activeId} />,
+            )}
           />
           <TooltipContent side="right">{item.label}</TooltipContent>
         </Tooltip>

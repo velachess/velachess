@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyTheme, resolveTheme, themeInitScript } from "./theme.ts";
 
 function matchMediaMock(matches: boolean) {
-  return vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  return () => ({ matches });
 }
 
 describe("resolveTheme", () => {

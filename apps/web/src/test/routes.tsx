@@ -117,14 +117,14 @@ const accountRoute = createRoute({
 const connectionsRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/connections",
-  staticData: { crumb: msg`Connections` },
+  staticData: { crumb: msg`Chess accounts` },
   component: ConnectionsScreen,
 });
 
 const languageRegionRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/language-region",
-  staticData: { crumb: msg`Language & region` },
+  staticData: { crumb: msg`Language` },
   component: LanguageRegionScreen,
 });
 
