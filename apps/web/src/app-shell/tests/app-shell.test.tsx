@@ -109,6 +109,7 @@ describe("the account menu", () => {
 
     expect(within(menu).getByText(TEST_USER.name)).toBeInTheDocument();
     expect(within(menu).getByText(TEST_USER.email)).toBeInTheDocument();
+    expect(within(menu).queryByText("VU")).not.toBeInTheDocument();
   });
 
   it("names the account from the bottom bar", async () => {
@@ -121,5 +122,6 @@ describe("the account menu", () => {
 
     expect(within(menu).getByText(TEST_USER.name)).toBeInTheDocument();
     expect(within(menu).getByText(TEST_USER.email)).toBeInTheDocument();
+    expect(within(menu).queryByText("VU")).not.toBeInTheDocument();
   });
 });
