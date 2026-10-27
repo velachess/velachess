@@ -10,7 +10,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "../components/sidebar.tsx";
 
 export interface NavItem {
@@ -28,7 +27,6 @@ export interface NavSidebarProps<TItem extends NavItem> {
   /** Becomes the menu button, so it returns the link element itself. */
   renderItem: (item: TItem, content: React.ReactNode) => React.ReactElement;
   label?: string;
-  resizeLabel: string;
   header: React.ReactNode;
   /** Separate from `items` because it is not navigation: it never takes
    * part in `activeId`. */
@@ -40,7 +38,6 @@ export function NavSidebar<TItem extends NavItem>({
   activeId,
   renderItem,
   label = "Main",
-  resizeLabel,
   header,
   footer,
 }: NavSidebarProps<TItem>) {
@@ -68,7 +65,6 @@ export function NavSidebar<TItem extends NavItem>({
         </SidebarContent>
         <SidebarFooter>{footer}</SidebarFooter>
       </nav>
-      <SidebarRail aria-label={resizeLabel} />
     </Sidebar>
   );
 }

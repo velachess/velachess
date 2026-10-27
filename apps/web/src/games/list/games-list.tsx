@@ -77,11 +77,11 @@ export function GamesList() {
   );
 
   const actions = (
-    <div className="flex items-center gap-2">
+    <>
       <GamesFilters search={search} onChange={setSearch} />
       <PgnImportButton />
       <SyncGamesButton />
-    </div>
+    </>
   );
 
   // An empty library is a dead end without a way out of it: the header's
@@ -162,7 +162,7 @@ function GamesScreen({
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">{children}</div>
         {pagination}
       </div>
     </>

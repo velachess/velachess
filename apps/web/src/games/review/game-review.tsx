@@ -10,7 +10,7 @@ import { useMyAccounts } from "../import/index.ts";
 import { AnalysisPanel } from "./analysis-panel.tsx";
 import { BoardPane } from "./board-pane.tsx";
 import { gameQuery, type ReplayableGame } from "./game-record.ts";
-import { GameCrumb } from "./game-crumb.tsx";
+import { GameFacts, gameTitle } from "./game-heading.tsx";
 import { reviewPlayersOf, usernamesOf } from "./review-presentation.ts";
 import { createReplayNavigation } from "./review-navigation.ts";
 import { AnalysisSkeleton, GameError } from "./review-skeleton.tsx";
@@ -52,14 +52,8 @@ function ReviewScreen({ game }: { game: ReplayableGame }) {
   return (
     <ReviewStoreProvider value={store}>
       <BoardScreen
-        page={
-          <GameCrumb
-            game={game}
-            white={game.whiteName}
-            black={game.blackName}
-            mySeat={players.mySeat}
-          />
-        }
+        title={gameTitle(i18n, game.whiteName, game.blackName, players.mySeat)}
+        description={<GameFacts game={game} mySeat={players.mySeat} />}
       >
         <BoardPane
           game={game}

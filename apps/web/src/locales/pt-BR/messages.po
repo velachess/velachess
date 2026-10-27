@@ -29,7 +29,7 @@ msgstr ""
 msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr ""
 
-#: src/games/review/game-crumb.tsx:13
+#: src/games/review/game-heading.tsx:15
 msgid "{opponent} vs you"
 msgstr ""
 
@@ -42,7 +42,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/review/game-crumb.tsx:15
+#: src/games/review/game-heading.tsx:17
 msgid "{white} vs {black}"
 msgstr ""
 
@@ -50,7 +50,7 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:15
 #: src/settings/layout/navigation.ts:39
-#: src/test/routes.tsx:113
+#: src/test/routes.tsx:114
 msgid "Account"
 msgstr ""
 
@@ -86,7 +86,7 @@ msgstr ""
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
-#: src/test/routes.tsx:134
+#: src/test/routes.tsx:135
 msgid "Appearance"
 msgstr ""
 
@@ -142,6 +142,10 @@ msgstr ""
 msgid "Board interaction preferences."
 msgstr ""
 
+#: src/app-shell/route-breadcrumbs.tsx:17
+msgid "Breadcrumb"
+msgstr ""
+
 #: src/games/list/columns.tsx:23
 #: src/games/list/filters.ts:47
 #: src/games/list/games-list.tsx:31
@@ -182,7 +186,7 @@ msgstr ""
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:54
 #: src/settings/layout/navigation.ts:40
-#: src/test/routes.tsx:120
+#: src/test/routes.tsx:121
 msgid "Chess accounts"
 msgstr ""
 
@@ -380,6 +384,7 @@ msgstr ""
 
 #: src/games/list/columns.tsx:21
 #: src/games/list/filters.ts:40
+#: src/games/review/game-heading.tsx:20
 #: src/games/review/game-result.tsx:11
 msgid "Draw"
 msgstr ""
@@ -465,7 +470,7 @@ msgstr ""
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:21
 #: src/settings/layout/navigation.ts:43
-#: src/test/routes.tsx:141
+#: src/test/routes.tsx:142
 msgid "Gameplay"
 msgstr ""
 
@@ -604,7 +609,7 @@ msgstr ""
 #: src/settings/language-region/language-region-screen.tsx:24
 #: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
-#: src/test/routes.tsx:127
+#: src/test/routes.tsx:128
 msgid "Language"
 msgstr ""
 
@@ -631,14 +636,15 @@ msgstr ""
 
 #: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:39
+#: src/games/review/game-heading.tsx:19
 msgid "Loss"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:23
+#: src/app-shell/app-shell.tsx:22
 msgid "Main"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:27
+#: src/app-shell/app-shell.tsx:24
 msgid "Main, bottom bar"
 msgstr ""
 
@@ -835,7 +841,7 @@ msgstr ""
 msgid "Reset your password"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:28
+#: src/app-shell/app-shell.tsx:25
 msgid "Resize navigation"
 msgstr "Redimensionar navegação"
 
@@ -845,6 +851,8 @@ msgid "Result"
 msgstr ""
 
 #: src/games/review/analysis-panel.tsx:26
+#: src/routes/_app/games/$gameId.tsx:7
+#: src/test/routes.tsx:85
 msgid "Review"
 msgstr ""
 
@@ -893,7 +901,7 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:42
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:98
+#: src/test/routes.tsx:99
 msgid "Settings"
 msgstr ""
 
@@ -948,7 +956,7 @@ msgstr ""
 msgid "Skip"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:22
+#: src/app-shell/app-shell.tsx:21
 msgid "Skip to content"
 msgstr ""
 
@@ -1088,6 +1096,7 @@ msgid "Type {CONFIRMATION} to confirm"
 msgstr ""
 
 #: src/games/list/columns.tsx:22
+#: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:12
 msgid "Unfinished"
 msgstr ""
@@ -1140,6 +1149,7 @@ msgstr ""
 
 #: src/games/list/columns.tsx:19
 #: src/games/list/filters.ts:38
+#: src/games/review/game-heading.tsx:18
 msgid "Win"
 msgstr ""
 

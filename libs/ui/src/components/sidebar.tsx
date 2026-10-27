@@ -1,26 +1,21 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
-import { GripVerticalIcon } from "lucide-react";
 import * as React from "react";
+import { usePanelRef, type PanelProps } from "react-resizable-panels";
 
 import { SIDEBAR_MEDIA_QUERY, SIDEBAR_WIDTH } from "../lib/sidebar.ts";
 import { cn } from "../lib/utils.ts";
+import { ResizablePanel } from "./resizable.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.tsx";
 
-const SIDEBAR_WIDTH_ICON = 48;
-const SIDEBAR_COLLAPSE_BELOW = (SIDEBAR_WIDTH_ICON + SIDEBAR_WIDTH.min) / 2;
-const SIDEBAR_KEYBOARD_STEP = 16;
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
-const SIDEBAR_DRAG_SLOP = 2;
 
 type SidebarContextProps = {
-  state: ReturnType<typeof sidebarState>;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  width: number;
-  setWidth: (width: number) => void;
+  state: "expanded" | "collapsed";
   toggleSidebar: () => void;
+  panelRef: ReturnType<typeof usePanelRef>;
+  setCollapsed: (collapsed: boolean) => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -34,53 +29,28 @@ function useSidebar() {
   return context;
 }
 
-function clampWidth(width: number) {
-  return Math.min(Math.max(width, SIDEBAR_WIDTH.min), SIDEBAR_WIDTH.max);
-}
+/** The panel owns the width and whether it is collapsed; the provider only
+ * mirrors the latter for the icon-only presentation. */
+function SidebarProvider({ className, children, ...props }: React.ComponentProps<"div">) {
+  const panelRef = usePanelRef();
+  const [collapsed, setCollapsed] = React.useState(false);
 
-function sidebarState(open: boolean) {
-  if (open) return "expanded";
-  return "collapsed";
-}
-
-function visibleWidth(open: boolean, width: number) {
-  if (open) return width;
-  return SIDEBAR_WIDTH_ICON;
-}
-
-function SidebarProvider({
-  open,
-  onOpenChange: setOpen,
-  width: widthProp,
-  onWidthChange: setWidth,
-  className,
-  children,
-  ...props
-}: Omit<React.ComponentProps<"div">, "style"> & {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** The expanded width in px; clamped, so a stale persisted value is safe. */
-  width: number;
-  onWidthChange: (width: number) => void;
-}) {
-  const width = clampWidth(widthProp);
-
-  const context = React.useMemo<SidebarContextProps>(
-    () => ({
-      state: sidebarState(open),
-      open,
-      setOpen,
-      width,
-      setWidth,
-      toggleSidebar: () => setOpen(!open),
-    }),
-    [open, setOpen, width, setWidth],
-  );
-
-  const dimensions: Record<`--${string}`, string> = {
-    "--sidebar-width": `${width}px`,
-    "--sidebar-width-icon": `${SIDEBAR_WIDTH_ICON}px`,
+  const context: SidebarContextProps = {
+    state: collapsed ? "collapsed" : "expanded",
+    toggleSidebar: () => {
+      if (panelRef.current?.isCollapsed()) panelRef.current.expand();
+      else panelRef.current?.collapse();
+    },
+    panelRef,
+    setCollapsed,
   };
+
+  // The panel reports its size from a ResizeObserver, a frame after the
+  // first paint; reading it before then keeps a sidebar restored collapsed
+  // from painting once with its labels.
+  React.useLayoutEffect(() => {
+    setCollapsed(panelRef.current?.isCollapsed() ?? false);
+  }, [panelRef]);
 
   const onShortcut = React.useEffectEvent(context.toggleSidebar);
 
@@ -101,11 +71,7 @@ function SidebarProvider({
     <SidebarContext value={context}>
       <div
         data-slot="sidebar-wrapper"
-        style={dimensions}
-        className={cn(
-          "group/sidebar-wrapper flex min-h-svh w-full data-resizing:cursor-ew-resize data-resizing:select-none",
-          className,
-        )}
+        className={cn("flex min-h-svh w-full", className)}
         {...props}
       >
         {children}
@@ -114,168 +80,40 @@ function SidebarProvider({
   );
 }
 
-function Sidebar({ className, children, ...props }: React.ComponentProps<"div">) {
+function SidebarPanel(props: Omit<PanelProps, "id" | "panelRef" | "onResize">) {
+  const { panelRef, setCollapsed } = useSidebar();
+
+  return (
+    <ResizablePanel
+      id="sidebar"
+      data-slot="sidebar-panel"
+      panelRef={panelRef}
+      collapsible
+      collapsedSize={SIDEBAR_WIDTH.icon}
+      minSize={SIDEBAR_WIDTH.min}
+      maxSize={SIDEBAR_WIDTH.max}
+      defaultSize={SIDEBAR_WIDTH.default}
+      groupResizeBehavior="preserve-pixel-size"
+      onResize={(size) => setCollapsed(size.inPixels < SIDEBAR_WIDTH.min)}
+      style={{ overflow: "hidden" }}
+      {...props}
+    />
+  );
+}
+
+function Sidebar({ className, ...props }: React.ComponentProps<"div">) {
   const { state } = useSidebar();
 
   return (
     <div
-      className="group peer hidden text-sidebar-foreground md:block"
-      data-state={state}
       data-slot="sidebar"
-    >
-      <div
-        data-slot="sidebar-gap"
-        className="relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear group-data-[state=collapsed]:w-(--sidebar-width-icon) in-data-resizing:transition-none motion-reduce:transition-none"
-      />
-      <div
-        data-slot="sidebar-container"
-        className={cn(
-          "fixed inset-y-0 left-0 z-10 hidden h-svh w-(--sidebar-width) border-r border-sidebar-border transition-[width] duration-200 ease-linear group-data-[state=collapsed]:w-(--sidebar-width-icon) in-data-resizing:transition-none motion-reduce:transition-none md:flex",
-          className,
-        )}
-        {...props}
-      >
-        <div
-          data-sidebar="sidebar"
-          data-slot="sidebar-inner"
-          className="flex size-full flex-col bg-sidebar"
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface RailDrag {
-  wrapper: HTMLElement;
-  startX: number;
-  startWidth: number;
-  width: number;
-  moved: boolean;
-}
-
-function preview(drag: RailDrag, expanded: number, icon: number) {
-  drag.wrapper.style.setProperty("--sidebar-width", `${expanded}px`);
-  drag.wrapper.style.setProperty("--sidebar-width-icon", `${icon}px`);
-}
-
-/** The edge follows the pointer between the icon width and the maximum on
- * the wrapper's variables, then settles within bounds and commits once on
- * release, so a drag does not re-render the tree. */
-function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
-  const { open, setOpen, width, setWidth, toggleSidebar } = useSidebar();
-  const dragRef = React.useRef<RailDrag | null>(null);
-
-  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    const wrapper = event.currentTarget.closest<HTMLElement>(
-      "[data-slot=sidebar-wrapper]",
-    );
-    if (event.button !== 0 || !wrapper) return;
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      wrapper,
-      startX: event.clientX,
-      startWidth: visibleWidth(open, width),
-      width,
-      moved: false,
-    };
-  }
-
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    if (!drag) return;
-
-    const offset = event.clientX - drag.startX;
-    if (!drag.moved && Math.abs(offset) <= SIDEBAR_DRAG_SLOP) return;
-    drag.moved = true;
-    drag.wrapper.dataset["resizing"] = "";
-
-    const edge = Math.min(
-      Math.max(drag.startWidth + offset, SIDEBAR_WIDTH_ICON),
-      SIDEBAR_WIDTH.max,
-    );
-    if (edge < SIDEBAR_COLLAPSE_BELOW) {
-      if (open) setOpen(false);
-      drag.width = width;
-      preview(drag, width, edge);
-      return;
-    }
-
-    if (!open) setOpen(true);
-    drag.width = clampWidth(edge);
-    preview(drag, edge, SIDEBAR_WIDTH_ICON);
-  }
-
-  function finishDrag() {
-    const drag = dragRef.current;
-    dragRef.current = null;
-    if (!drag) return null;
-
-    delete drag.wrapper.dataset["resizing"];
-    if (!drag.moved) return drag;
-
-    preview(drag, drag.width, SIDEBAR_WIDTH_ICON);
-    if (drag.width !== width) setWidth(drag.width);
-    return drag;
-  }
-
-  function handlePointerUp() {
-    const drag = finishDrag();
-    if (drag && !drag.moved) toggleSidebar();
-  }
-
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      toggleSidebar();
-      return;
-    }
-
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      if (!open) {
-        setOpen(true);
-        return;
-      }
-      setWidth(clampWidth(width + SIDEBAR_KEYBOARD_STEP));
-      return;
-    }
-
-    if (event.key === "ArrowLeft" && open) {
-      event.preventDefault();
-      if (width <= SIDEBAR_WIDTH.min) {
-        setOpen(false);
-        return;
-      }
-      setWidth(clampWidth(width - SIDEBAR_KEYBOARD_STEP));
-    }
-  }
-
-  return (
-    <div
-      data-sidebar="rail"
-      data-slot="sidebar-rail"
-      role="separator"
-      aria-orientation="vertical"
-      aria-valuemin={SIDEBAR_WIDTH_ICON}
-      aria-valuemax={SIDEBAR_WIDTH.max}
-      aria-valuenow={visibleWidth(open, width)}
-      tabIndex={0}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={finishDrag}
-      onKeyDown={handleKeyDown}
+      data-state={state}
       className={cn(
-        "group/rail absolute inset-y-0 -right-4 z-20 flex w-4 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center outline-hidden after:absolute after:inset-y-0 after:start-1/2 after:w-0.5 after:transition-colors hover:after:bg-sidebar-border focus-visible:after:bg-sidebar-ring in-data-resizing:after:bg-sidebar-ring motion-reduce:after:transition-none",
+        "group flex size-full flex-col bg-sidebar text-sidebar-foreground",
         className,
       )}
       {...props}
-    >
-      <GripVerticalIcon className="z-10 h-4 w-3 shrink-0 rounded-xs border border-sidebar-border bg-sidebar-border text-muted-foreground transition-colors group-hover/rail:text-sidebar-foreground group-focus-visible/rail:border-sidebar-ring group-focus-visible/rail:text-sidebar-foreground in-data-resizing:border-sidebar-ring in-data-resizing:text-sidebar-foreground motion-reduce:transition-none" />
-    </div>
+    />
   );
 }
 
@@ -432,7 +270,7 @@ export {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarPanel,
   SidebarProvider,
-  SidebarRail,
   useSidebar,
 };

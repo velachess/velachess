@@ -18,7 +18,7 @@ import { cn } from "../lib/utils.ts";
  * cannot do this: Tailwind's `@container` has no `cqh`.
  */
 export const BOARD_STAGE_WIDTH =
-  "w-full min-w-0 max-w-[32rem] @4xl/content:max-w-[min(100svh-9rem,100%)]";
+  "w-full min-w-0 max-w-[32rem] @4xl/content:max-w-[min(100svh-10.5rem,100%)]";
 
 /**
  * Grid, not flex, because the panel gets a width range. `minmax(0,1fr)`

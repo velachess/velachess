@@ -36,8 +36,8 @@ declare module "@tanstack/react-router" {
     router: ReturnType<typeof getRouter>;
   }
   interface StaticDataRouteOption {
-    /** The label a route contributes to `useBreadcrumbTrail`, when it is
-     * ever a trail ancestor. Absent on routes that never nest a child. */
+    /** The label a route contributes to `RouteBreadcrumbs`: a link back as
+     * an ancestor, the current page as the deepest. */
     crumb?: MessageDescriptor;
   }
 }

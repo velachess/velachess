@@ -193,14 +193,13 @@ describe("game analysis", () => {
     const { user } = await openGame(gradedPlies());
     await findBlunderButton();
 
-    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
+    const nav = await screen.findByRole("navigation", { name: "Breadcrumb" });
     expect(within(nav).getByRole("link", { name: "Games" })).toHaveAttribute(
       "href",
       "/games",
     );
-    expect(within(nav).getAllByRole("link").at(-1)?.textContent).toMatch(
-      /^gothamchess vs you · .+ · Chess\.com · 1-0$/,
-    );
+    expect(within(nav).getAllByRole("link")).toHaveLength(1);
+    expect(within(nav).getByText("Review")).toHaveAttribute("aria-current", "page");
 
     await user.click(within(nav).getByRole("link", { name: "Games" }));
     expect(await screen.findByRole("heading", { name: "Games" })).toBeInTheDocument();
@@ -363,7 +362,7 @@ describe("game analysis", () => {
 });
 
 /** Dates sit at midday UTC, so the calendar day holds in any timezone. */
-describe("game breadcrumb", () => {
+describe("game header", () => {
   const PLAYED_AT = "2026-08-22T12:00:00.000Z";
 
   beforeEach(() => {
@@ -371,28 +370,36 @@ describe("game breadcrumb", () => {
     vi.mocked(analyzeGameInBrowser).mockReset();
   });
 
-  const openCrumb = async (overrides: Partial<Game>) => {
+  const openHeader = async (overrides: Partial<Game>) => {
     const game = aGame({ playedAt: PLAYED_AT, ...overrides });
     addGames(game);
     stageAnalysis(gradedPlies());
     const rendered = await renderApp({ path: `/games/${game.id}` });
-    const nav = await screen.findByRole("navigation", { name: "breadcrumb" });
-    return { crumb: within(nav).getAllByRole("link").at(-1)!, ...rendered };
+    const title = await screen.findByRole("heading", { level: 1 });
+    return { title, ...rendered };
   };
 
+  it("keeps the matchup out of the trail", async () => {
+    await openHeader({});
+
+    const nav = await screen.findByRole("navigation", { name: "Breadcrumb" });
+    expect(nav.textContent).toBe("GamesReview");
+  });
+
   it("names the opponent first when you played white", async () => {
-    const { crumb } = await openCrumb({
+    const { title } = await openHeader({
       whiteName: ME,
       blackName: "grin_gyt",
       perspective: "white",
       result: "0-1",
     });
 
-    expect(crumb.textContent).toBe("grin_gyt vs you · 8/22/2026 · Chess.com · 0-1");
+    expect(title.textContent).toBe("grin_gyt vs you");
+    expect(screen.getByText("Aug 22, 2026 · Chess.com · 0–1 Loss")).toBeInTheDocument();
   });
 
   it("names the opponent first when you played black", async () => {
-    const { crumb } = await openCrumb({
+    const { title } = await openHeader({
       whiteName: "grin_gyt",
       blackName: ME,
       perspective: "black",
@@ -400,13 +407,15 @@ describe("game breadcrumb", () => {
       result: "1-0",
     });
 
-    expect(crumb.textContent).toBe("grin_gyt vs you · 8/22/2026 · Lichess · 1-0");
+    expect(title.textContent).toBe("grin_gyt vs you");
+    expect(screen.getByText("Aug 22, 2026 · Lichess · 1–0 Loss")).toBeInTheDocument();
   });
 
   it("names an imported PGN game by its source", async () => {
-    const { crumb } = await openCrumb({ source: "pgn", result: "1/2-1/2" });
+    const { title } = await openHeader({ source: "pgn", result: "1/2-1/2" });
 
-    expect(crumb.textContent).toBe("gothamchess vs you · 8/22/2026 · PGN · 1/2-1/2");
+    expect(title.textContent).toBe("gothamchess vs you");
+    expect(screen.getByText("Aug 22, 2026 · PGN · ½–½ Draw")).toBeInTheDocument();
   });
 
   it("gives each source its own mark", async () => {
@@ -414,8 +423,8 @@ describe("game breadcrumb", () => {
     // evidence.
     const icons: (string | undefined)[] = [];
     for (const source of ["chess_com", "lichess", "pgn"] as const) {
-      const { crumb, unmount } = await openCrumb({ source });
-      icons.push(crumb.querySelector("svg")?.innerHTML);
+      const { title, unmount } = await openHeader({ source });
+      icons.push(title.nextElementSibling?.querySelector("svg")?.innerHTML);
       unmount();
     }
 
@@ -424,48 +433,51 @@ describe("game breadcrumb", () => {
   });
 
   it("shows a dash when the game has no date", async () => {
-    const { crumb } = await openCrumb({ playedAt: null });
+    await openHeader({ playedAt: null });
 
-    expect(crumb.textContent).toBe("gothamchess vs you · — · Chess.com · 1-0");
+    expect(screen.getByText("— · Chess.com · 1–0 Win")).toBeInTheDocument();
   });
 
-  it("shows * for a game with no result yet", async () => {
-    const { crumb } = await openCrumb({ result: "*" });
+  it("says a game with no result yet is unfinished", async () => {
+    await openHeader({ result: "*" });
 
-    expect(crumb.textContent).toBe("gothamchess vs you · 8/22/2026 · Chess.com · *");
+    expect(screen.getByText("Aug 22, 2026 · Chess.com · Unfinished")).toBeInTheDocument();
   });
 
   it("finds you as black by your tracked account when no seat is stored", async () => {
-    const { crumb } = await openCrumb({
+    const { title } = await openHeader({
       perspective: null,
       whiteName: "magnus",
       blackName: ME,
     });
 
-    expect(crumb.textContent).toBe("magnus vs you · 8/22/2026 · Chess.com · 1-0");
+    expect(title.textContent).toBe("magnus vs you");
+    expect(screen.getByText("Aug 22, 2026 · Chess.com · 1–0 Loss")).toBeInTheDocument();
   });
 
   it("finds you as white by your tracked account when no seat is stored", async () => {
-    const { crumb } = await openCrumb({
+    const { title } = await openHeader({
       perspective: null,
       whiteName: ME,
       blackName: "magnus",
     });
 
-    expect(crumb.textContent).toBe("magnus vs you · 8/22/2026 · Chess.com · 1-0");
+    expect(title.textContent).toBe("magnus vs you");
+    expect(screen.getByText("Aug 22, 2026 · Chess.com · 1–0 Win")).toBeInTheDocument();
   });
 
   it("does not call anyone you when your seat is unknown", async () => {
-    // Named on neither side: the board starts at white, the trail says
-    // neither name is yours.
-    const { crumb } = await openCrumb({
+    // Named on neither side: the board starts at white, and the header
+    // neither says whose win it was nor calls anyone you.
+    const { title } = await openHeader({
       perspective: null,
       whiteName: "magnus",
       blackName: "hikaru",
       source: "pgn",
     });
 
-    expect(crumb.textContent).toBe("magnus vs hikaru · 8/22/2026 · PGN · 1-0");
+    expect(title.textContent).toBe("magnus vs hikaru");
+    expect(screen.getByText("Aug 22, 2026 · PGN · 1–0")).toBeInTheDocument();
   });
 });
 

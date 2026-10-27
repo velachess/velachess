@@ -1,57 +1,28 @@
-import { useLingui } from "@lingui/react";
-import { Link } from "@tanstack/react-router";
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@velachess/ui/components/breadcrumb";
 import { BoardStage } from "@velachess/ui/chess/board-stage";
+import { PageHeader } from "@velachess/ui/layout/page-header";
 
-import { useBreadcrumbTrail } from "./breadcrumb-trail.ts";
+import { RouteBreadcrumbs } from "./route-breadcrumbs.tsx";
 
 export interface BoardScreenProps {
-  /** The last crumb, which the router cannot know: it needs data the route
-   * has not loaded. */
-  page: ReactNode;
+  title: string;
+  description: ReactNode;
   children: ReactNode;
 }
 
-export function BoardScreen({ page, children }: BoardScreenProps) {
-  const { i18n } = useLingui();
-  const trail = useBreadcrumbTrail();
-
+export function BoardScreen({ title, description, children }: BoardScreenProps) {
   return (
-    // `pb-0` on mobile: a sticky footer nav inside the panel sticks to this
-    // container's padding edge.
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pb-0 @4xl/content:overflow-hidden @4xl/content:pb-4">
-      <Breadcrumb className="shrink-0">
-        <BreadcrumbList>
-          {trail.map((crumb) => (
-            <Fragment key={crumb.fullPath}>
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  render={
-                    <Link to={crumb.fullPath} params={crumb.params}>
-                      {i18n._(crumb.label)}
-                    </Link>
-                  }
-                />
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-            </Fragment>
-          ))}
-          <BreadcrumbItem>
-            <BreadcrumbPage>{page}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <BoardStage>{children}</BoardStage>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl/content:overflow-hidden">
+      <PageHeader
+        compact
+        breadcrumbs={<RouteBreadcrumbs />}
+        title={title}
+        description={description}
+      />
+      {/* No bottom padding on mobile: a sticky footer nav inside the panel
+          sticks to the scrolling container's edge. */}
+      <BoardStage className="px-4 pt-4 md:px-6 @4xl/content:pb-4">{children}</BoardStage>
     </div>
   );
 }
