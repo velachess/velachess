@@ -5,7 +5,7 @@ import { flushSync } from "react-dom";
 
 import { Monitor, Moon, Sun } from "../icons/index.ts";
 import { useTheme } from "../lib/theme-provider.tsx";
-import type { Theme } from "../lib/theme.ts";
+import { isTheme, type Theme } from "../lib/theme.ts";
 import { Button } from "./button.tsx";
 import {
   DropdownMenu,
@@ -57,9 +57,7 @@ function useAnimatedSetTheme(anchorRef: RefObject<HTMLElement | null>) {
   };
 }
 
-/** The options with no trigger of their own, for embedding in any
- * `DropdownMenuContent`. `anchorRef` is the element the reveal spreads
- * from. */
+/** `anchorRef` is the element the reveal spreads from. */
 export function ThemeRadioItems({
   labels,
   anchorRef,
@@ -70,11 +68,12 @@ export function ThemeRadioItems({
   const { theme } = useTheme();
   const selectTheme = useAnimatedSetTheme(anchorRef);
 
+  const handleValueChange = (value: unknown) => {
+    if (isTheme(value)) selectTheme(value);
+  };
+
   return (
-    <DropdownMenuRadioGroup
-      value={theme}
-      onValueChange={(value) => selectTheme(value as Theme)}
-    >
+    <DropdownMenuRadioGroup value={theme} onValueChange={handleValueChange}>
       <DropdownMenuRadioItem value="system">
         <Monitor className="size-4" />
         {labels.system}
@@ -91,8 +90,6 @@ export function ThemeRadioItems({
   );
 }
 
-/** Trigger and menu together, for anywhere not already inside another
- * menu. */
 export function ThemeToggle({
   labels,
 }: {

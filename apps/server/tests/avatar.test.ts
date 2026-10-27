@@ -1,7 +1,3 @@
-/**
- * Through the real app: real Better Auth, real migrations, a real file store
- * over a temp directory, so a passing test has moved actual bytes.
- */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -42,7 +38,7 @@ const PNG = Buffer.from([
 
 async function sessionImage(owner: AuthedApp) {
   const response = await owner.request("/auth/get-session");
-  const body = (await response.json()) as { user?: { image?: string | null } } | null;
+  const body: { user?: { image?: string | null } } | null = await response.json();
   return body?.user?.image ?? null;
 }
 

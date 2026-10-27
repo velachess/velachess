@@ -1,15 +1,18 @@
-/**
- * The boot-time contract: what refuses to start, and what every refusal
- * says — and, just as deliberately, what it never says.
- *
- * Pure unit tests: `resolveAuthEnv` takes the environment as a value,
- * so each rule is provable without a process or a database.
- */
 import { describe, expect, it } from "vitest";
 
 import { resolveAuthEnv } from "../env.ts";
 
 const STRONG = "correct-horse-battery-staple-and-then-some";
+
+function refusalOf(env: Record<string, string | undefined>): string {
+  try {
+    resolveAuthEnv(env);
+  } catch (error) {
+    if (error instanceof Error) return error.message;
+    throw error;
+  }
+  return expect.unreachable("the environment must be refused");
+}
 
 describe("the auth secret", () => {
   it("is required, and the error says how to make one", () => {
@@ -25,14 +28,8 @@ describe("the auth secret", () => {
   });
 
   it("never appears in an error message", () => {
-    const secret = "leak-canary-0123456789";
-    try {
-      resolveAuthEnv({ VELACHESS_AUTH_SECRET: secret });
-      expect.unreachable("a short secret must throw");
-    } catch (error) {
-      expect((error as Error).message).not.toContain(secret);
-      expect((error as Error).message).not.toContain("leak-canary");
-    }
+    const refusal = refusalOf({ VELACHESS_AUTH_SECRET: "leak-canary-0123456789" });
+    expect(refusal).not.toContain("leak-canary");
   });
 
   it("rejects the .env.example placeholder in production", () => {
@@ -178,15 +175,11 @@ describe("Google sign-in", () => {
   });
 
   it("never echoes the client secret in the refusal", () => {
-    try {
-      resolveAuthEnv({
-        VELACHESS_AUTH_SECRET: STRONG,
-        GOOGLE_CLIENT_SECRET: "leak-canary-google",
-      });
-      expect.unreachable("half-configured Google must throw");
-    } catch (error) {
-      expect((error as Error).message).not.toContain("leak-canary");
-    }
+    const refusal = refusalOf({
+      VELACHESS_AUTH_SECRET: STRONG,
+      GOOGLE_CLIENT_SECRET: "leak-canary-google",
+    });
+    expect(refusal).not.toContain("leak-canary");
   });
 });
 

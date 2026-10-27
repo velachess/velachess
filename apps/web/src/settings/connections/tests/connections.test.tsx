@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 
 import {
   landSync,
@@ -8,6 +8,7 @@ import {
   refuseRefreshFor,
   scheduleSync,
 } from "../../../test/archive.ts";
+import { ME } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
 import {
   accountIsTracked,
@@ -16,26 +17,39 @@ import {
 import { sessionActive } from "../../../test/handlers/auth.ts";
 import { server } from "../../../test/server.ts";
 
-/**
- * Settings → Connections: the chess accounts games come from, composed
- * from the same tracked-accounts query and sync mutation the rest of the
- * app already uses — no second source of truth.
- */
+async function providerRow(name: "Chess.com" | "Lichess") {
+  return within(await screen.findByRole("listitem", { name }));
+}
 
-describe("connections", () => {
+describe("chess accounts", () => {
   beforeEach(() => {
     sessionActive();
     resetTrackedAccounts();
   });
 
-  it("lists the accounts the server tracks", async () => {
+  it("lists every provider with whether it is connected", async () => {
+    accountIsTracked({ platform: "chess_com", username: "magnus" });
+
+    await renderApp({ path: "/settings/connections" });
+
+    const chessCom = await providerRow("Chess.com");
+    expect(chessCom.getByText("magnus")).toBeInTheDocument();
+    expect(chessCom.getByText("Connected")).toBeInTheDocument();
+
+    const lichess = await providerRow("Lichess");
+    expect(lichess.getByText("Not connected")).toBeInTheDocument();
+    expect(lichess.getByRole("button", { name: "Connect Lichess" })).toBeInTheDocument();
+  });
+
+  it("shows both handles when both providers are connected", async () => {
     accountIsTracked({ platform: "chess_com", username: "magnus" });
     accountIsTracked({ platform: "lichess", username: "hikaru" });
 
     await renderApp({ path: "/settings/connections" });
 
-    expect(await screen.findByText("magnus")).toBeInTheDocument();
-    expect(screen.getByText("hikaru")).toBeInTheDocument();
+    expect((await providerRow("Chess.com")).getByText("magnus")).toBeInTheDocument();
+    expect((await providerRow("Lichess")).getByText("hikaru")).toBeInTheDocument();
+    expect(screen.queryByText("Not connected")).not.toBeInTheDocument();
   });
 
   it("says when an account has never synced", async () => {
@@ -43,7 +57,34 @@ describe("connections", () => {
 
     await renderApp({ path: "/settings/connections" });
 
-    expect(await screen.findByText("Not synced yet")).toBeInTheDocument();
+    expect(
+      (await providerRow("Chess.com")).getByText("Not synced yet"),
+    ).toBeInTheDocument();
+  });
+
+  it("marks an account whose last sync failed", async () => {
+    accountIsTracked({
+      platform: "lichess",
+      username: "hikaru",
+      lastSyncError: "not-found",
+    });
+
+    await renderApp({ path: "/settings/connections" });
+
+    const lichess = await providerRow("Lichess");
+    expect(lichess.getByText("Sync failed")).toBeInTheDocument();
+    expect(lichess.queryByText("Connected")).not.toBeInTheDocument();
+  });
+
+  it("reads as syncing while the server holds a job for the account", async () => {
+    accountIsTracked({ id: "account-1", platform: "chess_com", username: "magnus" });
+    scheduleSync("account-1", "manual");
+
+    await renderApp({ path: "/settings/connections" });
+
+    const chessCom = await providerRow("Chess.com");
+    expect(chessCom.getByText("Syncing")).toBeInTheDocument();
+    expect(chessCom.getByRole("button", { name: "Syncing…" })).toBeDisabled();
   });
 
   it("syncs a single account from its own row, and shows it running until the server says it landed", async () => {
@@ -97,11 +138,29 @@ describe("connections", () => {
     expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
   });
 
-  it("offers the existing connect form to add an account", async () => {
+  it("reads every provider as available when none is connected", async () => {
     await renderApp({ path: "/settings/connections" });
 
-    expect(await screen.findByText("Connect an account")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Chess.com username")).toBeInTheDocument();
+    expect(
+      (await providerRow("Chess.com")).getByText("Not connected"),
+    ).toBeInTheDocument();
+    expect((await providerRow("Lichess")).getByText("Not connected")).toBeInTheDocument();
+  });
+
+  it("connects a provider from its own row, without offering the other one", async () => {
+    const { user } = await renderApp({ path: "/settings/connections" });
+
+    await user.click(await screen.findByRole("button", { name: "Connect Chess.com" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Connect Chess.com" });
+    expect(within(dialog).queryByRole("tab")).not.toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText("Chess.com username"), ME);
+    await user.click(within(dialog).getByRole("button", { name: "Import" }));
+
+    await screen.findByText(ME);
+    expect((await providerRow("Chess.com")).getByText(ME)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("says so when the list cannot be loaded", async () => {
@@ -116,12 +175,7 @@ describe("connections", () => {
     expect(
       await screen.findByText("Couldn't load your connected accounts."),
     ).toBeInTheDocument();
-  });
-
-  it("explains the value of connecting an account once none are", async () => {
-    await renderApp({ path: "/settings/connections" });
-
-    expect(await screen.findByText("No chess accounts connected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("removes a connection after confirming, and tells the user it worked", async () => {
@@ -137,8 +191,9 @@ describe("connections", () => {
 
     expect(await screen.findByText("Connection removed")).toBeInTheDocument();
     expect(screen.queryByText("magnus")).not.toBeInTheDocument();
-    // The empty state takes its place — nothing left to manage.
-    expect(await screen.findByText("No chess accounts connected")).toBeInTheDocument();
+    expect(
+      await (await providerRow("Chess.com")).findByText("Not connected"),
+    ).toBeInTheDocument();
   });
 
   it("cancelling the confirmation leaves the connection untouched", async () => {

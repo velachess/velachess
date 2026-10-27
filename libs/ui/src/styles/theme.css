@@ -9,9 +9,42 @@
 
 :root {
   --radius: 0.625rem;
+  --shadow-ink: #000000;
 
-  /* The product app inherits this dark default; theme-aware surfaces opt
-     into .light or .dark without changing the product's shipped palette. */
+  /* Board and engine verdicts. Names mirror `engine_category` in the db. */
+  --board-light: #9eabb6;
+  --board-dark: #5d6c79;
+  --board-highlight: color-mix(
+    in oklab,
+    #5b6cff 40%,
+    transparent
+  ); /* selection, last move */
+  --board-suggested: #5b6cff; /* off the grade ramp: a suggestion is not a verdict */
+  --board-check: #f0616f; /* same ink as --destructive, on purpose. No renderer yet. */
+  --move-ok: oklch(0.65 0.16 150);
+  --move-inaccuracy: oklch(0.79 0.15 85);
+  --move-mistake: oklch(0.72 0.17 55);
+  --move-blunder: oklch(0.6 0.22 25);
+  /* Where the board is, on a chart. Never themed, and deliberately
+     mid-lightness: the one band that clears 3:1 against both the dark
+     canvas (5.5:1) and the light one (3.3:1). Lighter reads better on
+     dark and then dissolves into a light panel. */
+  --chart-marker: oklch(0.6 0.16 160);
+  /* The two armies, never themed: a bar that followed the squares would
+     stop meaning "White is winning". */
+  --eval-white: oklch(0.97 0.005 85);
+  --eval-black: oklch(0.24 0.008 85);
+  /* Chess.com's own green, for its mark only. Never themed: a brand mark
+     keeps its colour on either canvas. */
+  --chess-com: #81b64c;
+}
+
+/* The product app inherits this dark default; theme-aware surfaces opt
+   into .light or .dark without changing the product's shipped palette.
+   Class-scoped rather than bound to :root, so a subtree such as a theme
+   preview can render the other palette inside the current one. */
+:root,
+.dark {
   --brand: #5b6cff; /* Vela Indigo */
   --brand-text: #7684ff; /* Vela Indigo lifted for readable small text */
   --brand-mark-on-primary: #ffffff;
@@ -48,50 +81,11 @@
   --chart-3: #768196; /* reference / baseline */
   --chart-4: #f1e67a; /* highlight */
   --chart-5: color-mix(in oklab, var(--brand) 62%, #f4f6fa); /* tint of chart-1 */
-  --shadow-ink: #000000;
-
-  /* The desktop navigation. Aliases, so both themes follow their base tokens. */
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--card-foreground);
-  --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--muted);
-  --sidebar-accent-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
-
-  /* Board and engine verdicts. Names mirror `engine_category` in the db. */
-  --board-light: #9eabb6;
-  --board-dark: #5d6c79;
-  --board-highlight: color-mix(
-    in oklab,
-    #5b6cff 40%,
-    transparent
-  ); /* selection, last move */
-  --board-suggested: #5b6cff; /* off the grade ramp: a suggestion is not a verdict */
-  --board-check: #f0616f; /* same ink as --destructive, on purpose. No renderer yet. */
-  --move-ok: oklch(0.65 0.16 150);
-  --move-inaccuracy: oklch(0.79 0.15 85);
-  --move-mistake: oklch(0.72 0.17 55);
-  --move-blunder: oklch(0.6 0.22 25);
-  /* Where the board is, on a chart. Never themed, and deliberately
-     mid-lightness: the one band that clears 3:1 against both the dark
-     canvas (5.5:1) and the light one (3.3:1). Lighter reads better on
-     dark and then dissolves into a light panel. */
-  --chart-marker: oklch(0.6 0.16 160);
-  /* The two armies, never themed: a bar that followed the squares would
-     stop meaning "White is winning". */
-  --eval-white: oklch(0.97 0.005 85);
-  --eval-black: oklch(0.24 0.008 85);
 
   color-scheme: dark;
 }
 
-:root.dark {
-  color-scheme: dark;
-}
-
-:root.light {
+.light {
   --brand: #5b6cff;
   --brand-text: #4453d6;
   --background: #f7f8fc;
@@ -129,6 +123,20 @@
   --chart-5: color-mix(in oklab, var(--brand) 62%, #10131a);
 
   color-scheme: light;
+}
+
+/* Declared in every palette scope so each resolves against its own tokens. */
+:root,
+.dark,
+.light {
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--card-foreground);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 /* Tokens become utilities: bg-background, text-move-blunder, … */
@@ -198,6 +206,7 @@
   --color-move-blunder: var(--move-blunder);
   --color-eval-white: var(--eval-white);
   --color-eval-black: var(--eval-black);
+  --color-chess-com: var(--chess-com);
 
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;

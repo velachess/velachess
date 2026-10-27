@@ -13,6 +13,7 @@ import {
   useXAxisInverseDataSnapScale,
   useXAxisScale,
 } from "recharts";
+import type { DotItemDotProps } from "recharts";
 
 import type { BadgeTone } from "../chess/board-theme.ts";
 import { BADGE_TONE_COLOR } from "../chess/board-theme.ts";
@@ -97,7 +98,6 @@ function SelectedPlyMarker({ ply }: { ply: number | undefined }) {
   );
 }
 
-/** The x scale snaps a click to the nearest ply. */
 function PlotClickTarget({
   onSelectPly,
 }: {
@@ -142,19 +142,13 @@ export function EvaluationChart({
   onSelectPly,
 }: EvaluationChartProps) {
   const renderDot = useCallback(
-    (props: Record<string, unknown>) => {
-      const { cx, cy, payload } = props as {
-        cx?: number;
-        cy?: number;
-        payload: EvaluationPoint;
-      };
-      return <MoveDot cx={cx} cy={cy} payload={payload} onSelectPly={onSelectPly} />;
+    ({ cx, cy, payload }: DotItemDotProps) => {
+      const point: EvaluationPoint = payload;
+      return <MoveDot cx={cx} cy={cy} payload={point} onSelectPly={onSelectPly} />;
     },
     [onSelectPly],
   );
 
-  // A selection the data does not hold is no selection, so the consumer
-  // needs no particular "nothing selected" value.
   const markedPly = data.find((point) => point.ply === selectedPly)?.ply;
 
   return (

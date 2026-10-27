@@ -1,9 +1,4 @@
 // @vitest-environment node
-/**
- * The worker over the real harness: pg-boss delivers, the handler calls the
- * sync slice. The cases below hand deliveries over themselves, composed the
- * way the worker composes them.
- */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -89,7 +84,7 @@ const MULTI_MONTH_OPENINGS = [
 ];
 function multiMonthFetch(opts: { failMonth?: string } = {}) {
   const calls = new Map(MULTI_MONTH_ARCHIVES.map((month) => [month, 0]));
-  const fetchFn = (async (input: RequestInfo | URL) => {
+  const fetchFn: typeof fetch = async (input) => {
     const url = String(input);
     if (/\/pub\/player\/[^/]+$/.test(url)) return Response.json({});
     if (url.endsWith("/archives")) {
@@ -123,7 +118,7 @@ function multiMonthFetch(opts: { failMonth?: string } = {}) {
         },
       ],
     });
-  }) as typeof fetch;
+  };
   return { fetch: fetchFn, calls };
 }
 
@@ -142,17 +137,21 @@ const jobAsPolled = (job: { id: string; userId: string }) =>
     job.id,
   );
 
-/** Answers only once `release` is called: a delivery held mid-fetch. */
+const signalHonoringFetch: typeof fetch = async (input, init) => {
+  init?.signal?.throwIfAborted();
+  return chessComFixtureFetch()(input);
+};
+
 function heldFetch(answer: typeof fetch) {
   let release!: () => void;
   const released = new Promise<void>((resolve) => (release = resolve));
   let reached!: () => void;
   const fetching = new Promise<void>((resolve) => (reached = resolve));
-  const held = (async (...args: Parameters<typeof fetch>) => {
+  const held: typeof fetch = async (...args) => {
     reached();
     await released;
     return answer(...args);
-  }) as typeof fetch;
+  };
   return { held, fetching, release };
 }
 
@@ -273,9 +272,7 @@ describe("sync deliveries", () => {
     // chess.com with `month === undefined`, matching no archive month: the
     // pass completed having fetched nothing.
     const job = await newSyncJob();
-    await updateTrackedAccountCursor(h.db, job.accountId, {
-      sinceMs: 1_704_067_200_000,
-    } as never);
+    await updateTrackedAccountCursor(h.db, job.accountId, { sinceMs: 1_704_067_200_000 });
     const unreadable: { accountId: string; platform: string }[] = [];
 
     await sync(
@@ -295,7 +292,7 @@ describe("sync deliveries", () => {
   it("a handle gone from the provider fails for good, keeping the account", async () => {
     const job = await newSyncJob("vanished");
     const gone = {
-      fetch: (async () => new Response("", { status: 404 })) as typeof fetch,
+      fetch: async () => new Response("", { status: 404 }),
     };
 
     await sync(gone, await deliver(job));
@@ -310,11 +307,11 @@ describe("sync deliveries", () => {
     // checkpointed before the cancellation was observed and survives.
     const job = await newSyncJob();
     const deadline = new AbortController();
-    const lateFetch = (async (input: RequestInfo | URL) => {
+    const lateFetch: typeof fetch = async (input) => {
       const response = await chessComFixtureFetch()(input);
       deadline.abort(new Error("delivery expired"));
       return response;
-    }) as typeof fetch;
+    };
 
     await expect(
       sync({ fetch: lateFetch }, { ...(await deliver(job)), signal: deadline.signal }),
@@ -330,14 +327,13 @@ describe("sync deliveries", () => {
     // rejects there, before any archive page is read.
     const job = await newSyncJob();
     const deadline = new AbortController();
-    const honoring = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      init?.signal?.throwIfAborted();
-      return chessComFixtureFetch()(input);
-    }) as typeof fetch;
     deadline.abort(new Error("delivery expired"));
 
     await expect(
-      sync({ fetch: honoring }, { ...(await deliver(job)), signal: deadline.signal }),
+      sync(
+        { fetch: signalHonoringFetch },
+        { ...(await deliver(job)), signal: deadline.signal },
+      ),
     ).rejects.toThrow(/expired/);
 
     expect(await jobOf(job)).toMatchObject({ status: "retrying", errorCode: "internal" });

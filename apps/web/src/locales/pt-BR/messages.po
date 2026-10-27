@@ -38,7 +38,7 @@ msgid "{platform} is connected"
 msgstr ""
 
 #: src/games/import/accounts/sync-games-button.tsx:29
-#: src/settings/connections/connections-screen.tsx:80
+#: src/settings/connections/connections-screen.tsx:83
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
@@ -48,8 +48,8 @@ msgstr ""
 
 #: src/app-shell/user-menu.tsx:41
 #: src/routes/_app/settings/account.tsx:7
-#: src/settings/account/account-screen.tsx:14
-#: src/settings/layout/navigation.ts:29
+#: src/settings/account/account-screen.tsx:15
+#: src/settings/layout/navigation.ts:39
 #: src/test/routes.tsx:113
 msgid "Account"
 msgstr ""
@@ -84,13 +84,13 @@ msgstr ""
 
 #: src/app-shell/user-menu.tsx:43
 #: src/routes/_app/settings/appearance.tsx:7
-#: src/settings/appearance/appearance-screen.tsx:11
-#: src/settings/layout/navigation.ts:32
+#: src/settings/appearance/appearance-screen.tsx:16
+#: src/settings/layout/navigation.ts:42
 #: src/test/routes.tsx:134
 msgid "Appearance"
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:13
+#: src/settings/appearance/appearance-screen.tsx:18
 msgid "Application theme"
 msgstr ""
 
@@ -138,7 +138,7 @@ msgstr ""
 msgid "Board"
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:10
+#: src/settings/gameplay/gameplay-screen.tsx:22
 msgid "Board interaction preferences."
 msgstr ""
 
@@ -155,7 +155,7 @@ msgstr ""
 #: src/settings/account/avatar-field.tsx:39
 #: src/settings/account/delete-account.tsx:45
 #: src/settings/account/sign-out-everywhere.tsx:27
-#: src/settings/connections/connections-screen.tsx:70
+#: src/settings/connections/connections-screen.tsx:76
 msgid "Cancel"
 msgstr ""
 
@@ -177,6 +177,13 @@ msgstr ""
 
 #: src/auth/sign-in/magic-link-form.tsx:27
 msgid "Check your inbox: we sent a sign-in link to {email}. It works once and expires in 5 minutes."
+msgstr ""
+
+#: src/routes/_app/settings/connections.tsx:7
+#: src/settings/connections/connections-screen.tsx:54
+#: src/settings/layout/navigation.ts:40
+#: src/test/routes.tsx:120
+msgid "Chess accounts"
 msgstr ""
 
 #: src/games/import/accounts/sources.ts:61
@@ -217,29 +224,29 @@ msgstr ""
 msgid "Confirm your email first. We sent a new link to your inbox."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:64
+msgid "Connect"
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:65
+msgid "Connect {platform}"
+msgstr ""
+
 #: src/games/list/games-list.tsx:25
 #: src/onboarding/onboarding-dialog.tsx:24
-#: src/settings/connections/connections-screen.tsx:60
 msgid "Connect an account"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:77
-msgid "Connect your Chess.com or Lichess handle below so VelaChess can import your games and review them with Stockfish."
+#: src/settings/connections/connections-screen.tsx:58
+msgid "Connected"
 msgstr ""
 
 #: src/settings/account/sign-in-methods.tsx:25
 msgid "Connected — you can sign in with Google."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:73
+#: src/settings/connections/connections-screen.tsx:78
 msgid "Connection removed"
-msgstr ""
-
-#: src/routes/_app/settings/connections.tsx:7
-#: src/settings/connections/connections-screen.tsx:55
-#: src/settings/layout/navigation.ts:30
-#: src/test/routes.tsx:120
-msgid "Connections"
 msgstr ""
 
 #: src/auth/sign-in/sign-in-screen.tsx:23
@@ -275,7 +282,7 @@ msgstr ""
 msgid "Couldn't load games."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:57
+#: src/settings/connections/connections-screen.tsx:56
 msgid "Couldn't load your connected accounts."
 msgstr ""
 
@@ -283,7 +290,7 @@ msgstr ""
 msgid "Couldn't load your sign-in methods."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:64
+#: src/settings/connections/connections-screen.tsx:70
 msgid "Couldn't reach that account"
 msgstr ""
 
@@ -305,7 +312,7 @@ msgstr ""
 msgid "Couldn't remove it. Try again."
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:74
+#: src/settings/connections/connections-screen.tsx:79
 msgid "Couldn't remove the connection"
 msgstr ""
 
@@ -338,7 +345,7 @@ msgid "Danger zone"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:46
-#: src/settings/appearance/appearance-screen.tsx:17
+#: src/settings/appearance/appearance-screen.tsx:25
 msgid "Dark"
 msgstr ""
 
@@ -363,7 +370,7 @@ msgstr ""
 msgid "Deleting…"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:67
+#: src/settings/connections/connections-screen.tsx:73
 msgid "Disconnect"
 msgstr ""
 
@@ -456,8 +463,8 @@ msgid "Forgot password?"
 msgstr ""
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:9
-#: src/settings/layout/navigation.ts:33
+#: src/settings/gameplay/gameplay-screen.tsx:21
+#: src/settings/layout/navigation.ts:43
 #: src/test/routes.tsx:141
 msgid "Gameplay"
 msgstr ""
@@ -500,7 +507,7 @@ msgstr ""
 msgid "Got them — opening your games."
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:12
+#: src/settings/appearance/appearance-screen.tsx:17
 msgid "How VelaChess looks on this device."
 msgstr ""
 
@@ -593,15 +600,12 @@ msgstr ""
 msgid "Keep it under 100 characters."
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:20
-msgid "Language"
-msgstr ""
-
 #: src/routes/_app/settings/language-region.tsx:7
-#: src/settings/language-region/language-region-screen.tsx:18
-#: src/settings/layout/navigation.ts:31
+#: src/settings/language-region/language-region-screen.tsx:24
+#: src/settings/language-region/language-region-screen.tsx:26
+#: src/settings/layout/navigation.ts:41
 #: src/test/routes.tsx:127
-msgid "Language & region"
+msgid "Language"
 msgstr ""
 
 #: src/games/import/accounts/sources.ts:12
@@ -613,7 +617,7 @@ msgid "Lichess username"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:45
-#: src/settings/appearance/appearance-screen.tsx:16
+#: src/settings/appearance/appearance-screen.tsx:24
 msgid "Light"
 msgstr ""
 
@@ -621,7 +625,7 @@ msgstr ""
 msgid "Loading the game…"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:19
+#: src/settings/language-region/language-region-screen.tsx:25
 msgid "Locale preferences for this device."
 msgstr ""
 
@@ -638,10 +642,6 @@ msgstr ""
 msgid "Main, bottom bar"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:56
-msgid "Manage the chess accounts VelaChess imports games from."
-msgstr ""
-
 #: src/settings/layout/settings-layout.tsx:11
 msgid "Manage your account and application preferences."
 msgstr ""
@@ -650,7 +650,7 @@ msgstr ""
 msgid "Mistake"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:66
+#: src/settings/connections/connections-screen.tsx:72
 msgid "More actions"
 msgstr ""
 
@@ -666,12 +666,8 @@ msgstr ""
 msgid "Move navigation"
 msgstr ""
 
-#: src/chess-sounds/sound-toggle.tsx:10
+#: src/settings/gameplay/gameplay-screen.tsx:24
 msgid "Move sounds"
-msgstr ""
-
-#: src/chess-sounds/sound-toggle.tsx:11
-msgid "Mute move sounds"
 msgstr ""
 
 #: src/settings/account/profile-form.tsx:23
@@ -692,10 +688,6 @@ msgstr ""
 msgid "Next move"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:76
-msgid "No chess accounts connected"
-msgstr ""
-
 #: src/games/import/accounts/sources.ts:82
 msgid "No games found for that username. Check the spelling and try again."
 msgstr ""
@@ -708,11 +700,15 @@ msgstr ""
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:59
+msgid "Not connected"
+msgstr ""
+
 #: src/games/review/move-insight.tsx:24
 msgid "Not graded yet"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:58
+#: src/settings/connections/connections-screen.tsx:63
 msgid "Not synced yet"
 msgstr ""
 
@@ -769,11 +765,11 @@ msgstr ""
 msgid "Picture updated."
 msgstr ""
 
-#: src/settings/gameplay/gameplay-screen.tsx:11
+#: src/settings/gameplay/gameplay-screen.tsx:25
 msgid "Plays a sound for moves, captures, checks, and castling while reviewing a game."
 msgstr ""
 
-#: src/settings/layout/navigation.ts:36
+#: src/settings/layout/navigation.ts:46
 msgid "Preferences"
 msgstr ""
 
@@ -811,11 +807,11 @@ msgstr ""
 msgid "Reload"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:71
+#: src/settings/connections/connections-screen.tsx:77
 msgid "Remove connection"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:68
+#: src/settings/connections/connections-screen.tsx:74
 msgid "Remove connection?"
 msgstr ""
 
@@ -823,12 +819,8 @@ msgstr ""
 msgid "Remove picture"
 msgstr ""
 
-#: src/settings/connections/connections-screen.tsx:69
+#: src/settings/connections/connections-screen.tsx:75
 msgid "Removing the connection to {username} on {platform} also deletes the games VelaChess imported from it, and their analyses. This can't be undone. Games you imported from a PGN file are not affected."
-msgstr ""
-
-#: src/settings/connections/connections-screen.tsx:72
-msgid "Removing…"
 msgstr ""
 
 #: src/games/review/analysis-panel.tsx:24
@@ -905,6 +897,10 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+#: src/settings/layout/navigation.ts:48
+msgid "Settings sections"
+msgstr ""
+
 #: src/games/review/move-insight.tsx:27
 msgid "Show the engine's move on the board"
 msgstr ""
@@ -960,6 +956,10 @@ msgstr ""
 msgid "Something went wrong."
 msgstr ""
 
+#: src/settings/gameplay/gameplay-screen.tsx:23
+msgid "Sounds"
+msgstr ""
+
 #: src/games/review/use-board-review.ts:27
 msgid "Starting position"
 msgstr ""
@@ -968,36 +968,47 @@ msgstr ""
 msgid "Step forward to walk through the game."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:60
+msgid "Sync failed"
+msgstr ""
+
 #: src/games/import/accounts/sync-games-button.tsx:19
-#: src/settings/connections/connections-screen.tsx:61
+#: src/settings/connections/connections-screen.tsx:67
 msgid "Sync games"
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:62
+msgid "Synced {date}"
+msgstr ""
+
 #: src/games/import/accounts/sync-games-button.tsx:21
-#: src/settings/connections/connections-screen.tsx:63
+#: src/settings/connections/connections-screen.tsx:69
 msgid "Synced a moment ago"
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:61
+msgid "Syncing"
+msgstr ""
+
 #: src/games/import/accounts/sync-games-button.tsx:20
-#: src/settings/connections/connections-screen.tsx:59
-#: src/settings/connections/connections-screen.tsx:62
+#: src/settings/connections/connections-screen.tsx:68
 msgid "Syncing…"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:44
-#: src/settings/appearance/appearance-screen.tsx:15
+#: src/settings/appearance/appearance-screen.tsx:23
 msgid "System"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:22
+#: src/settings/language-region/language-region-screen.tsx:28
 msgid "System default"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:21
+#: src/settings/language-region/language-region-screen.tsx:27
 msgid "System default follows your browser's language."
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:14
+#: src/settings/appearance/appearance-screen.tsx:19
 msgid "System follows your operating system's setting."
 msgstr ""
 
@@ -1062,17 +1073,14 @@ msgstr ""
 #: src/games/review/analysis-progress.tsx:17
 #: src/route-error.tsx:16
 #: src/settings/account/delete-account.tsx:43
+#: src/settings/connections/connections-screen.tsx:57
 msgid "Try again"
 msgstr ""
 
 #: src/games/import/accounts/sync-games-button.tsx:23
-#: src/settings/connections/connections-screen.tsx:65
-#: src/settings/connections/connections-screen.tsx:75
+#: src/settings/connections/connections-screen.tsx:71
+#: src/settings/connections/connections-screen.tsx:80
 msgid "Try again in a moment."
-msgstr ""
-
-#: src/chess-sounds/sound-toggle.tsx:12
-msgid "Turn move sounds on"
 msgstr ""
 
 #: src/settings/account/delete-account.tsx:44
@@ -1100,6 +1108,10 @@ msgstr ""
 msgid "VelaChess reads your public game archive so you can review them with Stockfish. No password needed."
 msgstr ""
 
+#: src/settings/connections/connections-screen.tsx:66
+msgid "VelaChess reads your public games. No password needed."
+msgstr ""
+
 #: src/games/import/accounts/sources.ts:84
 msgid "VelaChess tracks one account per platform. {username} is connected — remove that connection to use a different handle."
 msgstr ""
@@ -1110,6 +1122,10 @@ msgstr ""
 
 #: src/settings/account/sign-in-methods.tsx:22
 msgid "Ways you can get into this account."
+msgstr ""
+
+#: src/settings/connections/connections-screen.tsx:55
+msgid "Where VelaChess imports your games from."
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:45
@@ -1147,7 +1163,7 @@ msgstr ""
 msgid "Your handle is all it takes. We read the public archive and stop there."
 msgstr ""
 
-#: src/settings/account/account-screen.tsx:15
+#: src/settings/account/account-screen.tsx:16
 msgid "Your identity on this instance, and how you sign in to it."
 msgstr ""
 

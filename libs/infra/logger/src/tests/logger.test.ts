@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { loggerOptions } from "../index.ts";
 
-/** The shipped configuration, writing where the test can read it. */
 function capture() {
   const lines: string[] = [];
   const log = pino(
@@ -12,7 +11,7 @@ function capture() {
   );
   return {
     log,
-    records: () => lines.map((line) => JSON.parse(line) as Record<string, unknown>),
+    records: () => lines.map((line): Record<string, unknown> => JSON.parse(line)),
   };
 }
 
@@ -24,10 +23,10 @@ describe("the logger's configuration", () => {
 
     log.error({ error: new Error("the cause") }, "unhandled api error");
 
-    const record = records()[0]!;
-    const error = record["error"] as { message?: string; stack?: string };
-    expect(error.message).toBe("the cause");
-    expect(error.stack).toContain("logger.test");
+    expect(records()[0]?.["error"]).toMatchObject({
+      message: "the cause",
+      stack: expect.stringContaining("logger.test"),
+    });
   });
 
   it("censors a secret handed to it by name", () => {

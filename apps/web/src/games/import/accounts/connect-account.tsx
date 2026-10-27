@@ -45,14 +45,18 @@ export interface ConnectAccountProps {
   onImported?: () => void;
   /** `bare` drops the card, for a caller whose container is the heading. */
   chrome?: "card" | "bare";
+  /** Pins the form to one provider and drops the picker. */
+  source?: SourceId;
 }
 
 export function ConnectAccount({
   redirectTo = "/games",
   onImported,
   chrome = "card",
+  source: pinnedSourceId,
 }: ConnectAccountProps = {}) {
-  const sourceId = useSourceStore((state) => state.sourceId);
+  const pickedSourceId = useSourceStore((state) => state.sourceId);
+  const sourceId = pinnedSourceId ?? pickedSourceId;
   const selectSource = useSourceStore((state) => state.selectSource);
   const importGames = useImportGames();
   const accounts = useQuery(trackedAccountsQuery);
@@ -63,10 +67,8 @@ export function ConnectAccount({
   const source: ImportSource = IMPORT_SOURCES[sourceId];
   const sourceName = GAME_SOURCES[sourceId].label;
 
-  // One account per provider, so a tracked platform makes every username
-  // doomed and the form gives way to a note naming the handle that holds
-  // the slot. Not an error state: the usual way here is having connected a
-  // moment earlier, and a race answers a 409 carrying the same handle.
+  // One account per provider: a tracked platform, or a 409 from a race,
+  // replaces the form with a note naming the handle that holds the slot.
   const connectedHandle: string | undefined =
     accounts.data?.find((account) => account.platform === sourceId)?.username ??
     (isProviderAlreadyConnectedError(importGames.error) &&
@@ -98,6 +100,13 @@ export function ConnectAccount({
     },
   });
 
+  const handleSourceChange = (next: unknown) => {
+    const picked = SOURCE_ORDER.find((id) => id === next);
+    if (picked === undefined) return;
+    selectSource(picked);
+    form.reset();
+  };
+
   const body = (
     <>
       <form
@@ -107,25 +116,21 @@ export function ConnectAccount({
           void form.handleSubmit();
         }}
       >
-        <Tabs
-          value={sourceId}
-          onValueChange={(next) => {
-            selectSource(next as SourceId);
-            form.reset();
-          }}
-        >
-          <TabsList className="w-full">
-            {SOURCE_ORDER.map((id) => {
-              const { Icon, label } = GAME_SOURCES[id];
-              return (
-                <TabsTrigger key={id} value={id}>
-                  <Icon data-icon="inline-start" />
-                  {label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
+        {pinnedSourceId === undefined && (
+          <Tabs value={sourceId} onValueChange={handleSourceChange}>
+            <TabsList className="w-full">
+              {SOURCE_ORDER.map((id) => {
+                const { Icon, label } = GAME_SOURCES[id];
+                return (
+                  <TabsTrigger key={id} value={id}>
+                    <Icon data-icon="inline-start" />
+                    {label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        )}
 
         {connectedHandle !== undefined && (
           <AlreadyConnectedNotice username={connectedHandle} platform={sourceName} />

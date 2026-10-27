@@ -138,12 +138,12 @@ export async function createApiHarness(
   // Browsers send `Origin` on unsafe requests and `app.request` does not, so
   // the CSRF check would refuse every bodyless POST a real client never sees.
   const honoRequest: AppRequest = app.request.bind(app);
-  app.request = ((...args: Parameters<AppRequest>) => {
-    const [input, init, ...rest] = args;
+  const withOrigin: AppRequest = (input, init, ...rest) => {
     const headers = new Headers(init?.headers);
     if (!headers.has("origin")) headers.set("origin", ORIGIN);
     return honoRequest(input, { ...init, headers }, ...rest);
-  }) as AppRequest;
+  };
+  app.request = withOrigin;
 
   const signIn = async (email: string, password: string): Promise<string> => {
     const response = await app.request("/auth/sign-in/email", {

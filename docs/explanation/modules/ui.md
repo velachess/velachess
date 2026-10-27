@@ -91,8 +91,9 @@ framework without redefining the typography tokens.
 
 The product app inherits the dark palette from `:root`. Theme-aware surfaces
 such as the public site write `.light` or `.dark` on `<html>`; both modes use
-the same semantic tokens, while the product remains dark until it adopts the
-same behavior deliberately.
+the same semantic tokens. The palette is bound to the class rather than to
+`:root`, so any subtree can opt into the other one — Settings → Appearance
+draws its theme previews that way instead of hard-coding a second palette.
 
 The `@source` lines are load-bearing, not decoration: Tailwind skips
 `node_modules`, and this package reaches the apps through a workspace

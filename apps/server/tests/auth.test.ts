@@ -1,8 +1,4 @@
 // @vitest-environment node
-/**
- * Everything here goes through HTTP the way a browser would: real Better
- * Auth sign-up, a real session cookie, and the middleware production runs.
- */
 import { randomUUID } from "node:crypto";
 
 import { parseResponse } from "hono/client";
@@ -265,7 +261,7 @@ describe("Google sign-in", () => {
     );
     expect(response.status).toBe(200);
 
-    const { url } = (await response.json()) as { url: string };
+    const { url }: { url: string } = await response.json();
     const authorize = new URL(url);
     expect(authorize.origin).toBe("https://accounts.google.com");
     expect(authorize.searchParams.get("client_id")).toBe("client-id");
@@ -359,7 +355,6 @@ describe("the session gate", () => {
     });
     expect(out.ok).toBe(true);
 
-    // The session row is gone, so the same cookie is now nobody.
     expect((await harness.app.request("/games", { headers: { cookie } })).status).toBe(
       401,
     );

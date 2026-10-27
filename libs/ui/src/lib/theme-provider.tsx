@@ -11,19 +11,15 @@ import {
 
 import {
   applyTheme,
+  isTheme,
   resolveTheme,
   THEME_STORAGE_KEY,
   type ResolvedTheme,
   type Theme,
 } from "./theme.ts";
 
-// The DOM-mutation effect below must run synchronously with a
-// flushSync-driven update (a consumer wraps setTheme in
-// document.startViewTransition, which needs the class already changed by
-// the time its callback returns) — that requires a layout effect, not a
-// passive one. But this provider also renders during apps/site's Next.js
-// static-export build, where a bare useLayoutEffect triggers React's
-// "does nothing on the server" warning. Fall back to useEffect there.
+// startViewTransition needs the class applied synchronously, so a layout
+// effect; on the server (the site's static export) useLayoutEffect warns.
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -53,9 +49,7 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === "undefined") return defaultTheme;
     const stored = window.localStorage.getItem(storageKey);
-    return stored === "light" || stored === "dark" || stored === "system"
-      ? stored
-      : defaultTheme;
+    return isTheme(stored) ? stored : defaultTheme;
   });
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
     typeof window === "undefined" ? "dark" : resolveTheme(theme),

@@ -32,19 +32,16 @@ import { server } from "./src/test/server.ts";
 beforeAll(() => {
   server.listen({ onUnhandledFrame: "error" });
 
-  // jsdom implements no scrolling, and the router restores scroll position
-  // on every navigation, logging a "Not implemented" error that reads as a
-  // failure.
+  // jsdom implements no scrolling, and the router restores it on every
+  // navigation.
   window.scrollTo = () => {};
 
-  // jsdom has no audio backend; failure behavior is tested through the
-  // sound dispatcher's injected output instead of this browser stub.
+  // jsdom has no audio backend.
   HTMLMediaElement.prototype.play = () => Promise.resolve();
 
-  // jsdom implements neither a 2D context nor toBlob, so the cropper's
-  // encode cannot run. Stubbed at the platform level rather than by mocking
-  // our own module, so the component still executes and the MSW handler
-  // still refuses a body that is not base64.
+  // jsdom implements neither a 2D context nor toBlob, which the cropper's
+  // encode needs.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- getContext is overloaded per context id, and a 2D stub cannot satisfy the other overloads' return types
   HTMLCanvasElement.prototype.getContext = (() => ({
     imageSmoothingEnabled: false,
     imageSmoothingQuality: "low",

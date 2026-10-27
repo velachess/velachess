@@ -18,8 +18,6 @@ function positiveInt(value: string | null, fallback: number): number {
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallback;
 }
 
-/** The 400 matches the route, so the UI fails on its own terms rather than
- * the test peeking at the request. */
 export const gamesHandlers = [
   http.get("/api/games", ({ request }) => {
     const query = new URL(request.url).searchParams;
@@ -39,19 +37,17 @@ export const gamesHandlers = [
     return HttpResponse.json(page);
   }),
 
-  /**
-   * A blank body is the route's 400, a staged failure answers like an
-   * unreachable server, and success lands the staged games in the library,
-   * as the real slice does.
-   */
-  http.post("/api/games/import", async ({ request }) => {
-    const body = (await request.json()) as {
+  http.post<
+    never,
+    {
       pgn?: string;
       participation?:
         | { mode: "white" }
         | { mode: "black" }
         | { mode: "byName"; playerName?: string };
-    };
+    }
+  >("/api/games/import", async ({ request }) => {
+    const body = await request.json();
     const validParticipation =
       body.participation?.mode === "white" ||
       body.participation?.mode === "black" ||
@@ -77,8 +73,6 @@ export const gamesHandlers = [
   http.get("/api/games/:id", ({ params }) => {
     const game = gameById(String(params["id"]));
     if (!game) return HttpResponse.json({ error: "game not found" }, { status: 404 });
-    // What the list does not carry: movetext, this screen's tags, and both
-    // seats' identity as the profile cache resolved it.
     return HttpResponse.json({
       ...game,
       ...seatIdentityFields(String(params["id"])),
