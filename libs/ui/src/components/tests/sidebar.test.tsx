@@ -192,6 +192,12 @@ describe("from the keyboard", () => {
   });
 });
 
+it("marks the rail with a grip hidden from assistive technology", () => {
+  render(<Harness />);
+
+  expect(rail().querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+});
+
 it("draws a persisted width outside the bounds at the nearest bound", () => {
   render(<Harness initialWidth={9000} />);
 
