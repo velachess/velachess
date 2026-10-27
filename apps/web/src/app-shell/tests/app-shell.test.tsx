@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { desktopNav, renderApp } from "../../test/render.tsx";
 import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
@@ -18,6 +18,10 @@ function sidebarWidth() {
 }
 
 describe("the desktop sidebar", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("leads home from the logo", async () => {
     sessionActive();
     const { router, user } = await renderApp({ path: "/settings/account" });
@@ -46,6 +50,22 @@ describe("the desktop sidebar", () => {
     expect(JSON.parse(localStorage.getItem(SIDEBAR_STORAGE_KEY) ?? "{}")).toMatchObject({
       state: { open: false },
     });
+  });
+
+  it("ignores Cmd/Ctrl+B on a small screen, where it is hidden", async () => {
+    vi.stubGlobal("matchMedia", (media: string) => ({
+      matches: false,
+      media,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    sessionActive();
+    await renderApp({ path: "/games" });
+
+    fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+
+    expect(sidebarState()).toBe("expanded");
+    expect(useSidebarStore.getState().open).toBe(true);
   });
 
   it("restores the saved width and state on the next visit", async () => {

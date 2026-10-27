@@ -16,6 +16,8 @@ declare module "vitest" {
 
 import { afterAll, afterEach, beforeAll } from "vitest";
 
+import { SIDEBAR_MEDIA_QUERY } from "@velachess/ui/lib/sidebar";
+
 import { resetBackendStatus } from "./src/backend-status/index.ts";
 import { resetArchive } from "./src/test/archive.ts";
 import { dropSyncStreams } from "./src/test/sync-stream.ts";
@@ -64,10 +66,9 @@ beforeAll(() => {
     },
   });
 
-  // ThemeProvider's "system" resolution reads this on every mount, and
-  // jsdom implements no media queries.
+  // jsdom implements no media queries; tests run on a desktop viewport.
   window.matchMedia = (query: string) => ({
-    matches: false,
+    matches: query === SIDEBAR_MEDIA_QUERY,
     media: query,
     onchange: null,
     addListener: () => {},

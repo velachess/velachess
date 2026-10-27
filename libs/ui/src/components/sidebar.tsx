@@ -3,7 +3,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
-import { SIDEBAR_WIDTH } from "../lib/sidebar-width.ts";
+import { SIDEBAR_MEDIA_QUERY, SIDEBAR_WIDTH } from "../lib/sidebar.ts";
 import { cn } from "../lib/utils.ts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.tsx";
 
@@ -87,6 +87,7 @@ function SidebarProvider({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== SIDEBAR_KEYBOARD_SHORTCUT || !(event.metaKey || event.ctrlKey))
         return;
+      if (!window.matchMedia(SIDEBAR_MEDIA_QUERY).matches) return;
       event.preventDefault();
       onShortcut();
     }

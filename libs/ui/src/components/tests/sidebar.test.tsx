@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { SIDEBAR_WIDTH } from "../../lib/sidebar-width.ts";
+import { SIDEBAR_MEDIA_QUERY, SIDEBAR_WIDTH } from "../../lib/sidebar.ts";
 import { Sidebar, SidebarProvider, SidebarRail } from "../sidebar.tsx";
 
 const RAIL_LABEL = "Resize navigation";
@@ -63,8 +63,18 @@ function releaseRail(clientX: number) {
   fireEvent.pointerUp(rail(), { clientX, pointerId: 1 });
 }
 
+function viewport(size: "desktop" | "mobile") {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: size === "desktop" && query === SIDEBAR_MEDIA_QUERY,
+  }));
+}
+
 beforeAll(() => {
   HTMLElement.prototype.setPointerCapture = () => undefined;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("dragging the rail", () => {
@@ -161,12 +171,23 @@ describe("from the keyboard", () => {
   });
 
   it("toggles with Cmd/Ctrl+B anywhere", () => {
+    viewport("desktop");
     render(<Harness />);
 
     fireEvent.keyDown(window, { key: "b", ctrlKey: true });
     expect(sidebarState()).toBe("collapsed");
 
     fireEvent.keyDown(window, { key: "b", metaKey: true });
+    expect(sidebarState()).toBe("expanded");
+  });
+
+  it("leaves Cmd/Ctrl+B to the browser while the sidebar is hidden", () => {
+    viewport("mobile");
+    render(<Harness />);
+
+    const notPrevented = fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+
+    expect(notPrevented).toBe(true);
     expect(sidebarState()).toBe("expanded");
   });
 });
