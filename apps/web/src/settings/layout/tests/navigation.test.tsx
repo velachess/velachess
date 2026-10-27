@@ -43,7 +43,7 @@ describe("settings navigation", () => {
 
     expect(router.state.location.pathname).toBe("/settings/gameplay");
     expect(
-      await screen.findByRole("button", { name: "Mute move sounds" }),
+      await screen.findByRole("switch", { name: "Move sounds" }),
     ).toBeInTheDocument();
   });
 

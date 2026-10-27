@@ -138,7 +138,7 @@ msgstr "Blunder"
 msgid "Board"
 msgstr "Board"
 
-#: src/settings/gameplay/gameplay-screen.tsx:11
+#: src/settings/gameplay/gameplay-screen.tsx:22
 msgid "Board interaction preferences."
 msgstr "Board interaction preferences."
 
@@ -463,7 +463,7 @@ msgid "Forgot password?"
 msgstr "Forgot password?"
 
 #: src/routes/_app/settings/gameplay.tsx:7
-#: src/settings/gameplay/gameplay-screen.tsx:10
+#: src/settings/gameplay/gameplay-screen.tsx:21
 #: src/settings/layout/navigation.ts:43
 #: src/test/routes.tsx:141
 msgid "Gameplay"
@@ -666,13 +666,9 @@ msgstr "Move insight"
 msgid "Move navigation"
 msgstr "Move navigation"
 
-#: src/chess-sounds/sound-toggle.tsx:10
+#: src/settings/gameplay/gameplay-screen.tsx:24
 msgid "Move sounds"
 msgstr "Move sounds"
-
-#: src/chess-sounds/sound-toggle.tsx:11
-msgid "Mute move sounds"
-msgstr "Mute move sounds"
 
 #: src/settings/account/profile-form.tsx:23
 msgid "Name"
@@ -769,7 +765,7 @@ msgstr "Picture removed."
 msgid "Picture updated."
 msgstr "Picture updated."
 
-#: src/settings/gameplay/gameplay-screen.tsx:12
+#: src/settings/gameplay/gameplay-screen.tsx:25
 msgid "Plays a sound for moves, captures, checks, and castling while reviewing a game."
 msgstr "Plays a sound for moves, captures, checks, and castling while reviewing a game."
 
@@ -956,6 +952,10 @@ msgstr "Skip to content"
 msgid "Something went wrong."
 msgstr "Something went wrong."
 
+#: src/settings/gameplay/gameplay-screen.tsx:23
+msgid "Sounds"
+msgstr "Sounds"
+
 #: src/games/review/use-board-review.ts:27
 msgid "Starting position"
 msgstr "Starting position"
@@ -1078,10 +1078,6 @@ msgstr "Try again"
 #: src/settings/connections/connections-screen.tsx:80
 msgid "Try again in a moment."
 msgstr "Try again in a moment."
-
-#: src/chess-sounds/sound-toggle.tsx:12
-msgid "Turn move sounds on"
-msgstr "Turn move sounds on"
 
 #: src/settings/account/delete-account.tsx:44
 msgid "Type {CONFIRMATION} to confirm"

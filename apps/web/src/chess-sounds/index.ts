@@ -8,4 +8,3 @@ export {
   playChessSound,
   useSoundPreferences,
 } from "./chess-sounds.ts";
-export { SoundToggle } from "./sound-toggle.tsx";
