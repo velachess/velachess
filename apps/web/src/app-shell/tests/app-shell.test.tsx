@@ -1,8 +1,8 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { desktopNav, renderApp } from "../../test/render.tsx";
-import { sessionActive } from "../../test/handlers/auth.ts";
+import { sessionActive, TEST_USER } from "../../test/handlers/auth.ts";
 import { useSidebarStore } from "../sidebar-store.ts";
 
 const SIDEBAR_STORAGE_KEY = "velachess.sidebar";
@@ -64,5 +64,42 @@ describe("the desktop sidebar", () => {
       "aria-valuenow",
       "300",
     );
+  });
+});
+
+describe("the account menu", () => {
+  it("does not repeat who is signed in when the sidebar already shows it", async () => {
+    sessionActive();
+    const { user } = await renderApp({ path: "/games" });
+
+    await user.click(desktopNav().getByRole("button", { name: "Account" }));
+    const menu = await screen.findByRole("menu");
+
+    expect(within(menu).queryByText(TEST_USER.name)).not.toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: "Sign out" })).toBeInTheDocument();
+  });
+
+  it("names the account when the sidebar is collapsed to icons", async () => {
+    sessionActive();
+    const { user } = await renderApp({ path: "/games" });
+
+    fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+    await user.click(desktopNav().getByRole("button", { name: "Account" }));
+    const menu = await screen.findByRole("menu");
+
+    expect(within(menu).getByText(TEST_USER.name)).toBeInTheDocument();
+    expect(within(menu).getByText(TEST_USER.email)).toBeInTheDocument();
+  });
+
+  it("names the account from the bottom bar", async () => {
+    sessionActive();
+    const { user } = await renderApp({ path: "/games" });
+
+    const bar = within(screen.getByRole("navigation", { name: "Main, bottom bar" }));
+    await user.click(bar.getByRole("button", { name: "Account" }));
+    const menu = await screen.findByRole("menu");
+
+    expect(within(menu).getByText(TEST_USER.name)).toBeInTheDocument();
+    expect(within(menu).getByText(TEST_USER.email)).toBeInTheDocument();
   });
 });

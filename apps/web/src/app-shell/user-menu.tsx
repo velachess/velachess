@@ -21,9 +21,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@velachess/ui/components/sidebar";
 import { ThemeRadioItems } from "@velachess/ui/components/theme-toggle";
-import { ChevronsUpDownIcon, PaletteIcon, SettingsIcon } from "@velachess/ui/icons";
+import {
+  ChevronsUpDownIcon,
+  LogOutIcon,
+  PaletteIcon,
+  SettingsIcon,
+} from "@velachess/ui/icons";
 
 import { useSignOut } from "../auth/sign-out/use-sign-out.ts";
 import type { SessionUser } from "../auth/client.ts";
@@ -65,15 +71,16 @@ export function UserMenu() {
       >
         <UserAvatar user={user} size="sm" />
       </DropdownMenuTrigger>
-      <UserMenuContent user={user} side="bottom" />
+      <UserMenuContent user={user} side="bottom" showIdentity />
     </DropdownMenu>
   );
 }
 
-/** The sidebar's trigger names the account; collapsed, only the avatar
- * shows. */
+/** Expanded, the trigger already names the account, so the menu does not;
+ * collapsed to the avatar, the menu does. */
 export function SidebarUserMenu() {
   const { i18n } = useLingui();
+  const { state } = useSidebar();
   const { data: user } = useQuery(sessionQuery);
 
   if (!user) return null;
@@ -87,26 +94,40 @@ export function SidebarUserMenu() {
               <SidebarMenuButton size="lg" aria-label={i18n._(USER_MENU_COPY.open)} />
             }
           >
-            <UserAvatar user={user} />
-            <span className="grid flex-1 leading-tight">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-            </span>
+            <UserIdentity user={user} />
             <ChevronsUpDownIcon className="ml-auto" />
           </DropdownMenuTrigger>
-          <UserMenuContent user={user} side="right" />
+          <UserMenuContent
+            user={user}
+            side="right"
+            showIdentity={state === "collapsed"}
+          />
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
   );
 }
 
+function UserIdentity({ user }: { user: SessionUser }) {
+  return (
+    <>
+      <UserAvatar user={user} />
+      <span className="grid flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-medium">{user.name}</span>
+        <span className="truncate text-xs">{user.email}</span>
+      </span>
+    </>
+  );
+}
+
 function UserMenuContent({
   user,
   side,
+  showIdentity,
 }: {
   user: SessionUser;
   side: "bottom" | "right";
+  showIdentity: boolean;
 }) {
   const { i18n } = useLingui();
   const navigate = useNavigate();
@@ -121,20 +142,19 @@ function UserMenuContent({
   }
 
   return (
-    <DropdownMenuContent side={side} align="end" className="w-56">
-      <DropdownMenuGroup>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex items-center gap-2">
-            <UserAvatar user={user} />
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-medium">{user.name}</span>
-              <span className="text-muted-foreground truncate text-xs">{user.email}</span>
-            </div>
-          </div>
-        </DropdownMenuLabel>
-      </DropdownMenuGroup>
-
-      <DropdownMenuSeparator />
+    <DropdownMenuContent side={side} align="end" className="min-w-56">
+      {showIdentity && (
+        <>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="p-0 font-normal text-popover-foreground">
+              <div className="flex items-center gap-2 px-1 py-1.5">
+                <UserIdentity user={user} />
+              </div>
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+        </>
+      )}
 
       <DropdownMenuGroup>
         <DropdownMenuLinkItem render={<Link to="/settings/account" />}>
@@ -167,6 +187,7 @@ function UserMenuContent({
         disabled={signOut.isPending}
         onClick={handleSignOut}
       >
+        <LogOutIcon />
         {signOut.isPending
           ? i18n._(USER_MENU_COPY.signingOut)
           : i18n._(USER_MENU_COPY.signOut)}

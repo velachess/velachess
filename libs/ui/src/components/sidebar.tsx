@@ -425,4 +425,5 @@ export {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  useSidebar,
 };
