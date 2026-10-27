@@ -109,11 +109,17 @@ function UserIdentity({ user }: { user: SessionUser }) {
   return (
     <>
       <UserAvatar user={user} />
-      <span className="grid flex-1 text-left text-sm leading-tight">
-        <span className="truncate font-medium">{user.name}</span>
-        <span className="truncate text-xs">{user.email}</span>
-      </span>
+      <UserDetails user={user} />
     </>
+  );
+}
+
+function UserDetails({ user }: { user: SessionUser }) {
+  return (
+    <span className="grid flex-1 text-left text-sm leading-tight">
+      <span className="truncate font-medium">{user.name}</span>
+      <span className="truncate text-xs">{user.email}</span>
+    </span>
   );
 }
 
@@ -142,10 +148,8 @@ function UserMenuContent({
       {showIdentity && (
         <>
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="p-0 font-normal text-popover-foreground">
-              <div className="flex items-center gap-2 px-1 py-1.5">
-                <UserIdentity user={user} />
-              </div>
+            <DropdownMenuLabel className="py-1.5 font-normal text-popover-foreground">
+              <UserDetails user={user} />
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
