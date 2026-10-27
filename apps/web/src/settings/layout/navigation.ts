@@ -5,8 +5,8 @@ import type { LinkProps } from "@tanstack/react-router";
 import {
   ChessKnight,
   CircleUserRound,
+  Gamepad2,
   Languages,
-  Link2,
   Palette,
   type LucideIcon,
 } from "@velachess/ui/icons";
@@ -49,7 +49,7 @@ export const SETTINGS_NAV_LABEL = msg`Settings sections`;
 
 export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
   { id: "account", label: NAV_COPY.account, icon: CircleUserRound },
-  { id: "connections", label: NAV_COPY.connections, icon: Link2 },
+  { id: "connections", label: NAV_COPY.connections, icon: ChessKnight },
   {
     id: "language-region",
     label: NAV_COPY.languageRegion,
@@ -57,7 +57,7 @@ export const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
     group: "preferences",
   },
   { id: "appearance", label: NAV_COPY.appearance, icon: Palette, group: "preferences" },
-  { id: "gameplay", label: NAV_COPY.gameplay, icon: ChessKnight, group: "preferences" },
+  { id: "gameplay", label: NAV_COPY.gameplay, icon: Gamepad2, group: "preferences" },
 ];
 
 /** Longest match wins, same rule the main nav dock uses. */
