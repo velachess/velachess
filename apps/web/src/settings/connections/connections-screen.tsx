@@ -34,7 +34,8 @@ import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
 import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
-import { GAME_SOURCES, SourceMark } from "../../games/game-sources.tsx";
+import { GAME_SOURCES } from "../../games/game-sources.ts";
+import { SourceMark } from "../../games/source-mark.tsx";
 import {
   ConnectAccount,
   isSyncInProgress,

@@ -28,7 +28,7 @@ does not restate it.
   app. The remaining verticals (`auth`, `onboarding`, `settings`) may still
   be deep-imported from `routes/` until the same enforcement is scoped onto
   them too.
-- `games/` is four domains and two shared files. Review consumes Analysis;
+- `games/` is four domains and three shared files. Review consumes Analysis;
   Analysis never imports Review, `import` or `list`
   (`games-analysis-depends-on-no-sibling-domain`). Analysis produces
   `GradedPly[]` and Review reads it — `review/review-model.ts`,
@@ -36,8 +36,9 @@ does not restate it.
   `.ts` module in a domain stays React-free unless it is a `use-*.ts` hook
   (`games-domain-logic-stays-react-free`); the screens are `.tsx`. The
   shared files are `games/game-query-keys.ts` (the cache prefixes every
-  domain spells identically) and `games/game-sources.tsx` (each source's
-  name and mark) — at their common ancestor rather than borrowed from
+  domain spells identically), `games/game-sources.ts` (each source's
+  name and mark) and `games/source-mark.tsx` (that mark, drawn in the
+  source's colour) — at their common ancestor rather than borrowed from
   whichever domain happened to declare one.
 - `engine/` is the Stockfish sessions and the Workers they own — the
   infrastructure `games/analysis` runs on, a vertical of its own because

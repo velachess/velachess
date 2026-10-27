@@ -8,7 +8,8 @@ import { Badge } from "@velachess/ui/components/badge";
 import type { DataTableFeatures } from "@velachess/ui/components/data-table";
 import { cn } from "@velachess/ui/lib/utils";
 
-import { GAME_SOURCES, SourceMark } from "../game-sources.tsx";
+import { GAME_SOURCES } from "../game-sources.ts";
+import { SourceMark } from "../source-mark.tsx";
 import type { Game } from "./queries.ts";
 
 const GAMES_COLUMNS_COPY = {

@@ -21,7 +21,8 @@ import { Input } from "@velachess/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 
 import { isProviderAlreadyConnectedError } from "../../../api/index.ts";
-import { GAME_SOURCES, SourceMark } from "../../game-sources.tsx";
+import { GAME_SOURCES } from "../../game-sources.ts";
+import { SourceMark } from "../../source-mark.tsx";
 import { useQuery } from "../../../libs/react-query.ts";
 import { trackedAccountsQuery, useImportGames, type ImportRequest } from "./queries.ts";
 import { useSourceStore } from "./source-store.ts";

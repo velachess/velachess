@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 
 import { z } from "../../../libs/zod.ts";
-import type { GameSource } from "../../game-sources.tsx";
+import type { GameSource } from "../../game-sources.ts";
 
 export type Translate = (message: MessageDescriptor) => string;
 
@@ -33,7 +33,7 @@ export const SOURCE_IDS = {
 
 /**
  * What the connect form needs on top of the name and mark every screen
- * reads from `games/game-sources.tsx`.
+ * reads from `games/game-sources.ts`.
  */
 export interface ImportSource {
   id: SourceId;

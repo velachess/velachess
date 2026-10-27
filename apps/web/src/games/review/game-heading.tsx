@@ -5,7 +5,8 @@ import { Fragment } from "react";
 
 import { gameOutcomeFor, type GameResult } from "@velachess/chess";
 
-import { GAME_SOURCES, SourceMark, type GameSource } from "../game-sources.tsx";
+import { GAME_SOURCES, type GameSource } from "../game-sources.ts";
+import { SourceMark } from "../source-mark.tsx";
 import type { Game } from "../list/index.ts";
 import type { Seat } from "./board-view.ts";
 

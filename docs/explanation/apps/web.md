@@ -32,7 +32,8 @@ src/
       pgn/            paste or upload a PGN
     list/           filter and page owned games
     game-query-keys.ts  the prefixes the game caches hang off
-    game-sources.tsx    what each source is called and the mark that stands for it
+    game-sources.ts     what each source is called and the mark that stands for it
+    source-mark.tsx     that mark, drawn in the source's own colour
   libs/           thin third-party facades only (zod, hono/client, React Query)
   onboarding/     first-run dialog while the library is empty
   query/          this app's React Query client: retry policy and error wiring
@@ -83,12 +84,14 @@ needs the exact same fact, and the alternative is one domain importing
 another for it. `game-query-keys.ts` holds the React Query prefixes —
 `list` and `review` read those caches, `import` invalidates them when
 games land, and an invalidation only works if the write spells the key
-exactly as the read does. `game-sources.tsx` holds each source's name and
+exactly as the read does. `game-sources.ts` holds each source's name and
 mark — the table, the review header, the connect form's tabs and the
 connections list all show them, and three separate maps had already
 drifted into disagreeing about whether a PGN file gets a mark at all.
 `import` builds its form metadata on top of that one, rather than
-carrying a second copy of the name and icon.
+carrying a second copy of the name and icon. `source-mark.tsx` is the one
+place that draws the mark, so its colour and default size cannot drift
+between those screens either.
 
 A slice owns its data (`queries.ts`), its screen, its constants and its
 tests. It never positions itself on the page — it returns content, and the
