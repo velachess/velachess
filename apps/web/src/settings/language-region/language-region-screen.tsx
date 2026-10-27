@@ -36,6 +36,11 @@ export function LanguageRegionScreen() {
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
 
+  const items = [
+    { value: SYSTEM_VALUE, label: i18n._(LANGUAGE_COPY.system) },
+    ...LOCALE_OPTIONS.map((option) => ({ value: option.locale, label: option.label })),
+  ];
+
   const applyLocale = (next: Locale | null) => {
     setLocale(next);
     void activateLocale(resolveLocale(next, navigator.languages));
@@ -56,15 +61,18 @@ export function LanguageRegionScreen() {
     >
       <Field>
         <FieldLabel htmlFor="locale">{i18n._(LANGUAGE_COPY.language)}</FieldLabel>
-        <Select value={locale ?? SYSTEM_VALUE} onValueChange={handleLocaleChange}>
+        <Select
+          items={items}
+          value={locale ?? SYSTEM_VALUE}
+          onValueChange={handleLocaleChange}
+        >
           <SelectTrigger id="locale" className="w-full max-w-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={SYSTEM_VALUE}>{i18n._(LANGUAGE_COPY.system)}</SelectItem>
-            {LOCALE_OPTIONS.map((option) => (
-              <SelectItem key={option.locale} value={option.locale}>
-                {option.label}
+            {items.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
               </SelectItem>
             ))}
           </SelectContent>
