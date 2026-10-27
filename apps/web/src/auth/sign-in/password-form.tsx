@@ -1,3 +1,4 @@
+import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useForm } from "@tanstack/react-form";
@@ -30,10 +31,7 @@ const PASSWORD_COPY = {
   emailNotVerified: msg`Confirm your email first. We sent a new link to your inbox.`,
 } as const;
 
-const FAILURE_COPY: Record<
-  SignInFailure,
-  (typeof PASSWORD_COPY)[keyof typeof PASSWORD_COPY]
-> = {
+const FAILURE_COPY: Record<SignInFailure, MessageDescriptor> = {
   "invalid-credentials": PASSWORD_COPY.invalidCredentials,
   "email-not-verified": PASSWORD_COPY.emailNotVerified,
   unavailable: PASSWORD_COPY.unavailable,
@@ -53,15 +51,10 @@ export function PasswordForm({
   const form = useForm({
     defaultValues: { email: "", password: "" },
     onSubmit: async ({ value }) => {
-      try {
-        await signIn.mutateAsync({
-          email: value.email.trim(),
-          password: value.password,
-        });
-      } catch {
-        // The mutation holds the error for the screen; rethrowing leaves it unhandled.
-        return;
-      }
+      const user = await signIn
+        .mutateAsync({ email: value.email.trim(), password: value.password })
+        .catch(() => null);
+      if (!user) return;
 
       await navigate({ to: redirect ?? "/", replace: true });
     },
@@ -71,6 +64,7 @@ export function PasswordForm({
 
   return (
     <form
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
@@ -82,10 +76,9 @@ export function PasswordForm({
           validators={{
             onSubmit: z
               .string()
+              .trim()
               .min(1, i18n._(PASSWORD_COPY.emailRequired))
-              .refine((value) => value.includes("@"), {
-                message: i18n._(PASSWORD_COPY.emailInvalid),
-              }),
+              .pipe(z.email(i18n._(PASSWORD_COPY.emailInvalid))),
           }}
         >
           {(field) => {
@@ -97,6 +90,7 @@ export function PasswordForm({
                   {i18n._(PASSWORD_COPY.email)}
                 </FieldLabel>
                 <Input
+                  className="h-9"
                   id={field.name}
                   name={field.name}
                   type="email"
@@ -139,6 +133,7 @@ export function PasswordForm({
                   )}
                 </div>
                 <Input
+                  className="h-9"
                   id={field.name}
                   name={field.name}
                   type="password"
@@ -164,7 +159,7 @@ export function PasswordForm({
             {(isSubmitting) => {
               const pending = isSubmitting || signIn.isPending;
               return (
-                <Button type="submit" disabled={pending}>
+                <Button type="submit" size="lg" disabled={pending}>
                   {pending && i18n._(PASSWORD_COPY.submitting)}
                   {!pending && i18n._(PASSWORD_COPY.submit)}
                 </Button>

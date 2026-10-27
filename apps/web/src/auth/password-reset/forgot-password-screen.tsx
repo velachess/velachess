@@ -79,6 +79,7 @@ export function ForgotPasswordScreen() {
                         {i18n._(FORGOT_COPY.email)}
                       </FieldLabel>
                       <Input
+                        className="h-9"
                         id={field.name}
                         name={field.name}
                         type="email"
@@ -99,7 +100,7 @@ export function ForgotPasswordScreen() {
               </form.Field>
 
               <Field>
-                <Button type="submit" disabled={request.isPending}>
+                <Button type="submit" size="lg" disabled={request.isPending}>
                   {request.isPending && i18n._(FORGOT_COPY.submitting)}
                   {!request.isPending && i18n._(FORGOT_COPY.submit)}
                 </Button>

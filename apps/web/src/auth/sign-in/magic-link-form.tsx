@@ -78,7 +78,7 @@ export function MagicLinkForm({ redirect }: { redirect?: string | undefined }) {
           </FieldDescription>
         </Field>
         <Field>
-          <Button type="button" variant="outline" onClick={handleOtherEmail}>
+          <Button type="button" variant="outline" size="lg" onClick={handleOtherEmail}>
             {i18n._(MAGIC_LINK_COPY.otherEmail)}
           </Button>
         </Field>
@@ -88,6 +88,7 @@ export function MagicLinkForm({ redirect }: { redirect?: string | undefined }) {
 
   return (
     <form
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
@@ -99,10 +100,9 @@ export function MagicLinkForm({ redirect }: { redirect?: string | undefined }) {
           validators={{
             onSubmit: z
               .string()
+              .trim()
               .min(1, i18n._(MAGIC_LINK_COPY.emailRequired))
-              .refine((value) => value.includes("@"), {
-                message: i18n._(MAGIC_LINK_COPY.emailInvalid),
-              }),
+              .pipe(z.email(i18n._(MAGIC_LINK_COPY.emailInvalid))),
           }}
         >
           {(field) => {
@@ -114,6 +114,7 @@ export function MagicLinkForm({ redirect }: { redirect?: string | undefined }) {
                   {i18n._(MAGIC_LINK_COPY.email)}
                 </FieldLabel>
                 <Input
+                  className="h-9"
                   id="magic-link-email"
                   type="email"
                   autoComplete="email"
@@ -134,7 +135,7 @@ export function MagicLinkForm({ redirect }: { redirect?: string | undefined }) {
         </form.Field>
 
         <Field>
-          <Button type="submit" disabled={send.isPending}>
+          <Button type="submit" size="lg" disabled={send.isPending}>
             {send.isPending && i18n._(MAGIC_LINK_COPY.sending)}
             {!send.isPending && i18n._(MAGIC_LINK_COPY.submit)}
           </Button>

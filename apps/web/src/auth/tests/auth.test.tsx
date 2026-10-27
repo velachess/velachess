@@ -51,7 +51,7 @@ describe("the wall", () => {
     expect(await screen.findByRole("button", { name: "Sign in" })).toBeInTheDocument();
     // The whole location, search included, for after they sign in.
     expect(router.state.location.search).toMatchObject({
-      redirect: expect.stringContaining("/games") as unknown as string,
+      redirect: expect.stringContaining("/games"),
     });
   });
 
@@ -210,6 +210,39 @@ describe("signing in", () => {
     expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/login");
+  });
+
+  it("asks for a missing email once", async () => {
+    sessionInactive();
+
+    const { user } = await renderApp({ path: "/login" });
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("That doesn't look like an email address."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("refuses an address without a domain before asking the server", async () => {
+    sessionInactive();
+    let asked = false;
+    server.use(
+      http.post("/api/auth/sign-in/email", () => {
+        asked = true;
+        return HttpResponse.json({ message: "unexpected" }, { status: 500 });
+      }),
+    );
+
+    const { user } = await renderApp({ path: "/login" });
+    await user.type(screen.getByLabelText("Email"), "reader@");
+    await user.type(screen.getByLabelText("Password"), TEST_PASSWORD);
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(
+      await screen.findByText("That doesn't look like an email address."),
+    ).toBeInTheDocument();
+    expect(asked).toBe(false);
   });
 });
 
