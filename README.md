@@ -5,11 +5,11 @@
   </picture>
 </p>
 
-<h1 align="center">Review your games with Stockfish</h1>
+<h1 align="center">Review and learn from your chess games</h1>
 
 <p align="center">
-  VelaChess imports your Chess.com and Lichess games, or a PGN file, and
-  grades every move with Stockfish so you can review each game on the board.
+  VelaChess lets you import games from Chess.com, Lichess, or PGN files,
+  analyze your moves, and review your decisions on an interactive board.
 </p>
 
 <p align="center">
