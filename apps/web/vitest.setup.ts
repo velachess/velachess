@@ -40,6 +40,12 @@ beforeAll(() => {
 
   layOutPanelGroups();
 
+  // jsdom has no Web Animations API. Base UI's scroll area calls it once a
+  // ResizeObserver reports; everything else in Base UI skips animation
+  // waits under its own flag, as it did when the API was simply missing.
+  Element.prototype.getAnimations = () => [];
+  Object.assign(globalThis, { BASE_UI_ANIMATIONS_DISABLED: true });
+
   // jsdom has no audio backend.
   HTMLMediaElement.prototype.play = () => Promise.resolve();
 

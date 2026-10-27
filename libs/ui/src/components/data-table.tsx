@@ -27,7 +27,7 @@ import {
 
 // v9 tree-shakes anything unregistered, including the APIs that read cells:
 // `getVisibleCells` comes from the visibility feature.
-export const features = tableFeatures({ columnVisibilityFeature, rowPaginationFeature });
+const features = tableFeatures({ columnVisibilityFeature, rowPaginationFeature });
 
 export type DataTableFeatures = typeof features;
 

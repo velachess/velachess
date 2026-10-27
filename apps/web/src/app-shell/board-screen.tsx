@@ -6,7 +6,7 @@ import { PageHeader } from "@velachess/ui/layout/page-header";
 import { RouteBreadcrumbs } from "./route-breadcrumbs.tsx";
 
 export interface BoardScreenProps {
-  title: string;
+  title: ReactNode;
   description: ReactNode;
   children: ReactNode;
 }

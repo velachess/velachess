@@ -56,13 +56,14 @@ function resultOf(i18n: I18n, result: GameResult, mySeat: Seat | null): string {
   return `${SCORE[result]} ${i18n._(GAME_HEADING_COPY[outcome])}`;
 }
 
-export function gameTitle(
-  i18n: I18n,
-  white: string,
-  black: string,
+interface GameTitleProps {
+  white: string;
+  black: string;
   /** `null` when nothing says which seat is yours — nobody is "you". */
-  mySeat: Seat | null,
-): string {
+  mySeat: Seat | null;
+}
+
+function titleOf(i18n: I18n, { white, black, mySeat }: GameTitleProps): string {
   if (!mySeat) return i18n._({ ...GAME_HEADING_COPY.matchup, values: { white, black } });
 
   const opponents = { white: black, black: white } as const satisfies Record<
@@ -73,6 +74,12 @@ export function gameTitle(
     ...GAME_HEADING_COPY.versusYou,
     values: { opponent: opponents[mySeat] },
   });
+}
+
+export function GameTitle(props: GameTitleProps) {
+  const { i18n } = useLingui();
+
+  return <>{titleOf(i18n, props)}</>;
 }
 
 interface GameFactsProps {
