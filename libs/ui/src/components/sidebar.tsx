@@ -155,13 +155,14 @@ interface RailDrag {
   moved: boolean;
 }
 
-function preview(drag: RailDrag, next: number) {
-  drag.width = next;
-  drag.wrapper.style.setProperty("--sidebar-width", `${next}px`);
+function preview(drag: RailDrag, expanded: number, icon: number) {
+  drag.wrapper.style.setProperty("--sidebar-width", `${expanded}px`);
+  drag.wrapper.style.setProperty("--sidebar-width-icon", `${icon}px`);
 }
 
-/** The width is previewed on the wrapper's variable while dragging and
- * committed once on release, so a drag does not re-render the tree. */
+/** The edge follows the pointer between the icon width and the maximum on
+ * the wrapper's variables, then settles within bounds and commits once on
+ * release, so a drag does not re-render the tree. */
 function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
   const { open, setOpen, width, setWidth, toggleSidebar } = useSidebar();
   const dragRef = React.useRef<RailDrag | null>(null);
@@ -191,15 +192,20 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
     drag.moved = true;
     drag.wrapper.dataset["resizing"] = "";
 
-    const pointerWidth = drag.startWidth + offset;
-    if (pointerWidth < SIDEBAR_COLLAPSE_BELOW) {
+    const edge = Math.min(
+      Math.max(drag.startWidth + offset, SIDEBAR_WIDTH_ICON),
+      SIDEBAR_WIDTH.max,
+    );
+    if (edge < SIDEBAR_COLLAPSE_BELOW) {
       if (open) setOpen(false);
-      preview(drag, width);
+      drag.width = width;
+      preview(drag, width, edge);
       return;
     }
 
     if (!open) setOpen(true);
-    preview(drag, clampWidth(pointerWidth));
+    drag.width = clampWidth(edge);
+    preview(drag, edge, SIDEBAR_WIDTH_ICON);
   }
 
   function finishDrag() {
@@ -208,7 +214,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
     if (!drag) return null;
 
     delete drag.wrapper.dataset["resizing"];
-    if (drag.moved && drag.width !== width) setWidth(drag.width);
+    if (!drag.moved) return drag;
+
+    preview(drag, drag.width, SIDEBAR_WIDTH_ICON);
+    if (drag.width !== width) setWidth(drag.width);
     return drag;
   }
 
