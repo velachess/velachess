@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { SIDEBAR_WIDTH } from "@velachess/ui/components/sidebar";
+import { SIDEBAR_WIDTH } from "@velachess/ui/lib/sidebar-width";
 
 interface SidebarStore {
   open: boolean;

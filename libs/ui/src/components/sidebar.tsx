@@ -3,10 +3,10 @@ import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
+import { SIDEBAR_WIDTH } from "../lib/sidebar-width.ts";
 import { cn } from "../lib/utils.ts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.tsx";
 
-export const SIDEBAR_WIDTH = { min: 208, default: 256, max: 352 } as const;
 const SIDEBAR_WIDTH_ICON = 48;
 const SIDEBAR_COLLAPSE_BELOW = (SIDEBAR_WIDTH_ICON + SIDEBAR_WIDTH.min) / 2;
 const SIDEBAR_KEYBOARD_STEP = 16;
@@ -64,16 +64,24 @@ function SidebarProvider({
 }) {
   const width = clampWidth(widthProp);
 
-  function toggleSidebar() {
-    setOpen(!open);
-  }
+  const context = React.useMemo<SidebarContextProps>(
+    () => ({
+      state: sidebarState(open),
+      open,
+      setOpen,
+      width,
+      setWidth,
+      toggleSidebar: () => setOpen(!open),
+    }),
+    [open, setOpen, width, setWidth],
+  );
 
   const dimensions: Record<`--${string}`, string> = {
     "--sidebar-width": `${width}px`,
     "--sidebar-width-icon": `${SIDEBAR_WIDTH_ICON}px`,
   };
 
-  const onShortcut = React.useEffectEvent(toggleSidebar);
+  const onShortcut = React.useEffectEvent(context.toggleSidebar);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -88,16 +96,7 @@ function SidebarProvider({
   }, []);
 
   return (
-    <SidebarContext
-      value={{
-        state: sidebarState(open),
-        open,
-        setOpen,
-        width,
-        setWidth,
-        toggleSidebar,
-      }}
-    >
+    <SidebarContext value={context}>
       <div
         data-slot="sidebar-wrapper"
         style={dimensions}
@@ -154,19 +153,16 @@ interface RailDrag {
   moved: boolean;
 }
 
-/**
- * A window splitter: drag or arrow keys resize, Enter or a click toggles.
- * The width is previewed on the wrapper's variable while dragging and
- * committed once on release, so a drag does not re-render the tree.
- */
+function preview(drag: RailDrag, next: number) {
+  drag.width = next;
+  drag.wrapper.style.setProperty("--sidebar-width", `${next}px`);
+}
+
+/** The width is previewed on the wrapper's variable while dragging and
+ * committed once on release, so a drag does not re-render the tree. */
 function SidebarRail({ className, ...props }: React.ComponentProps<"div">) {
   const { open, setOpen, width, setWidth, toggleSidebar } = useSidebar();
   const dragRef = React.useRef<RailDrag | null>(null);
-
-  function preview(drag: RailDrag, next: number) {
-    drag.width = next;
-    drag.wrapper.style.setProperty("--sidebar-width", `${next}px`);
-  }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     const wrapper = event.currentTarget.closest<HTMLElement>(

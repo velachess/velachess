@@ -33,6 +33,10 @@ function ToggleGroup<Value extends string = string>({
     spacing?: number;
     orientation?: "horizontal" | "vertical";
   }) {
+  const context = React.useMemo(
+    () => ({ variant, size, spacing, orientation }),
+    [variant, size, spacing, orientation],
+  );
   const gapStyle: React.CSSProperties & Record<"--gap", number> = { "--gap": spacing };
 
   return (
@@ -49,7 +53,7 @@ function ToggleGroup<Value extends string = string>({
       )}
       {...props}
     >
-      <ToggleGroupContext.Provider value={{ variant, size, spacing, orientation }}>
+      <ToggleGroupContext.Provider value={context}>
         {children}
       </ToggleGroupContext.Provider>
     </ToggleGroupPrimitive>

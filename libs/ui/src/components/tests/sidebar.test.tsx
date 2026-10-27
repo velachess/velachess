@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { SIDEBAR_WIDTH, Sidebar, SidebarProvider, SidebarRail } from "../sidebar.tsx";
+import { SIDEBAR_WIDTH } from "../../lib/sidebar-width.ts";
+import { Sidebar, SidebarProvider, SidebarRail } from "../sidebar.tsx";
 
 const RAIL_LABEL = "Resize navigation";
 
