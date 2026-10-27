@@ -61,8 +61,10 @@ sidebar that collapses to icons, no mobile sheet (below `md` the frame
 shows `NavBar` instead). Its rail is a window splitter: dragging or the
 arrow keys resize between a minimum and a maximum, dragging past the
 midpoint to the icon width collapses it, and Enter, a click or
-<kbd>Cmd/Ctrl</kbd>+<kbd>B</kbd> toggle it. A drag previews the width on
-the wrapper's CSS variable and commits once on release, so it does not
+<kbd>Cmd/Ctrl</kbd>+<kbd>B</kbd> toggle it. While dragging, the edge
+follows the pointer down to the icon width and settles within bounds on
+release, so crossing the midpoint never jumps. A drag previews on the
+wrapper's CSS variables and commits once on release, so it does not
 re-render the tree. The provider takes `open` and `width` controlled; the
 app persists them.
 

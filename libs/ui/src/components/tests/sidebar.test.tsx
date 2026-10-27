@@ -46,10 +46,10 @@ function sidebarState() {
   return document.querySelector("[data-slot=sidebar]")?.getAttribute("data-state");
 }
 
-function renderedWidth() {
+function renderedWidth(variable = "--sidebar-width") {
   return document
     .querySelector<HTMLElement>("[data-slot=sidebar-wrapper]")
-    ?.style.getPropertyValue("--sidebar-width");
+    ?.style.getPropertyValue(variable);
 }
 
 function dragRail(from: number, path: number[]) {
@@ -120,6 +120,35 @@ describe("dragging the rail", () => {
 
     expect(sidebarState()).toBe("collapsed");
     expect(onWidthCommit).not.toHaveBeenCalled();
+  });
+
+  it("follows the pointer below the minimum and settles at it on release", () => {
+    const onWidthCommit = vi.fn();
+    render(<Harness onWidthCommit={onWidthCommit} />);
+
+    dragRail(256, [200, 160]);
+
+    expect(renderedWidth()).toBe("160px");
+    expect(sidebarState()).toBe("expanded");
+
+    releaseRail(160);
+
+    expect(renderedWidth()).toBe(`${SIDEBAR_WIDTH.min}px`);
+    expect(onWidthCommit).toHaveBeenCalledWith(SIDEBAR_WIDTH.min);
+  });
+
+  it("follows the pointer while collapsed and settles at the icon width", () => {
+    render(<Harness initialOpen={false} />);
+
+    dragRail(48, [80, 100]);
+
+    expect(renderedWidth("--sidebar-width-icon")).toBe("100px");
+    expect(sidebarState()).toBe("collapsed");
+
+    releaseRail(100);
+
+    expect(renderedWidth("--sidebar-width-icon")).toBe("48px");
+    expect(sidebarState()).toBe("collapsed");
   });
 
   it("expands again when dragged outward from icons", () => {
