@@ -23,9 +23,6 @@ describe("the login screen shows only what the instance offers", () => {
     expect(
       screen.getByRole("button", { name: "Continue with Google" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Continue with Google or get a sign-in link by email."),
-    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /password instead/ }),
@@ -113,6 +110,31 @@ describe("asking for a sign-in link", () => {
     );
 
     expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("That doesn't look like an email address."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("refuses an address without a domain before asking", async () => {
+    sessionInactive();
+    signInMethodsAre({ password: false, magicLink: true });
+
+    let asked = false;
+    server.use(
+      http.post("/api/auth/sign-in/magic-link", () => {
+        asked = true;
+        return HttpResponse.json({ status: true });
+      }),
+    );
+
+    const { user } = await renderApp({ path: "/login" });
+    await user.type(await screen.findByLabelText("Email"), "reader@");
+    await user.click(screen.getByRole("button", { name: "Email me a sign-in link" }));
+
+    expect(
+      await screen.findByText("That doesn't look like an email address."),
+    ).toBeInTheDocument();
+    expect(asked).toBe(false);
   });
 
   it("says to wait when the server throttles", async () => {

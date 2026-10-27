@@ -76,7 +76,7 @@ export function ResetPasswordScreen({ token }: { token?: string }) {
         {state === "changed" && (
           <Field>
             <FieldDescription>{i18n._(RESET_COPY.changed)}</FieldDescription>
-            <Link to="/login" className={buttonVariants()}>
+            <Link to="/login" className={buttonVariants({ size: "lg" })}>
               {i18n._(RESET_COPY.signIn)}
             </Link>
           </Field>
@@ -87,7 +87,7 @@ export function ResetPasswordScreen({ token }: { token?: string }) {
             <FieldError>{i18n._(RESET_COPY.invalidLink)}</FieldError>
             <Link
               to="/forgot-password"
-              className={buttonVariants({ variant: "outline" })}
+              className={buttonVariants({ variant: "outline", size: "lg" })}
             >
               {i18n._(RESET_COPY.requestNewLink)}
             </Link>
@@ -114,6 +114,7 @@ export function ResetPasswordScreen({ token }: { token?: string }) {
                         {i18n._(RESET_COPY.newPassword)}
                       </FieldLabel>
                       <Input
+                        className="h-9"
                         id={field.name}
                         name={field.name}
                         type="password"
@@ -141,6 +142,7 @@ export function ResetPasswordScreen({ token }: { token?: string }) {
                         {i18n._(RESET_COPY.confirmPassword)}
                       </FieldLabel>
                       <Input
+                        className="h-9"
                         id={field.name}
                         name={field.name}
                         type="password"
@@ -161,7 +163,7 @@ export function ResetPasswordScreen({ token }: { token?: string }) {
               </form.Field>
 
               <Field>
-                <Button type="submit" disabled={reset.isPending}>
+                <Button type="submit" size="lg" disabled={reset.isPending}>
                   {reset.isPending && i18n._(RESET_COPY.submitting)}
                   {!reset.isPending && i18n._(RESET_COPY.submit)}
                 </Button>

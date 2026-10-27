@@ -1,11 +1,3 @@
-/**
- * Paths copied verbatim from the brand kit in `../brand/`, with the fills
- * swapped for `fill-foreground`/`fill-guidance` so the mark follows the
- * theme rather than the brand's fixed ink.
- *
- * The kit drops the star below ~24px and lets the pawn fill the frame, so
- * `size` swaps to that cropped viewBox instead of scaling the full mark.
- */
 import type * as React from "react";
 
 export type VelaChessMarkProps = React.SVGProps<SVGSVGElement> & {
@@ -15,7 +7,7 @@ export type VelaChessMarkProps = React.SVGProps<SVGSVGElement> & {
 export function VelaChessMark({ size = "default", ...props }: VelaChessMarkProps) {
   return (
     <svg
-      viewBox={size === "micro" ? "8 4 30 36" : "0 0 45 45"}
+      viewBox={size === "micro" ? "5 4 30 36" : "0 0 45 45"}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       {...props}

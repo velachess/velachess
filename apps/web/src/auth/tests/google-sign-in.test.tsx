@@ -53,25 +53,18 @@ describe("the Google button", () => {
 
     await renderApp({ path: "/login" });
 
-    // The provider button creates the account on first use, so the copy
-    // stays neutral for both entry cases.
     expect(await screen.findByText("Continue to VelaChess")).toBeInTheDocument();
-    expect(
-      screen.getByText("Continue with Google or sign in with your account credentials."),
-    ).toBeInTheDocument();
-    // Never promises an email registration that does not exist.
+    expect(screen.getByText("Review your chess games.")).toBeInTheDocument();
     expect(screen.queryByText(/sign up|create account/i)).not.toBeInTheDocument();
   });
 
-  it("mentions only credentials on a password-only instance", async () => {
+  it("never mentions Google on a password-only instance", async () => {
     sessionInactive();
 
     await renderApp({ path: "/login" });
 
     expect(await screen.findByText("Continue to VelaChess")).toBeInTheDocument();
-    expect(
-      screen.getByText("Sign in with your account credentials."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Review your chess games.")).toBeInTheDocument();
     expect(screen.queryByText(/Google/)).not.toBeInTheDocument();
   });
 
@@ -81,10 +74,15 @@ describe("the Google button", () => {
 
     let body: Record<string, unknown> | undefined;
     server.use(
-      http.post("/api/auth/sign-in/social", async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ url: "https://accounts.google.com/o/oauth2/v2/auth" });
-      }),
+      http.post<never, Record<string, unknown>>(
+        "/api/auth/sign-in/social",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            url: "https://accounts.google.com/o/oauth2/v2/auth",
+          });
+        },
+      ),
     );
 
     const { user } = await renderApp({ path: "/login?redirect=%2Fgames" });
@@ -109,10 +107,13 @@ describe("the Google button", () => {
 
     let body: Record<string, unknown> | undefined;
     server.use(
-      http.post("/api/auth/sign-in/social", async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ url: "https://accounts.google.com" });
-      }),
+      http.post<never, Record<string, unknown>>(
+        "/api/auth/sign-in/social",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({ url: "https://accounts.google.com" });
+        },
+      ),
     );
 
     const { user } = await renderApp({ path: "/login" });

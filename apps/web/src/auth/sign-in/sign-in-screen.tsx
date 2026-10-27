@@ -21,10 +21,7 @@ import { useQuery } from "../../libs/react-query.ts";
 
 const SIGN_IN_COPY = {
   title: msg`Continue to VelaChess`,
-  descriptionGoogle: msg`Continue with Google or sign in with your account credentials.`,
-  descriptionPassword: msg`Sign in with your account credentials.`,
-  descriptionGoogleLink: msg`Continue with Google or get a sign-in link by email.`,
-  descriptionLink: msg`Get a sign-in link by email.`,
+  description: msg`Review your chess games.`,
   switchToPassword: msg`Sign in with a password instead`,
   switchToLink: msg`Email me a sign-in link instead`,
   google: msg`Continue with Google`,
@@ -51,13 +48,6 @@ function oauthMessageOf(googleFailed: boolean, oauthError: string | undefined) {
   if (googleFailed) return SIGN_IN_COPY.googleFailed;
   if (oauthError) return oauthErrorCopy(oauthError);
   return null;
-}
-
-function descriptionOf(google: boolean, magicLink: boolean) {
-  if (magicLink && google) return SIGN_IN_COPY.descriptionGoogleLink;
-  if (magicLink) return SIGN_IN_COPY.descriptionLink;
-  if (google) return SIGN_IN_COPY.descriptionGoogle;
-  return SIGN_IN_COPY.descriptionPassword;
 }
 
 export function SignInScreen({
@@ -98,7 +88,19 @@ export function SignInScreen({
   return (
     <AuthCard
       title={i18n._(SIGN_IN_COPY.title)}
-      description={i18n._(descriptionOf(google, magicLink))}
+      description={i18n._(SIGN_IN_COPY.description)}
+      footer={
+        canSwitch && (
+          <Button
+            type="button"
+            variant="link"
+            onClick={() => setPasswordChosen(!passwordChosen)}
+          >
+            {passwordChosen && i18n._(SIGN_IN_COPY.switchToLink)}
+            {!passwordChosen && i18n._(SIGN_IN_COPY.switchToPassword)}
+          </Button>
+        )
+      }
     >
       <FieldGroup>
         {oauthMessage !== null && (
@@ -112,10 +114,11 @@ export function SignInScreen({
             <Button
               type="button"
               variant="outline"
+              size="lg"
               disabled={googlePending}
               onClick={() => void startGoogle()}
             >
-              <GoogleIcon className="size-4" />
+              <GoogleIcon />
               {i18n._(SIGN_IN_COPY.google)}
             </Button>
           </Field>
@@ -134,19 +137,6 @@ export function SignInScreen({
             redirect={redirect}
             passwordReset={methods?.passwordReset === true}
           />
-        )}
-
-        {canSwitch && (
-          <Field>
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => setPasswordChosen(!passwordChosen)}
-            >
-              {passwordChosen && i18n._(SIGN_IN_COPY.switchToLink)}
-              {!passwordChosen && i18n._(SIGN_IN_COPY.switchToPassword)}
-            </Button>
-          </Field>
         )}
       </FieldGroup>
     </AuthCard>
