@@ -35,15 +35,20 @@ function SidebarProvider({ className, children, ...props }: React.ComponentProps
   const panelRef = usePanelRef();
   const [collapsed, setCollapsed] = React.useState(false);
 
-  const context: SidebarContextProps = {
-    state: collapsed ? "collapsed" : "expanded",
-    toggleSidebar: () => {
-      if (panelRef.current?.isCollapsed()) panelRef.current.expand();
-      else panelRef.current?.collapse();
-    },
-    panelRef,
-    setCollapsed,
-  };
+  // Memoized because the frame re-renders on every navigation, and a new
+  // value would re-render every menu button in the sidebar with it.
+  const context = React.useMemo<SidebarContextProps>(
+    () => ({
+      state: collapsed ? "collapsed" : "expanded",
+      toggleSidebar: () => {
+        if (panelRef.current?.isCollapsed()) panelRef.current.expand();
+        else panelRef.current?.collapse();
+      },
+      panelRef,
+      setCollapsed,
+    }),
+    [collapsed, panelRef],
+  );
 
   // The panel reports its size from a ResizeObserver, a frame after the
   // first paint; reading it before then keeps a sidebar restored collapsed
