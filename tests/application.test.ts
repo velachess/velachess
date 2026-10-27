@@ -1,14 +1,6 @@
 // @vitest-environment node
-/**
- * Repository-wide integration suite: the full sync -> list pipeline
- * exercised across the business module packages, against the real
- * harness (PGlite + migrations + pg-boss + advisory lock).
- *
- * Lives at the repo root, not inside any one module, because it is a
- * genuine cross-module fact: no single package owns "importing a game
- * makes it listable." Analysis has no cross-module pipeline here — it
- * runs browser-side, with no server leg to exercise.
- */
+/** At the repo root because no single package owns "importing a game makes it
+ * listable". */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { AccountPlatform, NormalizedGame } from "@velachess/infra-platforms";
@@ -199,6 +191,33 @@ function racingConnects(ownerId: string, usernames: [string, string]) {
   ]);
 }
 
+// Its own movetext: games dedupe per user and account, so reusing
+// the looper fixture here would save nothing and prove nothing.
+const freshArchive: typeof fetch = async (input) => {
+  const url = String(input);
+  if (url.endsWith("/archives")) {
+    return Response.json({
+      archives: ["https://api.chess.com/pub/player/fresh_import/games/2026/08"],
+    });
+  }
+  return Response.json({
+    games: [
+      {
+        url: "https://www.chess.com/game/live/9001",
+        pgn: '[White "fresh_import"]\n[Black "opponent"]\n[Result "1-0"]\n\n1. b3 e5 2. Bb2 Nc6 1-0',
+        rules: "chess",
+        end_time: 1755200000,
+      },
+      {
+        url: "https://www.chess.com/game/live/9002",
+        pgn: '[White "opponent"]\n[Black "fresh_import"]\n[Result "0-1"]\n\n1. f4 d5 2. Nf3 Nf6 0-1',
+        rules: "chess",
+        end_time: 1755200100,
+      },
+    ],
+  });
+};
+
 describe("application services (the flow, end to end)", () => {
   let userId: string;
 
@@ -222,7 +241,6 @@ describe("application services (the flow, end to end)", () => {
     if (outcome.status !== "connected") {
       throw new Error(`expected "connected", got "${outcome.status}"`);
     }
-    // The worker's part: the first sync connecting scheduled.
     if (outcome.syncId) await runSync(outcome.syncId, syncDeps.fetch);
     return {
       account: (await getTrackedAccount(h.db, outcome.account.id))!,
@@ -231,8 +249,6 @@ describe("application services (the flow, end to end)", () => {
   }
 
   it("a user anchors the flow", async () => {
-    // Identity now arrives from a session; the services still take a
-    // plain userId, which is what this suite exercises.
     userId = (await createUser(h.db)).id;
     expect(userId).toBeTruthy();
   });
@@ -283,33 +299,6 @@ describe("application services (the flow, end to end)", () => {
   });
 
   it("importAccount: a first import fills the archive, a second one only reads", async () => {
-    // Its own movetext: games dedupe per user and account, so reusing
-    // the looper fixture here would save nothing and prove nothing.
-    const freshArchive: typeof fetch = (async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.endsWith("/archives")) {
-        return Response.json({
-          archives: ["https://api.chess.com/pub/player/fresh_import/games/2026/08"],
-        });
-      }
-      return Response.json({
-        games: [
-          {
-            url: "https://www.chess.com/game/live/9001",
-            pgn: '[White "fresh_import"]\n[Black "opponent"]\n[Result "1-0"]\n\n1. b3 e5 2. Bb2 Nc6 1-0',
-            rules: "chess",
-            end_time: 1755200000,
-          },
-          {
-            url: "https://www.chess.com/game/live/9002",
-            pgn: '[White "opponent"]\n[Black "fresh_import"]\n[Result "0-1"]\n\n1. f4 d5 2. Nf3 Nf6 0-1',
-            rules: "chess",
-            end_time: 1755200100,
-          },
-        ],
-      });
-    }) as typeof fetch;
-
     // The unified library is per user — a fresh one, so these
     // assertions see exactly this import and nothing earlier in the
     // suite.
@@ -341,9 +330,9 @@ describe("application services (the flow, end to end)", () => {
       "fresh_import",
       {},
       {
-        fetch: (async () => {
+        fetch: async () => {
           throw new Error("the handle is already tracked");
-        }) as unknown as typeof fetch,
+        },
       },
       ownerId,
     );

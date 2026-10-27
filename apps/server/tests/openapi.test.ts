@@ -1,10 +1,4 @@
 // @vitest-environment node
-/**
- * Every route Hono has registered must exist in the served OpenAPI
- * document, and every documented path and method must be a real route. The
- * document is generated from each route's `createRoute`, so this can only
- * fail on a route missing its declaration.
- */
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 import { createApiHarness, type ApiHarness, type AuthedApp } from "./harness.ts";
@@ -13,17 +7,38 @@ let harness: ApiHarness;
 let owner: AuthedApp;
 let spec: OpenApiDocument;
 
+interface JsonContent {
+  content: Record<string, { schema: JsonSchema }>;
+}
+
 interface OpenApiDocument {
   openapi: string;
   info: { title: string };
-  paths: Record<string, Record<string, unknown>>;
+  paths: Record<
+    string,
+    Record<string, { requestBody?: JsonContent; responses: Record<string, JsonContent> }>
+  >;
+}
+
+function requestSchema(path: string, method: string): JsonSchema {
+  const schema =
+    spec.paths[path]?.[method]?.requestBody?.content["application/json"]?.schema;
+  if (!schema) throw new Error(`no JSON request body documented for ${method} ${path}`);
+  return schema;
+}
+
+function responseSchema(path: string, method: string, status: string): JsonSchema {
+  const schema =
+    spec.paths[path]?.[method]?.responses[status]?.content["application/json"]?.schema;
+  if (!schema) throw new Error(`no JSON ${status} documented for ${method} ${path}`);
+  return schema;
 }
 
 beforeAll(async () => {
   harness = await createApiHarness();
   owner = (await harness.signUp("owner@openapi.test")).app;
   const res = await harness.app.request("/openapi.json");
-  spec = (await res.json()) as OpenApiDocument;
+  spec = await res.json();
 });
 
 afterAll(async () => {
@@ -76,18 +91,14 @@ it("GET /openapi.json serves the document", async () => {
 });
 
 it("a representative route's request and response schemas come from its own Zod schemas, not a hand-written duplicate", () => {
-  const post = spec.paths["/accounts"]?.["post"] as {
-    requestBody: { content: { "application/json": { schema: JsonSchema } } };
-    responses: { "201": { content: { "application/json": { schema: JsonSchema } } } };
-  };
-  const body = post.requestBody.content["application/json"].schema;
+  const body = requestSchema("/accounts", "post");
   expect(body.properties?.["platform"]?.enum).toEqual(
     expect.arrayContaining(["chess_com", "lichess"]),
   );
   expect(body.properties?.["username"]?.type).toBe("string");
   expect(body.required).toEqual(expect.arrayContaining(["platform", "username"]));
 
-  const response = post.responses["201"].content["application/json"].schema;
+  const response = responseSchema("/accounts", "post", "201");
   expect(Object.keys(response.properties ?? {}).toSorted()).toEqual([
     "id",
     "platform",
@@ -120,11 +131,7 @@ function acceptsNull(schema: JsonSchema): boolean {
 it("nullable fields use OpenAPI 3.1 / JSON Schema semantics, not OpenAPI 3.0's `nullable: true`", () => {
   expect(JSON.stringify(spec)).not.toContain('"nullable":true');
 
-  const gamesGet = spec.paths["/games"]?.["get"] as {
-    responses: { "200": { content: { "application/json": { schema: JsonSchema } } } };
-  };
-  const rows =
-    gamesGet.responses["200"].content["application/json"].schema.properties?.["games"];
+  const rows = responseSchema("/games", "get", "200").properties?.["games"];
   const openingName = rows?.items?.properties?.["openingName"];
   expect(openingName).toBeDefined();
   expect(acceptsNull(openingName!)).toBe(true);
@@ -169,25 +176,25 @@ it("system routes are registered before the identity middleware", () => {
 });
 
 it("error responses honor the documented { error } contract", async () => {
-  // invalid body → 400 with { error }, not zod's default dump
   const badBody = await owner.request("/accounts", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ platform: "nope" }),
   });
   expect(badBody.status).toBe(400);
-  const bodyError = (await badBody.json()) as { error: string; details: string[] };
+  const bodyError: { error: string; details: string[] } = await badBody.json();
   expect(typeof bodyError.error).toBe("string");
   expect(bodyError.details.length).toBeGreaterThan(0);
 
-  // malformed path id → 400, never a db error
   const badParam = await owner.request("/games/not-a-uuid");
   expect(badParam.status).toBe(400);
-  expect(((await badParam.json()) as { error: string }).error).toBe("invalid id");
+  const paramError: { error: string } = await badParam.json();
+  expect(paramError.error).toBe("invalid id");
 
   // unknown route → JSON 404, same shape (with a session; without one,
   // the gate answers first and unknown paths 401 like everything else)
   const missing = await owner.request("/nope");
   expect(missing.status).toBe(404);
-  expect(((await missing.json()) as { error: string }).error).toBe("not found");
+  const missingError: { error: string } = await missing.json();
+  expect(missingError.error).toBe("not found");
 });

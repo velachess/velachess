@@ -1,9 +1,4 @@
 // @vitest-environment node
-/**
- * GET /games/:id carries both seats' picture or flair from a per-handle
- * cache shared by every user: asked for once, reused until stale, and never
- * a reason for the read to fail.
- */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -36,7 +31,7 @@ function fakeSyncFetch() {
   let avatarless = false;
   const profileRequests: string[] = [];
 
-  const doFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const doFetch: typeof globalThis.fetch = async (input, init) => {
     const url = String(input);
 
     if (CHESS_COM_PROFILE_URL.test(url)) {
@@ -78,7 +73,7 @@ function fakeSyncFetch() {
       return Response.json(LISTER_ARCHIVE_MONTH);
     }
     return base(input, init);
-  }) as typeof globalThis.fetch;
+  };
 
   return {
     fetch: doFetch,
