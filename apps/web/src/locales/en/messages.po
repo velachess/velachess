@@ -601,8 +601,8 @@ msgid "Keep it under 100 characters."
 msgstr "Keep it under 100 characters."
 
 #: src/routes/_app/settings/language-region.tsx:7
-#: src/settings/language-region/language-region-screen.tsx:19
-#: src/settings/language-region/language-region-screen.tsx:21
+#: src/settings/language-region/language-region-screen.tsx:24
+#: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
 #: src/test/routes.tsx:127
 msgid "Language"
@@ -625,7 +625,7 @@ msgstr "Light"
 msgid "Loading the game…"
 msgstr "Loading the game…"
 
-#: src/settings/language-region/language-region-screen.tsx:20
+#: src/settings/language-region/language-region-screen.tsx:25
 msgid "Locale preferences for this device."
 msgstr "Locale preferences for this device."
 
@@ -996,11 +996,11 @@ msgstr "Syncing…"
 msgid "System"
 msgstr "System"
 
-#: src/settings/language-region/language-region-screen.tsx:23
+#: src/settings/language-region/language-region-screen.tsx:28
 msgid "System default"
 msgstr "System default"
 
-#: src/settings/language-region/language-region-screen.tsx:22
+#: src/settings/language-region/language-region-screen.tsx:27
 msgid "System default follows your browser's language."
 msgstr "System default follows your browser's language."
 

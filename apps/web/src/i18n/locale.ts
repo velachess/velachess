@@ -1,7 +1,7 @@
 /** Display names are proper nouns, in their own language — not translated. */
 const LOCALES = {
   en: "English",
-  "pt-BR": "Português (Brasil)",
+  "pt-BR": "Português",
   es: "Español",
 } as const;
 
