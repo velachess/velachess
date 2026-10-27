@@ -1,6 +1,6 @@
 /**
- * `NavDock`'s horizontal sibling, shown through `AppFrame`'s `navFallback`
- * slot below the rail breakpoint. Touch has no hover, so the label sits
+ * `NavSidebar`'s horizontal sibling, shown through `AppFrame`'s `navFallback`
+ * slot below the sidebar breakpoint. Touch has no hover, so the label sits
  * under the icon rather than in a tooltip; otherwise it takes the same
  * router-free shape, so a caller builds both from one `items` array.
  *
@@ -16,10 +16,10 @@ import { Fragment } from "react";
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";
-import type { NavDockItem } from "./nav-dock.tsx";
+import type { NavItem } from "./nav-sidebar.tsx";
 
 /** Generic over the caller's item, so ids keep their union. */
-export interface NavBarProps<TItem extends NavDockItem> {
+export interface NavBarProps<TItem extends NavItem> {
   items: TItem[];
   /** `| undefined` because no active item is a real state, which
    * `exactOptionalPropertyTypes` tells apart from omitted. */
@@ -35,7 +35,7 @@ export interface NavBarProps<TItem extends NavDockItem> {
   className?: string;
 }
 
-export function NavBar<TItem extends NavDockItem>({
+export function NavBar<TItem extends NavItem>({
   items,
   activeId,
   renderItem,
@@ -65,7 +65,7 @@ export function NavBar<TItem extends NavDockItem>({
   );
 }
 
-function NavBarItemContent({ item, isActive }: { item: NavDockItem; isActive: boolean }) {
+function NavBarItemContent({ item, isActive }: { item: NavItem; isActive: boolean }) {
   const Icon = item.icon;
 
   return (

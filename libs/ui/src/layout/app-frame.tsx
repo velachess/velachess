@@ -1,19 +1,27 @@
 /**
  * Navigation through the `nav` slot, content as children:
- *   > 768px   nav rail 64 | content
- *   <= 768px  rail hidden, `navFallback` below the content as a bottom bar,
+ *   >= 768px  sidebar, resizable and collapsible to icons | content
+ *   < 768px   sidebar hidden, `navFallback` below the content as a bottom bar,
  *             by flex order rather than fixed positioning
  */
 import type * as React from "react";
 
 import { cn } from "../lib/utils.ts";
+import { SidebarProvider } from "../components/sidebar.tsx";
 
-export interface AppFrameProps {
+type SidebarPreference = Required<
+  Pick<
+    React.ComponentProps<typeof SidebarProvider>,
+    "open" | "onOpenChange" | "width" | "onWidthChange"
+  >
+>;
+
+export interface AppFrameProps extends SidebarPreference {
   /** The persistent navigation, hidden on small screens. */
   nav: React.ReactNode;
-  /** Shown instead of `nav` below the rail breakpoint. */
+  /** Shown instead of `nav` below the sidebar breakpoint. */
   navFallback?: React.ReactNode;
-  /** A full-width strip above everything. */
+  /** A strip above the content. */
   banner?: React.ReactNode;
   /** Label of the skip link. */
   skipLabel?: string;
@@ -30,13 +38,12 @@ export function AppFrame({
   skipLabel = "Skip to content",
   children,
   className,
+  ...sidebar
 }: AppFrameProps) {
   return (
-    <div
-      className={cn(
-        "flex h-svh w-full flex-col overflow-hidden bg-background",
-        className,
-      )}
+    <SidebarProvider
+      {...sidebar}
+      className={cn("h-svh overflow-hidden bg-background", className)}
     >
       <a
         href={`#${SKIP_TARGET_ID}`}
@@ -45,21 +52,18 @@ export function AppFrame({
         {skipLabel}
       </a>
 
-      {banner}
+      {nav}
 
-      <div className="flex min-h-0 flex-1">
-        <div className="hidden md:block">{nav}</div>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <main
-            id={SKIP_TARGET_ID}
-            className="@container/content flex min-h-0 flex-1 flex-col"
-          >
-            {children}
-          </main>
-          {navFallback ? <div className="md:hidden">{navFallback}</div> : null}
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {banner}
+        <main
+          id={SKIP_TARGET_ID}
+          className="@container/content flex min-h-0 flex-1 flex-col"
+        >
+          {children}
+        </main>
+        {navFallback ? <div className="md:hidden">{navFallback}</div> : null}
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

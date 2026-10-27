@@ -5,6 +5,7 @@ import {
   type RememberedAccount,
 } from "../games/import/index.ts";
 import { useSoundPreferences } from "../chess-sounds/index.ts";
+import { useSidebarStore } from "../app-shell/sidebar-store.ts";
 import { archiveAccount } from "./archive.ts";
 
 export function resetDevice(): void {
@@ -12,6 +13,7 @@ export function resetDevice(): void {
   useMyAccounts.setState(useMyAccounts.getInitialState(), true);
   useSourceStore.setState(useSourceStore.getInitialState(), true);
   useSoundPreferences.setState(useSoundPreferences.getInitialState(), true);
+  useSidebarStore.setState(useSidebarStore.getInitialState(), true);
 }
 
 /** Puts the device in the post-import state so `_app` lets it through, without routing every test through the import form. */

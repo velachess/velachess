@@ -86,9 +86,9 @@ describe("the profile", () => {
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
 
     // The shell's name is the same fact, read from the same session query,
-    // so two places now say "Magnus".
+    // so the sidebar and its open menu say "Magnus" too.
     await user.click(desktopNav().getByRole("button", { name: "Account" }));
-    await waitFor(() => expect(screen.getAllByText("Magnus")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("Magnus")).toHaveLength(3));
   });
 
   it("refuses an empty name instead of saving one", async () => {

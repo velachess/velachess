@@ -46,7 +46,7 @@ msgstr ""
 msgid "{white} vs {black}"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:29
+#: src/app-shell/user-menu.tsx:35
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:14
 #: src/settings/layout/navigation.ts:29
@@ -82,7 +82,7 @@ msgstr ""
 msgid "Analyzing move {ply} of {total} — depth {depth}…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:31
+#: src/app-shell/user-menu.tsx:37
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:11
 #: src/settings/layout/navigation.ts:32
@@ -337,7 +337,7 @@ msgstr ""
 msgid "Danger zone"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:34
+#: src/app-shell/user-menu.tsx:40
 #: src/settings/appearance/appearance-screen.tsx:17
 msgid "Dark"
 msgstr ""
@@ -612,7 +612,7 @@ msgstr ""
 msgid "Lichess username"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:33
+#: src/app-shell/user-menu.tsx:39
 #: src/settings/appearance/appearance-screen.tsx:16
 msgid "Light"
 msgstr ""
@@ -630,11 +630,11 @@ msgstr ""
 msgid "Loss"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:17
+#: src/app-shell/app-shell.tsx:23
 msgid "Main"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:21
+#: src/app-shell/app-shell.tsx:27
 msgid "Main, bottom bar"
 msgstr ""
 
@@ -843,6 +843,10 @@ msgstr ""
 msgid "Reset your password"
 msgstr ""
 
+#: src/app-shell/app-shell.tsx:28
+msgid "Resize navigation"
+msgstr "Redimensionar navegação"
+
 #: src/games/list/columns.tsx:16
 #: src/games/list/filters.ts:36
 msgid "Result"
@@ -894,7 +898,7 @@ msgstr ""
 msgid "Set — you can sign in with your email and password."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:30
+#: src/app-shell/user-menu.tsx:36
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
 #: src/test/routes.tsx:98
@@ -914,7 +918,7 @@ msgstr ""
 msgid "Sign in with a password instead"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:35
+#: src/app-shell/user-menu.tsx:41
 msgid "Sign out"
 msgstr ""
 
@@ -939,7 +943,7 @@ msgstr ""
 msgid "Signing in…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:36
+#: src/app-shell/user-menu.tsx:42
 #: src/settings/account/sign-out-everywhere.tsx:29
 msgid "Signing out…"
 msgstr ""
@@ -948,7 +952,7 @@ msgstr ""
 msgid "Skip"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:16
+#: src/app-shell/app-shell.tsx:22
 msgid "Skip to content"
 msgstr ""
 
@@ -980,7 +984,7 @@ msgstr ""
 msgid "Syncing…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:32
+#: src/app-shell/user-menu.tsx:38
 #: src/settings/appearance/appearance-screen.tsx:15
 msgid "System"
 msgstr ""

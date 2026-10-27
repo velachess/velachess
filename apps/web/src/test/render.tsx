@@ -93,11 +93,11 @@ export async function renderApp(options: RenderAppOptions = {}) {
 
 /**
  * `AppShell` renders the same destinations and account menu twice — the
- * desktop rail and a mobile bottom bar — and switches between them with
+ * desktop sidebar and a mobile bottom bar — and switches between them with
  * CSS alone. jsdom applies none, so both sit in the tree at once here; a
  * bare `screen` query for a nav label or the account button matches
  * twice. Screens that reach through the chrome incidentally (not testing
- * the nav itself) scope to the rail, the region that was here first.
+ * the nav itself) scope to the sidebar, the region that was here first.
  */
 export function desktopNav() {
   return within(screen.getByRole("navigation", { name: "Main" }));

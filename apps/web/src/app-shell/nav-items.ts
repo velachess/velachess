@@ -1,10 +1,10 @@
 import type { LinkProps } from "@tanstack/react-router";
 import { History } from "@velachess/ui/icons";
-import type { NavDockItem } from "@velachess/ui/layout/nav-dock";
+import type { NavItem } from "@velachess/ui/layout/nav-sidebar";
 
 export type NavId = "games";
 
-export interface AppNavItem extends NavDockItem {
+export interface AppNavItem extends NavItem {
   id: NavId;
 }
 

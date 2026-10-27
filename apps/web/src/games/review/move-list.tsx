@@ -49,7 +49,7 @@ export function MoveList({ graded, moves, whiteName, blackName }: MoveListProps)
   const rows = scoresheetRows(moves);
 
   return (
-    <ScrollArea className="h-48 lg:h-auto lg:min-h-0 lg:flex-1">
+    <ScrollArea className="h-48 @4xl/content:h-auto @4xl/content:min-h-0 @4xl/content:flex-1">
       <div className="grid grid-cols-[2.25rem_1fr_1fr] items-center border-b bg-muted/50 text-[11px] text-muted-foreground">
         <span className="border-r px-1 py-1 text-center">#</span>
         <span className="truncate px-2 py-1">{whiteName}</span>
