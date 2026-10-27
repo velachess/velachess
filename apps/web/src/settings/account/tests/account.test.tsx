@@ -11,12 +11,6 @@ import {
   TEST_USER,
 } from "../../../test/handlers/auth.ts";
 
-/**
- * Driven through the real router and shell, because half of what this
- * screen promises is navigational: that the user menu leads here, that the
- * section is behind the same wall, and that a rename shows up in the shell.
- */
-
 describe("reaching the account screen", () => {
   it("opens from the user menu", async () => {
     sessionActive();
@@ -85,10 +79,7 @@ describe("the profile", () => {
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
 
-    // The shell's name is the same fact, read from the same session query,
-    // so two places now say "Magnus".
-    await user.click(desktopNav().getByRole("button", { name: "Account" }));
-    await waitFor(() => expect(screen.getAllByText("Magnus")).toHaveLength(2));
+    await waitFor(() => expect(desktopNav().getByText("Magnus")).toBeInTheDocument());
   });
 
   it("refuses an empty name instead of saving one", async () => {
@@ -167,8 +158,6 @@ describe("sign-in methods", () => {
 
     await renderApp({ path: "/settings/account" });
 
-    // Unlinking the last method locks the person out, and that guard is a
-    // decision, not a button.
     expect(await screen.findByText("Google")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /disconnect|unlink|remove/i }),
@@ -182,8 +171,6 @@ describe("sign-in methods", () => {
     await renderApp({ path: "/settings/account" });
 
     expect(await screen.findByText("Google")).toBeInTheDocument();
-    // Chess.com and Lichess are where games come from, not ways in: that
-    // list is Settings → Connections.
     expect(screen.queryByText("Chess.com")).not.toBeInTheDocument();
     expect(screen.queryByText("Lichess")).not.toBeInTheDocument();
   });
@@ -238,11 +225,7 @@ describe("the avatar", () => {
 });
 
 describe("changing the avatar", () => {
-  /**
-   * The avatar image is decorative — `alt=""`, because the name sits right
-   * beside it — so it has no `img` role to query. The observable fact is
-   * the one the user cares about: initials give way to a picture.
-   */
+  /** The avatar is decorative (`alt=""`), so it has no `img` role to query. */
   it("shows a stored picture instead of initials", async () => {
     sessionActive({ ...TEST_USER, image: "/api/me/avatar?v=7" });
 
@@ -260,8 +243,6 @@ describe("changing the avatar", () => {
     await user.click(await screen.findByRole("button", { name: "Save picture" }));
 
     expect(await screen.findByText("Picture updated.")).toBeInTheDocument();
-    // The shell reads the same session query, so one invalidation refreshes
-    // both, which the initials leaving the user menu shows.
     await user.click(await desktopNav().findByRole("button", { name: "Account" }));
     await waitFor(() => {
       expect(screen.queryByText("VU")).not.toBeInTheDocument();
@@ -282,10 +263,8 @@ describe("changing the avatar", () => {
   });
 
   /**
-   * `fireEvent`, not `user.upload`: userEvent enforces the input's `accept`
-   * and drops a non-matching file, so the change event never fires. A
-   * browser does not — `accept` only filters the picker's default view —
-   * which is why the guard exists and why this reaches past userEvent.
+   * `fireEvent`, not `user.upload`: userEvent enforces `accept` and drops a
+   * non-matching file; a browser does not, which is why the guard exists.
    */
   it("refuses a file that is not an image we accept", async () => {
     await openAccount();
@@ -339,10 +318,6 @@ describe("changing the avatar", () => {
   });
 });
 
-/**
- * The avatar persists the moment it changes, so Save speaks for the
- * editable fields alone and never implies the picture needs saving.
- */
 describe("what Save is responsible for", () => {
   it("is unavailable while nothing has been edited", async () => {
     await openAccount();
@@ -360,8 +335,6 @@ describe("what Save is responsible for", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
-    // The session carries the new name, so the field matches what is
-    // stored.
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     });

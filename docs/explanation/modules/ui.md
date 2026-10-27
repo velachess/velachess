@@ -37,24 +37,34 @@ Regions are named and budgeted before any content exists. A screen fills a
 region instead of inventing its own page shape — the alternative produces
 "a padded scroll column that reads as a prototype".
 
-| Component                            | Contract                                                                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `AppFrame`                           | `nav` slot, `navFallback?` slot, `banner?`, children = main. Owns skip-to-content and the responsive contract                           |
-| `NavDock`                            | the 64px icon rail; takes items as data and an `activeId`, and never routes                                                             |
-| `NavBar`                             | the mobile bottom tab bar shown through `navFallback`; same item/`activeId` contract as `NavDock`, icon-over-label instead of a tooltip |
-| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump                                                 |
-| `PageHeader`                         | title, description, actions slot                                                                                                        |
+| Component                            | Contract                                                                                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AppFrame`                           | `nav` slot, `navFallback?` slot, `banner?`, children = main, and the sidebar's `open`/`width` preference. Owns skip-to-content and the responsive contract |
+| `NavSidebar`                         | the desktop sidebar over the registry `Sidebar`; resizable, collapses to icons; takes items as data and an `activeId`, and never routes                    |
+| `NavBar`                             | the mobile bottom tab bar shown through `navFallback`; same item/`activeId` contract as `NavSidebar`, icon-over-label instead of a tooltip                 |
+| `Stage` / `StageMain` / `StageAside` | master-detail; the aside carries an explicit width budget so the main region can't jump                                                                    |
+| `PageHeader`                         | title, description, actions slot                                                                                                                           |
 
 **Structure arrives through slots, content through children.** That split
 is what makes the frame reusable: a route swaps the middle without knowing
-a dock exists.
+a sidebar exists.
 
-`NavDock` is generic over the caller's item type, so ids keep their union
+`NavSidebar` is generic over the caller's item type, so ids keep their union
 all the way into `renderItem` instead of widening to `string` and forcing
 a cast at the call site.
 
 The responsive contract is written at the top of the component that
 implements it, not spread through media queries.
+
+The registry `Sidebar` is trimmed to what the frame uses: one left
+sidebar that collapses to icons, no mobile sheet (below `md` the frame
+shows `NavBar` instead). Its rail is a window splitter: dragging or the
+arrow keys resize between a minimum and a maximum, dragging past the
+midpoint to the icon width collapses it, and Enter, a click or
+<kbd>Cmd/Ctrl</kbd>+<kbd>B</kbd> toggle it. A drag previews the width on
+the wrapper's CSS variable and commits once on release, so it does not
+re-render the tree. The provider takes `open` and `width` controlled; the
+app persists them.
 
 ## Cards are widgets, rows are data
 

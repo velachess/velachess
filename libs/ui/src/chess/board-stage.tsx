@@ -1,9 +1,10 @@
 /**
  * The board's size, the panel's width budget and how they stack are one
- * decision:
+ * decision, taken on `AppFrame`'s content width rather than the viewport's,
+ * so a wider sidebar stacks the stage instead of squeezing the board:
  *
- *   >= 1024px  board | panel, sharing one screenful
- *   <  1024px  board, then panel below it, at natural height
+ *   >= 56rem  board | panel, sharing one screenful
+ *   <  56rem  board, then panel below it, at natural height
  */
 import type * as React from "react";
 
@@ -12,12 +13,12 @@ import { cn } from "../lib/utils.ts";
 
 /**
  * Capped because an uncapped square on a 768px screen pushes the panel
- * below the fold. From `lg` it must fit vertically too, in `svh` because
+ * below the fold. Side by side it must fit vertically too, in `svh` because
  * mobile chrome shrinks the viewport, minus the furniture. Container units
  * cannot do this: Tailwind's `@container` has no `cqh`.
  */
 export const BOARD_STAGE_WIDTH =
-  "w-full min-w-0 max-w-[32rem] lg:max-w-[min(100svh-9rem,100%)]";
+  "w-full min-w-0 max-w-[32rem] @4xl/content:max-w-[min(100svh-9rem,100%)]";
 
 /**
  * Grid, not flex, because the panel gets a width range. `minmax(0,1fr)`
@@ -35,7 +36,7 @@ export function BoardStage({
   return (
     <div
       className={cn(
-        "grid min-h-0 flex-1 auto-rows-min gap-4 lg:auto-rows-fr lg:grid-cols-[minmax(0,1fr)_minmax(24rem,34rem)]",
+        "grid min-h-0 flex-1 auto-rows-min gap-4 @4xl/content:auto-rows-fr @4xl/content:grid-cols-[minmax(0,1fr)_minmax(24rem,34rem)]",
         className,
       )}
     >
@@ -57,7 +58,7 @@ export function BoardColumn({
     <section
       aria-label={label}
       className={cn(
-        "flex min-h-0 min-w-0 flex-col items-center gap-2 lg:justify-center",
+        "flex min-h-0 min-w-0 flex-col items-center gap-2 @4xl/content:justify-center",
         className,
       )}
     >
@@ -66,9 +67,7 @@ export function BoardColumn({
   );
 }
 
-/** Its own scroll boundary, so a long scoresheet never grows the screen.
- *
- * `overflow-clip` rather than `overflow-hidden`, which registers as a
+/** `overflow-clip` rather than `overflow-hidden`, which registers as a
  * scroll container and catches a sticky descendant before it reaches the
  * real scrolling ancestor. */
 export function BoardPanel({
@@ -115,19 +114,18 @@ export function BoardStageSkeleton({
 }: {
   /** Announced while the screen is empty; already translated. */
   label: string;
-  /** The panel's shape, when it is worth previewing. */
   panel?: React.ReactNode;
 }) {
   return (
     <output
       aria-label={label}
-      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 lg:overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 @4xl/content:overflow-hidden"
     >
       {/* Where the breadcrumb will be. */}
       <Skeleton className="h-5 w-56 shrink-0" />
 
       <BoardStage>
-        <div className="flex min-h-0 min-w-0 flex-col items-center gap-2 lg:justify-center">
+        <div className="flex min-h-0 min-w-0 flex-col items-center gap-2 @4xl/content:justify-center">
           <Skeleton className={cn("aspect-square rounded-lg", BOARD_STAGE_WIDTH)} />
           <Skeleton className={cn("h-11 md:h-9", BOARD_STAGE_WIDTH)} />
         </div>

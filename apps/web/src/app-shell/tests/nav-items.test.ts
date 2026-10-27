@@ -14,7 +14,7 @@ describe("the destination catalogue", () => {
     expect(new Set(routes).size).toBe(routes.length);
   });
 
-  it("labels and icons every item, since the rail shows nothing else", () => {
+  it("labels and icons every item, since the collapsed sidebar shows nothing else", () => {
     for (const item of NAV_ITEMS) {
       expect(item.label, item.id).toBeTruthy();
       expect(item.icon, item.id).toBeDefined();

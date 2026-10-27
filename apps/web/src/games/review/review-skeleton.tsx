@@ -37,7 +37,7 @@ export function AnalysisSkeleton() {
   return (
     <output
       aria-label={i18n._(REVIEW_COPY.loading)}
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 lg:overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 @4xl/content:overflow-hidden"
     >
       <BoardStage>
         {/* The board's real width, so nothing shifts when it lands: a

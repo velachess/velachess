@@ -18,23 +18,17 @@ export interface BoardScreenProps {
   /** The last crumb, which the router cannot know: it needs data the route
    * has not loaded. */
   page: ReactNode;
-  /** The board column and its context panel, in that order. */
   children: ReactNode;
 }
 
-/**
- * The scroll boundary, the trail and the two-column stage are decided here
- * once; each screen brings its own two children.
- */
 export function BoardScreen({ page, children }: BoardScreenProps) {
   const { i18n } = useLingui();
   const trail = useBreadcrumbTrail();
 
   return (
-    // The overflow boundary sits here so the breadcrumb stays above it.
     // `pb-0` on mobile: a sticky footer nav inside the panel sticks to this
-    // container's padding edge, where bottom padding reads as a gap.
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pb-0 lg:overflow-hidden lg:pb-4">
+    // container's padding edge.
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 pb-0 @4xl/content:overflow-hidden @4xl/content:pb-4">
       <Breadcrumb className="shrink-0">
         <BreadcrumbList>
           {trail.map((crumb) => (

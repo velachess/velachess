@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -73,13 +74,20 @@ export function ThemeProvider({
     return () => media.removeEventListener("change", onChange);
   }, [theme]);
 
-  const setTheme = (next: Theme) => {
-    window.localStorage.setItem(storageKey, next);
-    setThemeState(next);
-  };
+  const context = useMemo<ThemeProviderState>(
+    () => ({
+      theme,
+      resolvedTheme,
+      setTheme: (next) => {
+        window.localStorage.setItem(storageKey, next);
+        setThemeState(next);
+      },
+    }),
+    [theme, resolvedTheme, storageKey],
+  );
 
   return (
-    <ThemeProviderContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeProviderContext.Provider value={context}>
       {children}
     </ThemeProviderContext.Provider>
   );

@@ -46,7 +46,7 @@ msgstr ""
 msgid "{white} vs {black}"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:29
+#: src/app-shell/user-menu.tsx:41
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:15
 #: src/settings/layout/navigation.ts:39
@@ -82,7 +82,7 @@ msgstr ""
 msgid "Analyzing move {ply} of {total} — depth {depth}…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:31
+#: src/app-shell/user-menu.tsx:43
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
@@ -344,7 +344,7 @@ msgstr ""
 msgid "Danger zone"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:34
+#: src/app-shell/user-menu.tsx:46
 #: src/settings/appearance/appearance-screen.tsx:25
 msgid "Dark"
 msgstr ""
@@ -601,8 +601,8 @@ msgid "Keep it under 100 characters."
 msgstr ""
 
 #: src/routes/_app/settings/language-region.tsx:7
-#: src/settings/language-region/language-region-screen.tsx:19
-#: src/settings/language-region/language-region-screen.tsx:21
+#: src/settings/language-region/language-region-screen.tsx:24
+#: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
 #: src/test/routes.tsx:127
 msgid "Language"
@@ -616,7 +616,7 @@ msgstr ""
 msgid "Lichess username"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:33
+#: src/app-shell/user-menu.tsx:45
 #: src/settings/appearance/appearance-screen.tsx:24
 msgid "Light"
 msgstr ""
@@ -625,7 +625,7 @@ msgstr ""
 msgid "Loading the game…"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:20
+#: src/settings/language-region/language-region-screen.tsx:25
 msgid "Locale preferences for this device."
 msgstr ""
 
@@ -634,11 +634,11 @@ msgstr ""
 msgid "Loss"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:17
+#: src/app-shell/app-shell.tsx:23
 msgid "Main"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:21
+#: src/app-shell/app-shell.tsx:27
 msgid "Main, bottom bar"
 msgstr ""
 
@@ -835,6 +835,10 @@ msgstr ""
 msgid "Reset your password"
 msgstr ""
 
+#: src/app-shell/app-shell.tsx:28
+msgid "Resize navigation"
+msgstr "Redimensionar navegación"
+
 #: src/games/list/columns.tsx:16
 #: src/games/list/filters.ts:36
 msgid "Result"
@@ -886,7 +890,7 @@ msgstr ""
 msgid "Set — you can sign in with your email and password."
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:30
+#: src/app-shell/user-menu.tsx:42
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
 #: src/test/routes.tsx:98
@@ -910,7 +914,7 @@ msgstr ""
 msgid "Sign in with a password instead"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:35
+#: src/app-shell/user-menu.tsx:47
 msgid "Sign out"
 msgstr ""
 
@@ -935,7 +939,7 @@ msgstr ""
 msgid "Signing in…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:36
+#: src/app-shell/user-menu.tsx:48
 #: src/settings/account/sign-out-everywhere.tsx:29
 msgid "Signing out…"
 msgstr ""
@@ -944,7 +948,7 @@ msgstr ""
 msgid "Skip"
 msgstr ""
 
-#: src/app-shell/app-shell.tsx:16
+#: src/app-shell/app-shell.tsx:22
 msgid "Skip to content"
 msgstr ""
 
@@ -991,16 +995,16 @@ msgstr ""
 msgid "Syncing…"
 msgstr ""
 
-#: src/app-shell/user-menu.tsx:32
+#: src/app-shell/user-menu.tsx:44
 #: src/settings/appearance/appearance-screen.tsx:23
 msgid "System"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:23
+#: src/settings/language-region/language-region-screen.tsx:28
 msgid "System default"
 msgstr ""
 
-#: src/settings/language-region/language-region-screen.tsx:22
+#: src/settings/language-region/language-region-screen.tsx:27
 msgid "System default follows your browser's language."
 msgstr ""
 
