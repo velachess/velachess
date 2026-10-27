@@ -84,13 +84,13 @@ msgstr ""
 
 #: src/app-shell/user-menu.tsx:31
 #: src/routes/_app/settings/appearance.tsx:7
-#: src/settings/appearance/appearance-screen.tsx:12
+#: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
 #: src/test/routes.tsx:134
 msgid "Appearance"
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:14
+#: src/settings/appearance/appearance-screen.tsx:18
 msgid "Application theme"
 msgstr ""
 
@@ -338,7 +338,7 @@ msgid "Danger zone"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:34
-#: src/settings/appearance/appearance-screen.tsx:18
+#: src/settings/appearance/appearance-screen.tsx:25
 msgid "Dark"
 msgstr ""
 
@@ -500,7 +500,7 @@ msgstr ""
 msgid "Got them — opening your games."
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:13
+#: src/settings/appearance/appearance-screen.tsx:17
 msgid "How VelaChess looks on this device."
 msgstr ""
 
@@ -610,7 +610,7 @@ msgid "Lichess username"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:33
-#: src/settings/appearance/appearance-screen.tsx:17
+#: src/settings/appearance/appearance-screen.tsx:24
 msgid "Light"
 msgstr ""
 
@@ -982,7 +982,7 @@ msgid "Syncing…"
 msgstr ""
 
 #: src/app-shell/user-menu.tsx:32
-#: src/settings/appearance/appearance-screen.tsx:16
+#: src/settings/appearance/appearance-screen.tsx:23
 msgid "System"
 msgstr ""
 
@@ -994,7 +994,7 @@ msgstr ""
 msgid "System default follows your browser's language."
 msgstr ""
 
-#: src/settings/appearance/appearance-screen.tsx:15
+#: src/settings/appearance/appearance-screen.tsx:19
 msgid "System follows your operating system's setting."
 msgstr ""
 

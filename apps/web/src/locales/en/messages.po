@@ -84,13 +84,13 @@ msgstr "Analyzing move {ply} of {total} — depth {depth}…"
 
 #: src/app-shell/user-menu.tsx:31
 #: src/routes/_app/settings/appearance.tsx:7
-#: src/settings/appearance/appearance-screen.tsx:12
+#: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
 #: src/test/routes.tsx:134
 msgid "Appearance"
 msgstr "Appearance"
 
-#: src/settings/appearance/appearance-screen.tsx:14
+#: src/settings/appearance/appearance-screen.tsx:18
 msgid "Application theme"
 msgstr "Application theme"
 
@@ -338,7 +338,7 @@ msgid "Danger zone"
 msgstr "Danger zone"
 
 #: src/app-shell/user-menu.tsx:34
-#: src/settings/appearance/appearance-screen.tsx:18
+#: src/settings/appearance/appearance-screen.tsx:25
 msgid "Dark"
 msgstr "Dark"
 
@@ -500,7 +500,7 @@ msgstr "Google sign-in was cancelled."
 msgid "Got them — opening your games."
 msgstr "Got them — opening your games."
 
-#: src/settings/appearance/appearance-screen.tsx:13
+#: src/settings/appearance/appearance-screen.tsx:17
 msgid "How VelaChess looks on this device."
 msgstr "How VelaChess looks on this device."
 
@@ -610,7 +610,7 @@ msgid "Lichess username"
 msgstr "Lichess username"
 
 #: src/app-shell/user-menu.tsx:33
-#: src/settings/appearance/appearance-screen.tsx:17
+#: src/settings/appearance/appearance-screen.tsx:24
 msgid "Light"
 msgstr "Light"
 
@@ -982,7 +982,7 @@ msgid "Syncing…"
 msgstr "Syncing…"
 
 #: src/app-shell/user-menu.tsx:32
-#: src/settings/appearance/appearance-screen.tsx:16
+#: src/settings/appearance/appearance-screen.tsx:23
 msgid "System"
 msgstr "System"
 
@@ -994,7 +994,7 @@ msgstr "System default"
 msgid "System default follows your browser's language."
 msgstr "System default follows your browser's language."
 
-#: src/settings/appearance/appearance-screen.tsx:15
+#: src/settings/appearance/appearance-screen.tsx:19
 msgid "System follows your operating system's setting."
 msgstr "System follows your operating system's setting."
 

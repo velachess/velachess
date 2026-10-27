@@ -12,19 +12,45 @@ import { sessionActive } from "../../../test/handlers/auth.ts";
  */
 
 describe("appearance", () => {
-  it("reflects the current theme and switches it", async () => {
+  it("offers System, Light and Dark as one choice, with the current theme selected", async () => {
+    sessionActive();
+
+    await renderApp({ path: "/settings/appearance" });
+
+    const group = await screen.findByRole("radiogroup", { name: "Application theme" });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Light" })).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "Dark" })).not.toBeChecked();
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
+  });
+
+  it("applies and remembers a theme the moment it is chosen", async () => {
     sessionActive();
 
     const { user } = await renderApp({ path: "/settings/appearance" });
 
-    const dark = await screen.findByRole("button", { name: "Dark" });
-    await user.click(dark);
+    await user.click(await screen.findByRole("radio", { name: "Dark" }));
 
     expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
 
-    const light = screen.getByRole("button", { name: "Light" });
-    await user.click(light);
+    await user.click(screen.getByRole("radio", { name: "Light" }));
 
     expect(document.documentElement.classList.contains("light")).toBe(true);
+    expect(screen.getByRole("radio", { name: "Light" })).toBeChecked();
+    expect(window.localStorage.getItem("velachess-theme")).toBe("light");
+  });
+
+  it("is operable from the keyboard", async () => {
+    sessionActive();
+
+    const { user } = await renderApp({ path: "/settings/appearance" });
+
+    await user.click(await screen.findByRole("radio", { name: "Light" }));
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 });
