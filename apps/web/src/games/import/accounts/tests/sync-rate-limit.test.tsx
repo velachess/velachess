@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -43,5 +43,28 @@ describe("a throttled sync", () => {
     expect(screen.getByText("Try again in 37 seconds.")).toBeInTheDocument();
     expect(screen.queryByText("Couldn't sync your games")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled();
+  });
+
+  it("says so once, however often the button is pressed", async () => {
+    let requests = 0;
+    server.use(
+      http.post("/api/accounts/sync", () => {
+        requests += 1;
+        return rateLimited(37);
+      }),
+    );
+
+    const { user } = await renderApp();
+    await screen.findByText("already-here");
+
+    for (let press = 1; press <= 3; press += 1) {
+      await user.click(screen.getByRole("button", { name: "Sync games" }));
+      await waitFor(() => expect(requests).toBe(press));
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled(),
+      );
+    }
+
+    expect(screen.getAllByText("Synced a moment ago")).toHaveLength(1);
   });
 });
