@@ -1,10 +1,12 @@
 import { screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { addGames } from "../../../../test/archive.ts";
 import { ME, aGame } from "../../../../test/games.ts";
 import { accountIsTracked } from "../../../../test/handlers/accounts.ts";
 import { renderApp } from "../../../../test/render.tsx";
+import { server } from "../../../../test/server.ts";
 
 /**
  * Two outcomes to get right: the archive opened, or the platform has never
@@ -36,6 +38,28 @@ describe("import games", () => {
         "No games found for that username. Check the spelling and try again.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("does not blame the username when the server fails", async () => {
+    server.use(
+      http.post("/api/accounts", () =>
+        HttpResponse.json({ error: "boom" }, { status: 500 }),
+      ),
+    );
+    const { user } = await renderApp({ path: "/import" });
+
+    await user.type(screen.getByLabelText("Chess.com username"), ME);
+    await user.click(screen.getByRole("button", { name: "Import" }));
+
+    const failure = await screen.findByRole("alert", {
+      name: "Couldn't import those games. Try again in a moment.",
+    });
+    expect(failure).toHaveAttribute("data-variant", "destructive");
+    expect(
+      screen.queryByText(
+        "No games found for that username. Check the spelling and try again.",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("catches an impossible username before spending a request", async () => {
@@ -86,8 +110,7 @@ describe("import games", () => {
     const notice = (await screen.findByText("Chess.com is connected")).closest(
       "[data-slot='alert']",
     );
-    expect(notice).not.toBeNull();
-    expect(notice).toHaveClass("bg-card", "text-card-foreground");
+    expect(notice).toHaveAttribute("data-variant", "info");
     expect(
       screen.queryByText(
         "No games found for that username. Check the spelling and try again.",

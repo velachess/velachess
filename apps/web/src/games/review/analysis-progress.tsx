@@ -5,6 +5,7 @@ import { Alert, AlertAction, AlertTitle } from "@velachess/ui/components/alert";
 import { Button } from "@velachess/ui/components/button";
 import { Progress } from "@velachess/ui/components/progress";
 import { Spinner } from "@velachess/ui/components/spinner";
+import { OctagonXIcon } from "@velachess/ui/icons";
 
 import { useQuery, useQueryClient } from "../../libs/react-query.ts";
 import { gameAnalysisQuery, selectProgress } from "./game-analysis-query.ts";
@@ -55,6 +56,7 @@ export function AnalysisProgress({ game, totalPlies }: AnalysisProgressProps) {
     return (
       <div className="shrink-0 border-b p-3">
         <Alert variant="destructive">
+          <OctagonXIcon aria-hidden="true" />
           <AlertTitle>{i18n._(STATUS_COPY.loadError)}</AlertTitle>
           <AlertAction>
             <Button variant="outline" size="sm" onClick={restartAnalysis}>

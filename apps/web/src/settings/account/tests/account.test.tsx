@@ -186,8 +186,8 @@ describe("sign-in methods", () => {
     await renderApp({ path: "/settings/account" });
 
     expect(
-      await screen.findByText("Couldn't load your sign-in methods."),
-    ).toBeInTheDocument();
+      await screen.findByRole("alert", { name: "Couldn't load your sign-in methods." }),
+    ).toHaveAttribute("data-variant", "destructive");
     expect(screen.getByDisplayValue(TEST_USER.name)).toBeInTheDocument();
   });
 });

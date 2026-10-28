@@ -1,8 +1,9 @@
 import { useLingui } from "@lingui/react";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useId } from "react";
 
-import { Alert, AlertDescription } from "@velachess/ui/components/alert";
+import { Alert, AlertDescription, AlertTitle } from "@velachess/ui/components/alert";
 import { Button } from "@velachess/ui/components/button";
 import {
   Card,
@@ -19,8 +20,9 @@ import {
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
 import { Tabs, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
+import { CircleCheckIcon, InfoIcon, OctagonXIcon } from "@velachess/ui/icons";
 
-import { isProviderAlreadyConnectedError } from "../../../api/index.ts";
+import { DetailedError, isProviderAlreadyConnectedError } from "../../../api/index.ts";
 import { GAME_SOURCES } from "../../game-sources.ts";
 import { SourceMark } from "../../source-mark.tsx";
 import { useQuery } from "../../../libs/react-query.ts";
@@ -183,7 +185,7 @@ export function ConnectAccount({
         )}
 
         {connectedHandle === undefined && (
-          <ImportStatus isSuccess={importGames.isSuccess} isError={importGames.isError} />
+          <ImportStatus isSuccess={importGames.isSuccess} error={importGames.error} />
         )}
       </form>
     </>
@@ -216,21 +218,31 @@ function SubmitLabel({
   return i18n._(IMPORT_COPY.submit);
 }
 
-function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boolean }) {
-  const { i18n } = useLingui();
+function importFailureCopy(error: Error) {
+  if (error instanceof DetailedError && error.statusCode === 404) {
+    return IMPORT_COPY.notFound;
+  }
+  return IMPORT_COPY.failed;
+}
 
-  if (isError) {
+function ImportStatus({ isSuccess, error }: { isSuccess: boolean; error: Error | null }) {
+  const { i18n } = useLingui();
+  const titleId = useId();
+
+  if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>{i18n._(IMPORT_COPY.failed)}</AlertDescription>
+      <Alert variant="destructive" aria-labelledby={titleId}>
+        <OctagonXIcon aria-hidden="true" />
+        <AlertTitle id={titleId}>{i18n._(importFailureCopy(error))}</AlertTitle>
       </Alert>
     );
   }
 
   if (isSuccess) {
     return (
-      <Alert>
-        <AlertDescription>{i18n._(IMPORT_COPY.running)}</AlertDescription>
+      <Alert variant="success">
+        <CircleCheckIcon aria-hidden="true" />
+        <AlertTitle>{i18n._(IMPORT_COPY.running)}</AlertTitle>
       </Alert>
     );
   }
@@ -238,7 +250,7 @@ function ImportStatus({ isSuccess, isError }: { isSuccess: boolean; isError: boo
   return null;
 }
 
-/** Plain, not destructive: this is a connected platform at rest, and red
+/** Info, not destructive: this is a connected platform at rest, and red
  * belongs to an import that failed. */
 function AlreadyConnectedNotice({
   username,
@@ -250,20 +262,19 @@ function AlreadyConnectedNotice({
   const { i18n } = useLingui();
 
   return (
-    <Alert>
-      <AlertDescription className="flex flex-col items-start gap-1.5">
-        <span className="font-medium text-foreground">
-          {i18n._({
-            ...IMPORT_COPY.alreadyConnectedTitle,
-            values: { platform },
-          })}
-        </span>
-        <span>
-          {i18n._({
-            ...IMPORT_COPY.alreadyConnectedDescription,
-            values: { username },
-          })}
-        </span>
+    <Alert variant="info">
+      <InfoIcon aria-hidden="true" />
+      <AlertTitle>
+        {i18n._({
+          ...IMPORT_COPY.alreadyConnectedTitle,
+          values: { platform },
+        })}
+      </AlertTitle>
+      <AlertDescription>
+        {i18n._({
+          ...IMPORT_COPY.alreadyConnectedDescription,
+          values: { username },
+        })}
       </AlertDescription>
     </Alert>
   );

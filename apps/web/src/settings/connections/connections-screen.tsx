@@ -3,13 +3,22 @@ import { useLingui } from "@lingui/react";
 import { Fragment, useId, useState, type ReactNode } from "react";
 
 import { Alert, AlertAction, AlertTitle } from "@velachess/ui/components/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@velachess/ui/components/alert-dialog";
 import { Badge } from "@velachess/ui/components/badge";
 import { Button } from "@velachess/ui/components/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@velachess/ui/components/dialog";
@@ -32,7 +41,7 @@ import {
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { Spinner } from "@velachess/ui/components/spinner";
 import { toast } from "@velachess/ui/components/toast";
-import { MoreVertical, RefreshCw, Trash2 } from "@velachess/ui/icons";
+import { MoreVertical, OctagonXIcon, RefreshCw, Trash2 } from "@velachess/ui/icons";
 
 import { GAME_SOURCES } from "../../games/game-sources.ts";
 import { SourceMark } from "../../games/source-mark.tsx";
@@ -132,6 +141,7 @@ export function ConnectionsScreen() {
 
       {view.kind === CONNECTIONS_VIEW_KIND.LOAD_ERROR && (
         <Alert variant="destructive">
+          <OctagonXIcon aria-hidden="true" />
           <AlertTitle>{i18n._(CONNECTIONS_COPY.loadError)}</AlertTitle>
           <AlertAction>
             <Button variant="outline" size="sm" onClick={() => void accounts.refetch()}>
@@ -277,6 +287,11 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
 
   const disconnect = useDisconnectAccount();
 
+  const handleConfirmOpenChange = (next: boolean) => {
+    if (disconnect.isPending) return;
+    setConfirmOpen(next);
+  };
+
   const confirmDisconnect = () => {
     disconnect.mutate(account.id, {
       onSuccess: () => {
@@ -380,11 +395,13 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
         }
       />
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent showCloseButton={!disconnect.isPending}>
-          <DialogHeader>
-            <DialogTitle>{i18n._(CONNECTIONS_COPY.disconnectTitle)}</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={confirmOpen} onOpenChange={handleConfirmOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {i18n._(CONNECTIONS_COPY.disconnectTitle)}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
               {i18n._({
                 ...CONNECTIONS_COPY.disconnectDescription,
                 values: {
@@ -392,27 +409,23 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
                   platform,
                 },
               })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={disconnect.isPending}
-              onClick={() => setConfirmOpen(false)}
-            >
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={disconnect.isPending}>
               {i18n._(CONNECTIONS_COPY.cancel)}
-            </Button>
-            <Button
+            </AlertDialogCancel>
+            <AlertDialogAction
               variant="destructive"
               disabled={disconnect.isPending}
               onClick={confirmDisconnect}
             >
               {disconnect.isPending && <Spinner aria-hidden="true" />}
               {!disconnect.isPending && i18n._(CONNECTIONS_COPY.disconnectConfirm)}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
