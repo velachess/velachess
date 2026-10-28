@@ -10,7 +10,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@velachess/ui/components/empty";
-import { ItemGroup } from "@velachess/ui/components/item";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
@@ -85,14 +84,15 @@ export function GamesList() {
       )}
       {query.data.games.length > 0 && (
         <>
-          <ItemGroup aria-label={i18n._(GAMES_COPY.title)} className="gap-0">
+          {/* A real list rather than `ItemGroup`, whose `div` cannot
+              hold the `li` each row needs. */}
+          <ul aria-label={i18n._(GAMES_COPY.title)} className="flex w-full flex-col">
             {query.data.games.map((game) => (
-              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <li> inside ItemGroup's own div is invalid HTML
-              <div key={game.id} role="listitem" className="border-b last:border-b-0">
+              <li key={game.id} className="border-b last:border-b-0">
                 <GameItem game={game} />
-              </div>
+              </li>
             ))}
-          </ItemGroup>
+          </ul>
           {/* The page the rows came from, not the one in the URL: a read
               in flight would otherwise number stale rows as the new
               page. */}
