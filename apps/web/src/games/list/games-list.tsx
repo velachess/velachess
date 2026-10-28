@@ -126,9 +126,9 @@ function GamesSkeleton() {
   );
 }
 
-/** Three emptinesses, and only one is a dead end: the header's Sync
- * button needs a connection to sync, so an empty library carries the one
- * action that creates one. */
+/** Only one of the three is a dead end: the header's Sync button needs a
+ * connection to sync, so an empty library carries the action that creates
+ * one. */
 function GamesNothing({ search, total }: { search: GamesSearch; total: number }) {
   const { i18n } = useLingui();
 

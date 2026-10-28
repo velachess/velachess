@@ -9,7 +9,6 @@ import type { Game, ProviderProfile, ProviderSeat } from "@velachess/infra-db";
 import type { FetchFn } from "@velachess/infra-platforms";
 import { fetchPlayerProfile, type ProfileFetch } from "@velachess/infra-platforms";
 
-/** What the cache knows about a seat, minus its bookkeeping. */
 export type SeatIdentity = Pick<ProviderProfile, "avatarUrl" | "flair" | "countryCode">;
 
 type GetGameForUser = (userId: string, gameId: string) => Promise<Game | null>;

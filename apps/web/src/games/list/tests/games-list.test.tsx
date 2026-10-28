@@ -134,7 +134,6 @@ describe("games list", () => {
       "aria-current",
       "page",
     );
-    // The last page leads nowhere further: no link, and it says so.
     expect(screen.queryByRole("link", { name: "Go to next page" })).toBeNull();
     expect(screen.getByLabelText("Go to next page")).toHaveAttribute(
       "aria-disabled",
@@ -143,8 +142,7 @@ describe("games list", () => {
   });
 
   it("does not call a page past the end an empty library", async () => {
-    // Thirty games exist; page 99 of them is empty, and offering "connect
-    // an account" there would be a lie about an archive that is full.
+    // Offering "connect an account" here would lie about a full archive.
     addGames(...Array.from({ length: 30 }, () => aGame()));
 
     await renderApp({ path: "/games?page=99" });

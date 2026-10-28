@@ -16,8 +16,6 @@ import type { AccountPlatform } from "@velachess/infra-platforms";
  * same row, so a dropped column fails to compile here too. */
 type SeatIdentity = Pick<ProviderProfile, "avatarUrl" | "flair" | "countryCode">;
 
-/** Only what a row shows: the cache's own bookkeeping is not this read's
- * business. */
 type CachedSeat = SeatIdentity & Pick<ProviderProfile, "platform" | "username">;
 
 export interface Library {
