@@ -210,8 +210,12 @@ describe("chess accounts", () => {
     await user.click(await screen.findByRole("button", { name: "More actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
 
-    expect(await screen.findByText("Remove connection?")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Remove connection" }));
+    const confirmation = await screen.findByRole("alertdialog", {
+      name: "Remove connection?",
+    });
+    await user.click(
+      within(confirmation).getByRole("button", { name: "Remove connection" }),
+    );
 
     expect(await screen.findByText("Connection removed")).toBeInTheDocument();
     expect(screen.queryByText("magnus")).not.toBeInTheDocument();

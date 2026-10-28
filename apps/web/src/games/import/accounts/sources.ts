@@ -79,7 +79,8 @@ export const IMPORT_COPY = {
   submit: msg`Import`,
   submitting: msg`Reading your games…`,
   running: msg`Got them — opening your games.`,
-  failed: msg`No games found for that username. Check the spelling and try again.`,
+  notFound: msg`No games found for that username. Check the spelling and try again.`,
+  failed: msg`Couldn't import those games. Try again in a moment.`,
   alreadyConnectedTitle: msg`{platform} is connected`,
   alreadyConnectedDescription: msg`VelaChess tracks one account per platform. {username} is connected — remove that connection to use a different handle.`,
 } as const;
