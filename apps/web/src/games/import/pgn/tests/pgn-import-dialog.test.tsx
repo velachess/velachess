@@ -1,4 +1,5 @@
 import { fireEvent, screen } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,9 +9,10 @@ import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 
 /**
- * Read the way its user would: a header action that opens a form,
- * participation as White, Black or by name, a receipt naming every pile,
- * and rows that land in the library underneath.
+ * Read the way its user would: a header action that opens a form, a file
+ * dropped or pasted into the same upload, participation as White, Black or
+ * by name, a receipt naming every pile, and rows that land in the library
+ * underneath.
  */
 
 async function openDialog() {
@@ -22,14 +24,22 @@ async function openDialog() {
 }
 
 /** Pasted: `user.type` reads bracket notation as keystrokes. */
-const paste = (text: string) => {
-  fireEvent.change(screen.getByLabelText("Or paste the moves"), {
-    target: { value: text },
+async function paste(user: UserEvent, text: string) {
+  await user.click(screen.getByRole("tab", { name: "Paste PGN" }));
+  fireEvent.change(screen.getByLabelText("PGN text"), { target: { value: text } });
+}
+
+function drop(file: File) {
+  fireEvent.drop(screen.getByText("Drag and drop or choose a .pgn file"), {
+    dataTransfer: { files: [file], types: ["Files"] },
   });
-};
+}
 
 const VALID_PGN = '[Event "Pasted"]\n\n1. e4 e5 *';
 const MULTI_GAME_PGN = `[Event "First"]\n\n1. e4 e5 *\n\n[Event "Second"]\n\n1. d4 d5 *`;
+
+const aPgnFile = (name = "game.pgn") =>
+  new File([VALID_PGN], name, { type: "text/plain" });
 
 describe("pgn import", () => {
   beforeEach(() => {
@@ -53,13 +63,29 @@ describe("pgn import", () => {
     ).toBeInTheDocument();
   });
 
+  it("holds back every validation error until something has been touched", async () => {
+    await openDialog();
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("opens on the upload tab with an empty dropzone", async () => {
+    await openDialog();
+
+    expect(screen.getByRole("tab", { name: "Upload file" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("Drag and drop or choose a .pgn file")).toBeInTheDocument();
+  });
+
   it("lets you press the same option again to clear it", async () => {
     const user = await openDialog();
 
     const whiteButton = screen.getByRole("button", { name: "White" });
     await user.click(whiteButton);
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
 
     await user.click(whiteButton);
@@ -74,7 +100,7 @@ describe("pgn import", () => {
 
     await user.click(screen.getByRole("button", { name: "By name" }));
     await user.type(screen.getByLabelText("Your name in these games"), "yurimutti");
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
 
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Import" }));
@@ -102,7 +128,7 @@ describe("pgn import", () => {
     await user.click(screen.getByRole("button", { name: "White" }));
     expect(screen.queryByLabelText("Your name in these games")).not.toBeInTheDocument();
 
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
 
     // A fresh, unvalidated field rather than the old error.
@@ -119,7 +145,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
 
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Import" }));
@@ -133,7 +159,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "Black" }));
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
@@ -143,7 +169,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste(MULTI_GAME_PGN);
+    await paste(user, MULTI_GAME_PGN);
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
@@ -153,7 +179,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste("adkadsa");
+    await paste(user, "adkadsa");
 
     expect(
       await screen.findByText("Invalid PGN: no valid chess moves found."),
@@ -166,7 +192,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste('[Event "Broken\n[Site "?"]');
+    await paste(user, '[Event "Broken\n[Site "?"]');
 
     expect(
       await screen.findByText("Invalid PGN: no valid chess moves found."),
@@ -178,7 +204,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste('[Event "Illegal"]\n[Result "*"]\n\n1. Nf6 *');
+    await paste(user, '[Event "Illegal"]\n[Result "*"]\n\n1. Nf6 *');
 
     expect(
       await screen.findByText("Invalid PGN: no valid chess moves found."),
@@ -189,7 +215,7 @@ describe("pgn import", () => {
   it("asks the user to choose how they played before importing anything", async () => {
     const user = await openDialog();
 
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
     // Clicking a disabled button is a no-op, so submit directly.
     fireEvent.submit(screen.getByRole("button", { name: "Import" }).closest("form")!);
@@ -198,14 +224,13 @@ describe("pgn import", () => {
       await screen.findByText("Choose how you played before importing."),
     ).toBeInTheDocument();
     expect(screen.queryByText("Games imported")).not.toBeInTheDocument();
-    void user;
   });
 
   it("requires a non-empty name once By name is selected", async () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "By name" }));
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
 
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
 
@@ -218,14 +243,13 @@ describe("pgn import", () => {
   });
 
   it("treats a whitespace-only name the same as an empty one", async () => {
-    await openDialog();
+    const user = await openDialog();
 
-    const byNameButton = screen.getByRole("button", { name: "By name" });
-    fireEvent.click(byNameButton);
+    fireEvent.click(screen.getByRole("button", { name: "By name" }));
     fireEvent.change(screen.getByLabelText("Your name in these games"), {
       target: { value: "   " },
     });
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
 
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
   });
@@ -238,7 +262,7 @@ describe("pgn import", () => {
 
     await user.click(screen.getByRole("button", { name: "By name" }));
     await user.type(screen.getByLabelText("Your name in these games"), "Someone Else");
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
@@ -254,32 +278,52 @@ describe("pgn import", () => {
     expect(
       await screen.findByText("There is nothing to import yet."),
     ).toBeInTheDocument();
-    void user;
   });
 
   it("clears the PGN error once the content is corrected", async () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste("adkadsa");
+    await paste(user, "adkadsa");
     expect(
       await screen.findByText("Invalid PGN: no valid chess moves found."),
     ).toBeInTheDocument();
 
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     expect(
       screen.queryByText("Invalid PGN: no valid chess moves found."),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
-    void user;
+  });
+
+  it("keeps the pasted moves when the tabs are switched", async () => {
+    const user = await openDialog();
+
+    await paste(user, VALID_PGN);
+    await user.click(screen.getByRole("tab", { name: "Upload file" }));
+    await user.click(screen.getByRole("tab", { name: "Paste PGN" }));
+
+    expect(screen.getByLabelText("PGN text")).toHaveValue(VALID_PGN);
+  });
+
+  it("switches tabs from the keyboard", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("tab", { name: "Upload file" }));
+    await user.keyboard("{ArrowRight}{Enter}");
+
+    expect(screen.getByRole("tab", { name: "Paste PGN" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByLabelText("PGN text")).toBeInTheDocument();
   });
 
   it("accepts a valid .pgn file upload", async () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    const file = new File([VALID_PGN], "game.pgn", { type: "text/plain" });
-    await user.upload(screen.getByLabelText("PGN file"), file);
+    await user.upload(screen.getByLabelText("PGN file"), aPgnFile());
 
     expect(await screen.findByRole("button", { name: "Import" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Import" }));
@@ -287,11 +331,62 @@ describe("pgn import", () => {
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
   });
 
+  it("accepts a .pgn dropped onto the dropzone", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    drop(aPgnFile());
+
+    expect(await screen.findByText("game.pgn")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+
+    expect(await screen.findByText("Games imported")).toBeInTheDocument();
+  });
+
+  it("names the picked file and its size, and lets it be taken back", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    await user.upload(screen.getByLabelText("PGN file"), aPgnFile());
+
+    expect(await screen.findByText("game.pgn")).toBeInTheDocument();
+    expect(screen.getByText(`${VALID_PGN.length}B`)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remove file" }));
+
+    expect(screen.queryByText("game.pgn")).not.toBeInTheDocument();
+    expect(screen.getByText("Drag and drop or choose a .pgn file")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+  });
+
+  it("holds a long filename on one line instead of widening the dialog", async () => {
+    const user = await openDialog();
+
+    const longName = `${"a".repeat(180)}.pgn`;
+    await user.upload(screen.getByLabelText("PGN file"), aPgnFile(longName));
+
+    const title = await screen.findByTitle(longName);
+    expect(title).toHaveClass("truncate");
+  });
+
+  it("drops the filename once the moves are edited by hand", async () => {
+    const user = await openDialog();
+
+    await user.upload(screen.getByLabelText("PGN file"), aPgnFile());
+    expect(await screen.findByText("game.pgn")).toBeInTheDocument();
+
+    await paste(user, MULTI_GAME_PGN);
+    await user.click(screen.getByRole("tab", { name: "Upload file" }));
+
+    expect(screen.queryByText("game.pgn")).not.toBeInTheDocument();
+  });
+
   it("reports a file it cannot read instead of failing silently", async () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    const file = new File([VALID_PGN], "game.pgn", { type: "text/plain" });
+    const file = aPgnFile();
     vi.spyOn(file, "text").mockRejectedValueOnce(new Error("read failed"));
     await user.upload(screen.getByLabelText("PGN file"), file);
 
@@ -299,6 +394,7 @@ describe("pgn import", () => {
       await screen.findByText("Couldn't read that file. Try again."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import" })).toBeDisabled();
+    expect(screen.getByText("Drag and drop or choose a .pgn file")).toBeInTheDocument();
   });
 
   it("counts what was already there and what could not be read", async () => {
@@ -311,7 +407,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste('[Event "Duplicate"]\n\n1. d4 d5 *');
+    await paste(user, '[Event "Duplicate"]\n\n1. d4 d5 *');
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     const description = await screen.findByText(/already in your library/);
@@ -325,7 +421,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste('[Event "Doomed"]\n\n1. e4 e5 *');
+    await paste(user, '[Event "Doomed"]\n\n1. e4 e5 *');
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     expect(await screen.findByText("Import failed")).toBeInTheDocument();
@@ -337,7 +433,7 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste('[Event "Doomed"]\n\n1. e4 e5 *');
+    await paste(user, '[Event "Doomed"]\n\n1. e4 e5 *');
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       await user.click(screen.getByRole("button", { name: "Import" }));
       await screen.findByText("Import failed");
@@ -358,14 +454,25 @@ describe("pgn import", () => {
     const user = await openDialog();
 
     await user.click(screen.getByRole("button", { name: "White" }));
-    paste(VALID_PGN);
+    await paste(user, VALID_PGN);
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     const pendingButton = screen.getByRole("button", { name: "Importing…" });
     expect(pendingButton).toBeDisabled();
-    expect(screen.getByLabelText("Or paste the moves")).toBeDisabled();
+    expect(screen.getByLabelText("PGN text")).toBeDisabled();
     expect(screen.getByRole("button", { name: "White" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
 
     expect(await screen.findByText("Games imported")).toBeInTheDocument();
+  });
+
+  it("closes without importing when Cancel is pressed", async () => {
+    const user = await openDialog();
+
+    await user.click(screen.getByRole("button", { name: "White" }));
+    await paste(user, VALID_PGN);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText("Import games from a PGN")).not.toBeInTheDocument();
   });
 });
