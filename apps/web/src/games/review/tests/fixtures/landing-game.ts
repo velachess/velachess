@@ -3,6 +3,10 @@ const LANDING_OPPONENT = "night_shift";
 export const LANDING_GAME_ID = "landing-game-analysis";
 const LANDING_GAME_PGN = "1. f3 e5 2. g4 Qh4# 0-1";
 
+/** Both reads carry a seat's cached provider identity; this handle has
+ * none. */
+const NO_IDENTITY = { avatarUrl: null, flair: null, countryCode: null } as const;
+
 export const landingGame = {
   id: LANDING_GAME_ID,
   whiteName: LANDING_PLAYER,
@@ -20,4 +24,6 @@ export const landingGame = {
   openingEco: "A00",
   termination: "by checkmate",
   rawPgn: LANDING_GAME_PGN,
+  whiteIdentity: NO_IDENTITY,
+  blackIdentity: NO_IDENTITY,
 } as const;
