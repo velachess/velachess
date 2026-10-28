@@ -13,7 +13,7 @@ import {
 } from "@velachess/ui/components/pagination";
 
 import { PAGE_SIZE } from "./filters.ts";
-import { lastPageOf, pageSlots } from "./list-model.ts";
+import { lastPageOf, pageSlots } from "./pagination.ts";
 
 const PAGINATION_COPY = {
   label: msg`Games pages`,
