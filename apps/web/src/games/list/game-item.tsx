@@ -26,7 +26,7 @@ import {
 import { GAME_SOURCES } from "../game-sources.ts";
 import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
-import { formatClock } from "./list-model.ts";
+import { formatTimeControl } from "./time-control.ts";
 import type { Game } from "./queries.ts";
 
 const GAME_ITEM_COPY = {
@@ -92,7 +92,7 @@ function TimeControl({ game }: { game: Game }) {
   if (!timeClass) return null;
 
   const { label, Mark } = TIME_CLASSES[timeClass];
-  const clock = formatClock(
+  const clock = formatTimeControl(
     game.timeControlInitialSeconds,
     game.timeControlIncrementSeconds,
   );
