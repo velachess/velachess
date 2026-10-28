@@ -29,11 +29,11 @@ msgstr "{count, plural, one {One game could not be read.} other {# games could n
 msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 
-#: src/games/list/games-pagination.tsx:23
+#: src/games/list/games-pagination.tsx:25
 msgid "{first}–{last} of {total}"
 msgstr "{first}–{last} of {total}"
 
-#: src/games/list/games-pagination.tsx:22
+#: src/games/list/games-pagination.tsx:24
 msgid "{first}–{last} of {total} games"
 msgstr "{first}–{last} of {total} games"
 
@@ -41,7 +41,7 @@ msgstr "{first}–{last} of {total} games"
 msgid "{opponent} vs you"
 msgstr "{opponent} vs you"
 
-#: src/games/list/games-pagination.tsx:24
+#: src/games/list/games-pagination.tsx:26
 msgid "{page} / {lastPage}"
 msgstr "{page} / {lastPage}"
 
@@ -494,9 +494,17 @@ msgstr "Games pages"
 msgid "Games synced"
 msgstr "Games synced"
 
-#: src/games/list/games-pagination.tsx:21
+#: src/games/list/games-pagination.tsx:22
+msgid "Go to next page"
+msgstr "Go to next page"
+
+#: src/games/list/games-pagination.tsx:23
 msgid "Go to page {page}"
 msgstr "Go to page {page}"
+
+#: src/games/list/games-pagination.tsx:21
+msgid "Go to previous page"
+msgstr "Go to previous page"
 
 #: src/games/review/move-presentation.ts:35
 msgid "Good"

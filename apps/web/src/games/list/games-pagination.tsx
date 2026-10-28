@@ -18,6 +18,8 @@ const PAGINATION_COPY = {
   label: msg`Games pages`,
   previous: msg`Previous`,
   next: msg`Next`,
+  previousPage: msg`Go to previous page`,
+  nextPage: msg`Go to next page`,
   page: msg`Go to page {page}`,
   summary: msg`{first}–{last} of {total} games`,
   range: msg`{first}–{last} of {total}`,
@@ -91,6 +93,7 @@ export function GamesPagination({ total, page, onNavigate }: GamesPaginationProp
                 to="/games"
                 search={(previous) => ({ ...previous, page: page - 1 })}
                 onClick={onNavigate}
+                aria-label={i18n._(PAGINATION_COPY.previousPage)}
                 text={i18n._(PAGINATION_COPY.previous)}
               />
             )}
@@ -98,6 +101,7 @@ export function GamesPagination({ total, page, onNavigate }: GamesPaginationProp
               <PaginationPrevious
                 aria-disabled
                 className={AT_BOUNDARY}
+                aria-label={i18n._(PAGINATION_COPY.previousPage)}
                 text={i18n._(PAGINATION_COPY.previous)}
               />
             )}
@@ -139,6 +143,7 @@ export function GamesPagination({ total, page, onNavigate }: GamesPaginationProp
                 to="/games"
                 search={(previous) => ({ ...previous, page: page + 1 })}
                 onClick={onNavigate}
+                aria-label={i18n._(PAGINATION_COPY.nextPage)}
                 text={i18n._(PAGINATION_COPY.next)}
               />
             )}
@@ -146,6 +151,7 @@ export function GamesPagination({ total, page, onNavigate }: GamesPaginationProp
               <PaginationNext
                 aria-disabled
                 className={AT_BOUNDARY}
+                aria-label={i18n._(PAGINATION_COPY.nextPage)}
                 text={i18n._(PAGINATION_COPY.next)}
               />
             )}
