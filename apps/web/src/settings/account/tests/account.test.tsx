@@ -190,29 +190,6 @@ describe("sign-in methods", () => {
     ).toHaveAttribute("data-variant", "destructive");
     expect(screen.getByDisplayValue(TEST_USER.name)).toBeInTheDocument();
   });
-
-  it("loads the sign-in methods again when asked to retry", async () => {
-    sessionActive();
-    server.use(
-      http.get(
-        "/api/auth/list-accounts",
-        () => HttpResponse.json({ message: "boom" }, { status: 500 }),
-        { once: true },
-      ),
-    );
-
-    const { user } = await renderApp({ path: "/settings/account" });
-
-    const failure = await screen.findByRole("alert", {
-      name: "Couldn't load your sign-in methods.",
-    });
-    await user.click(within(failure).getByRole("button", { name: "Try again" }));
-
-    expect(await screen.findByText("Email and password")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("alert", { name: "Couldn't load your sign-in methods." }),
-    ).not.toBeInTheDocument();
-  });
 });
 
 /** A real File, so the type and size guards see what a browser gives them.

@@ -106,7 +106,7 @@ msgstr "Back"
 msgid "Back to sign in"
 msgstr "Back to sign in"
 
-#: src/backend-status/backend-status-banner.tsx:19
+#: src/backend-status/backend-status-banner.tsx:11
 msgid "Backend unavailable"
 msgstr "Backend unavailable"
 
@@ -245,7 +245,7 @@ msgstr "Connect an account"
 msgid "Connected"
 msgstr "Connected"
 
-#: src/settings/account/sign-in-methods.tsx:29
+#: src/settings/account/sign-in-methods.tsx:27
 msgid "Connected — you can sign in with Google."
 msgstr "Connected — you can sign in with Google."
 
@@ -297,7 +297,7 @@ msgstr "Couldn't load this game."
 msgid "Couldn't load your connected accounts."
 msgstr "Couldn't load your connected accounts."
 
-#: src/settings/account/sign-in-methods.tsx:26
+#: src/settings/account/sign-in-methods.tsx:25
 msgid "Couldn't load your sign-in methods."
 msgstr "Couldn't load your sign-in methods."
 
@@ -403,11 +403,11 @@ msgstr "Draw"
 msgid "Email"
 msgstr "Email"
 
-#: src/settings/account/sign-in-methods.tsx:30
+#: src/settings/account/sign-in-methods.tsx:28
 msgid "Email and password"
 msgstr "Email and password"
 
-#: src/settings/account/sign-in-methods.tsx:32
+#: src/settings/account/sign-in-methods.tsx:30
 msgid "Email link"
 msgstr "Email link"
 
@@ -503,7 +503,7 @@ msgstr "Games synced"
 msgid "Good"
 msgstr "Good"
 
-#: src/settings/account/sign-in-methods.tsx:28
+#: src/settings/account/sign-in-methods.tsx:26
 msgid "Google"
 msgstr "Google"
 
@@ -729,7 +729,7 @@ msgstr "Not synced yet"
 msgid "Nothing in the position was worth more."
 msgstr "Nothing in the position was worth more."
 
-#: src/settings/account/sign-in-methods.tsx:33
+#: src/settings/account/sign-in-methods.tsx:31
 msgid "On — you can sign in with a link sent to your email."
 msgstr "On — you can sign in with a link sent to your email."
 
@@ -901,7 +901,7 @@ msgstr "Sending…"
 msgid "Sessions"
 msgstr "Sessions"
 
-#: src/settings/account/sign-in-methods.tsx:31
+#: src/settings/account/sign-in-methods.tsx:29
 msgid "Set — you can sign in with your email and password."
 msgstr "Set — you can sign in with your email and password."
 
@@ -946,7 +946,7 @@ msgstr "Sign out everywhere?"
 msgid "Sign this account out on every device, this one included."
 msgstr "Sign this account out on every device, this one included."
 
-#: src/settings/account/sign-in-methods.tsx:24
+#: src/settings/account/sign-in-methods.tsx:23
 msgid "Sign-in methods"
 msgstr "Sign-in methods"
 
@@ -1085,11 +1085,9 @@ msgstr "Time control"
 msgid "Too many links asked for. Wait a minute and try again."
 msgstr "Too many links asked for. Wait a minute and try again."
 
-#: src/backend-status/backend-status-banner.tsx:21
 #: src/games/review/analysis-progress.tsx:18
 #: src/route-error.tsx:19
 #: src/settings/account/delete-account.tsx:43
-#: src/settings/account/sign-in-methods.tsx:27
 #: src/settings/connections/connections-screen.tsx:66
 msgid "Try again"
 msgstr "Try again"
@@ -1104,9 +1102,9 @@ msgstr "Try again in a moment."
 msgid "Type {CONFIRMATION} to confirm"
 msgstr "Type {CONFIRMATION} to confirm"
 
-#: src/backend-status/backend-status-banner.tsx:20
-msgid "Unable to connect to VelaChess. Please try again."
-msgstr "Unable to connect to VelaChess. Please try again."
+#: src/backend-status/backend-status-banner.tsx:12
+msgid "Unable to connect to VelaChess. Reload the page to try again."
+msgstr "Unable to connect to VelaChess. Reload the page to try again."
 
 #: src/games/list/columns.tsx:23
 #: src/games/review/game-heading.tsx:22
@@ -1142,7 +1140,7 @@ msgstr "VelaChess tracks one account per platform. {username} is connected — r
 msgid "Victory"
 msgstr "Victory"
 
-#: src/settings/account/sign-in-methods.tsx:25
+#: src/settings/account/sign-in-methods.tsx:24
 msgid "Ways you can get into this account."
 msgstr "Ways you can get into this account."
 

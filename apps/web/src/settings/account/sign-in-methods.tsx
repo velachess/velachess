@@ -2,8 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { useId } from "react";
 
-import { Alert, AlertAction, AlertTitle } from "@velachess/ui/components/alert";
-import { Button } from "@velachess/ui/components/button";
+import { Alert, AlertTitle } from "@velachess/ui/components/alert";
 import {
   Item,
   ItemContent,
@@ -24,7 +23,6 @@ const METHODS_COPY = {
   title: msg`Sign-in methods`,
   hint: msg`Ways you can get into this account.`,
   failed: msg`Couldn't load your sign-in methods.`,
-  tryAgain: msg`Try again`,
   google: msg`Google`,
   googleActive: msg`Connected — you can sign in with Google.`,
   password: msg`Email and password`,
@@ -56,11 +54,6 @@ export function SignInMethods() {
         <Alert variant="destructive" aria-labelledby={failedId}>
           <OctagonXIcon aria-hidden="true" />
           <AlertTitle id={failedId}>{i18n._(METHODS_COPY.failed)}</AlertTitle>
-          <AlertAction>
-            <Button variant="outline" size="sm" onClick={() => void methods.refetch()}>
-              {i18n._(METHODS_COPY.tryAgain)}
-            </Button>
-          </AlertAction>
         </Alert>
       )}
 

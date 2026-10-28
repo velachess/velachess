@@ -9,7 +9,7 @@ import {
   scheduleSync,
 } from "../../../test/archive.ts";
 import { ME } from "../../../test/games.ts";
-import { mainContent, renderApp } from "../../../test/render.tsx";
+import { renderApp } from "../../../test/render.tsx";
 import {
   accountIsTracked,
   resetTrackedAccounts,
@@ -199,7 +199,7 @@ describe("chess accounts", () => {
     expect(
       await screen.findByText("Couldn't load your connected accounts."),
     ).toBeInTheDocument();
-    expect(mainContent().getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("removes a connection after confirming, and tells the user it worked", async () => {

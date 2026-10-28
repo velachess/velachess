@@ -106,7 +106,7 @@ msgstr ""
 msgid "Back to sign in"
 msgstr ""
 
-#: src/backend-status/backend-status-banner.tsx:19
+#: src/backend-status/backend-status-banner.tsx:11
 msgid "Backend unavailable"
 msgstr ""
 
@@ -245,7 +245,7 @@ msgstr ""
 msgid "Connected"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:29
+#: src/settings/account/sign-in-methods.tsx:27
 msgid "Connected — you can sign in with Google."
 msgstr ""
 
@@ -297,7 +297,7 @@ msgstr ""
 msgid "Couldn't load your connected accounts."
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:26
+#: src/settings/account/sign-in-methods.tsx:25
 msgid "Couldn't load your sign-in methods."
 msgstr ""
 
@@ -403,11 +403,11 @@ msgstr ""
 msgid "Email"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:30
+#: src/settings/account/sign-in-methods.tsx:28
 msgid "Email and password"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:32
+#: src/settings/account/sign-in-methods.tsx:30
 msgid "Email link"
 msgstr ""
 
@@ -503,7 +503,7 @@ msgstr ""
 msgid "Good"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:28
+#: src/settings/account/sign-in-methods.tsx:26
 msgid "Google"
 msgstr ""
 
@@ -729,7 +729,7 @@ msgstr ""
 msgid "Nothing in the position was worth more."
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:33
+#: src/settings/account/sign-in-methods.tsx:31
 msgid "On — you can sign in with a link sent to your email."
 msgstr ""
 
@@ -901,7 +901,7 @@ msgstr ""
 msgid "Sessions"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:31
+#: src/settings/account/sign-in-methods.tsx:29
 msgid "Set — you can sign in with your email and password."
 msgstr ""
 
@@ -946,7 +946,7 @@ msgstr ""
 msgid "Sign this account out on every device, this one included."
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:24
+#: src/settings/account/sign-in-methods.tsx:23
 msgid "Sign-in methods"
 msgstr ""
 
@@ -1085,11 +1085,9 @@ msgstr ""
 msgid "Too many links asked for. Wait a minute and try again."
 msgstr ""
 
-#: src/backend-status/backend-status-banner.tsx:21
 #: src/games/review/analysis-progress.tsx:18
 #: src/route-error.tsx:19
 #: src/settings/account/delete-account.tsx:43
-#: src/settings/account/sign-in-methods.tsx:27
 #: src/settings/connections/connections-screen.tsx:66
 msgid "Try again"
 msgstr ""
@@ -1104,8 +1102,8 @@ msgstr ""
 msgid "Type {CONFIRMATION} to confirm"
 msgstr ""
 
-#: src/backend-status/backend-status-banner.tsx:20
-msgid "Unable to connect to VelaChess. Please try again."
+#: src/backend-status/backend-status-banner.tsx:12
+msgid "Unable to connect to VelaChess. Reload the page to try again."
 msgstr ""
 
 #: src/games/list/columns.tsx:23
@@ -1142,7 +1140,7 @@ msgstr ""
 msgid "Victory"
 msgstr ""
 
-#: src/settings/account/sign-in-methods.tsx:25
+#: src/settings/account/sign-in-methods.tsx:24
 msgid "Ways you can get into this account."
 msgstr ""
 

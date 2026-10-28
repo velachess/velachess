@@ -39,10 +39,10 @@ function reportUnexpectedApiError(error: unknown) {
 
 export function createQueryClient() {
   return new QueryClient({
-    // An infrastructure failure raises the banner and only the banner's own
-    // retry lowers it: a later success elsewhere cannot be trusted to mean
-    // the outage ended, the session query alone refetching on every
-    // navigation.
+    // An infrastructure failure raises the banner and nothing lowers it: a
+    // later success cannot be trusted to mean the outage ended, the session
+    // query alone refetching on every navigation. The reload the banner asks
+    // for is the reset.
     queryCache: new QueryCache({
       // `meta.engine` marks work that runs on this device, whose failure
       // reaches its own screen through `isError`.

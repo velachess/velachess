@@ -3,7 +3,6 @@ import { useSyncExternalStore } from "react";
 type BackendStatus = "available" | "unavailable";
 
 let status: BackendStatus = "available";
-let failedSinceRetry = false;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -11,23 +10,13 @@ function emit() {
 }
 
 export function recordInfrastructureFailure() {
-  failedSinceRetry = true;
   if (status === "unavailable") return;
   status = "unavailable";
   emit();
 }
 
-/** Lowers the outage only when every request the retry re-ran succeeded:
- * an unrelated success elsewhere is not evidence the backend recovered. */
-export async function retryUnavailableBackend(refetch: () => Promise<unknown>) {
-  failedSinceRetry = false;
-  await refetch();
-  if (!failedSinceRetry) resetBackendStatus();
-}
-
 export function resetBackendStatus() {
   status = "available";
-  failedSinceRetry = false;
   emit();
 }
 
