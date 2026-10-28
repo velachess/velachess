@@ -236,9 +236,6 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.169.3
         version: 1.169.3(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.14)(rollup@4.62.4)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
-      '@tanstack/react-table':
-        specifier: ^9.3.1
-        version: 9.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@velachess/analysis':
         specifier: workspace:*
         version: link:../../libs/analysis

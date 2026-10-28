@@ -47,7 +47,14 @@ export async function upsertProviderProfile(
   db: Database,
   seat: ProviderSeat,
   fetched:
-    | { status: "fetched"; profile: { avatarUrl: string | null; flair: string | null } }
+    | {
+        status: "fetched";
+        profile: {
+          avatarUrl: string | null;
+          flair: string | null;
+          countryCode: string | null;
+        };
+      }
     | { status: "failed" },
 ) {
   const username = normalizeUsername(seat.username);
@@ -56,17 +63,13 @@ export async function upsertProviderProfile(
     .values({
       platform: seat.platform,
       username,
-      ...(fetched.status === "fetched"
-        ? { avatarUrl: fetched.profile.avatarUrl, flair: fetched.profile.flair }
-        : {}),
+      ...(fetched.status === "fetched" ? fetched.profile : {}),
     })
     .onConflictDoUpdate({
       target: [providerProfiles.platform, providerProfiles.username],
       set: {
         fetchedAt: new Date(),
-        ...(fetched.status === "fetched"
-          ? { avatarUrl: fetched.profile.avatarUrl, flair: fetched.profile.flair }
-          : {}),
+        ...(fetched.status === "fetched" ? fetched.profile : {}),
       },
     })
     .returning();

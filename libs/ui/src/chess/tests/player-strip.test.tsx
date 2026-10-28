@@ -3,7 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { countryNameOf } from "../country-names.ts";
-import { PlayerStrip, flagClassOf, initialsOf } from "../player-strip.tsx";
+import { PlayerStrip } from "../player-strip.tsx";
+import { flagClassOf, initialsOf } from "../player-presentation.ts";
 
 it("takes one letter per word when a name has parts", () => {
   expect(initialsOf("Yuri Mutti")).toBe("YM");
@@ -49,6 +50,11 @@ it("shows the rating as an aside, not as part of the name", () => {
 it("says nothing about a rating the platform did not report", () => {
   render(<PlayerStrip name="kalipere" />);
   expect(screen.queryByText(/\(/)).toBeNull();
+});
+
+it("shows a rating of zero, which is a rating", () => {
+  render(<PlayerStrip name="kalipere" rating="0" />);
+  expect(screen.getByText("(0)")).toBeDefined();
 });
 
 it("names the flag from the code, so the two cannot drift apart", () => {

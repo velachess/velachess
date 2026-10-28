@@ -2,7 +2,7 @@ import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
 
 import { cn } from "../lib/utils.ts";
-import { Button } from "./button.tsx";
+import { Button, buttonVariants } from "./button.tsx";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -35,6 +35,8 @@ type PaginationLinkProps = {
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
   React.ComponentProps<"a">;
 
+/** An anchor rather than a `Button` rendered as one: this navigates, and
+ * `role="button"` would announce it as something else. */
 function PaginationLink({
   className,
   isActive,
@@ -42,19 +44,15 @@ function PaginationLink({
   ...props
 }: PaginationLinkProps) {
   return (
-    <Button
-      variant={isActive ? "outline" : "ghost"}
-      size={size}
-      className={cn(className)}
-      nativeButton={false}
-      render={
-        <a
-          aria-current={isActive ? "page" : undefined}
-          data-slot="pagination-link"
-          data-active={isActive}
-          {...props}
-        />
-      }
+    <a
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
+      className={cn(
+        buttonVariants({ variant: isActive ? "outline" : "ghost", size }),
+        className,
+      )}
+      {...props}
     />
   );
 }

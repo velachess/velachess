@@ -34,8 +34,8 @@ users ── sessions         cascade   Better Auth session, one row per browser
 users ── auth_accounts    cascade   password hash or external identity link
 verifications                       short-lived proofs, keyed by identifier
 auth_rate_limits                    Better Auth's rate-limit store, keyed by key
-provider_profiles                   avatar + flair per (platform, username),
-                                    no owner
+provider_profiles                   avatar + flair + country per
+                                    (platform, username), no owner
 ```
 
 Deleting an account is `deleteUser`, run as Better Auth's `beforeDelete`
@@ -80,10 +80,12 @@ and this package never reads inside either one, only stores and returns it
 opaquely.
 
 `provider_profiles` holds the same kind of key but nobody's ownership:
-avatar and flair are public metadata about a _player_, so the table has
-no `user_id` — an opponent gets a row because a game was opened against
-them, not because anyone tracked them, and two users reviewing games
-against the same opponent share one row and one refresh budget.
+avatar, flair and country are public metadata about a _player_, so the
+table has no `user_id` — an opponent gets a row because a game was opened
+against them, not because anyone tracked them, and two users reviewing
+games against the same opponent share one row and one refresh budget. The
+games list reads the table in one batch per page and never writes it: only
+opening a game spends a provider request.
 `fetched_at` is stamped on every attempt, failed ones included: it is a
 refresh cursor, not a success log, so a dead provider is retried at the
 cadence instead of on every game open.

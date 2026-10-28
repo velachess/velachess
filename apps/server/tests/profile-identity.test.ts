@@ -18,6 +18,14 @@ const RIVAL_AVATAR =
   "https://images.chesscomfiles.com/uploads/v1/user/rival.97ae265f.200x200o.jpg";
 const LICHESS_FLAIR = "people.santa-claus-light-skin-tone";
 
+/** Every chess.com profile in this file declares Brazil, so the country
+ * travels with the avatar rather than being asserted apart from it. */
+const IDENTITY = (avatarUrl: string | null) => ({
+  avatarUrl,
+  flair: null,
+  countryCode: "BR",
+});
+
 /**
  * Every profile attempt is counted, so caching is asserted by what stops
  * being asked for, and a dead provider is simulated with
@@ -123,7 +131,7 @@ async function connectAccount(
   return created.json();
 }
 
-describe("provider profile identity on game review", () => {
+describe("provider profile identity", () => {
   it("carries the provider picture of both seats, connected player or opponent", async () => {
     const created = await connectAccount(owner, "chess_com", "Looper");
     if (!created.syncId) throw new Error("expected a first sync on a fresh connect");
@@ -133,11 +141,22 @@ describe("provider profile identity on game review", () => {
     const before = sync.profileRequests.length;
     const game = await firstGameId(owner);
     const body = await openGame(owner, game);
-    expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
-    expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
+    expect(body.whiteIdentity).toEqual(IDENTITY(CHESS_COM_AVATAR));
+    expect(body.blackIdentity).toEqual(IDENTITY(RIVAL_AVATAR));
 
     // One request for the one opponent, never a fan-out.
     expect(sync.profileRequests.slice(before)).toEqual(["chess_com:rival"]);
+  });
+
+  it("carries both seats' cached identity into the library, asking no provider", async () => {
+    // The list is a read of the cache alone: one batched lookup for the
+    // page, never a request per row.
+    const before = sync.profileRequests.length;
+    const page = await parseResponse(owner.api.games.$get({ query: {} }));
+    const game = page.games.find((row) => row.source === "chess_com");
+    expect(game?.whiteIdentity).toEqual(IDENTITY(CHESS_COM_AVATAR));
+    expect(game?.blackIdentity).toEqual(IDENTITY(RIVAL_AVATAR));
+    expect(sync.profileRequests.slice(before)).toEqual([]);
   });
 
   it("reopening the same game spends no further provider request", async () => {
@@ -162,8 +181,8 @@ describe("provider profile identity on game review", () => {
     const before = sync.profileRequests.length;
     const game = await firstGameId(second);
     const body = await openGame(second, game);
-    expect(body.whiteIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
-    expect(body.blackIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
+    expect(body.whiteIdentity).toEqual(IDENTITY(RIVAL_AVATAR));
+    expect(body.blackIdentity).toEqual(IDENTITY(CHESS_COM_AVATAR));
 
     // Once across both users' opens.
     expect(
@@ -205,8 +224,8 @@ describe("provider profile identity on game review", () => {
 
       const game = await firstGameId(owner);
       const body = await openGame(owner, game);
-      expect(body.whiteIdentity).toEqual({ avatarUrl: CHESS_COM_AVATAR, flair: null });
-      expect(body.blackIdentity).toEqual({ avatarUrl: RIVAL_AVATAR, flair: null });
+      expect(body.whiteIdentity).toEqual(IDENTITY(CHESS_COM_AVATAR));
+      expect(body.blackIdentity).toEqual(IDENTITY(RIVAL_AVATAR));
     } finally {
       sync.setProfilesUp(true);
     }
@@ -236,8 +255,8 @@ describe("provider profile identity on game review", () => {
 
       const game = await firstGameId(owner);
       const body = await openGame(owner, game);
-      expect(body.whiteIdentity).toEqual({ avatarUrl: null, flair: null });
-      expect(body.blackIdentity).toEqual({ avatarUrl: null, flair: null });
+      expect(body.whiteIdentity).toEqual(IDENTITY(null));
+      expect(body.blackIdentity).toEqual(IDENTITY(null));
     } finally {
       sync.setAvatarless(false);
     }

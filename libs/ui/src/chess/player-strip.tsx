@@ -5,56 +5,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "../components/avatar.tsx";
 import { cn } from "../lib/utils.ts";
 import { countryNameOf } from "./country-names.ts";
-
-const INITIALS_MAX = 2;
-const WHITESPACE = /\s+/;
-const FIRST_LETTER = 1;
-
-/** Code points, not code units: `"🐴rider".slice(0, 2)` cuts a surrogate
- * pair in half and renders as a replacement character. */
-function firstCharacters(text: string, count: number): string {
-  return [...text].slice(0, count).join("");
-}
-
-function initialsFromWords(words: string[]): string {
-  return words
-    .slice(0, INITIALS_MAX)
-    .map((word) => firstCharacters(word, FIRST_LETTER))
-    .join("");
-}
-
-function initialsFromOneWord(word: string): string {
-  return firstCharacters(word, INITIALS_MAX);
-}
-
-/** A name with parts becomes an acronym; a single word — which most
- * chess usernames are — its own opening. */
-export function initialsOf(name: string): string {
-  const words = name.trim().split(WHITESPACE).filter(Boolean);
-  if (words.length === 0) return "";
-
-  const isMultiWord = words.length > 1;
-  const initials = isMultiWord
-    ? initialsFromWords(words)
-    : initialsFromOneWord(words[0]!);
-
-  return initials.toUpperCase();
-}
-
-/**
- * `flag-icons` classes are the lowercase ISO 3166-1 alpha-2 code, and
- * `xx` is its "no flag" — so an unrecognised code lands on a blank
- * rather than a broken box.
- */
-const FLAG_UNKNOWN = "xx";
-const ISO_ALPHA2 = /^[A-Za-z]{2}$/;
-
-export function flagClassOf(countryCode: string | undefined): string {
-  const code = ISO_ALPHA2.test(countryCode ?? "")
-    ? countryCode!.toLowerCase()
-    : FLAG_UNKNOWN;
-  return `fi fi-${code}`;
-}
+import { flagClassOf, initialsOf } from "./player-presentation.ts";
 
 export interface PlayerStripProps {
   name: string;
@@ -69,7 +20,7 @@ export interface PlayerStripProps {
   flairSrc?: string | undefined;
   /** ISO 3166-1 alpha-2, as both platforms report it. The name behind it
    * is resolved here, so a caller never carries the two out of step. */
-  countryCode?: string;
+  countryCode?: string | undefined;
   className?: string;
 }
 
@@ -117,7 +68,7 @@ export function PlayerStrip({
 
       <span className="truncate text-sm font-medium">{name}</span>
 
-      {rating ? (
+      {rating !== undefined ? (
         // Parenthesised the way both platforms print it, so the number
         // reads as an aside rather than as part of the name.
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">

@@ -13,8 +13,6 @@ import {
 } from "@tanstack/react-table";
 import type * as React from "react";
 
-import { Button } from "./button.tsx";
-import { Pagination, PaginationContent, PaginationItem } from "./pagination.tsx";
 import { Skeleton } from "./skeleton.tsx";
 import {
   Table,
@@ -129,63 +127,6 @@ export function DataTable<TData extends RowData>({
             ))}
         </TableBody>
       </Table>
-    </div>
-  );
-}
-
-export interface DataTablePaginationProps {
-  page: number;
-  pageSize: number;
-  total: number;
-  onPageChange: (page: number) => void;
-  label: string;
-  /** "1–25 of 203", in the app's own words and number formatting. */
-  summary: React.ReactNode;
-  previousLabel: string;
-  nextLabel: string;
-}
-
-export function DataTablePagination({
-  page,
-  pageSize,
-  total,
-  onPageChange,
-  label,
-  summary,
-  previousLabel,
-  nextLabel,
-}: DataTablePaginationProps) {
-  const lastPage = Math.max(1, Math.ceil(total / pageSize));
-
-  return (
-    // Outside the scroll area: a pager that scrolls away is unreachable
-    // exactly when you want it.
-    <div className="flex shrink-0 items-center justify-between gap-4 border-t px-4 py-3 md:px-6">
-      <span className="text-sm text-muted-foreground">{summary}</span>
-      <Pagination aria-label={label} className="mx-0 w-auto justify-end">
-        <PaginationContent className="gap-2">
-          <PaginationItem>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-            >
-              {previousLabel}
-            </Button>
-          </PaginationItem>
-          <PaginationItem>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= lastPage}
-            >
-              {nextLabel}
-            </Button>
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
     </div>
   );
 }

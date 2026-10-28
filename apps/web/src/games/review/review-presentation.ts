@@ -2,7 +2,7 @@
 import { resolveGamePerspective } from "@velachess/chess";
 
 import { flairImageOf } from "../import/index.ts";
-import { seatIdentityOf, type Seat } from "./board-view.ts";
+import type { Seat } from "./board-view.ts";
 import type { ReplayableGame } from "./game-record.ts";
 
 export type SeatedGame = Pick<
@@ -23,6 +23,7 @@ export interface PlayerSeat {
   /** Of a resolvable handle; absent for everyone else. */
   avatarUrl: string | undefined;
   flair: string | undefined;
+  countryCode: string | undefined;
 }
 
 export interface ReviewPlayers {
@@ -46,15 +47,14 @@ function playerSeatOf(
   side: Seat,
   formatRating: (rating: number) => string,
 ): PlayerSeat {
-  const identity = seatIdentityOf(
-    side === "white" ? game.whiteIdentity : game.blackIdentity,
-  );
+  const identity = side === "white" ? game.whiteIdentity : game.blackIdentity;
   const rating = side === "white" ? game.whiteRating : game.blackRating;
 
   return {
     name: side === "white" ? game.whiteName : game.blackName,
     rating: rating === null ? undefined : formatRating(rating),
-    avatarUrl: identity.avatarUrl,
+    avatarUrl: identity.avatarUrl ?? undefined,
+    countryCode: identity.countryCode ?? undefined,
     // The API carries the flair id; the address it is served from is
     // presentation.
     flair: identity.flair ? flairImageOf(identity.flair) : undefined,

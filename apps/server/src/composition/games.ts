@@ -28,6 +28,7 @@ export function buildGetGameDeps(db: Database, fetch?: FetchFn): GetGameDeps {
 export function buildListGamesDeps(db: Database): ListGamesDeps {
   return {
     listGamesPage: (userId, filters, page) => listGamesPage(db, userId, filters, page),
+    findProviderProfiles: (seats) => findProviderProfiles(db, seats),
   };
 }
 

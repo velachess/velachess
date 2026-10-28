@@ -3,24 +3,7 @@ import { queryOptions } from "../../libs/react-query.ts";
 import { gamesQueryKey } from "../game-query-keys.ts";
 import { PAGE_SIZE, type GamesSearch } from "./filters.ts";
 
-type GameRow = InferResponseType<typeof api.games.$get, 200>["games"][number];
-
-export type Game = Pick<
-  GameRow,
-  | "id"
-  | "whiteName"
-  | "whiteRating"
-  | "blackName"
-  | "blackRating"
-  | "result"
-  | "playedAt"
-  | "perspective"
-  | "source"
-  | "externalUrl"
-  | "timeControlInitialSeconds"
-  | "timeControlIncrementSeconds"
-  | "openingName"
->;
+export type Game = InferResponseType<typeof api.games.$get, 200>["games"][number];
 
 /**
  * The user's unified library: synced accounts and manual PGN imports in

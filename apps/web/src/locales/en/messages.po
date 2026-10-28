@@ -29,9 +29,21 @@ msgstr "{count, plural, one {One game could not be read.} other {# games could n
 msgid "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 msgstr "{count, plural, one {One was already in your library.} other {# were already in your library.}}"
 
+#: src/games/list/games-pagination.tsx:26
+msgid "{first}–{last} of {total}"
+msgstr "{first}–{last} of {total}"
+
+#: src/games/list/games-pagination.tsx:25
+msgid "{first}–{last} of {total} games"
+msgstr "{first}–{last} of {total} games"
+
 #: src/games/review/game-heading.tsx:16
 msgid "{opponent} vs you"
 msgstr "{opponent} vs you"
+
+#: src/games/list/games-pagination.tsx:27
+msgid "{page} / {lastPage}"
+msgstr "{page} / {lastPage}"
 
 #: src/games/import/accounts/sources.ts:84
 msgid "{platform} is connected"
@@ -42,6 +54,7 @@ msgstr "{platform} is connected"
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
+#: src/games/list/game-item.tsx:33
 #: src/games/review/game-heading.tsx:18
 msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
@@ -124,9 +137,8 @@ msgstr "Best was"
 msgid "Black"
 msgstr "Black"
 
-#: src/games/list/columns.tsx:25
 #: src/games/list/filters.ts:48
-#: src/games/list/games-list.tsx:32
+#: src/games/list/game-item.tsx:39
 msgid "Blitz"
 msgstr "Blitz"
 
@@ -146,9 +158,8 @@ msgstr "Board interaction preferences."
 msgid "Breadcrumb"
 msgstr "Breadcrumb"
 
-#: src/games/list/columns.tsx:24
 #: src/games/list/filters.ts:47
-#: src/games/list/games-list.tsx:31
+#: src/games/list/game-item.tsx:38
 msgid "Bullet"
 msgstr "Bullet"
 
@@ -206,9 +217,8 @@ msgstr "Choose a new password"
 msgid "Choose how you played before importing."
 msgstr "Choose how you played before importing."
 
-#: src/games/list/columns.tsx:27
 #: src/games/list/filters.ts:50
-#: src/games/list/games-list.tsx:34
+#: src/games/list/game-item.tsx:41
 msgid "Classical"
 msgstr "Classical"
 
@@ -236,7 +246,7 @@ msgstr "Connect"
 msgid "Connect {platform}"
 msgstr "Connect {platform}"
 
-#: src/games/list/games-list.tsx:25
+#: src/games/list/games-list.tsx:29
 #: src/onboarding/onboarding-dialog.tsx:24
 msgid "Connect an account"
 msgstr "Connect an account"
@@ -261,10 +271,6 @@ msgstr "Continue to VelaChess"
 msgid "Continue with Google"
 msgstr "Continue with Google"
 
-#: src/games/list/columns.tsx:28
-msgid "Correspondence"
-msgstr "Correspondence"
-
 #: src/settings/account/delete-account.tsx:42
 msgid "Couldn't check how you sign in."
 msgstr "Couldn't check how you sign in."
@@ -285,7 +291,7 @@ msgstr "Couldn't import those games. Try again in a moment."
 msgid "Couldn't load analysis."
 msgstr "Couldn't load analysis."
 
-#: src/games/list/games-list.tsx:27
+#: src/games/list/games-list.tsx:32
 msgid "Couldn't load games."
 msgstr "Couldn't load games."
 
@@ -360,10 +366,6 @@ msgstr "Danger zone"
 msgid "Dark"
 msgstr "Dark"
 
-#: src/games/list/columns.tsx:19
-msgid "Date"
-msgstr "Date"
-
 #: src/settings/account/delete-account.tsx:37
 #: src/settings/account/delete-account.tsx:46
 msgid "Delete account"
@@ -389,8 +391,8 @@ msgstr "Disconnect"
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr "Drag to reposition, and zoom to fill the circle."
 
-#: src/games/list/columns.tsx:22
 #: src/games/list/filters.ts:40
+#: src/games/list/game-item.tsx:36
 #: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:11
 msgid "Draw"
@@ -458,7 +460,7 @@ msgstr "Evaluation over the game"
 msgid "Every device signed in to this account is signed out, this one included. You can sign back in right after."
 msgstr "Every device signed in to this account is signed out, this one included. You can sign back in right after."
 
-#: src/games/list/games-list.tsx:23
+#: src/games/list/games-list.tsx:27
 msgid "Every game you've imported, and how it went."
 msgstr "Every game you've imported, and how it went."
 
@@ -481,7 +483,7 @@ msgstr "Forgot password?"
 msgid "Gameplay"
 msgstr "Gameplay"
 
-#: src/games/list/games-list.tsx:22
+#: src/games/list/games-list.tsx:26
 #: src/routes/_app/games.tsx:6
 #: src/test/routes.tsx:63
 msgid "Games"
@@ -491,13 +493,25 @@ msgstr "Games"
 msgid "Games imported"
 msgstr "Games imported"
 
-#: src/games/list/games-list.tsx:28
+#: src/games/list/games-pagination.tsx:19
 msgid "Games pages"
 msgstr "Games pages"
 
 #: src/games/import/accounts/use-sync-settlement-toast.ts:10
 msgid "Games synced"
 msgstr "Games synced"
+
+#: src/games/list/games-pagination.tsx:23
+msgid "Go to next page"
+msgstr "Go to next page"
+
+#: src/games/list/games-pagination.tsx:24
+msgid "Go to page {page}"
+msgstr "Go to page {page}"
+
+#: src/games/list/games-pagination.tsx:22
+msgid "Go to previous page"
+msgstr "Go to previous page"
 
 #: src/games/review/move-presentation.ts:35
 msgid "Good"
@@ -633,6 +647,10 @@ msgstr "Lichess username"
 msgid "Light"
 msgstr "Light"
 
+#: src/games/list/games-list.tsx:33
+msgid "Loading games"
+msgstr "Loading games"
+
 #: src/games/review/review-skeleton.tsx:16
 msgid "Loading the game…"
 msgstr "Loading the game…"
@@ -641,8 +659,8 @@ msgstr "Loading the game…"
 msgid "Locale preferences for this device."
 msgstr "Locale preferences for this device."
 
-#: src/games/list/columns.tsx:21
 #: src/games/list/filters.ts:39
+#: src/games/list/game-item.tsx:35
 #: src/games/review/game-heading.tsx:20
 msgid "Loss"
 msgstr "Loss"
@@ -691,7 +709,7 @@ msgstr "Name"
 msgid "New password"
 msgstr "New password"
 
-#: src/games/list/games-list.tsx:30
+#: src/games/list/games-pagination.tsx:21
 #: src/games/review/replay-controls.tsx:14
 #: src/onboarding/onboarding-dialog.tsx:22
 msgid "Next"
@@ -705,11 +723,15 @@ msgstr "Next move"
 msgid "No games found for that username. Check the spelling and try again."
 msgstr "No games found for that username. Check the spelling and try again."
 
-#: src/games/list/games-list.tsx:26
+#: src/games/list/games-list.tsx:30
 msgid "No games match these filters."
 msgstr "No games match these filters."
 
-#: src/games/list/games-list.tsx:24
+#: src/games/list/games-list.tsx:31
+msgid "No games on this page."
+msgstr "No games on this page."
+
+#: src/games/list/games-list.tsx:28
 msgid "No games yet. Connect Chess.com or Lichess, or import a PGN."
 msgstr "No games yet. Connect Chess.com or Lichess, or import a PGN."
 
@@ -736,10 +758,6 @@ msgstr "On — you can sign in with a link sent to your email."
 #: src/games/review/game-report.tsx:13
 msgid "Opening not recognised"
 msgstr "Opening not recognised"
-
-#: src/games/list/columns.tsx:16
-msgid "Opponent"
-msgstr "Opponent"
 
 #: src/auth/sign-in/sign-in-screen.tsx:28
 msgid "Or continue with"
@@ -790,7 +808,7 @@ msgstr "Preferences"
 msgid "Prev"
 msgstr "Prev"
 
-#: src/games/list/games-list.tsx:29
+#: src/games/list/games-pagination.tsx:20
 msgid "Previous"
 msgstr "Previous"
 
@@ -802,9 +820,8 @@ msgstr "Previous move"
 msgid "Profile"
 msgstr "Profile"
 
-#: src/games/list/columns.tsx:26
 #: src/games/list/filters.ts:49
-#: src/games/list/games-list.tsx:33
+#: src/games/list/game-item.tsx:40
 msgid "Rapid"
 msgstr "Rapid"
 
@@ -852,7 +869,6 @@ msgstr "Reset your password"
 msgid "Resize navigation"
 msgstr "Resize navigation"
 
-#: src/games/list/columns.tsx:17
 #: src/games/list/filters.ts:36
 msgid "Result"
 msgstr "Result"
@@ -1073,10 +1089,6 @@ msgstr "This reset link is invalid or has expired."
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr "This takes a moment. The app opens as soon as they land."
 
-#: src/games/list/columns.tsx:18
-msgid "Time"
-msgstr "Time"
-
 #: src/games/list/filters.ts:45
 msgid "Time control"
 msgstr "Time control"
@@ -1106,7 +1118,7 @@ msgstr "Type {CONFIRMATION} to confirm"
 msgid "Unable to connect to VelaChess. Reload the page to try again."
 msgstr "Unable to connect to VelaChess. Reload the page to try again."
 
-#: src/games/list/columns.tsx:23
+#: src/games/list/game-item.tsx:37
 #: src/games/review/game-heading.tsx:22
 #: src/games/review/game-result.tsx:12
 msgid "Unfinished"
@@ -1158,17 +1170,17 @@ msgstr "White"
 msgid "White or Black applies to every game in this upload."
 msgstr "White or Black applies to every game in this upload."
 
-#: src/games/list/columns.tsx:20
 #: src/games/list/filters.ts:38
+#: src/games/list/game-item.tsx:34
 #: src/games/review/game-heading.tsx:19
 msgid "Win"
 msgstr "Win"
 
-#: src/games/list/columns.tsx:30
+#: src/games/list/game-item.tsx:43
 msgid "You played black"
 msgstr "You played black"
 
-#: src/games/list/columns.tsx:29
+#: src/games/list/game-item.tsx:42
 msgid "You played white"
 msgstr "You played white"
 
