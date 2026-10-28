@@ -10,7 +10,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@velachess/ui/components/empty";
-import { ItemGroup, ItemSeparator } from "@velachess/ui/components/item";
+import { ItemGroup } from "@velachess/ui/components/item";
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
@@ -20,7 +20,7 @@ import { activeFilterCount, type GamesSearch } from "./filters.ts";
 import { GameItem } from "./game-item.tsx";
 import { GamesFilters } from "./games-filters.tsx";
 import { GamesPagination } from "./games-pagination.tsx";
-import { libraryQuery, type Game } from "./queries.ts";
+import { libraryQuery } from "./queries.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const GAMES_COPY = {
@@ -85,7 +85,14 @@ export function GamesList() {
       )}
       {query.data.games.length > 0 && (
         <>
-          <GamesItems games={query.data.games} />
+          <ItemGroup aria-label={i18n._(GAMES_COPY.title)} className="gap-0">
+            {query.data.games.map((game) => (
+              // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- an <li> inside ItemGroup's own div is invalid HTML
+              <div key={game.id} role="listitem" className="border-b last:border-b-0">
+                <GameItem game={game} />
+              </div>
+            ))}
+          </ItemGroup>
           {/* The page the rows came from, not the one in the URL: a read
               in flight would otherwise number stale rows as the new
               page. */}
@@ -97,21 +104,6 @@ export function GamesList() {
         </>
       )}
     </GamesScreen>
-  );
-}
-
-function GamesItems({ games }: { games: Game[] }) {
-  const { i18n } = useLingui();
-
-  return (
-    <ItemGroup aria-label={i18n._(GAMES_COPY.title)} className="gap-0">
-      {games.map((game, index) => (
-        <li key={game.id} className="contents">
-          {index > 0 && <ItemSeparator className="my-0" />}
-          <GameItem game={game} />
-        </li>
-      ))}
-    </ItemGroup>
   );
 }
 
