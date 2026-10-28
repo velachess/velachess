@@ -7,8 +7,10 @@ import { useState } from "react";
 import { Button } from "@velachess/ui/components/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,11 +24,14 @@ import {
   FieldSet,
 } from "@velachess/ui/components/field";
 import { Input } from "@velachess/ui/components/input";
+import { Spinner } from "@velachess/ui/components/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@velachess/ui/components/tabs";
 import { Textarea } from "@velachess/ui/components/textarea";
 import { toast } from "@velachess/ui/components/toast";
 import { ToggleGroup, ToggleGroupItem } from "@velachess/ui/components/toggle-group";
 import { FileText } from "@velachess/ui/icons";
 
+import { PgnDropzone } from "./pgn-dropzone.tsx";
 import { useImportPgn } from "./queries.ts";
 import {
   buildPgnImportFormSchema,
@@ -48,12 +53,14 @@ const COPY = {
   playerName: msg`Your name in these games`,
   playerNameHint: msg`As it appears in the White and Black headers`,
   playerRequired: msg`Enter your name so your games can be told apart from your opponents'.`,
-  file: msg`PGN file`,
-  paste: msg`Or paste the moves`,
+  upload: msg`Upload file`,
+  paste: msg`Paste PGN`,
+  pasteLabel: msg`PGN text`,
   pastePlaceholder: msg`[Event "..."] …`,
   pgnRequired: msg`There is nothing to import yet.`,
   pgnInvalid: msg`Invalid PGN: no valid chess moves found.`,
   fileReadFailed: msg`Couldn't read that file. Try again.`,
+  cancel: msg`Cancel`,
   submit: msg`Import`,
   importing: msg`Importing…`,
 } as const;
@@ -84,8 +91,11 @@ export function PgnImportButton() {
           </Button>
         }
       />
-      <DialogContent aria-labelledby={DIALOG_TITLE_ID}>
-        <DialogHeader>
+      <DialogContent
+        aria-labelledby={DIALOG_TITLE_ID}
+        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+      >
+        <DialogHeader className="shrink-0 px-6 pt-6 pr-12 pb-5">
           <DialogTitle id={DIALOG_TITLE_ID}>{i18n._(COPY.title)}</DialogTitle>
           <DialogDescription>{i18n._(COPY.description)}</DialogDescription>
         </DialogHeader>
@@ -110,26 +120,6 @@ const DEFAULT_VALUES: FormValues = {
 };
 
 /**
- * Read into the paste field, so the import has one source. The input is
- * cleared so picking the same file again still fires a change event.
- */
-async function handlePgnFileChange(
-  input: HTMLInputElement,
-  setPgnValue: (value: string) => void,
-  onReadFailed: () => void,
-) {
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-
-  try {
-    setPgnValue(await file.text());
-  } catch {
-    onReadFailed();
-  }
-}
-
-/**
  * tanstack-form keeps field meta in the form instance, not the component,
  * so unmounting the name field leaves its error cached and ready to
  * reappear the instant "By name" is picked again.
@@ -148,6 +138,7 @@ function handleParticipationModeChange(
 function ImportPgnForm({ onDone }: { onDone: () => void }) {
   const { i18n } = useLingui();
   const translate: Translate = (message) => i18n._(message);
+  const [file, setFile] = useState<File | null>(null);
 
   const importPgn = useImportPgn({
     onImported: (outcome) => {
@@ -190,146 +181,199 @@ function ImportPgnForm({ onDone }: { onDone: () => void }) {
     },
   });
 
+  async function handlePicked(picked: File, setPgnValue: (value: string) => void) {
+    try {
+      const text = await picked.text();
+      setPgnValue(text);
+      setFile(picked);
+    } catch {
+      toast.add({
+        id: "pgn-file-read-failed",
+        type: "error",
+        title: translate(COPY.fileReadFailed),
+      });
+    }
+  }
+
+  function handleRemoved(setPgnValue: (value: string) => void) {
+    setPgnValue("");
+    setFile(null);
+  }
+
+  /** Edited text no longer came from the file, so the named file would lie. */
+  function handlePasted(text: string, setPgnValue: (value: string) => void) {
+    setPgnValue(text);
+    setFile(null);
+  }
+
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}
     >
-      {/* How you played — White/Black apply to the whole batch, By name matches per game. */}
-      <FieldSet>
-        <FieldLegend>{translate(COPY.participation)}</FieldLegend>
-        <form.Field name="participationMode">
+      <div className="min-h-0 flex-1 overflow-y-auto border-t px-6 py-5">
+        <form.Field name="pgn">
           {(field) => {
-            // Not gated on isTouched like the other fields: the toggle
-            // group never fires blur, so a required-but-unset selection
-            // would otherwise never explain why Import stays disabled.
-            const isInvalid = !field.state.meta.isValid;
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
             return (
-              <>
-                <ToggleGroup<ParticipationMode>
-                  value={field.state.value ? [field.state.value] : []}
-                  variant="outline"
-                  onValueChange={(next) =>
-                    handleParticipationModeChange(next[0], field, form)
-                  }
-                >
-                  <ToggleGroupItem
-                    value={PARTICIPATION_MODES.white}
-                    disabled={importPgn.isPending}
-                  >
-                    {translate(COPY.white)}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value={PARTICIPATION_MODES.black}
-                    disabled={importPgn.isPending}
-                  >
-                    {translate(COPY.black)}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value={PARTICIPATION_MODES.byName}
-                    disabled={importPgn.isPending}
-                  >
-                    {translate(COPY.byName)}
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
-              </>
+              <Field data-invalid={isInvalid} className="gap-0">
+                <Tabs defaultValue="upload" className="gap-0">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="upload">{translate(COPY.upload)}</TabsTrigger>
+                    <TabsTrigger value="paste">{translate(COPY.paste)}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="upload" className="mt-4">
+                    <PgnDropzone
+                      file={file}
+                      onPicked={(picked) => void handlePicked(picked, field.handleChange)}
+                      onRemoved={() => handleRemoved(field.handleChange)}
+                      disabled={importPgn.isPending}
+                      invalid={isInvalid}
+                    />
+                  </TabsContent>
+                  <TabsContent value="paste" className="mt-4">
+                    <FieldLabel className="sr-only" htmlFor={field.name}>
+                      {translate(COPY.pasteLabel)}
+                    </FieldLabel>
+                    <Textarea
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      placeholder={translate(COPY.pastePlaceholder)}
+                      aria-invalid={isInvalid}
+                      onBlur={field.handleBlur}
+                      onChange={(event) =>
+                        handlePasted(event.target.value, field.handleChange)
+                      }
+                      disabled={importPgn.isPending}
+                      className="h-50 resize-none rounded-lg font-mono text-xs field-sizing-fixed"
+                    />
+                  </TabsContent>
+                </Tabs>
+                {/* The gap to the next section doubles as the error's line, so
+                    an error costs no height and leaves no blank when absent. */}
+                <div className="min-h-7 py-1">
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </div>
+              </Field>
             );
           }}
         </form.Field>
-        <FieldDescription>{translate(COPY.participationHint)}</FieldDescription>
-      </FieldSet>
 
-      <form.Subscribe selector={(state) => state.values.participationMode}>
-        {(mode) =>
-          mode === PARTICIPATION_MODES.byName && (
-            <form.Field name="playerName">
-              {(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        <FieldSet>
+          <FieldLegend>{translate(COPY.participation)}</FieldLegend>
+          <FieldDescription>{translate(COPY.participationHint)}</FieldDescription>
+          <form.Field name="participationMode">
+            {(field) => {
+              // Gated on isTouched, which the toggle group sets on the first
+              // press and handleSubmit on an attempt — blur, which it never
+              // fires, would gate it forever.
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>
-                      {translate(COPY.playerName)}
-                    </FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      aria-label={translate(COPY.playerName)}
-                      aria-invalid={isInvalid}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
+              return (
+                <div>
+                  <ToggleGroup<ParticipationMode>
+                    value={field.state.value ? [field.state.value] : []}
+                    variant="outline"
+                    onValueChange={(next) =>
+                      handleParticipationModeChange(next[0], field, form)
+                    }
+                  >
+                    <ToggleGroupItem
+                      value={PARTICIPATION_MODES.white}
                       disabled={importPgn.isPending}
-                    />
-                    <FieldDescription>{translate(COPY.playerNameHint)}</FieldDescription>
+                    >
+                      {translate(COPY.white)}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value={PARTICIPATION_MODES.black}
+                      disabled={importPgn.isPending}
+                    >
+                      {translate(COPY.black)}
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value={PARTICIPATION_MODES.byName}
+                      disabled={importPgn.isPending}
+                    >
+                      {translate(COPY.byName)}
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  <div className="min-h-7 py-1">
                     {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            </form.Field>
-          )
-        }
-      </form.Subscribe>
+                    {/* Before any answer the same sentence is a hint, not a complaint. */}
+                    {!isInvalid && field.state.value === undefined && (
+                      <FieldDescription>
+                        {translate(COPY.participationRequired)}
+                      </FieldDescription>
+                    )}
+                  </div>
+                </div>
+              );
+            }}
+          </form.Field>
+        </FieldSet>
 
-      {/* The PGN source — a file or a paste, sharing the same field. */}
-      <form.Field name="pgn">
-        {(field) => {
-          const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        <form.Subscribe selector={(state) => state.values.participationMode}>
+          {(mode) =>
+            mode === PARTICIPATION_MODES.byName && (
+              <form.Field name="playerName">
+                {(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
 
-          return (
-            <Field data-invalid={isInvalid}>
-              <FieldLabel htmlFor="pgn-file">{translate(COPY.file)}</FieldLabel>
-              <Input
-                id="pgn-file"
-                type="file"
-                accept=".pgn,text/plain"
-                aria-label={translate(COPY.file)}
-                onChange={(event) =>
-                  void handlePgnFileChange(event.currentTarget, field.handleChange, () =>
-                    toast.add({
-                      id: "pgn-file-read-failed",
-                      type: "error",
-                      title: translate(COPY.fileReadFailed),
-                    }),
-                  )
-                }
-                disabled={importPgn.isPending}
-              />
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        {translate(COPY.playerName)}
+                      </FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        aria-label={translate(COPY.playerName)}
+                        aria-invalid={isInvalid}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={importPgn.isPending}
+                      />
+                      <FieldDescription>
+                        {translate(COPY.playerNameHint)}
+                      </FieldDescription>
+                      <div className="min-h-7 py-1">
+                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                      </div>
+                    </Field>
+                  );
+                }}
+              </form.Field>
+            )
+          }
+        </form.Subscribe>
+      </div>
 
-              <FieldLabel htmlFor={field.name}>{translate(COPY.paste)}</FieldLabel>
-              <Textarea
-                id={field.name}
-                name={field.name}
-                rows={6}
-                value={field.state.value}
-                placeholder={translate(COPY.pastePlaceholder)}
-                aria-invalid={isInvalid}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                disabled={importPgn.isPending}
-                className="font-mono text-xs"
-              />
-              {isInvalid && <FieldError errors={field.state.meta.errors} />}
-            </Field>
-          );
-        }}
-      </form.Field>
-
-      {/* Import — one submit button, gated on the whole schema's validity. */}
-      <div className="flex justify-end">
+      <DialogFooter className="shrink-0 border-t px-6 py-4">
+        <DialogClose
+          render={
+            <Button variant="outline" type="button" disabled={importPgn.isPending}>
+              {translate(COPY.cancel)}
+            </Button>
+          }
+        />
         <form.Subscribe selector={(state) => state.canSubmit}>
           {(canSubmit) => (
             <Button type="submit" disabled={importPgn.isPending || !canSubmit}>
+              {importPgn.isPending && (
+                <Spinner aria-hidden="true" data-icon="inline-start" />
+              )}
               {importPgn.isPending ? translate(COPY.importing) : translate(COPY.submit)}
             </Button>
           )}
         </form.Subscribe>
-      </div>
+      </DialogFooter>
     </form>
   );
 }
