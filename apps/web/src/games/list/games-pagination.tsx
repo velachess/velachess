@@ -13,6 +13,7 @@ import {
 } from "@velachess/ui/components/pagination";
 
 import { PAGE_SIZE } from "./filters.ts";
+import { lastPageOf, pageSlots } from "./list-model.ts";
 
 const PAGINATION_COPY = {
   label: msg`Games pages`,
@@ -25,29 +26,6 @@ const PAGINATION_COPY = {
   range: msg`{first}–{last} of {total}`,
   position: msg`{page} / {lastPage}`,
 } as const;
-
-const WINDOW_PAGES = 3;
-
-export type PageSlot = number | "gap";
-
-export function lastPageOf(total: number): number {
-  return Math.max(1, Math.ceil(total / PAGE_SIZE));
-}
-
-export function pageSlots(page: number, lastPage: number): PageSlot[] {
-  const start = Math.min(Math.max(page - 1, 1), Math.max(lastPage - WINDOW_PAGES + 1, 1));
-  const window = Array.from(
-    { length: Math.min(WINDOW_PAGES, lastPage - start + 1) },
-    (_, index) => start + index,
-  );
-  const pages = [...new Set([1, ...window, lastPage])].toSorted((a, b) => a - b);
-
-  return pages.flatMap((value, index) => {
-    const previous = pages[index - 1];
-    const skipped = previous !== undefined && value - previous > 1;
-    return skipped ? ["gap" as const, value] : [value];
-  });
-}
 
 const PageLink = createLink(PaginationLink);
 const PreviousLink = createLink(PaginationPrevious);
@@ -107,13 +85,10 @@ export function GamesPagination({ total, page, onNavigate }: GamesPaginationProp
             )}
           </PaginationItem>
 
-          {pageSlots(page, lastPage).map((slot, index) => (
-            <PaginationItem
-              key={slot === "gap" ? `gap-${index}` : slot}
-              className="hidden sm:block"
-            >
-              {slot === "gap" && <PaginationEllipsis />}
-              {slot !== "gap" && (
+          {pageSlots(page, lastPage).map((slot) => (
+            <PaginationItem key={slot} className="hidden sm:block">
+              {typeof slot === "string" && <PaginationEllipsis />}
+              {typeof slot === "number" && (
                 <PageLink
                   to="/games"
                   search={(previous) => ({ ...previous, page: slot })}

@@ -26,6 +26,7 @@ import {
 import { GAME_SOURCES } from "../game-sources.ts";
 import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
+import { formatClock } from "./list-model.ts";
 import type { Game } from "./queries.ts";
 
 const GAME_ITEM_COPY = {
@@ -50,21 +51,6 @@ const TIME_CLASSES: Record<TimeClass, { label: MessageDescriptor; Mark: typeof Z
   rapid: { label: GAME_ITEM_COPY.rapid, Mark: Clock3 },
   classical: { label: GAME_ITEM_COPY.classical, Mark: Hourglass },
 };
-
-/**
- * From the clock, not the platform's label, which Lichess and chess.com
- * word differently for the same game.
- */
-export function formatClock(
-  initialSeconds: number | null,
-  incrementSeconds: number | null,
-) {
-  if (initialSeconds === null) return null;
-
-  const minutes = initialSeconds / 60;
-  const base = Number.isInteger(minutes) ? `${minutes} min` : `${initialSeconds}s`;
-  return incrementSeconds ? `${base} + ${incrementSeconds}` : base;
-}
 
 const OUTCOME_BADGE = {
   win: { label: GAME_ITEM_COPY.win, variant: "success" },
@@ -153,8 +139,8 @@ function Opponent({ game, side }: { game: Game; side: "white" | "black" }) {
 
 export function GameItem({ game }: { game: Game }) {
   const { i18n } = useLingui();
-  // Null when the game was never attributed: calling one of the players
-  // the opponent would invent a seat nobody knows.
+  // Calling a player the opponent when nothing attributed the game would
+  // invent a seat nobody knows.
   const opponentSide = game.perspective === null ? null : opposite(game.perspective);
   const playedAt = game.playedAt
     ? i18n.date(new Date(game.playedAt), { day: "numeric", month: "short" })

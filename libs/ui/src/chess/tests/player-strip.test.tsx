@@ -3,7 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { countryNameOf } from "../country-names.ts";
-import { PlayerStrip, flagClassOf, initialsOf } from "../player-strip.tsx";
+import { PlayerStrip } from "../player-strip.tsx";
+import { flagClassOf, initialsOf } from "../player-presentation.ts";
 
 it("takes one letter per word when a name has parts", () => {
   expect(initialsOf("Yuri Mutti")).toBe("YM");
