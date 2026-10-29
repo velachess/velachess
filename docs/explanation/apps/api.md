@@ -121,7 +121,12 @@ connected account. It normalizes in-request, resolves the named player's seat
 per game, and persists with user-scoped conflict-ignore (a duplicate-only upload
 succeeds with counts) — never Stockfish.
 `GET /games` is the unified library: one filtered page of every game the caller
-owns across all sources, ownership read straight off `games.user_id`.
+owns across all sources, ownership read straight off `games.user_id`. It narrows
+on the opponent's handle (a case-insensitive substring of the seat the caller did
+not have), the side played, the outcome from that side, the source, and any of
+the four time classes — `timeClass` repeats, so `?timeClass=blitz&timeClass=rapid`
+is one question. Every narrowing applies to the whole library, never to the page
+already fetched, and `total` counts the matches rather than the page.
 
 All import paths fetch or parse, normalize, and persist. None of them run
 Stockfish. Analysis has no endpoint here: it runs entirely in the browser

@@ -22,7 +22,15 @@ import { addGames, readArchive } from "./archive.ts";
 import { aGame } from "./games.ts";
 import { testRouteTree } from "./routes.tsx";
 
-const ANY_PAGE = { color: null, outcome: null, timeClass: null, page: 1, pageSize: 1 };
+const ANY_PAGE = {
+  opponent: null,
+  color: null,
+  outcome: null,
+  timeClasses: [],
+  source: null,
+  page: 1,
+  pageSize: 1,
+};
 
 function AppProviders({
   children,

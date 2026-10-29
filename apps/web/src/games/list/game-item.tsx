@@ -44,8 +44,11 @@ const GAME_ITEM_COPY = {
 } as const;
 
 /** Chess has no conventional glyph for a time control, so the choice is
- * made once here rather than at each use. */
-const TIME_CLASSES: Record<TimeClass, { label: MessageDescriptor; Mark: typeof Zap }> = {
+ * made once here and the filter reads the same one. */
+export const TIME_CLASS_MARKS: Record<
+  TimeClass,
+  { label: MessageDescriptor; Mark: typeof Zap }
+> = {
   bullet: { label: GAME_ITEM_COPY.bullet, Mark: Zap },
   blitz: { label: GAME_ITEM_COPY.blitz, Mark: Timer },
   rapid: { label: GAME_ITEM_COPY.rapid, Mark: Clock3 },
@@ -91,7 +94,7 @@ function TimeControl({ game }: { game: Game }) {
   );
   if (!timeClass) return null;
 
-  const { label, Mark } = TIME_CLASSES[timeClass];
+  const { label, Mark } = TIME_CLASS_MARKS[timeClass];
   const clock = formatTimeControl(
     game.timeControlInitialSeconds,
     game.timeControlIncrementSeconds,

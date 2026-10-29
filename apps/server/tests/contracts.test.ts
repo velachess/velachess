@@ -12,6 +12,7 @@ import {
   gameSourceSchema,
   perspectiveSchema,
   resultSchema,
+  TIME_CLASSES,
 } from "@velachess/infra-platforms";
 import { syncJobErrorEnum, syncJobStatusEnum } from "@velachess/infra-db";
 import { describe, expect, it } from "vitest";
@@ -20,7 +21,12 @@ import {
   ACCOUNT_PLATFORM,
   SYNC_JOB_ERROR as ACCOUNT_SYNC_JOB_ERROR,
 } from "../src/routes/accounts.ts";
-import { GAME_PERSPECTIVE, GAME_RESULT, GAME_SOURCE } from "../src/routes/games.ts";
+import {
+  GAME_PERSPECTIVE,
+  GAME_RESULT,
+  GAME_SOURCE,
+  GAME_TIME_CLASS,
+} from "../src/routes/games.ts";
 import { SYNC_JOB_ERROR, SYNC_JOB_STATUS } from "../src/routes/syncs.ts";
 
 describe("route vocabulary mirrors", () => {
@@ -28,6 +34,7 @@ describe("route vocabulary mirrors", () => {
     expect(GAME_SOURCE).toEqual(gameSourceSchema.options);
     expect(GAME_PERSPECTIVE).toEqual(perspectiveSchema.options);
     expect(GAME_RESULT).toEqual(resultSchema.options);
+    expect(GAME_TIME_CLASS).toEqual(TIME_CLASSES);
   });
 
   it("accounts.ts matches @velachess/infra-platforms and the sync_job_error enum", () => {

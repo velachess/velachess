@@ -20,7 +20,27 @@ import {
 
 const MAX_PAGE_SIZE = 100;
 
+/** Mirrors `@velachess/infra-platforms`' `resultSchema`,
+ * `perspectiveSchema`, `gameSourceSchema` and `TIME_CLASSES`, which
+ * `routes-no-direct-infra` forbids importing; guarded by
+ * `apps/server/tests/contracts.test.ts`. */
+export const GAME_RESULT = ["1-0", "0-1", "1/2-1/2", "*"] as const;
+export const GAME_PERSPECTIVE = ["white", "black"] as const;
+export const GAME_SOURCE = ["chess_com", "lichess", "pgn"] as const;
+export const GAME_TIME_CLASS = ["bullet", "blitz", "rapid", "classical"] as const;
+
+const MAX_OPPONENT_LENGTH = 64;
+
+const timeClassValue = z.enum(GAME_TIME_CLASS);
+
 const libraryQuery = z.object({
+  opponent: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_OPPONENT_LENGTH)
+    .optional()
+    .describe("Substring of the opponent's handle, case-insensitive"),
   color: z
     .enum(["white", "black"])
     .optional()
@@ -29,10 +49,15 @@ const libraryQuery = z.object({
     .enum(["win", "loss", "draw"])
     .optional()
     .describe("From the player's side, not the scoresheet's"),
+  // Repeatable: a single `?timeClass=blitz` reaches the validator as a bare
+  // string, not a one-element array.
   timeClass: z
-    .enum(["bullet", "blitz", "rapid", "classical"])
+    .union([timeClassValue, z.array(timeClassValue)])
     .optional()
-    .describe("Bucketed by estimated duration (initial + 40 × increment)"),
+    .describe(
+      "Any of the classes, bucketed by estimated duration (initial + 40 × increment)",
+    ),
+  source: z.enum(GAME_SOURCE).optional().describe("Where the game came from"),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(25),
 });
@@ -53,13 +78,6 @@ const importPgnSchema = z.object({
     .optional()
     .describe("How the uploader is identified across the batch"),
 });
-
-/** Mirrors `@velachess/infra-platforms`' `resultSchema`,
- * `perspectiveSchema` and `gameSourceSchema`, which `routes-no-direct-infra`
- * forbids importing; guarded by `apps/server/tests/contracts.test.ts`. */
-export const GAME_RESULT = ["1-0", "0-1", "1/2-1/2", "*"] as const;
-export const GAME_PERSPECTIVE = ["white", "black"] as const;
-export const GAME_SOURCE = ["chess_com", "lichess", "pgn"] as const;
 
 /** One seat's provider identity, which both reads carry. */
 const seatIdentitySchema = z.object({
@@ -216,9 +234,12 @@ export function gamesRoutes(deps: GamesRouteDeps) {
       // A pure read: connecting a provider is POST /accounts and importing
       // a file is POST /games/import, never a GET.
       .openapi(libraryRoute, async (c) => {
-        const { page, pageSize, ...filters } = c.req.valid("query");
+        const { page, pageSize, timeClass, ...filters } = c.req.valid("query");
         const library = await openLibrary(deps.list, c.get("userId"), {
-          filters,
+          filters: {
+            ...filters,
+            ...(timeClass === undefined ? {} : { timeClasses: [timeClass].flat() }),
+          },
           page: { page, pageSize },
         });
         return c.json(
