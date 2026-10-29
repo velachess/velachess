@@ -144,7 +144,6 @@ describe("api routes", () => {
     expect(Object.keys(body).toSorted()).toEqual(
       [
         "accountId",
-        "blackIdentity",
         "blackName",
         "blackRating",
         "createdAt",
@@ -166,7 +165,6 @@ describe("api routes", () => {
         "timeControlInitialSeconds",
         "timeControlRaw",
         "userId",
-        "whiteIdentity",
         "whiteName",
         "whiteRating",
       ].toSorted(),

@@ -17,14 +17,6 @@ export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[nu
 /** The server's number, not a copy of its cooldown. */
 export const SYNC_RETRY_IN = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
-/** Lichess serves flairs from one public directory keyed by the id its API
- * reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`). */
-const LICHESS_FLAIR_ASSETS = "https://lichess1.org/assets/flair/img";
-
-export function flairImageOf(flair: string): string {
-  return `${LICHESS_FLAIR_ASSETS}/${flair}.webp`;
-}
-
 /** Per the server, not localStorage's `my-accounts`: a new machine or a
  * rebuilt database desyncs from local memory. */
 export const trackedAccountsQuery = queryOptions({

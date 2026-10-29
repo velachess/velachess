@@ -79,19 +79,11 @@ const importPgnSchema = z.object({
     .describe("How the uploader is identified across the batch"),
 });
 
-/** One seat's provider identity, which both reads carry. */
-const seatIdentitySchema = z.object({
-  avatarUrl: z.string().nullable(),
-  flair: z.string().nullable(),
-  countryCode: z.string().nullable(),
-});
-
 /**
  * Mirrors `listGamesPage`'s projection, which is inferred from a Drizzle
- * query rather than declared, plus the seat identities `openLibrary`
- * attaches from the profile cache. `apps/web`'s games list reads these
- * fields directly, so a loose record is not an option, and `playedAt`
- * travels as ISO text.
+ * query rather than declared. `apps/web`'s games list reads these fields
+ * directly, so a loose record is not an option, and `playedAt` travels as
+ * ISO text.
  */
 const gameListRowSchema = z.object({
   id: z.string().uuid(),
@@ -107,8 +99,6 @@ const gameListRowSchema = z.object({
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
   openingName: z.string().nullable(),
-  whiteIdentity: seatIdentitySchema,
-  blackIdentity: seatIdentitySchema,
 });
 
 /** `apps/web`'s `gameQuery` spreads this response straight into
@@ -139,8 +129,6 @@ const gameDetailSchema = z.object({
   rawPgn: z.string(),
   movetextHash: z.string(),
   createdAt: z.string(),
-  whiteIdentity: seatIdentitySchema,
-  blackIdentity: seatIdentitySchema,
 });
 
 /** Only the timestamp columns are restated, so the rest cannot drift. */
@@ -158,7 +146,7 @@ const libraryRoute = createRoute({
   path: "/",
   summary: "The signed-in user's unified game library",
   description:
-    "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. Both seats carry whatever the shared per-handle profile cache already holds (avatar, Lichess flair, country) — read in one batch for the page and never fetched here, so listing spends no provider request. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis runs in the browser when a game is opened, never on this list.",
+    "One filtered page of every game the user owns — Chess.com and Lichess archives next to manually imported PGNs, provenance visible per row but never deciding what appears. One Postgres read and nothing else: no provider is asked, so listing spends no outbound request. A read, and nothing but a read: connecting a provider is POST /accounts, importing a file is POST /games/import, and keeping an archive current is POST /accounts/{id}/sync. Engine-free — analysis runs in the browser when a game is opened, never on this list.",
   request: { query: libraryQuery },
   responses: {
     200: {
@@ -208,7 +196,7 @@ const getGameRoute = createRoute({
   path: "/{id}",
   summary: "The full game, rawPgn included",
   description:
-    "Board replay needs the movetext; the list endpoint deliberately omits it. Both seats carry their provider identity (avatarUrl / Lichess flair) resolved from a shared per-handle cache — fetched on the first open per refresh window, initials when unknown, and never a reason for the read to fail.",
+    "Board replay needs the movetext; the list endpoint deliberately omits it. One Postgres read: no provider is asked, so opening a game spends no outbound request.",
   request: { params: idParamSchema },
   responses: {
     200: {
@@ -261,9 +249,6 @@ export function gamesRoutes(deps: GamesRouteDeps) {
         return c.json(outcome, 200);
       })
       .openapi(getGameRoute, async (c) => {
-        // The full game, rawPgn included — board replay needs the movetext.
-        // Seat identities ride along, resolved from the profile cache; a
-        // cold opponent costs one provider read on the first open only.
         // Scoped by owner: a stranger's game id and a missing one are the
         // same 404, so the route never confirms which uuids exist.
         const game = await getGameForReview(

@@ -178,15 +178,13 @@ a user can add another tracked account.
 
 ## Identity
 
-Three facts stay separate:
+Two facts stay separate:
 
 1. **Session user** — established by Better Auth and authoritative for every
    product request.
 2. **Tracked account** — a chess.com/Lichess handle connected to that user.
    Uniqueness and sync cursor are user-scoped, so two users may independently
    track the same public handle.
-3. **Provider profile** — public avatar/flair metadata cached by provider and
-   handle. It is shared public data, not ownership or authentication.
 
 React Query owns session and account data. A 401 clears the cached session and
 returns the browser to login; local storage does not claim identity. Account

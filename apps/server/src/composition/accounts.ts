@@ -14,7 +14,6 @@ import {
   listTrackedAccountsByUser,
   lockLatestSyncJob,
   markUserOnboarded,
-  upsertProviderProfile,
   insertTrackedAccount,
 } from "@velachess/infra-db";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
@@ -94,7 +93,6 @@ export function buildImportAccountDeps(
   fetch?: FetchFn,
 ): ConnectAccountDeps {
   return {
-    upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
     withTransaction: (fn) => db.transaction(fn),

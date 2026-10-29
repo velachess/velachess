@@ -16,7 +16,6 @@ import {
 import { BookOpen, ChevronRight } from "@velachess/ui/icons";
 
 import { GAME_SOURCES } from "../game-sources.ts";
-import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
 import { TIME_CLASS_MARKS } from "./time-class-marks.tsx";
 import { formatTimeControl } from "./time-control.ts";
@@ -102,17 +101,11 @@ function Opponent({ game, side }: { game: Game; side: "white" | "black" }) {
   const { i18n } = useLingui();
   const white = side === "white";
   const rating = white ? game.whiteRating : game.blackRating;
-  const { avatarUrl, flair, countryCode } = white
-    ? game.whiteIdentity
-    : game.blackIdentity;
 
   return (
     <PlayerStrip
       name={white ? game.whiteName : game.blackName}
       rating={rating === null ? undefined : i18n.number(rating)}
-      avatarSrc={avatarUrl ?? undefined}
-      flairSrc={flair ? flairImageOf(flair) : undefined}
-      countryCode={countryCode ?? undefined}
     />
   );
 }

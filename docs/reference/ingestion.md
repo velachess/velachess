@@ -29,9 +29,6 @@ the row — and is null for manually imported PGNs. Disconnecting an account
 deletes the games it imported (manual PGNs stay); deleting a user takes them
 all.
 
-Provider profile metadata is public cache data keyed by platform and username.
-It does not own games, a cursor, or a user identity.
-
 Provider identity is unique by account, source, and external id when one
 exists — each account owns a complete, independent copy of whatever it
 imports. Movetext deduplication is scoped by `(user_id, account_id)` with

@@ -104,8 +104,9 @@ application owns the column after that.
 ## Import and refresh
 
 No archive is fetched inside an HTTP request. `POST /accounts` confirms the
-handle with one profile request — `404` when the provider has no such handle,
-`503` when it cannot tell — then creates the account and its first sync job and
+handle exists with one request to the provider's public user endpoint, reading
+only its status and storing nothing about the player — `404` when the provider
+has no such handle, `503` when it cannot tell — then creates the account and its first sync job and
 enqueues that job in one transaction, so a new account always has a sync
 scheduled and a failed enqueue leaves no account; reconnecting the handle
 already tracked answers `201` with `syncId: null` and schedules nothing. `POST /accounts/:id/sync` answers `202

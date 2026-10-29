@@ -225,21 +225,13 @@ describe("games list", () => {
     expect(screen.queryByText("You played white")).not.toBeInTheDocument();
   });
 
-  it("shows the opponent's cached flag, and nothing when there is none", async () => {
-    addGames(
-      aGame({
-        blackName: "flagged",
-        blackIdentity: { avatarUrl: null, flair: null, countryCode: "BR" },
-      }),
-      aGame({ blackName: "unflagged" }),
-    );
+  it("draws the opponent from their name alone, with no picture", async () => {
+    addGames(aGame({ blackName: "gothamchess" }));
 
     await renderApp();
 
-    await screen.findByText("flagged");
-    expect(screen.getByRole("img", { name: "Brazil" })).toBeInTheDocument();
-    // One game carries a country; the other must not borrow it.
-    expect(screen.getAllByRole("img", { name: "Brazil" })).toHaveLength(1);
+    const row = (await screen.findByText("gothamchess")).closest("div")!;
+    expect(row.querySelectorAll("img")).toHaveLength(0);
   });
 
   it("links each row to its review", async () => {

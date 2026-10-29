@@ -1,6 +1,5 @@
 export {
   ConnectAccount,
-  flairImageOf,
   IMPORT_MUTATION_KEY,
   isSyncActive,
   SYNC_RETRY_IN,
