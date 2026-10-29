@@ -104,6 +104,30 @@ describe("fetchChessCom", () => {
     expect(result.cursor).toEqual(cursor);
   });
 
+  it("reads a month the index lists but the archive has not published as empty", async () => {
+    // chess.com lists the current month before it exists. Counted as a
+    // failure, the sync never completes and every later pass starts from
+    // the same cursor and fails the same way.
+    const fetch = respondingTo((href) => {
+      if (href.endsWith("/games/archives"))
+        return jsonResponse({
+          archives: [
+            "https://api.chess.com/pub/player/test-player/games/2023/12",
+            "https://api.chess.com/pub/player/test-player/games/2024/01",
+          ],
+        });
+      if (href.endsWith("/2023/12")) return jsonResponse({ games: [] });
+      return new Response("not found", { status: 404 });
+    });
+
+    const cursor: ChessComCursor = { month: "2023/12", lastEndTime: 0 };
+    const result = await fetchChessCom("test-player", cursor, { fetch });
+
+    expect(result.failures).toEqual([]);
+    expect(result.complete).toBe(true);
+    expect(result.games).toEqual([]);
+  });
+
   it("a malformed month response becomes an invalid-response failure", async () => {
     const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives"))

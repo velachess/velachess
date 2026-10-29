@@ -116,6 +116,11 @@ export async function fetchChessCom(
     const monthStartIndex = games.length;
     const monthRes = await doFetch(archiveUrl, init);
 
+    // The index lists the current month before its archive exists, so a
+    // month answering 404 holds no games rather than a fault to retry.
+    // Treated as one, every sync from that cursor fails forever.
+    if (monthRes.status === 404) continue;
+
     if (!monthRes.ok) {
       const retryAfter = monthRes.headers.get("Retry-After");
       failures.push({
