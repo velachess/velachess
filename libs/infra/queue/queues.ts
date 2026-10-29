@@ -8,6 +8,7 @@ import type { PgBoss } from "./client.ts";
 export const QUEUES = {
   sync: "sync",
   syncDlq: "sync-dlq",
+  syncReconcile: "sync-reconcile",
 } as const;
 
 const DEFAULT_POLICY = "stately";
@@ -16,6 +17,12 @@ const DEFAULT_RETRY_DELAY_SECONDS = 60;
 const DEFAULT_RETRY_BACKOFF = true;
 const DEFAULT_EXPIRE_IN_SECONDS = 300;
 const DEFAULT_HEARTBEAT_SECONDS = 30;
+
+const RECONCILE_EXPIRE_IN_SECONDS = 120;
+
+/** Cron's floor. The pass is a cheap read and closes nothing that is still
+ * alive, so running it more often would buy nothing. */
+const RECONCILE_CRON = "* * * * *";
 
 /**
  * "stately" is the delivery-level dedup: at most one queued-or-active job
@@ -42,6 +49,17 @@ const POLICY = {
     expireInSeconds: DEFAULT_EXPIRE_IN_SECONDS,
     heartbeatSeconds: DEFAULT_HEARTBEAT_SECONDS,
   },
+  /**
+   * "exclusive" is one job queued or active, which is what a sweep wants:
+   * "short" caps the queued state alone, so a pass slower than the cron
+   * would overlap the next one, and occurrences would pile up while the
+   * worker is down. No retry either — the next tick is the retry.
+   */
+  syncReconcile: {
+    policy: "exclusive",
+    retryLimit: 0,
+    expireInSeconds: RECONCILE_EXPIRE_IN_SECONDS,
+  },
 } as const;
 
 /** Every process that touches the queue runs this at start, producer and
@@ -54,6 +72,10 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
   const { policy: _policy, ...current } = POLICY.sync;
   await boss.updateQueue(QUEUES.sync, current);
 
+  await boss.createQueue(QUEUES.syncReconcile, POLICY.syncReconcile);
+  const { policy: _reconcilePolicy, ...currentReconcile } = POLICY.syncReconcile;
+  await boss.updateQueue(QUEUES.syncReconcile, currentReconcile);
+
   // Without a warm send, the first one does an own-connection queue lookup,
   // which deadlocks on single-connection backends (PGlite) when it happens
   // inside a caller transaction holding the connection. `getQueue()` does
@@ -64,6 +86,11 @@ export async function ensureQueues(boss: PgBoss): Promise<void> {
     // oxlint-disable-next-line eslint/no-await-in-loop -- must follow its own send above, per queue
     if (warmId) await boss.deleteJob(name, warmId);
   }
+}
+
+/** An upsert, so every worker that boots agrees on the one schedule row. */
+export function scheduleSyncReconcile(boss: PgBoss): Promise<void> {
+  return boss.schedule(QUEUES.syncReconcile, RECONCILE_CRON);
 }
 
 export async function queuesExist(boss: PgBoss) {

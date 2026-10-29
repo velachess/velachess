@@ -50,7 +50,6 @@
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@velachess/accounts": "workspace:*",
     "@velachess/fixtures": "workspace:*",
     "@velachess/server": "workspace:*",
     "@vitejs/plugin-react": "^6.1.1",

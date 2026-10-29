@@ -10,7 +10,11 @@ import {
 import { AppShell } from "../app-shell/app-shell.tsx";
 import { GameReview, loadGameReview } from "../games/review/index.ts";
 import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
-import { ConnectAccount, startSyncEvents } from "../games/import/index.ts";
+import {
+  ConnectAccount,
+  startSyncEvents,
+  useSyncSettlement,
+} from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { ForgotPasswordScreen } from "../auth/password-reset/forgot-password-screen.tsx";
 import { ResetPasswordScreen } from "../auth/password-reset/reset-password-screen.tsx";
@@ -48,6 +52,7 @@ const appRoute = createRoute({
 function TestAppLayout() {
   const queryClient = useQueryClient();
   useEffect(() => startSyncEvents(queryClient), [queryClient]);
+  useSyncSettlement();
 
   return (
     <AppShell>

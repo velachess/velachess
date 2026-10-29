@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+
 import {
   api,
   isRateLimitedError,
@@ -12,9 +14,9 @@ import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
 
-/** Mirrors the server's `SYNC_COOLDOWN_SECONDS`, for a 429 carrying no
- * wait. */
-const FALLBACK_RETRY_SECONDS = 60;
+/** The wait is what makes a cooldown actionable, and it is the server's
+ * number: declared once, since both surfaces that can be refused show it. */
+export const SYNC_RETRY_IN = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 /** Lichess serves flairs from one public directory keyed by the id its API
  * reports (`people.santa-claus` → `<dir>/people.santa-claus.webp`). */
@@ -66,28 +68,24 @@ export function importStatus(remembered: RememberedAccount[]): ImportStatus {
   return remembered.length > 0 ? "ready" : "empty";
 }
 
-/** A settled sync reads `idle`; `sync-events.ts` announces the change. */
+/** Mirrors the server's `ACTIVE_SYNC_STATUSES`: every other status is a
+ * sync that is over, or an account that never had one. */
 const ACTIVE_SYNC = new Set<TrackedAccount["syncStatus"]>([
   "queued",
   "running",
   "retrying",
 ]);
 
-export function isSyncActive(status: TrackedAccount["syncStatus"]) {
-  return ACTIVE_SYNC.has(status);
-}
-
-export function isSyncInProgress(
-  isPending: boolean,
-  accounts: readonly Pick<TrackedAccount, "syncStatus">[],
-): boolean {
-  return isPending || accounts.some((account) => isSyncActive(account.syncStatus));
+/** Takes an absent status, so a caller comparing against what it saw last
+ * needs no guard of its own. */
+export function isSyncActive(status: TrackedAccount["syncStatus"] | undefined) {
+  return status !== undefined && ACTIVE_SYNC.has(status);
 }
 
 /** The backend folds in per-account cooldowns and active jobs silently;
  * only this route's own rate limit surfaces as `onTooSoon`. */
 export function useSyncGames(handlers: {
-  onTooSoon: (retryAfterSeconds: number) => void;
+  onTooSoon: (retryAfterSeconds: number | null) => void;
   onError: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -98,10 +96,7 @@ export function useSyncGames(handlers: {
         return await parseResponse(api.accounts.sync.$post());
       } catch (error) {
         if (isRateLimitedError(error))
-          return {
-            syncIds: [],
-            retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS,
-          };
+          return { syncIds: [], retryAfterSeconds: error.retryAfterSeconds };
         throw error;
       }
     },
@@ -121,7 +116,7 @@ export function useSyncGames(handlers: {
  * exists, and syncing it 404s forever.
  */
 export function useSyncAccount(handlers: {
-  onTooSoon: (retryAfterSeconds: number) => void;
+  onTooSoon: (retryAfterSeconds: number | null) => void;
   onError: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -144,11 +139,9 @@ async function requestSync(accountId: string) {
       api.accounts[":id"].sync.$post({ param: { id: accountId } }),
     );
   } catch (error) {
-    // Either throttle — the domain cooldown or the API rate limit —
-    // arrives as the same class with the same wait. A 429 that somehow
-    // carried no wait falls back to the cooldown's own window.
-    if (isRateLimitedError(error))
-      return { retryAfterSeconds: error.retryAfterSeconds ?? FALLBACK_RETRY_SECONDS };
+    // Either throttle — the domain cooldown or the API rate limit — arrives
+    // as the same class with the same wait.
+    if (isRateLimitedError(error)) return { retryAfterSeconds: error.retryAfterSeconds };
     throw error;
   }
 }

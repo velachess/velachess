@@ -7,12 +7,18 @@
  * not queued here. See PR #155 and docs/reference/analysis.md.
  */
 
-import { syncAccount, type SyncDeps } from "@velachess/accounts";
+import { reconcileSyncs, syncAccount, type SyncDeps } from "@velachess/accounts";
 import type { Database } from "@velachess/infra-db";
 import { logger, type Logger } from "@velachess/infra-logger";
-import { ensureQueues, QUEUES, type PgBoss } from "@velachess/infra-queue";
+import {
+  ensureQueues,
+  makeSyncQueue,
+  QUEUES,
+  scheduleSyncReconcile,
+  type PgBoss,
+} from "@velachess/infra-queue";
 
-import { buildSyncAccountDeps } from "./composition/accounts.ts";
+import { buildReconcileSyncsDeps, buildSyncAccountDeps } from "./composition/accounts.ts";
 
 const workerLogger = logger.child({ component: "worker" });
 
@@ -43,7 +49,18 @@ export class Worker {
     // No DLQ handler: consuming a dead letter completes it and takes away
     // the operator's options. A failed sync is revived by retrying it in the
     // dashboard, which keeps the sync job's id, where a redrive of the DLQ
-    // copy mints one the slice cannot resolve.
+    // copy mints one the slice cannot resolve. What the dead letter leaves
+    // behind — a job row still active with nothing running it — is the
+    // reconciliation pass's job, not this handler's.
+    const reconcile = async () => {
+      const closed = await reconcileSyncs(
+        buildReconcileSyncsDeps(db, makeSyncQueue(boss)),
+      );
+      if (closed > 0) log.info({ queue: QUEUES.syncReconcile, closed }, "syncs closed");
+    };
+
+    await scheduleSyncReconcile(boss);
+    await boss.work(QUEUES.syncReconcile, reconcile);
 
     // Both providers ask for one request at a time, and a job calls its
     // provider sequentially, so one job per group across every node is one
@@ -61,6 +78,10 @@ export class Worker {
         }
       }
     });
+
+    // A restart does not wait for the next tick to free an account whose
+    // delivery died while this worker was down.
+    await reconcile();
   }
 
   stop(): Promise<void> {

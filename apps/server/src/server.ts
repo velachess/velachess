@@ -13,7 +13,6 @@ import { logger } from "@velachess/infra-logger";
 import type { ApiDeps } from "./deps.ts";
 import {
   buildDisconnectAccountDeps,
-  buildGetSyncDeps,
   buildWatchSyncsDeps,
   buildImportAccountDeps,
   buildListAccountGamesDeps,
@@ -147,7 +146,7 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/accounts",
       accountsRoutes({
-        list: buildListAccountsDeps(deps.db, deps.syncQueue),
+        list: buildListAccountsDeps(deps.db),
         games: buildListAccountGamesDeps(deps.db),
         connect: buildImportAccountDeps(deps.db, deps.syncQueue, deps.sync?.fetch),
         sync: buildRequestSyncDeps(deps.db, deps.syncQueue),
@@ -158,7 +157,6 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/syncs",
       syncsRoutes({
-        get: buildGetSyncDeps(deps.db, deps.syncQueue),
         watch: buildWatchSyncsDeps(deps.db, deps.syncNotifications),
       }),
     )

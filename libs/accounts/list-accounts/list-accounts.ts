@@ -4,7 +4,7 @@
  */
 import type { AccountPlatform } from "@velachess/infra-platforms";
 
-import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
+import type { SyncJobStatus } from "../sync-status.ts";
 
 export type JobError = "not-found" | "incomplete" | "internal";
 
@@ -13,52 +13,28 @@ export interface TrackedAccountSummary {
   platform: AccountPlatform;
   username: string;
   lastSyncedAt: Date | null;
-  latestJobId: string | null;
   latestJobStatus: SyncJobStatus | null;
   latestJobError: JobError | null;
 }
 
 type ListTrackedAccountsByUser = (userId: string) => Promise<TrackedAccountSummary[]>;
-type IsSyncDeliveryLive = (jobId: string) => Promise<boolean>;
-type AbandonSyncJob = (jobId: string) => Promise<void>;
 
 export interface ListAccountsDeps {
   listTrackedAccountsByUser: ListTrackedAccountsByUser;
-  isSyncDeliveryLive: IsSyncDeliveryLive;
-  abandonSyncJob: AbandonSyncJob;
 }
 
 /**
- * Sync state reads off each account's newest job: its status and id while
- * active, then `idle` with the error it failed on, which the next success
- * clears.
- *
- * An active row whose delivery pg-boss ended is closed first, as `getSync`
- * closes it: read raw, it says "syncing" for good, and the
- * one-active-per-account index holds every later sync out.
+ * Sync state is the newest job's own status, terminal ones included: a
+ * client reads whether a sync is running, and how the last one ended, from
+ * this one field. `idle` is the account that has no job at all. The error
+ * survives only on a failure, so the next success clears it.
  */
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
-  const listed = await deps.listTrackedAccountsByUser(userId);
-  // flatMap, not filter: it narrows the id.
-  const running = listed.flatMap(({ latestJobId, latestJobStatus }) =>
-    isActiveSyncStatus(latestJobStatus) && latestJobId !== null ? [latestJobId] : [],
-  );
-  await Promise.all(
-    running.map(async (jobId) => {
-      if (!(await deps.isSyncDeliveryLive(jobId))) await deps.abandonSyncJob(jobId);
+  const accounts = await deps.listTrackedAccountsByUser(userId);
+  return accounts.map(({ latestJobStatus, latestJobError, ...account }) =>
+    Object.assign(account, {
+      syncStatus: latestJobStatus ?? ("idle" as const),
+      lastSyncError: latestJobStatus === "failed" ? latestJobError : null,
     }),
   );
-  const accounts =
-    running.length > 0 ? await deps.listTrackedAccountsByUser(userId) : listed;
-
-  return accounts.map(({ latestJobId, latestJobStatus, latestJobError, ...account }) => {
-    // A predicate, so `latestJobStatus` stays narrowed: `syncStatus` is the
-    // active status itself, never `succeeded` or `failed`.
-    const active = isActiveSyncStatus(latestJobStatus);
-    return Object.assign(account, {
-      syncStatus: active ? latestJobStatus : ("idle" as const),
-      activeSyncId: active ? latestJobId : null,
-      lastSyncError: latestJobStatus === "failed" ? latestJobError : null,
-    });
-  });
 }

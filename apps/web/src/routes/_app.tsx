@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { startSyncEvents } from "../games/import/index.ts";
+import { startSyncEvents, useSyncSettlement } from "../games/import/index.ts";
 import { useQueryClient } from "../libs/react-query.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 
@@ -31,6 +31,10 @@ function AppLayout() {
   // exactly while someone is signed in, so the connection opens with it
   // and the effect's cleanup closes it when the wall comes down.
   useEffect(() => startSyncEvents(queryClient), [queryClient]);
+  // One observer of sync progress for the app: it polls while a sync is
+  // active and reports the ones that settle. Here rather than in a screen,
+  // so neither the timer nor the toast is duplicated per mount.
+  useSyncSettlement();
 
   return (
     <AppShell>

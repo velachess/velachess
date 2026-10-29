@@ -20,8 +20,10 @@ settlement either.
   throws so pg-boss retries; a handle gone from the provider records
   `failed` and returns, so pg-boss completes the delivery; a job whose row
   is gone (its account was disconnected) returns the same way. Retry
-  exhaustion is pg-boss's: the row learns it on the next `GET /syncs/:id`
-  or sync request, which closes a job whose delivery is no longer live.
+  exhaustion is pg-boss's: the row learns it from the `sync-reconcile` pass
+  this app schedules — every minute, and once at startup — which closes any
+  job whose delivery is no longer live, under a lock on that delivery. A
+  sync request closes the same row the same way when it gets there first.
   Sync persists games and never runs Stockfish. The worker never learns
   what follows sync.
 

@@ -3,9 +3,8 @@ export {
   flairImageOf,
   IMPORT_MUTATION_KEY,
   isSyncActive,
-  isSyncInProgress,
   startSyncEvents,
-  SYNC_SETTLED_EVENT_NAMES,
+  SYNC_RETRY_IN,
   SOURCE_ORDER,
   SyncGamesButton,
   trackedAccountsQuery,
@@ -13,7 +12,7 @@ export {
   useMyAccounts,
   useSourceStore,
   useSyncAccount,
-  useSyncSettlementToast,
+  useSyncSettlement,
 } from "./accounts/index.ts";
 export type { RememberedAccount, SourceId, TrackedAccount } from "./accounts/index.ts";
 

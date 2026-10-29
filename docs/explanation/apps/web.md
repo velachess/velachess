@@ -193,19 +193,30 @@ returns the browser to login; local storage does not claim identity. Account
 authorization remains server-side and user-scoped in database queries.
 
 Syncs run in the background and the client never waits on one. `useSyncGames`
-is a mutation that only asks: `POST /accounts/:id/sync` per account in
-parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
-when the requests settle so the server's `syncStatus` / `activeSyncId` drive
-the "Syncing…" state on every screen and after a reload. Landing is announced,
-not polled: `games/import/accounts/sync-events.ts` keeps the session's one
+is a mutation that only asks: `POST /accounts/sync`, a `429` reported as the
+cooldown it is with the server's own wait, and `accounts` invalidated when the
+request settles. Everything after that is read from `GET /accounts`, whose
+`syncStatus` drives the "Syncing…" state on every screen and after a reload.
+Nothing here knows a job, a queue or a sync id.
+
+Two mechanisms keep that read current, with one responsibility each.
+`games/import/accounts/sync-events.ts` keeps the session's one
 `GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
-and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
-`games` and `accounts` — the payload is never read. The stream is a signal,
-not a record, so every reconnection after the first repairs the gap with the
-same invalidation; a failed attempt invalidates nothing, and a `401` ends the
-session the usual way. No completion toast: the list refreshing is the
-answer. Connecting invalidates `accounts` and the session; disconnecting,
-`accounts`, `games` and `game`.
+and closed with it) and invalidates `games` and `accounts` on any frame — the
+payload is never read, so a frame means only "something settled, go look". The
+stream is a signal, not a record, so every reconnection after the first repairs
+the gap with the same invalidation; a failed attempt invalidates nothing, and a
+`401` ends the session the usual way. `use-sync-settlement.ts`, mounted once by
+the same layout, is the second: it polls `accounts` while any account reads
+active (`refetchInterval` belongs to an observer, not to a query key, so one
+mount means one timer), and it turns an account going from active to settled
+into the games refresh and one toast — per account, since an account that
+failed last week still reads `failed` and says nothing about this sync. A sync
+that starts and settles with nothing mounted is not announced; the status still
+reads correctly on the next load.
+
+Connecting invalidates `accounts` and the session; disconnecting, `accounts`,
+`games` and `game`.
 
 ## Lists and tables
 

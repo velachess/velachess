@@ -5,9 +5,10 @@ Owns everything pg-boss: queue creation, send, state reads, the adapter
 over pg-boss's own `pgboss.job` table. Nothing else in the codebase
 imports pg-boss — a business-module slice sees only the `SyncQueue`
 port, and even that only via its own composition root,
-never a slice-held field (`module-no-queue-object`). `sync` is the only
-topology today; analysis runs entirely in the browser and has no queue
-leg (`docs/reference/analysis.md`).
+never a slice-held field (`module-no-queue-object`). The topology is `sync`,
+its dead-letter queue, and `sync-reconcile` — the cron the worker consumes to
+close rows whose delivery ended; analysis runs entirely in the browser and has
+no queue leg (`docs/reference/analysis.md`).
 
 ## Why a library, and not part of the worker
 
@@ -27,6 +28,10 @@ to prevent. So the line is drawn by responsibility, not by package:
 | topology: names, payloads, `ensureQueues` | registration (`boss.work`)     |
 | send + state adapters                     | consumer concurrency           |
 | the ports application sees                | runtime bootstrap and shutdown |
+
+`sync-reconcile` uses policy `exclusive` — one job queued or active — so a
+pass slower than its cron cannot overlap the next, and occurrences cannot pile
+up while the worker is down. Its retry is the next tick, so `retryLimit` is 0.
 
 Queue _policy_ (retry schedule, expiry, heartbeat, dead-letter) is declared
 with the topology rather than with the worker, because the producer creates
@@ -56,8 +61,12 @@ one queued-or-active job per account. A sync job is sent under its
 `sync_jobs` id, inside the transaction that writes that row, and the send
 throws when pg-boss accepts nothing — the row and its delivery commit
 together or not at all. `isLive` reads whether pg-boss may still deliver a
-job; its terminal states never change, so a sync request or a status read
-can safely close a job whose delivery ended without the worker. The worker
+job. It reads that state `for update`, so the caller that closes the row on
+its answer holds the delivery until it commits: pg-boss claims with
+`for update skip locked` and an operator's retry is a plain update, so neither
+can revive the job in between. Both callers that close a job this way — a sync
+request and the worker's `sync-reconcile` pass — therefore do it identically.
+The worker
 settles nothing: a handler that returns completes its job, one that throws
 fails it. The sync slice fences its own writes to the attempt instead —
 `sync_jobs.started_at` is stamped by the delivery that marks the job
@@ -82,7 +91,9 @@ redriven, because its id is the `sync_jobs` id).
 pg-boss's job state is _delivery_ truth (queued/active/failed). Domain
 truth is the `sync_jobs` row itself (`status`, `started_at`, `error`) —
 `isLive` only answers whether pg-boss may still attempt a delivery, never
-whether the sync succeeded.
+whether the sync succeeded. Which is why closing a row on that answer is a
+write the application makes, on its own schedule, and never something a read
+of the row does on the way out.
 
 ## Transactional enqueue
 

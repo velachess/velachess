@@ -8,7 +8,6 @@ import {
   createSyncJob,
   deleteTrackedAccountAndGames,
   findTrackedAccountByPlatform,
-  getSyncJobForUser,
   getSyncJobSettlement,
   getTrackedAccountForUser,
   listGamesWithStatusForAccount,
@@ -23,7 +22,6 @@ import { requestSync } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
-  GetSyncDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
   RequestSyncDeps,
@@ -33,14 +31,9 @@ import type {
 import type { FetchFn } from "@velachess/infra-platforms";
 import type { SyncQueue } from "@velachess/infra-queue";
 
-export function buildListAccountsDeps(
-  db: Database,
-  syncQueue: SyncQueue,
-): ListAccountsDeps {
+export function buildListAccountsDeps(db: Database): ListAccountsDeps {
   return {
     listTrackedAccountsByUser: (userId) => listTrackedAccountsByUser(db, userId),
-    isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
-    abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
   };
 }
 
@@ -80,14 +73,6 @@ export function buildSyncAllAccountsDeps(
     listAccountIds: async (userId) =>
       (await listTrackedAccountsByUser(db, userId)).map((account) => account.id),
     requestSync: (userId, accountId) => requestSync(syncDeps, userId, accountId),
-  };
-}
-
-export function buildGetSyncDeps(db: Database, syncQueue: SyncQueue): GetSyncDeps {
-  return {
-    getSyncJobForUser: (userId, id) => getSyncJobForUser(db, userId, id),
-    isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
-    abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
   };
 }
 

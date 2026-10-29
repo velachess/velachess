@@ -66,9 +66,10 @@ export async function requestSync(
       if (await deps.isSyncDeliveryLive(tx, latest.id)) {
         return { status: "accepted", job: latest };
       }
-      // pg-boss finished the delivery without the worker recording it. Only
-      // an operator's retry revives that state, and a revived delivery of a
-      // closed job does nothing, so this cannot race one.
+      // pg-boss finished the delivery without the worker recording it.
+      // `isSyncDeliveryLive` holds the delivery for this transaction, so a
+      // revival cannot land between that answer and this close. The worker's
+      // reconciliation pass closes the same row the same way.
       await deps.abandonSyncJob(tx, latest.id);
     } else if (latest) {
       const elapsed = (Date.now() - latest.createdAt.getTime()) / 1000;

@@ -53,8 +53,7 @@ msgstr ""
 msgid "{platform} is connected"
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:30
-#: src/settings/connections/connections-screen.tsx:92
+#: src/games/import/accounts/queries.ts:19
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
@@ -67,7 +66,7 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:15
 #: src/settings/layout/navigation.ts:39
-#: src/test/routes.tsx:114
+#: src/test/routes.tsx:119
 msgid "Account"
 msgstr ""
 
@@ -75,7 +74,7 @@ msgstr ""
 msgid "Account deleted"
 msgstr ""
 
-#: src/games/list/filters.ts:83
+#: src/games/list/filters.ts:91
 msgid "All sources"
 msgstr ""
 
@@ -107,7 +106,7 @@ msgstr ""
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
-#: src/test/routes.tsx:135
+#: src/test/routes.tsx:140
 msgid "Appearance"
 msgstr ""
 
@@ -140,7 +139,7 @@ msgid "Best was"
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:51
-#: src/games/list/filters.ts:63
+#: src/games/list/filters.ts:71
 #: src/games/review/game-result.tsx:9
 msgid "Black"
 msgstr ""
@@ -204,7 +203,7 @@ msgstr ""
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:63
 #: src/settings/layout/navigation.ts:40
-#: src/test/routes.tsx:121
+#: src/test/routes.tsx:126
 msgid "Chess accounts"
 msgstr ""
 
@@ -228,11 +227,11 @@ msgstr ""
 msgid "Classical"
 msgstr ""
 
-#: src/games/list/filters.ts:89
+#: src/games/list/filters.ts:97
 msgid "Clear search"
 msgstr ""
 
-#: src/games/list/filters.ts:60
+#: src/games/list/filters.ts:68
 msgid "Color"
 msgstr ""
 
@@ -285,7 +284,7 @@ msgstr ""
 msgid "Couldn't delete your account. Try again."
 msgstr ""
 
-#: src/games/import/accounts/use-sync-settlement-toast.ts:11
+#: src/games/import/accounts/use-sync-settlement.ts:13
 msgid "Couldn't finish syncing"
 msgstr ""
 
@@ -355,7 +354,7 @@ msgstr ""
 msgid "Couldn't sign out everywhere. Try again."
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:23
+#: src/games/import/accounts/sync-games-button.tsx:27
 msgid "Couldn't sync your games"
 msgstr ""
 
@@ -401,7 +400,7 @@ msgstr ""
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr ""
 
-#: src/games/list/filters.ts:55
+#: src/games/list/filters.ts:63
 #: src/games/list/game-item.tsx:29
 #: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:11
@@ -474,11 +473,11 @@ msgstr ""
 msgid "Every game you've imported, and how it went."
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:21
+#: src/games/import/accounts/sync-games-button.tsx:25
 msgid "Fetch new games from your connected accounts"
 msgstr ""
 
-#: src/games/list/filters.ts:79
+#: src/games/list/filters.ts:87
 msgid "Filters"
 msgstr ""
 
@@ -493,13 +492,13 @@ msgstr ""
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:21
 #: src/settings/layout/navigation.ts:43
-#: src/test/routes.tsx:142
+#: src/test/routes.tsx:147
 msgid "Gameplay"
 msgstr ""
 
 #: src/games/list/games-list.tsx:24
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:63
+#: src/test/routes.tsx:68
 msgid "Games"
 msgstr ""
 
@@ -511,7 +510,7 @@ msgstr ""
 msgid "Games pages"
 msgstr ""
 
-#: src/games/import/accounts/use-sync-settlement-toast.ts:10
+#: src/games/import/accounts/use-sync-settlement.ts:12
 msgid "Games synced"
 msgstr ""
 
@@ -644,7 +643,7 @@ msgstr ""
 #: src/settings/language-region/language-region-screen.tsx:24
 #: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
-#: src/test/routes.tsx:128
+#: src/test/routes.tsx:133
 msgid "Language"
 msgstr ""
 
@@ -673,7 +672,7 @@ msgstr ""
 msgid "Locale preferences for this device."
 msgstr ""
 
-#: src/games/list/filters.ts:54
+#: src/games/list/filters.ts:62
 #: src/games/list/game-item.tsx:28
 #: src/games/review/game-heading.tsx:20
 msgid "Loss"
@@ -886,7 +885,7 @@ msgstr ""
 msgid "Request a new link"
 msgstr ""
 
-#: src/games/list/filters.ts:80
+#: src/games/list/filters.ts:88
 msgid "Reset"
 msgstr ""
 
@@ -898,13 +897,13 @@ msgstr ""
 msgid "Resize navigation"
 msgstr "Redimensionar navegação"
 
-#: src/games/list/filters.ts:51
+#: src/games/list/filters.ts:59
 msgid "Result"
 msgstr ""
 
 #: src/games/review/analysis-panel.tsx:26
 #: src/routes/_app/games/$gameId.tsx:7
-#: src/test/routes.tsx:85
+#: src/test/routes.tsx:90
 msgid "Review"
 msgstr ""
 
@@ -933,11 +932,11 @@ msgstr ""
 msgid "Saving…"
 msgstr ""
 
-#: src/games/list/filters.ts:87
+#: src/games/list/filters.ts:95
 msgid "Search opponent"
 msgstr ""
 
-#: src/games/list/filters.ts:88
+#: src/games/list/filters.ts:96
 msgid "Search opponent…"
 msgstr ""
 
@@ -961,7 +960,7 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:42
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:99
+#: src/test/routes.tsx:104
 msgid "Settings"
 msgstr ""
 
@@ -1028,7 +1027,7 @@ msgstr ""
 msgid "Sounds"
 msgstr ""
 
-#: src/games/list/filters.ts:82
+#: src/games/list/filters.ts:90
 msgid "Source"
 msgstr ""
 
@@ -1044,7 +1043,7 @@ msgstr ""
 msgid "Sync failed"
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:19
+#: src/games/import/accounts/sync-games-button.tsx:23
 #: src/settings/connections/connections-screen.tsx:76
 msgid "Sync games"
 msgstr ""
@@ -1053,7 +1052,7 @@ msgstr ""
 msgid "Synced {date}"
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:22
+#: src/games/import/accounts/sync-games-button.tsx:26
 #: src/settings/connections/connections-screen.tsx:78
 msgid "Synced a moment ago"
 msgstr ""
@@ -1062,7 +1061,7 @@ msgstr ""
 msgid "Syncing"
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:20
+#: src/games/import/accounts/sync-games-button.tsx:24
 #: src/settings/connections/connections-screen.tsx:77
 msgid "Syncing…"
 msgstr ""
@@ -1130,7 +1129,7 @@ msgstr ""
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr ""
 
-#: src/games/list/filters.ts:81
+#: src/games/list/filters.ts:89
 msgid "Time control"
 msgstr ""
 
@@ -1145,7 +1144,7 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
-#: src/games/import/accounts/sync-games-button.tsx:24
+#: src/games/import/accounts/sync-games-button.tsx:28
 #: src/settings/connections/connections-screen.tsx:80
 #: src/settings/connections/connections-screen.tsx:89
 msgid "Try again in a moment."
@@ -1206,7 +1205,7 @@ msgid "Where VelaChess imports your games from."
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:50
-#: src/games/list/filters.ts:62
+#: src/games/list/filters.ts:70
 #: src/games/review/game-result.tsx:8
 msgid "White"
 msgstr ""
@@ -1215,7 +1214,7 @@ msgstr ""
 msgid "White or Black applies to every game in this upload."
 msgstr ""
 
-#: src/games/list/filters.ts:53
+#: src/games/list/filters.ts:61
 #: src/games/list/game-item.tsx:27
 #: src/games/review/game-heading.tsx:19
 msgid "Win"

@@ -9,11 +9,11 @@ export {
   flairImageOf,
   IMPORT_MUTATION_KEY,
   isSyncActive,
-  isSyncInProgress,
+  SYNC_RETRY_IN,
   trackedAccountsQuery,
   useDisconnectAccount,
   useSyncAccount,
 } from "./queries.ts";
 export type { TrackedAccount } from "./queries.ts";
-export { startSyncEvents, SYNC_SETTLED_EVENT_NAMES } from "./sync-events.ts";
-export { useSyncSettlementToast } from "./use-sync-settlement-toast.ts";
+export { startSyncEvents } from "./sync-events.ts";
+export { useSyncSettlement } from "./use-sync-settlement.ts";

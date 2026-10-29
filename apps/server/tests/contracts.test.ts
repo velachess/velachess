@@ -19,7 +19,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   ACCOUNT_PLATFORM,
-  SYNC_JOB_ERROR as ACCOUNT_SYNC_JOB_ERROR,
+  SYNC_JOB_ERROR,
+  SYNC_JOB_STATUS,
 } from "../src/routes/accounts.ts";
 import {
   GAME_PERSPECTIVE,
@@ -27,7 +28,6 @@ import {
   GAME_SOURCE,
   GAME_TIME_CLASS,
 } from "../src/routes/games.ts";
-import { SYNC_JOB_ERROR, SYNC_JOB_STATUS } from "../src/routes/syncs.ts";
 
 describe("route vocabulary mirrors", () => {
   it("games.ts matches @velachess/infra-platforms", () => {
@@ -37,13 +37,9 @@ describe("route vocabulary mirrors", () => {
     expect(GAME_TIME_CLASS).toEqual(TIME_CLASSES);
   });
 
-  it("accounts.ts matches @velachess/infra-platforms and the sync_job_error enum", () => {
+  it("accounts.ts matches @velachess/infra-platforms and the sync job enums", () => {
     expect(ACCOUNT_PLATFORM).toEqual(accountPlatformSchema.options);
-    expect(ACCOUNT_SYNC_JOB_ERROR).toEqual(syncJobErrorEnum.enumValues);
-  });
-
-  it("syncs.ts matches the sync_job_status and sync_job_error enums", () => {
-    expect(SYNC_JOB_STATUS).toEqual(syncJobStatusEnum.enumValues);
     expect(SYNC_JOB_ERROR).toEqual(syncJobErrorEnum.enumValues);
+    expect(SYNC_JOB_STATUS).toEqual(syncJobStatusEnum.enumValues);
   });
 });
