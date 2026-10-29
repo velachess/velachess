@@ -5,9 +5,8 @@ import { PAGE_SIZE, type GamesSearch } from "./filters.ts";
 
 export type Game = InferResponseType<typeof api.games.$get, 200>["games"][number];
 
-/** One segment, so the page is a segment of its own: the previous page's
- * rows are a fair placeholder while the next one loads, the previous
- * filter's rows are not. */
+/** One segment, so the page is its own: the previous page's rows are a
+ * fair placeholder while the next loads, the previous filter's are not. */
 function narrowingKey(search: GamesSearch): string {
   return JSON.stringify([
     search.opponent ?? null,
@@ -27,8 +26,6 @@ export function libraryQuery(search: GamesSearch) {
 
   return queryOptions({
     queryKey: [...gamesQueryKey, narrowing, search.page],
-    // Aborting the request itself, so a read the next keystroke made
-    // obsolete never lands.
     queryFn: ({ signal }) =>
       parseResponse(
         api.games.$get(

@@ -3,7 +3,6 @@ import type { GamesSearch } from "./filters.ts";
 import { GamesFilters } from "./games-filters.tsx";
 import { GamesSearchBox } from "./games-search.tsx";
 
-/** Finding a game on the left, filling the library on the right. */
 export function GamesToolbar({
   search,
   onChange,
