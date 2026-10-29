@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { addGames } from "../../../test/archive.ts";
@@ -76,6 +76,54 @@ describe("opponent search", () => {
 
     await waitFor(() => expect(router.state.location.searchStr).toContain("page=1"));
     expect(await screen.findByText("gothamchess")).toBeInTheDocument();
+  });
+
+  it("follows the address back, instead of describing rows that are gone", async () => {
+    const { user, router } = await renderApp();
+
+    const field = screen.getByRole("textbox", { name: "Search opponent" });
+    await user.type(field, "magnus");
+    await waitFor(() => expect(screen.queryByText("gothamchess")).toBeNull());
+
+    // Each pause while typing replaces rather than pushes, so one step back
+    // leaves the search entirely instead of walking "m", "ma", "mag".
+    await act(async () => router.history.back());
+
+    await waitFor(() => {
+      expect(screen.getByText("gothamchess")).toBeInTheDocument();
+      expect(field).toHaveValue("");
+    });
+  });
+
+  it("keeps typing through a commit of its own", async () => {
+    // The committed term reaches the URL a render or two later. Read as a
+    // navigation, it resets the field and eats the letters typed since.
+    const { user, router } = await renderApp();
+
+    const field = screen.getByRole("textbox", { name: "Search opponent" });
+    await user.type(field, "mag");
+    await waitFor(() =>
+      expect(router.state.location.searchStr).toContain("opponent=mag"),
+    );
+
+    await user.type(field, "nus");
+
+    expect(field).toHaveValue("magnus");
+    await waitFor(() =>
+      expect(router.state.location.searchStr).toContain("opponent=magnus"),
+    );
+    expect(field).toHaveValue("magnus");
+  });
+
+  it("caps the term at what the API accepts, rather than dropping the filter", async () => {
+    // Past the cap the search schema `.catch()`es and the whole filter
+    // disappears without saying so.
+    const { user } = await renderApp();
+
+    const field = screen.getByRole("textbox", { name: "Search opponent" });
+    await user.type(field, "x".repeat(80));
+
+    expect(field).toHaveValue("x".repeat(64));
   });
 
   it("searches within a filter rather than replacing it", async () => {

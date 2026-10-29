@@ -33,6 +33,10 @@ describe("filters in the URL", () => {
     });
   });
 
+  it("still reads a link shared before time control went multi-select", () => {
+    expect(gamesSearchSchema.parse({ timeClass: "blitz" }).timeClass).toEqual(["blitz"]);
+  });
+
   it("falls back instead of crashing the route on a hand-typed URL", () => {
     // validateSearch runs before the component exists, so a throw here
     // would blank the screen rather than show an unfiltered list.

@@ -5,14 +5,22 @@ import { TIME_CLASSES } from "@velachess/chess";
 import { z } from "../../libs/zod.ts";
 import { GAME_SOURCE_IDS, GAME_SOURCES } from "../game-sources.ts";
 
-const MAX_OPPONENT_LENGTH = 64;
+/** The field caps the term natively, so a longer one never reaches a
+ * `.catch()` that would drop the filter without saying so. */
+export const MAX_OPPONENT_LENGTH = 64;
 
 /** The URL owns search and filters (survives refresh/back/share); this schema is the route's `validateSearch`, so bad params default, not crash. */
 export const gamesSearchSchema = z.object({
   opponent: z.string().trim().min(1).max(MAX_OPPONENT_LENGTH).optional().catch(undefined),
   color: z.enum(["white", "black"]).optional().catch(undefined),
   outcome: z.enum(["win", "loss", "draw"]).optional().catch(undefined),
-  timeClass: z.array(z.enum(TIME_CLASSES)).min(1).optional().catch(undefined),
+  // A bare `?timeClass=blitz` is what links shared before the filter went
+  // multi-select carry; both shapes land as a list.
+  timeClass: z
+    .union([z.enum(TIME_CLASSES), z.array(z.enum(TIME_CLASSES)).min(1)])
+    .transform((chosen) => [chosen].flat())
+    .optional()
+    .catch(undefined),
   source: z.enum(GAME_SOURCE_IDS).optional().catch(undefined),
   page: z.number().int().min(1).default(1).catch(1),
 });

@@ -9,7 +9,7 @@ export function GamesToolbar({
   onChange,
 }: {
   search: GamesSearch;
-  onChange: (next: Partial<GamesSearch>) => void;
+  onChange: (next: Partial<GamesSearch>, options?: { replace?: boolean }) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">

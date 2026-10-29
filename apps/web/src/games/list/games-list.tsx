@@ -41,8 +41,8 @@ export function GamesList() {
   const navigate = route.useNavigate();
   const results = useRef<HTMLDivElement>(null);
 
-  const setSearch = (next: Partial<GamesSearch>) =>
-    navigate({ search: (previous) => ({ ...previous, ...next }) });
+  const setSearch = (next: Partial<GamesSearch>, options?: { replace?: boolean }) =>
+    navigate({ search: (previous) => ({ ...previous, ...next }), ...options });
 
   const scrollToTop = () => {
     if (results.current) results.current.scrollTop = 0;
