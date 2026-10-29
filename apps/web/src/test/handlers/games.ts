@@ -13,6 +13,9 @@ import { GAME_PGN } from "../games.ts";
 /** The API's own default, so an unpaged read answers the same size. */
 const DEFAULT_PAGE_SIZE = 25;
 
+/** Repeatable, and refused per value the way the route refuses it. */
+const TIME_CLASSES = new Set(["bullet", "blitz", "rapid", "classical"]);
+
 function positiveInt(value: string | null, fallback: number): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallback;
@@ -26,10 +29,17 @@ export const gamesHandlers = [
       return HttpResponse.json({ error: "invalid query" }, { status: 400 });
     }
 
+    const timeClasses = query.getAll("timeClass");
+    if (timeClasses.some((value) => !TIME_CLASSES.has(value))) {
+      return HttpResponse.json({ error: "invalid query" }, { status: 400 });
+    }
+
     const page = readArchive({
+      opponent: query.get("opponent"),
       color: query.get("color"),
       outcome,
-      timeClass: query.get("timeClass"),
+      timeClasses,
+      source: query.get("source"),
       page: positiveInt(query.get("page"), 1),
       pageSize: positiveInt(query.get("pageSize"), DEFAULT_PAGE_SIZE),
     });

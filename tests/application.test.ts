@@ -555,7 +555,7 @@ describe("application services (the flow, end to end)", () => {
 
     // 10 min is rapid; 3+2 estimates to 300s, which is blitz.
     const blitz = await openLibrary(listGamesDeps(h.db), ownerId, {
-      filters: { timeClass: "blitz" },
+      filters: { timeClasses: ["blitz"] },
     });
     expect(blitz.games).toHaveLength(1);
     expect(blitz.games[0]!.timeControlInitialSeconds).toBe(180);

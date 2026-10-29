@@ -18,6 +18,7 @@ import { useSyncSettlementToast } from "./use-sync-settlement-toast.ts";
 const SYNC_COPY = {
   action: msg`Sync games`,
   running: msg`Syncing…`,
+  hint: msg`Fetch new games from your connected accounts`,
   tooSoon: msg`Synced a moment ago`,
   failed: msg`Couldn't sync your games`,
   retry: msg`Try again in a moment.`,
@@ -65,27 +66,28 @@ export function SyncGamesButton() {
     sync.mutate(undefined, { onSuccess: (data) => watch(data.syncIds) });
   };
 
+  // Labelled, not an icon alone: this asks the providers for new games
+  // rather than refetching what the list already has.
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <Button
-            variant="ghost"
-            size="icon"
-            aria-label={i18n._(label)}
+            variant="outline"
             onClick={handleSync}
             disabled={syncing || accounts.length === 0}
           >
             <SyncIcon isPending={syncing} />
+            {i18n._(label)}
           </Button>
         }
       />
-      <TooltipContent>{i18n._(label)}</TooltipContent>
+      <TooltipContent>{i18n._(SYNC_COPY.hint)}</TooltipContent>
     </Tooltip>
   );
 }
 
 function SyncIcon({ isPending }: { isPending: boolean }) {
-  if (isPending) return <Spinner aria-hidden="true" />;
-  return <RefreshCw />;
+  if (isPending) return <Spinner data-icon="inline-start" aria-hidden="true" />;
+  return <RefreshCw data-icon="inline-start" />;
 }

@@ -48,12 +48,16 @@ async function labelsIn(app: AuthedApp, outcome: Outcome): Promise<string[]> {
   return library.games.map((game) => game.openingName ?? "?").toSorted();
 }
 
-async function namesIn(app: AuthedApp, timeClass: TimeClass): Promise<string[]> {
+async function namesIn(
+  app: AuthedApp,
+  timeClass: TimeClass | TimeClass[],
+): Promise<string[]> {
   const library = await parseResponse(app.api.games.$get({ query: { timeClass } }));
   return library.games.map((game) => game.whiteName).toSorted();
 }
 
 let owner: AuthedApp;
+let player: AuthedApp;
 
 beforeAll(async () => {
   harness = await createApiHarness();
@@ -197,29 +201,27 @@ const OUTCOMES_PGN = OUTCOMES.map(
 `,
 ).join("\n");
 
-describe("GET /games?outcome", () => {
-  let player: AuthedApp;
+beforeAll(async () => {
+  player = (await harness.signUp("library-outcomes@api.test")).app;
 
-  beforeAll(async () => {
-    player = (await harness.signUp("library-outcomes@api.test")).app;
-
-    const response = await player.request("/games/import", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        pgn: OUTCOMES_PGN,
-        // The two unattributed games name neither side as the uploader, so
-        // they import with no seat at all — which is a fact, not a gap.
-        participation: { mode: "byName", playerName: OUTCOME_PLAYER },
-      }),
-    });
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
-      imported: OUTCOMES.length,
-      rejected: 0,
-    });
+  const response = await player.request("/games/import", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      pgn: OUTCOMES_PGN,
+      // The two unattributed games name neither side as the uploader, so
+      // they import with no seat at all — which is a fact, not a gap.
+      participation: { mode: "byName", playerName: OUTCOME_PLAYER },
+    }),
   });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    imported: OUTCOMES.length,
+    rejected: 0,
+  });
+});
 
+describe("GET /games?outcome", () => {
   it("reads the result from the player's seat, not the scoresheet's", async () => {
     expect(await labelsIn(player, "win")).toEqual(["win-as-black", "win-as-white"]);
     expect(await labelsIn(player, "loss")).toEqual(["loss-as-black", "loss-as-white"]);
@@ -255,5 +257,96 @@ describe("GET /games?outcome", () => {
     // A state a game can be in, not a filter the API takes.
     const response = await player.request("/games?outcome=unfinished");
     expect(response.status).toBe(400);
+  });
+});
+
+describe("GET /games?timeClass repeated", () => {
+  it("takes any of the classes, and a single value still arrives as one", async () => {
+    expect(await namesIn(owner, ["bullet", "blitz"])).toEqual([
+      "tc-179-0",
+      "tc-180-0",
+      "tc-479-0",
+      "tc-60-0",
+      "tc-60-3",
+    ]);
+    expect(await namesIn(owner, ["classical"])).toEqual(["tc-1500-0"]);
+  });
+
+  it("counts the union, not one class, in the page total", async () => {
+    const both = await parseResponse(
+      owner.api.games.$get({ query: { timeClass: ["rapid", "classical"] } }),
+    );
+    expect(both.total).toBe(3);
+  });
+
+  it("refuses a class it does not offer, rather than ignoring it", async () => {
+    const response = await owner.request("/games?timeClass=blitz&timeClass=hyper");
+    expect(response.status).toBe(400);
+  });
+});
+
+/** `opposite(perspective)` in `@velachess/chess`, which the SQL predicate
+ * is the second expression of. */
+async function opponentLabels(app: AuthedApp, opponent: string): Promise<string[]> {
+  const library = await parseResponse(app.api.games.$get({ query: { opponent } }));
+  return library.games.map((game) => game.openingName ?? "?").toSorted();
+}
+
+describe("GET /games?opponent", () => {
+  it("matches the other seat, case-insensitively", async () => {
+    expect(await opponentLabels(player, "RIVAL")).toEqual([
+      "draw-as-black",
+      "draw-as-white",
+      "loss-as-black",
+      "loss-as-white",
+      "unfinished-as-white",
+      "win-as-black",
+      "win-as-white",
+    ]);
+  });
+
+  it("never matches the player's own seat", async () => {
+    expect(await opponentLabels(player, OUTCOME_PLAYER)).toEqual([]);
+  });
+
+  it("matches either name when nothing attributed the game", async () => {
+    expect(await opponentLabels(player, "Stranger One")).toEqual([
+      "decided-unattributed",
+      "drawn-unattributed",
+    ]);
+    expect(await opponentLabels(player, "Stranger Two")).toEqual([
+      "decided-unattributed",
+      "drawn-unattributed",
+    ]);
+  });
+
+  it("reads a wildcard as a character, not as a pattern", async () => {
+    expect(await opponentLabels(player, "%")).toEqual([]);
+    expect(await opponentLabels(player, "_")).toEqual([]);
+  });
+
+  it("narrows together with a filter rather than replacing it", async () => {
+    const won = await parseResponse(
+      player.api.games.$get({ query: { opponent: "rival", outcome: "win" } }),
+    );
+    expect(won.games.map((game) => game.openingName).toSorted()).toEqual([
+      "win-as-black",
+      "win-as-white",
+    ]);
+    expect(won.total).toBe(2);
+  });
+});
+
+describe("GET /games?source", () => {
+  it("keeps only the rows that came from that source", async () => {
+    const pasted = await parseResponse(
+      owner.api.games.$get({ query: { source: "pgn" } }),
+    );
+    expect(pasted.total).toBe(CLOCKS.length);
+
+    const synced = await parseResponse(
+      owner.api.games.$get({ query: { source: "lichess" } }),
+    );
+    expect(synced.total).toBe(0);
   });
 });

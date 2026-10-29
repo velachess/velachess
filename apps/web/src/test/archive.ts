@@ -166,9 +166,11 @@ export function knowsPlayer(platform: string, username: string): boolean {
 }
 
 export interface ArchiveView {
+  opponent: string | null;
   color: string | null;
   outcome: string | null;
-  timeClass: string | null;
+  timeClasses: string[];
+  source: string | null;
   page: number;
   pageSize: number;
 }
@@ -183,9 +185,15 @@ export interface ArchivePage {
 
 export function readArchive(view: ArchiveView): ArchivePage {
   const matching = state.games
+    .filter((game) => view.opponent === null || facesOpponent(game, view.opponent))
     .filter((game) => view.color === null || game.perspective === view.color)
     .filter((game) => view.outcome === null || hasOutcome(game, view.outcome))
-    .filter((game) => view.timeClass === null || timeClassOf(game) === view.timeClass)
+    .filter(
+      (game) =>
+        view.timeClasses.length === 0 ||
+        view.timeClasses.includes(timeClassOf(game) ?? ""),
+    )
+    .filter((game) => view.source === null || game.source === view.source)
     // Newest first, as the query orders it: paging assertions are only
     // meaningful against a defined order.
     .toSorted((left, right) => (right.playedAt ?? "").localeCompare(left.playedAt ?? ""));
@@ -267,6 +275,19 @@ export function activeSyncOf(accountId: string): SyncJob | undefined {
       job.status !== "succeeded" &&
       job.status !== "failed",
   );
+}
+
+/**
+ * The opponent is the seat you did not have; an unattributed game has no
+ * opponent, so both names answer. Mirrors the server's predicate.
+ */
+function facesOpponent(game: Game, term: string): boolean {
+  const needle = term.toLowerCase();
+  const names =
+    game.perspective === null
+      ? [game.whiteName, game.blackName]
+      : [game.perspective === "white" ? game.blackName : game.whiteName];
+  return names.some((name) => name.toLowerCase().includes(needle));
 }
 
 /** Which side you were on decides whether "1-0" is good news. */

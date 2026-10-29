@@ -13,18 +13,17 @@ import {
 import { Skeleton } from "@velachess/ui/components/skeleton";
 import { PageHeader } from "@velachess/ui/layout/page-header";
 
-import { PgnImportButton } from "../import/index.ts";
-import { SyncGamesButton } from "../import/index.ts";
-import { activeFilterCount, type GamesSearch } from "./filters.ts";
+import { isNarrowed, type GamesSearch } from "./filters.ts";
 import { GameItem } from "./game-item.tsx";
-import { GamesFilters } from "./games-filters.tsx";
 import { GamesPagination } from "./games-pagination.tsx";
+import { GamesToolbar } from "./games-toolbar.tsx";
 import { libraryQuery } from "./queries.ts";
 import { useQuery } from "../../libs/react-query.ts";
 
 const GAMES_COPY = {
   title: msg`Games`,
   description: msg`Every game you've imported, and how it went.`,
+  count: msg`{count, plural, one {# game} other {# games}}`,
   emptyArchive: msg`No games yet. Connect Chess.com or Lichess, or import a PGN.`,
   connect: msg`Connect an account`,
   emptyFilters: msg`No games match these filters.`,
@@ -38,72 +37,77 @@ const route = getRouteApi("/_app/games/");
 const SKELETON_ROWS = 6;
 
 export function GamesList() {
-  const { i18n } = useLingui();
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const results = useRef<HTMLDivElement>(null);
 
-  // One library, every source: no account has to exist for this read.
-  const query = useQuery(libraryQuery(search));
-
-  const setSearch = (next: Partial<GamesSearch>) =>
-    navigate({ search: (previous) => ({ ...previous, ...next }) });
+  const setSearch = (next: Partial<GamesSearch>, options?: { replace?: boolean }) =>
+    navigate({ search: (previous) => ({ ...previous, ...next }), ...options });
 
   const scrollToTop = () => {
     if (results.current) results.current.scrollTop = 0;
   };
 
-  const actions = (
-    <>
-      <GamesFilters search={search} onChange={setSearch} />
-      <PgnImportButton />
-      <SyncGamesButton />
-    </>
+  return (
+    <GamesScreen search={search} onChange={setSearch} results={results}>
+      <GamesResults search={search} onNavigate={scrollToTop} />
+    </GamesScreen>
   );
+}
 
-  if (query.isPending) {
-    return (
-      <GamesScreen actions={actions} results={results}>
-        <GamesSkeleton />
-      </GamesScreen>
-    );
-  }
+/** One library, every source: no account has to exist for this read. */
+function GamesResults({
+  search,
+  onNavigate,
+}: {
+  search: GamesSearch;
+  onNavigate: () => void;
+}) {
+  const { i18n } = useLingui();
+  const query = useQuery(libraryQuery(search));
 
-  if (query.isError) {
-    return (
-      <GamesScreen actions={actions} results={results}>
-        <GamesEmpty title={i18n._(GAMES_COPY.loadError)} />
-      </GamesScreen>
-    );
+  if (query.isPending) return <GamesSkeleton />;
+  if (query.isError) return <GamesEmpty title={i18n._(GAMES_COPY.loadError)} />;
+  if (query.data.games.length === 0) {
+    return <GamesNothing search={search} total={query.data.total} />;
   }
 
   return (
-    <GamesScreen actions={actions} results={results}>
-      {query.data.games.length === 0 && (
-        <GamesNothing search={search} total={query.data.total} />
-      )}
-      {query.data.games.length > 0 && (
-        <>
-          {/* A real list rather than `ItemGroup`, whose `div` cannot
-              hold the `li` each row needs. */}
-          <ul aria-label={i18n._(GAMES_COPY.title)} className="flex w-full flex-col">
-            {query.data.games.map((game) => (
-              <li key={game.id} className="border-b last:border-b-0">
-                <GameItem game={game} />
-              </li>
-            ))}
-          </ul>
-          {/* The page the rows came from, not the one in the URL: a read
-              in flight would otherwise number stale rows as the new
-              page. */}
-          <GamesPagination
-            total={query.data.total}
-            page={query.data.page}
-            onNavigate={scrollToTop}
-          />
-        </>
-      )}
-    </GamesScreen>
+    <>
+      {/* A real list rather than `ItemGroup`, whose `div` cannot
+          hold the `li` each row needs. */}
+      <ul aria-label={i18n._(GAMES_COPY.title)} className="flex w-full flex-col">
+        {query.data.games.map((game) => (
+          <li key={game.id} className="border-b last:border-b-0">
+            <GameItem game={game} />
+          </li>
+        ))}
+      </ul>
+      {/* The page the rows came from, not the one in the URL: a read
+          in flight would otherwise number stale rows as the new
+          page. */}
+      <GamesPagination
+        total={query.data.total}
+        page={query.data.page}
+        onNavigate={onNavigate}
+      />
+    </>
+  );
+}
+
+/** Its own subscription with its own `select`, and always rendered:
+ * appearing once the count is known would push the toolbar down. */
+function GamesCount({ search }: { search: GamesSearch }) {
+  const { i18n } = useLingui();
+  const total = useQuery({
+    ...libraryQuery(search),
+    select: (library) => library.total,
+  }).data;
+
+  return (
+    <p className="min-h-5 text-sm text-muted-foreground tabular-nums">
+      {total !== undefined && i18n._({ ...GAMES_COPY.count, values: { count: total } })}
+    </p>
   );
 }
 
@@ -135,9 +139,7 @@ function GamesNothing({ search, total }: { search: GamesSearch; total: number })
   // The library has games; this page of it does not.
   if (total > 0) return <GamesEmpty title={i18n._(GAMES_COPY.emptyPage)} />;
 
-  if (activeFilterCount(search) > 0) {
-    return <GamesEmpty title={i18n._(GAMES_COPY.emptyFilters)} />;
-  }
+  if (isNarrowed(search)) return <GamesEmpty title={i18n._(GAMES_COPY.emptyFilters)} />;
 
   return (
     <GamesEmpty title={i18n._(GAMES_COPY.emptyArchive)}>
@@ -160,11 +162,13 @@ function GamesEmpty({ title, children }: { title: string; children?: ReactNode }
 }
 
 function GamesScreen({
-  actions,
+  search,
+  onChange,
   children,
   results,
 }: {
-  actions: ReactNode;
+  search: GamesSearch;
+  onChange: (next: Partial<GamesSearch>) => void;
   children: ReactNode;
   results: Ref<HTMLDivElement>;
 }) {
@@ -180,7 +184,8 @@ function GamesScreen({
         <PageHeader
           title={i18n._(GAMES_COPY.title)}
           description={i18n._(GAMES_COPY.description)}
-          actions={actions}
+          meta={<GamesCount search={search} />}
+          bottom={<GamesToolbar search={search} onChange={onChange} />}
         />
         <div className="p-4 md:p-6">{children}</div>
       </div>
