@@ -1,10 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 import { AppShell } from "../app-shell/app-shell.tsx";
 import { resolveSession } from "../auth/session.ts";
-import { startSyncEvents, useSyncSettlement } from "../games/import/index.ts";
-import { useQueryClient } from "../libs/react-query.ts";
+import { useSyncEvents } from "../games/import/index.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
 
 /**
@@ -26,15 +24,10 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const queryClient = useQueryClient();
   // One stream for the session, not one per screen: this layout exists
-  // exactly while someone is signed in, so the connection opens with it
-  // and the effect's cleanup closes it when the wall comes down.
-  useEffect(() => startSyncEvents(queryClient), [queryClient]);
-  // One observer of sync progress for the app: it polls while a sync is
-  // active and reports the ones that settle. Here rather than in a screen,
-  // so neither the timer nor the toast is duplicated per mount.
-  useSyncSettlement();
+  // exactly while someone is signed in, so the connection opens with it and
+  // closes when the wall comes down.
+  useSyncEvents();
 
   return (
     <AppShell>

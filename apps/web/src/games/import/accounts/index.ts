@@ -15,5 +15,4 @@ export {
   useSyncAccount,
 } from "./queries.ts";
 export type { TrackedAccount } from "./queries.ts";
-export { startSyncEvents } from "./sync-events.ts";
-export { useSyncSettlement } from "./use-sync-settlement.ts";
+export { useSyncEvents } from "./use-sync-events.ts";

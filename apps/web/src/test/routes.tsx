@@ -1,5 +1,4 @@
 import { msg } from "@lingui/core/macro";
-import { useEffect } from "react";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -10,11 +9,7 @@ import {
 import { AppShell } from "../app-shell/app-shell.tsx";
 import { GameReview, loadGameReview } from "../games/review/index.ts";
 import { GamesList, gamesSearchSchema } from "../games/list/index.ts";
-import {
-  ConnectAccount,
-  startSyncEvents,
-  useSyncSettlement,
-} from "../games/import/index.ts";
+import { ConnectAccount, useSyncEvents } from "../games/import/index.ts";
 import { SignInScreen } from "../auth/sign-in/sign-in-screen.tsx";
 import { ForgotPasswordScreen } from "../auth/password-reset/forgot-password-screen.tsx";
 import { ResetPasswordScreen } from "../auth/password-reset/reset-password-screen.tsx";
@@ -28,7 +23,7 @@ import { SettingsLayout } from "../settings/layout/settings-layout.tsx";
 import { resolveSession } from "../auth/session.ts";
 import { signInMethodsQuery } from "../auth/sign-in-methods.ts";
 import { OnboardingOverlay } from "../onboarding/onboarding-overlay.tsx";
-import { useQueryClient, type QueryClientType } from "../libs/react-query.ts";
+import type { QueryClientType } from "../libs/react-query.ts";
 
 // Built by hand: `routeTree.gen.ts` is generated and gitignored.
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClientType }>()();
@@ -50,9 +45,7 @@ const appRoute = createRoute({
 });
 
 function TestAppLayout() {
-  const queryClient = useQueryClient();
-  useEffect(() => startSyncEvents(queryClient), [queryClient]);
-  useSyncSettlement();
+  useSyncEvents();
 
   return (
     <AppShell>

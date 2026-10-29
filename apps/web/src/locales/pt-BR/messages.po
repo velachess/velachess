@@ -66,7 +66,7 @@ msgstr ""
 #: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:15
 #: src/settings/layout/navigation.ts:39
-#: src/test/routes.tsx:119
+#: src/test/routes.tsx:112
 msgid "Account"
 msgstr ""
 
@@ -106,7 +106,7 @@ msgstr ""
 #: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
-#: src/test/routes.tsx:140
+#: src/test/routes.tsx:133
 msgid "Appearance"
 msgstr ""
 
@@ -203,7 +203,7 @@ msgstr ""
 #: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:63
 #: src/settings/layout/navigation.ts:40
-#: src/test/routes.tsx:126
+#: src/test/routes.tsx:119
 msgid "Chess accounts"
 msgstr ""
 
@@ -284,7 +284,7 @@ msgstr ""
 msgid "Couldn't delete your account. Try again."
 msgstr ""
 
-#: src/games/import/accounts/use-sync-settlement.ts:13
+#: src/games/import/accounts/use-sync-events.ts:25
 msgid "Couldn't finish syncing"
 msgstr ""
 
@@ -492,13 +492,13 @@ msgstr ""
 #: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:21
 #: src/settings/layout/navigation.ts:43
-#: src/test/routes.tsx:147
+#: src/test/routes.tsx:140
 msgid "Gameplay"
 msgstr ""
 
 #: src/games/list/games-list.tsx:24
 #: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:68
+#: src/test/routes.tsx:61
 msgid "Games"
 msgstr ""
 
@@ -510,7 +510,7 @@ msgstr ""
 msgid "Games pages"
 msgstr ""
 
-#: src/games/import/accounts/use-sync-settlement.ts:12
+#: src/games/import/accounts/use-sync-events.ts:24
 msgid "Games synced"
 msgstr ""
 
@@ -643,7 +643,7 @@ msgstr ""
 #: src/settings/language-region/language-region-screen.tsx:24
 #: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
-#: src/test/routes.tsx:133
+#: src/test/routes.tsx:126
 msgid "Language"
 msgstr ""
 
@@ -903,7 +903,7 @@ msgstr ""
 
 #: src/games/review/analysis-panel.tsx:26
 #: src/routes/_app/games/$gameId.tsx:7
-#: src/test/routes.tsx:90
+#: src/test/routes.tsx:83
 msgid "Review"
 msgstr ""
 
@@ -960,7 +960,7 @@ msgstr ""
 #: src/app-shell/user-menu.tsx:42
 #: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:104
+#: src/test/routes.tsx:97
 msgid "Settings"
 msgstr ""
 

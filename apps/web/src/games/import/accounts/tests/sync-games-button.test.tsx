@@ -33,9 +33,8 @@ function countRequests(prefix: string) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Longer than the poll, so "nothing more was asked" means it stopped
- * rather than that the wait was too short. */
-const PAST_ONE_POLL_MS = 4_000;
+/** Long enough that a timer, had anyone left one behind, would have fired. */
+const A_QUIET_WAIT_MS = 4_000;
 
 describe("sync games button", () => {
   beforeEach(() => {
@@ -215,7 +214,7 @@ describe("sync games button", () => {
     expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
   });
 
-  it("asks nothing about the job itself, and stops asking once nothing is syncing", async () => {
+  it("asks nothing about the job, and nothing on a timer", async () => {
     const job = scheduleSync("account-1", "manual");
     const jobReads = countRequests("/api/syncs/");
     const streams = countRequests("/api/syncs/events");
@@ -223,28 +222,22 @@ describe("sync games button", () => {
     await renderApp();
     expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
 
+    const duringTheSync = countRequests("/api/accounts");
+    await sleep(A_QUIET_WAIT_MS);
+    // A sync in flight is not a reason to keep asking: the stream says when
+    // it ends.
+    expect(duringTheSync.count).toBe(0);
+
     landSync(job.id);
     await screen.findByRole("button", { name: "Sync games" });
 
-    const accounts = countRequests("/api/accounts");
-    await sleep(PAST_ONE_POLL_MS);
-    expect(accounts.count).toBe(0);
+    const afterTheSync = countRequests("/api/accounts");
+    await sleep(A_QUIET_WAIT_MS);
+    expect(afterTheSync.count).toBe(0);
     // Every /api/syncs/ request this screen made was the one stream.
     expect(jobReads.count).toBe(streams.count);
-    [jobReads, streams, accounts].forEach((counter) => counter.stop());
-  }, 15_000);
-
-  it("keeps asking while the sync is still running", async () => {
-    scheduleSync("account-1", "manual");
-
-    await renderApp();
-    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
-
-    const accounts = countRequests("/api/accounts");
-    await sleep(PAST_ONE_POLL_MS);
-    expect(accounts.count).toBeGreaterThan(0);
-    accounts.stop();
-  }, 15_000);
+    [jobReads, streams, duringTheSync, afterTheSync].forEach((counter) => counter.stop());
+  }, 20_000);
 });
 
 describe("the sync stream", () => {
@@ -290,6 +283,32 @@ describe("the sync stream", () => {
     // Nothing about the session: a sync landing is not a sign-in.
     expect(sessions.count).toBe(0);
     [sessions, accounts, library].forEach((counter) => counter.stop());
+  });
+
+  it("reports a sync that failed, off the frame alone", async () => {
+    const job = scheduleSync("account-1", "manual");
+    await renderApp();
+    await screen.findByText("already-here");
+    const accounts = countRequests("/api/accounts");
+    const library = countRequests("/api/games");
+
+    landSync(job.id, { fails: true });
+
+    expect(await screen.findByText("Couldn't finish syncing")).toBeInTheDocument();
+    await waitFor(() => expect(accounts.count).toBeGreaterThan(0));
+    expect(library.count).toBeGreaterThan(0);
+    [accounts, library].forEach((counter) => counter.stop());
+  });
+
+  it("says nothing for a stream that is only keeping itself alive", async () => {
+    await renderApp();
+    await screen.findByText("already-here");
+    await waitFor(() => expect(openSyncStreams()).toBe(1));
+
+    await sleep(50);
+
+    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
+    expect(screen.queryByText("Couldn't finish syncing")).not.toBeInTheDocument();
   });
 
   it("reconnects when the stream ends and brings the library current, since what landed meanwhile was never announced", async () => {

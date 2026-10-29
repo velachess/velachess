@@ -199,21 +199,24 @@ request settles. Everything after that is read from `GET /accounts`, whose
 `syncStatus` drives the "Syncing…" state on every screen and after a reload.
 Nothing here knows a job, a queue or a sync id.
 
-Two mechanisms keep that read current, with one responsibility each.
-`games/import/accounts/sync-events.ts` keeps the session's one
-`GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
-and closed with it) and invalidates `games` and `accounts` on any frame — the
-payload is never read, so a frame means only "something settled, go look". The
-stream is a signal, not a record, so every reconnection after the first repairs
-the gap with the same invalidation; a failed attempt invalidates nothing, and a
-`401` ends the session the usual way. `use-sync-settlement.ts`, mounted once by
-the same layout, is the second: it polls `accounts` while any account reads
-active (`refetchInterval` belongs to an observer, not to a query key, so one
-mount means one timer), and it turns an account going from active to settled
-into the games refresh and one toast — per account, since an account that
-failed last week still reads `failed` and says nothing about this sync. A sync
-that starts and settles with nothing mounted is not announced; the status still
-reads correctly on the next load.
+One mechanism keeps that read current: `useSyncEvents`
+(`games/import/accounts/use-sync-events.ts`), called once by the `_app` layout and
+closed with it. It holds the session's one `GET /syncs/events` stream
+(`event-source-plus`), and on a `sync.completed` or `sync.failed` frame it
+invalidates `games` and `accounts` and raises one toast under a fixed id — the
+event name is the whole outcome, so nothing reads the payload, compares a
+previous status or tracks a sync id. Any other frame, the keep-alive included,
+is ignored. The stream is a signal, not a record: every reconnection after the
+first repairs its gap with the same invalidation, a failed attempt invalidates
+nothing, and a `401` ends the session the usual way.
+
+Nothing polls. There is no `refetchInterval` on `accounts` and no timer
+anywhere in this flow, which is the accepted trade: a stream that dies
+silently leaves the screen stale until something else refetches, and a frame
+nobody was connected for loses its toast while the rows it changed are still
+read correctly on the next load. Recovering either would mean a second
+observation mechanism or a record of notifications, and neither is worth
+having.
 
 Connecting invalidates `accounts` and the session; disconnecting, `accounts`,
 `games` and `game`.
