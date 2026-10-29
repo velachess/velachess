@@ -3,18 +3,9 @@
  * answers `provider-connected` with the tracked handle's identity rather
  * than overwriting it.
  */
-import type { AccountPlatform, FetchFn, ProfileFetch } from "@velachess/infra-platforms";
-import {
-  fetchChessComProfile,
-  fetchLichessProfile,
-  normalizeUsername,
-} from "@velachess/infra-platforms";
-import type {
-  Database,
-  ProviderSeat,
-  SyncJob,
-  TrackedAccount,
-} from "@velachess/infra-db";
+import type { AccountPlatform, FetchFn } from "@velachess/infra-platforms";
+import { normalizeUsername, verifyAccountExists } from "@velachess/infra-platforms";
+import type { Database, SyncJob, TrackedAccount } from "@velachess/infra-db";
 
 type Tx = Database;
 
@@ -27,10 +18,6 @@ export type ConnectOutcome =
   | { status: "not-found" }
   | { status: "unavailable" };
 
-type UpsertProviderProfile = (
-  seat: ProviderSeat,
-  fetched: Extract<ProfileFetch, { status: "fetched" }>,
-) => Promise<unknown>;
 /** Read before touching the provider, so a doomed connect costs no
  * request. */
 type GetTrackedAccountByPlatform = (
@@ -57,7 +44,6 @@ type EnqueueSync = (
 type MarkOnboarded = (userId: string) => Promise<void>;
 
 export interface ConnectAccountDeps {
-  upsertProviderProfile: UpsertProviderProfile;
   getTrackedAccountByPlatform: GetTrackedAccountByPlatform;
   withTransaction: WithTransaction;
   insertTrackedAccount: InsertTrackedAccount;
@@ -69,9 +55,7 @@ export interface ConnectAccountDeps {
 }
 
 /**
- * The profile is asked fresh on every connect, because a cached row can
- * record a failed ask and so proves nothing. No account is created unless
- * the provider confirms the handle.
+ * No account is created unless the provider confirms the handle exists.
  *
  * The account, its job and the queue delivery commit together: a new
  * account always has a sync scheduled, and a failed enqueue leaves no
@@ -86,15 +70,14 @@ export async function importAccount(
   const existing = await deps.getTrackedAccountByPlatform(userId, platform);
   if (existing) return alreadyTracked(deps, userId, existing, username);
 
-  const opts = deps.fetch ? { fetch: deps.fetch } : {};
-  const profile =
-    platform === "chess_com"
-      ? await fetchChessComProfile(username, opts)
-      : await fetchLichessProfile(username, opts);
-  if (profile.status === "failed") {
-    return { status: profile.reason === "not-found" ? "not-found" : "unavailable" };
+  const checked = await verifyAccountExists(
+    platform,
+    username,
+    deps.fetch ? { fetch: deps.fetch } : {},
+  );
+  if (checked.status === "failed") {
+    return { status: checked.reason === "not-found" ? "not-found" : "unavailable" };
   }
-  await deps.upsertProviderProfile({ platform, username }, profile);
 
   const connected = await deps.withTransaction(async (tx) => {
     const account = await deps.insertTrackedAccount(tx, userId, platform, username);

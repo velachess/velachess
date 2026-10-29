@@ -21,19 +21,12 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
   lastSyncedAt: "2026-05-04T18:30:00.000Z",
 };
 
-/** One seat's provider identity, which the server resolves from a shared
- * per-handle cache. */
-export type SeatProfile = Game["whiteIdentity"];
-
-const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null, countryCode: null };
-
 interface ArchiveState {
   account: ArchiveAccount;
   games: Game[];
   incoming: Game[];
   /** Set when the next refresh should answer 429. */
   refusesRefreshFor: number | null;
-  identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
   movetext: Map<string, string>;
   syncs: Map<string, SyncJob>;
 }
@@ -52,7 +45,6 @@ function fresh(): ArchiveState {
     games: [],
     incoming: [],
     refusesRefreshFor: null,
-    identities: new Map(),
     movetext: new Map(),
     syncs: new Map(),
   };
@@ -96,29 +88,6 @@ export function stageMovetext(gameId: string, rawPgn: string): void {
 
 export function movetextOf(gameId: string): string | undefined {
   return state.movetext.get(gameId);
-}
-
-/** An absent side stays on initials. */
-export function stageSeatIdentities(
-  gameId: string,
-  seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },
-): void {
-  state.identities.set(gameId, {
-    white: { ...NO_PROFILE, ...seats.white },
-    black: { ...NO_PROFILE, ...seats.black },
-  });
-}
-
-/** Shaped as GET /games/:id reports it. */
-export function seatIdentityFields(gameId: string): {
-  whiteIdentity: SeatProfile;
-  blackIdentity: SeatProfile;
-} {
-  const staged = state.identities.get(gameId);
-  return {
-    whiteIdentity: staged?.white ?? { ...NO_PROFILE },
-    blackIdentity: staged?.black ?? { ...NO_PROFILE },
-  };
 }
 
 /**

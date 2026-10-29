@@ -1,13 +1,6 @@
 import { http, HttpResponse } from "msw";
 
-import {
-  addGames,
-  gameById,
-  movetextOf,
-  pgnImport,
-  readArchive,
-  seatIdentityFields,
-} from "../archive.ts";
+import { addGames, gameById, movetextOf, pgnImport, readArchive } from "../archive.ts";
 import { GAME_PGN } from "../games.ts";
 
 /** The API's own default, so an unpaged read answers the same size. */
@@ -85,7 +78,6 @@ export const gamesHandlers = [
     if (!game) return HttpResponse.json({ error: "game not found" }, { status: 404 });
     return HttpResponse.json({
       ...game,
-      ...seatIdentityFields(String(params["id"])),
       openingEco: "C20",
       termination: "by resignation",
       rawPgn: movetextOf(String(params["id"])) ?? GAME_PGN,

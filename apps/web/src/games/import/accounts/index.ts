@@ -6,7 +6,6 @@ export { useSourceStore } from "./source-store.ts";
 export { SOURCE_ORDER } from "./sources.ts";
 export type { SourceId } from "./sources.ts";
 export {
-  flairImageOf,
   IMPORT_MUTATION_KEY,
   isSyncActive,
   SYNC_RETRY_IN,

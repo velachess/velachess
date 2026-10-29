@@ -163,7 +163,7 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/games",
       gamesRoutes({
-        get: buildGetGameDeps(deps.db, deps.sync?.fetch),
+        get: buildGetGameDeps(deps.db),
         list: buildListGamesDeps(deps.db),
         importPgn: buildImportPgnDeps(deps.db),
       }),

@@ -11,7 +11,6 @@ import {
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
-  findProviderProfiles,
   findTrackedAccountByPlatform,
   finishSyncJob,
   getTrackedAccount,
@@ -23,7 +22,6 @@ import {
   markUserOnboarded,
   saveGames,
   updateTrackedAccountCursor,
-  upsertProviderProfile,
   getSyncJobForUser,
   insertTrackedAccount,
 } from "@velachess/infra-db";
@@ -54,7 +52,6 @@ let h: LoopHarness;
 function listGamesDeps(db: Database): ListGamesDeps {
   return {
     listGamesPage: (userId, filters, page) => listGamesPage(db, userId, filters, page),
-    findProviderProfiles: (seats) => findProviderProfiles(db, seats),
   };
 }
 
@@ -80,7 +77,6 @@ function syncAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): SyncAccountDe
 /** apps/server/src/composition/accounts.ts's `buildImportAccountDeps`, restated. */
 function importAccountDeps(db: Database, fetch?: SyncDeps["fetch"]): ConnectAccountDeps {
   return {
-    upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
     withTransaction: (fn) => db.transaction(fn),

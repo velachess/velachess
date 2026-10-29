@@ -211,6 +211,13 @@
       "when": 1793143735885,
       "tag": "0029_refresh_provider_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793304403854,
+      "tag": "0030_drop_provider_profiles",
+      "breakpoints": true
     }
   ]
 }
