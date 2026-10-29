@@ -32,7 +32,7 @@ import {
   SOURCE_OPTIONS,
   type GamesSearch,
 } from "./filters.ts";
-import { TIME_CLASS_MARKS } from "./game-item.tsx";
+import { TIME_CLASS_MARKS } from "./time-class-marks.tsx";
 
 /** A select has to hold something; the URL holds `undefined` instead. */
 const ANY_SOURCE = "all";

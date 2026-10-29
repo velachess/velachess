@@ -1,9 +1,8 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Link } from "@tanstack/react-router";
 
-import { gameOutcomeFor, opposite, timeClassOf, type TimeClass } from "@velachess/chess";
+import { gameOutcomeFor, opposite, timeClassOf } from "@velachess/chess";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { Badge } from "@velachess/ui/components/badge";
 import {
@@ -14,18 +13,12 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@velachess/ui/components/item";
-import {
-  BookOpen,
-  ChevronRight,
-  Clock3,
-  Hourglass,
-  Timer,
-  Zap,
-} from "@velachess/ui/icons";
+import { BookOpen, ChevronRight } from "@velachess/ui/icons";
 
 import { GAME_SOURCES } from "../game-sources.ts";
 import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
+import { TIME_CLASS_MARKS } from "./time-class-marks.tsx";
 import { formatTimeControl } from "./time-control.ts";
 import type { Game } from "./queries.ts";
 
@@ -35,25 +28,9 @@ const GAME_ITEM_COPY = {
   loss: msg`Loss`,
   draw: msg`Draw`,
   unfinished: msg`Unfinished`,
-  bullet: msg`Bullet`,
-  blitz: msg`Blitz`,
-  rapid: msg`Rapid`,
-  classical: msg`Classical`,
   playedWhite: msg`You played white`,
   playedBlack: msg`You played black`,
 } as const;
-
-/** Chess has no conventional glyph for a time control, so the choice is
- * made once here and the filter reads the same one. */
-export const TIME_CLASS_MARKS: Record<
-  TimeClass,
-  { label: MessageDescriptor; Mark: typeof Zap }
-> = {
-  bullet: { label: GAME_ITEM_COPY.bullet, Mark: Zap },
-  blitz: { label: GAME_ITEM_COPY.blitz, Mark: Timer },
-  rapid: { label: GAME_ITEM_COPY.rapid, Mark: Clock3 },
-  classical: { label: GAME_ITEM_COPY.classical, Mark: Hourglass },
-};
 
 const OUTCOME_BADGE = {
   win: { label: GAME_ITEM_COPY.win, variant: "success" },

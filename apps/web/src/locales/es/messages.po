@@ -58,7 +58,7 @@ msgstr ""
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr ""
 
-#: src/games/list/game-item.tsx:33
+#: src/games/list/game-item.tsx:26
 #: src/games/review/game-heading.tsx:18
 msgid "{white} vs {black}"
 msgstr ""
@@ -75,7 +75,7 @@ msgstr ""
 msgid "Account deleted"
 msgstr ""
 
-#: src/games/list/filters.ts:97
+#: src/games/list/filters.ts:83
 msgid "All sources"
 msgstr ""
 
@@ -140,13 +140,12 @@ msgid "Best was"
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:51
-#: src/games/list/filters.ts:68
+#: src/games/list/filters.ts:63
 #: src/games/review/game-result.tsx:9
 msgid "Black"
 msgstr ""
 
-#: src/games/list/filters.ts:80
-#: src/games/list/game-item.tsx:39
+#: src/games/list/time-class-marks.tsx:14
 msgid "Blitz"
 msgstr ""
 
@@ -166,8 +165,7 @@ msgstr ""
 msgid "Breadcrumb"
 msgstr ""
 
-#: src/games/list/filters.ts:79
-#: src/games/list/game-item.tsx:38
+#: src/games/list/time-class-marks.tsx:13
 msgid "Bullet"
 msgstr ""
 
@@ -226,16 +224,15 @@ msgstr ""
 msgid "Choose how you played before importing."
 msgstr ""
 
-#: src/games/list/filters.ts:82
-#: src/games/list/game-item.tsx:41
+#: src/games/list/time-class-marks.tsx:16
 msgid "Classical"
 msgstr ""
 
-#: src/games/list/filters.ts:103
+#: src/games/list/filters.ts:89
 msgid "Clear search"
 msgstr ""
 
-#: src/games/list/filters.ts:65
+#: src/games/list/filters.ts:60
 msgid "Color"
 msgstr ""
 
@@ -404,8 +401,8 @@ msgstr ""
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr ""
 
-#: src/games/list/filters.ts:60
-#: src/games/list/game-item.tsx:36
+#: src/games/list/filters.ts:55
+#: src/games/list/game-item.tsx:29
 #: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:11
 msgid "Draw"
@@ -481,8 +478,7 @@ msgstr ""
 msgid "Fetch new games from your connected accounts"
 msgstr ""
 
-#: src/games/list/filters.ts:92
-#: src/games/list/filters.ts:93
+#: src/games/list/filters.ts:79
 msgid "Filters"
 msgstr ""
 
@@ -677,8 +673,8 @@ msgstr ""
 msgid "Locale preferences for this device."
 msgstr ""
 
-#: src/games/list/filters.ts:59
-#: src/games/list/game-item.tsx:35
+#: src/games/list/filters.ts:54
+#: src/games/list/game-item.tsx:28
 #: src/games/review/game-heading.tsx:20
 msgid "Loss"
 msgstr ""
@@ -846,8 +842,7 @@ msgstr ""
 msgid "Profile"
 msgstr ""
 
-#: src/games/list/filters.ts:81
-#: src/games/list/game-item.tsx:40
+#: src/games/list/time-class-marks.tsx:15
 msgid "Rapid"
 msgstr ""
 
@@ -891,7 +886,7 @@ msgstr ""
 msgid "Request a new link"
 msgstr ""
 
-#: src/games/list/filters.ts:94
+#: src/games/list/filters.ts:80
 msgid "Reset"
 msgstr ""
 
@@ -903,7 +898,7 @@ msgstr ""
 msgid "Resize navigation"
 msgstr "Redimensionar navegación"
 
-#: src/games/list/filters.ts:56
+#: src/games/list/filters.ts:51
 msgid "Result"
 msgstr ""
 
@@ -938,11 +933,11 @@ msgstr ""
 msgid "Saving…"
 msgstr ""
 
-#: src/games/list/filters.ts:101
+#: src/games/list/filters.ts:87
 msgid "Search opponent"
 msgstr ""
 
-#: src/games/list/filters.ts:102
+#: src/games/list/filters.ts:88
 msgid "Search opponent…"
 msgstr ""
 
@@ -1033,7 +1028,7 @@ msgstr ""
 msgid "Sounds"
 msgstr ""
 
-#: src/games/list/filters.ts:96
+#: src/games/list/filters.ts:82
 msgid "Source"
 msgstr ""
 
@@ -1135,7 +1130,7 @@ msgstr ""
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr ""
 
-#: src/games/list/filters.ts:95
+#: src/games/list/filters.ts:81
 msgid "Time control"
 msgstr ""
 
@@ -1164,7 +1159,7 @@ msgstr ""
 msgid "Unable to connect to VelaChess. Reload the page to try again."
 msgstr ""
 
-#: src/games/list/game-item.tsx:37
+#: src/games/list/game-item.tsx:30
 #: src/games/review/game-heading.tsx:22
 #: src/games/review/game-result.tsx:12
 msgid "Unfinished"
@@ -1211,7 +1206,7 @@ msgid "Where VelaChess imports your games from."
 msgstr ""
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:50
-#: src/games/list/filters.ts:67
+#: src/games/list/filters.ts:62
 #: src/games/review/game-result.tsx:8
 msgid "White"
 msgstr ""
@@ -1220,17 +1215,17 @@ msgstr ""
 msgid "White or Black applies to every game in this upload."
 msgstr ""
 
-#: src/games/list/filters.ts:58
-#: src/games/list/game-item.tsx:34
+#: src/games/list/filters.ts:53
+#: src/games/list/game-item.tsx:27
 #: src/games/review/game-heading.tsx:19
 msgid "Win"
 msgstr ""
 
-#: src/games/list/game-item.tsx:43
+#: src/games/list/game-item.tsx:32
 msgid "You played black"
 msgstr ""
 
-#: src/games/list/game-item.tsx:42
+#: src/games/list/game-item.tsx:31
 msgid "You played white"
 msgstr ""
 
