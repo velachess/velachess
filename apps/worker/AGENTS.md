@@ -12,6 +12,16 @@ Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
   fails validation throws so pg-boss routes it to retry then the dead-letter
   queue; it never reaches a slice, and it is not spread into a log line first.
   See `docs/explanation/data-boundaries.md`.
+- The one thing the worker owns beyond consuming: the scheduled
+  reconciliation pass (`sync-reconcile`, every minute and once at startup).
+  Nothing consumes the sync dead-letter queue, so a job whose delivery
+  pg-boss ended would stay active with nothing running it, and
+  `sync_jobs_one_active_per_account` would hold every later sync out of that
+  account. The pass closes those rows; it still does not decide "last
+  attempt" for a delivery, and the dead letter stays unconsumed so an
+  operator keeps the dashboard. Once a row is closed, reviving its delivery
+  finds a settled job and resolves without work — recovery is a fresh sync
+  request.
 - pg-boss topology and delivery policy live in `libs/infra/queue`; behavior
   lives in the business modules under `libs/`.
 - The worker owns process lifecycle, dependency construction, consumer
@@ -19,8 +29,8 @@ Extends `../../AGENTS.md`. This app is the queue-consumer composition root.
   layer.
 - No engine runs here. Analysis executes entirely in the browser (Stockfish
   WASM, `apps/web/src/games/analysis/`) — see PR #155 and
-  `docs/reference/analysis.md`. This app registers only the `sync` queue
-  consumer.
+  `docs/reference/analysis.md`. This app registers the `sync` consumer and
+  the `sync-reconcile` pass, and nothing else.
 
 ## Composition root files
 

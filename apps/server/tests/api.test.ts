@@ -82,7 +82,6 @@ describe("api routes", () => {
     const scheduled = await parseResponse(owner.api.accounts.$get());
     expect(scheduled.find((entry) => entry.id === accountId)).toMatchObject({
       syncStatus: "queued",
-      activeSyncId: account.syncId,
     });
     await harness.runSync(account.syncId);
 
@@ -93,8 +92,7 @@ describe("api routes", () => {
 
     const listed = await parseResponse(owner.api.accounts.$get());
     expect(listed.find((entry) => entry.id === accountId)).toMatchObject({
-      syncStatus: "idle",
-      activeSyncId: null,
+      syncStatus: "succeeded",
       lastSyncError: null,
     });
     expect(listed.find((entry) => entry.id === accountId)!.lastSyncedAt).not.toBeNull();
@@ -367,37 +365,22 @@ describe("sync jobs", () => {
     expect(library.total).toBe(0);
   });
 
-  it("GET /syncs/:id follows the job to its outcome", async () => {
+  it("the account's own listing follows the sync to its outcome", async () => {
     const { app } = await harness.signUp("sync-status@api.test");
     const account = await connected(app, LOOPER_USERNAME);
 
-    const queued = await parseResponse(
-      app.api.syncs[":id"].$get({ param: { id: account.syncId } }),
-    );
+    const [queued] = await parseResponse(app.api.accounts.$get());
     expect(queued).toMatchObject({
-      id: account.syncId,
-      status: "queued",
-      error: null,
-      progress: {
-        unitsDone: null,
-        unitsTotal: null,
-        gamesFetched: null,
-        gamesInserted: null,
-      },
+      id: account.id,
+      syncStatus: "queued",
+      lastSyncError: null,
     });
 
     await harness.runSync(account.syncId);
-    const done = await parseResponse(
-      app.api.syncs[":id"].$get({ param: { id: account.syncId } }),
-    );
-    expect(done).toMatchObject({
-      status: "succeeded",
-      progress: { gamesFetched: 2, gamesInserted: 2 },
-    });
 
-    expect(
-      (await app.api.syncs[":id"].$get({ param: { id: randomUUID() } })).status,
-    ).toBe(404);
+    const [done] = await parseResponse(app.api.accounts.$get());
+    expect(done).toMatchObject({ syncStatus: "succeeded", lastSyncError: null });
+    expect(done?.lastSyncedAt).not.toBeNull();
   });
 
   it("a job whose delivery pg-boss already ended is closed and replaced", async () => {
@@ -412,30 +395,8 @@ describe("sync jobs", () => {
     );
     expect(replaced.syncId).not.toBe(account.syncId);
 
-    const stale = await parseResponse(
-      app.api.syncs[":id"].$get({ param: { id: account.syncId } }),
-    );
-    expect(stale).toMatchObject({
-      status: "failed",
-      error: { code: "internal", retryable: true },
-    });
-  });
-
-  it("a job whose delivery pg-boss already ended reads as failed, not active forever", async () => {
-    const { app } = await harness.signUp("sync-dead-read@api.test");
-    const account = await connected(app, LOOPER_USERNAME);
-    await harness.boss.cancel(QUEUES.sync, account.syncId);
-
-    const job = await parseResponse(
-      app.api.syncs[":id"].$get({ param: { id: account.syncId } }),
-    );
-
-    expect(job).toMatchObject({
-      status: "failed",
-      error: { code: "internal", retryable: true },
-    });
     const [listed] = await parseResponse(app.api.accounts.$get());
-    expect(listed?.syncStatus).toBe("idle");
+    expect(listed?.syncStatus).toBe("queued");
   });
 });
 

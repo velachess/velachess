@@ -1,10 +1,11 @@
 /**
- * `syncStatus`, not just `lastSyncedAt`, is what lets a client tell "still
- * syncing" from "gave up".
+ * `syncStatus` is the newest job's own status, terminal ones included, so one
+ * field answers both "still syncing" and "how did the last one end". `idle`
+ * is the account that has no job at all.
  */
 import type { AccountPlatform } from "@velachess/infra-platforms";
 
-import { isActiveSyncStatus, type SyncJobStatus } from "../sync-status.ts";
+import type { SyncJobStatus } from "../sync-status.ts";
 
 export type JobError = "not-found" | "incomplete" | "internal";
 
@@ -13,7 +14,6 @@ export interface TrackedAccountSummary {
   platform: AccountPlatform;
   username: string;
   lastSyncedAt: Date | null;
-  latestJobId: string | null;
   latestJobStatus: SyncJobStatus | null;
   latestJobError: JobError | null;
 }
@@ -24,21 +24,13 @@ export interface ListAccountsDeps {
   listTrackedAccountsByUser: ListTrackedAccountsByUser;
 }
 
-/**
- * Sync state reads off each account's newest job: its status and id while
- * active, then `idle` with the error it failed on, which the next success
- * clears.
- */
+/** The error survives only on a failure, so the next success clears it. */
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
   const accounts = await deps.listTrackedAccountsByUser(userId);
-  return accounts.map(({ latestJobId, latestJobStatus, latestJobError, ...account }) => {
-    // A predicate, so `latestJobStatus` stays narrowed: `syncStatus` is the
-    // active status itself, never `succeeded` or `failed`.
-    const active = isActiveSyncStatus(latestJobStatus);
-    return Object.assign(account, {
-      syncStatus: active ? latestJobStatus : ("idle" as const),
-      activeSyncId: active ? latestJobId : null,
+  return accounts.map(({ latestJobStatus, latestJobError, ...account }) =>
+    Object.assign(account, {
+      syncStatus: latestJobStatus ?? ("idle" as const),
       lastSyncError: latestJobStatus === "failed" ? latestJobError : null,
-    });
-  });
+    }),
+  );
 }

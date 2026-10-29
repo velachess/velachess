@@ -193,19 +193,34 @@ returns the browser to login; local storage does not claim identity. Account
 authorization remains server-side and user-scoped in database queries.
 
 Syncs run in the background and the client never waits on one. `useSyncGames`
-is a mutation that only asks: `POST /accounts/:id/sync` per account in
-parallel, a `429` reported as the cooldown it is, and `accounts` invalidated
-when the requests settle so the server's `syncStatus` / `activeSyncId` drive
-the "Syncing…" state on every screen and after a reload. Landing is announced,
-not polled: `games/import/accounts/sync-events.ts` keeps the session's one
-`GET /syncs/events` stream (`event-source-plus`, opened by the `_app` layout
-and closed with it) and, on `sync.completed` or `sync.failed`, invalidates
-`games` and `accounts` — the payload is never read. The stream is a signal,
-not a record, so every reconnection after the first repairs the gap with the
-same invalidation; a failed attempt invalidates nothing, and a `401` ends the
-session the usual way. No completion toast: the list refreshing is the
-answer. Connecting invalidates `accounts` and the session; disconnecting,
-`accounts`, `games` and `game`.
+is a mutation that only asks: `POST /accounts/sync`, a `429` reported as the
+cooldown it is with the server's own wait, and `accounts` invalidated when the
+request settles. Everything after that is read from `GET /accounts`, whose
+`syncStatus` drives the "Syncing…" state on every screen and after a reload.
+Nothing here knows a job, a queue or a sync id.
+
+One mechanism keeps that read current: `useSyncEvents`
+(`games/import/accounts/use-sync-events.ts`), called once by the `_app` layout and
+closed with it. It holds the session's one `GET /syncs/events` stream
+(`event-source-plus`), and on a `sync.completed` or `sync.failed` frame it
+invalidates `games` and `accounts` and raises one toast under a fixed id — the
+event name is the whole outcome, so nothing reads the payload, compares a
+previous status or tracks a sync id. Any other frame, the keep-alive included,
+is ignored. The stream is a signal, not a record: every connection that opens
+repairs whatever gap preceded it with the same invalidation — the first one
+included, which costs one refetch and saves counting connections — a failed
+attempt invalidates nothing, and a `401` ends the session the usual way.
+
+Nothing polls. There is no `refetchInterval` on `accounts` and no timer
+anywhere in this flow, which is the accepted trade: a stream that dies
+silently leaves the screen stale until something else refetches, and a frame
+nobody was connected for loses its toast while the rows it changed are still
+read correctly on the next load. Recovering either would mean a second
+observation mechanism or a record of notifications, and neither is worth
+having.
+
+Connecting invalidates `accounts` and the session; disconnecting, `accounts`,
+`games` and `game`.
 
 ## Lists and tables
 

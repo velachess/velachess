@@ -81,10 +81,13 @@ after the account's newest job.
   minute before any retry, as Lichess asks after a `429`.
 - The worker never writes a retryable `failed`: pg-boss owns the retry
   schedule and its exhaustion. A job left active after pg-boss ended its
-  delivery (retries spent, or a worker crash) is closed as `failed` by the
-  next `GET /syncs/:id` or sync request — keeping the error the last pass
-  recorded (`incomplete`), `internal` when it left none — so polling never
-  follows a job nothing runs.
+  delivery (retries spent, expired, cancelled, or a worker crash) is closed
+  as `failed` by the `sync-reconcile` pass — scheduled every minute and run
+  once at worker startup — keeping the error the last pass recorded
+  (`incomplete`), `internal` when it left none. A sync request closes the
+  same row the same way when it arrives first; both read the delivery under
+  a lock, so a revival cannot land between the read and the close. No read
+  closes anything.
 - A job reaching `succeeded` or `failed` — the worker's write or the api's
   abandon — notifies the `sync_job_changed` channel with its id from the same
   transaction, so the api's `GET /syncs/events` stream hears it only once the

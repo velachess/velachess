@@ -267,7 +267,13 @@ export function refreshArchive(accountId: string): RefreshResult {
   return { status: "accepted", job: scheduleSync(accountId, "manual") };
 }
 
-/** The job active for an account, as `GET /accounts` reports it. */
+/** The account's newest job, whatever became of it: what `GET /accounts`
+ * reports as `syncStatus`. */
+export function latestSyncOf(accountId: string): SyncJob | undefined {
+  return [...state.syncs.values()].findLast((job) => job.accountId === accountId);
+}
+
+/** The job still on its way, which a repeat request is answered with. */
 export function activeSyncOf(accountId: string): SyncJob | undefined {
   return [...state.syncs.values()].find(
     (job) =>

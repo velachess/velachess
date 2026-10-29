@@ -31,8 +31,8 @@ export type { RequestSyncDeps, RequestSyncOutcome } from "./request-sync/request
 export { syncAllAccounts } from "./sync-all-accounts/sync-all-accounts.ts";
 export type { SyncAllAccountsDeps } from "./sync-all-accounts/sync-all-accounts.ts";
 
-export { getSync } from "./get-sync/get-sync.ts";
-export type { GetSyncDeps } from "./get-sync/get-sync.ts";
+export { reconcileSyncs } from "./reconcile-syncs/reconcile-syncs.ts";
+export type { ReconcileSyncsDeps } from "./reconcile-syncs/reconcile-syncs.ts";
 
 export { watchSyncs } from "./watch-syncs/watch-syncs.ts";
 export type { SyncSettled, WatchSyncsDeps } from "./watch-syncs/watch-syncs.ts";

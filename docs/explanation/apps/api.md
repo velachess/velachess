@@ -111,10 +111,13 @@ scheduled and a failed enqueue leaves no account; reconnecting the handle
 already tracked answers `201` with `syncId: null` and schedules nothing. `POST /accounts/:id/sync` answers `202
 { syncId, status }`: the account's active job when it has one, otherwise a new
 job after the per-account cooldown (`429` with `Retry-After` inside it).
-`GET /syncs/:id` reports an owner's job — status, progress, error — and is what
-clients poll; `GET /accounts` carries each account's `syncStatus`,
-`activeSyncId` and `lastSyncError`. The worker does the fetching (see
-`docs/reference/ingestion.md`).
+`GET /accounts` is the one authoritative read of a sync: each account carries
+`syncStatus` — the newest job's own status, `succeeded` and `failed` included,
+`idle` for an account with no job — plus `lastSyncError` and `lastSyncedAt`.
+There is no per-job endpoint, and no sync id leaves the API beyond the one the
+request that started it answers with. Reading never writes: a job whose
+delivery pg-boss ended is closed by the worker's reconciliation pass. The
+worker does the fetching (see `docs/reference/ingestion.md`).
 
 `POST /games/import` is the manual source: PGN text uploaded without any
 connected account. It normalizes in-request, resolves the named player's seat
@@ -145,7 +148,9 @@ every id against the row before a user's stream sees it — the payload is
 never trusted for ownership. Notifications are not durable, so no frame is a
 record: a client that reconnects refreshes its accounts and games from the
 rows, and when the api's own listener reconnects every open stream ends so
-clients do the same. `GET /syncs/:id` stays for anything that prefers to ask.
+clients do the same. A client with no stream, or one whose stream fell behind,
+reads `GET /accounts` again — which is also what the web app polls while a sync
+is active.
 
 ## Validation and errors
 
