@@ -14,8 +14,7 @@ import { INPUT_KINDS, type SourceId } from "./sources.ts";
 
 export type TrackedAccount = InferResponseType<typeof api.accounts.$get, 200>[number];
 
-/** The wait is what makes a cooldown actionable, and it is the server's
- * number: declared once, since both surfaces that can be refused show it. */
+/** The server's number, not a copy of its cooldown. */
 export const SYNC_RETRY_IN = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 /** Lichess serves flairs from one public directory keyed by the id its API
@@ -61,7 +60,6 @@ export async function importArchive(request: ImportRequest): Promise<RememberedA
   }
 }
 
-/** A UI question, not identity, which is the server session's. */
 export type ImportStatus = "ready" | "empty";
 
 export function importStatus(remembered: RememberedAccount[]): ImportStatus {
@@ -76,10 +74,8 @@ const ACTIVE_SYNC = new Set<TrackedAccount["syncStatus"]>([
   "retrying",
 ]);
 
-/** Takes an absent status, so a caller comparing against what it saw last
- * needs no guard of its own. */
-export function isSyncActive(status: TrackedAccount["syncStatus"] | undefined) {
-  return status !== undefined && ACTIVE_SYNC.has(status);
+export function isSyncActive(status: TrackedAccount["syncStatus"]) {
+  return ACTIVE_SYNC.has(status);
 }
 
 /** The backend folds in per-account cooldowns and active jobs silently;
@@ -104,7 +100,6 @@ export function useSyncGames(handlers: {
       if ("retryAfterSeconds" in answer) handlers.onTooSoon(answer.retryAfterSeconds);
     },
     onError: handlers.onError,
-    // Whatever's now in flight is a job the accounts list as active.
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey }),
   });
@@ -132,15 +127,13 @@ export function useSyncAccount(handlers: {
   });
 }
 
-/** A sync request: the job it started, or how long the cooldown has left. */
 async function requestSync(accountId: string) {
   try {
     return await parseResponse(
       api.accounts[":id"].sync.$post({ param: { id: accountId } }),
     );
   } catch (error) {
-    // Either throttle — the domain cooldown or the API rate limit — arrives
-    // as the same class with the same wait.
+    // The domain cooldown and the API rate limit arrive as the same class.
     if (isRateLimitedError(error)) return { retryAfterSeconds: error.retryAfterSeconds };
     throw error;
   }

@@ -5,8 +5,8 @@
  * announce without importing msw.
  */
 
-/** The server's own event names, written again here: the client no longer
- * reads them, so nothing in the app declares them to borrow. */
+/** The server's own names, written again rather than imported, per
+ * `docs/how-to/write-a-test.md`. */
 type SyncSettledEvent = "sync.completed" | "sync.failed";
 
 type Controller = ReadableStreamDefaultController<Uint8Array>;

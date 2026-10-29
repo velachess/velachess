@@ -54,8 +54,7 @@ export async function requestSync(
   userId: string,
   accountId: string,
 ): Promise<RequestSyncOutcome> {
-  // Someone else's account answers not-found, like one that never
-  // existed.
+  // Someone else's account answers like one that never existed.
   const account = await deps.getTrackedAccountForUser(userId, accountId);
   if (!account) return { status: "not-found" };
 
@@ -66,7 +65,6 @@ export async function requestSync(
       if (await deps.isSyncDeliveryLive(tx, latest.id)) {
         return { status: "accepted", job: latest };
       }
-      // pg-boss finished the delivery without the worker recording it.
       // `isSyncDeliveryLive` holds the delivery for this transaction, so a
       // revival cannot land between that answer and this close. The worker's
       // reconciliation pass closes the same row the same way.

@@ -1,11 +1,6 @@
 // @vitest-environment node
-/**
- * Nothing consumes the sync dead-letter queue, so a job whose delivery
- * pg-boss ended would stay active with nothing running it, and
- * `sync_jobs_one_active_per_account` would hold every later sync out of the
- * account. This pass is what closes it, with no browser and no read
- * involved.
- */
+/** The pass closes a job whose delivery pg-boss ended, with no browser and
+ * no read involved. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -75,9 +70,8 @@ const bossStateOf = async (job: { id: string }) =>
 /** Notifications arrive on their own tick. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
-/** Spends the delivery's attempts without running the handler: what a pass
- * that kept throwing leaves behind, and what an attempt pg-boss expired
- * leaves once its retries are gone too. */
+/** What a pass that kept throwing leaves behind, and what an expired
+ * attempt leaves once its retries are gone too. */
 async function spendDelivery(job: { id: string }) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const delivery = await deliverSyncJob(h.boss, job.id);

@@ -1,6 +1,7 @@
 /**
- * `syncStatus`, not just `lastSyncedAt`, is what lets a client tell "still
- * syncing" from "gave up".
+ * `syncStatus` is the newest job's own status, terminal ones included, so one
+ * field answers both "still syncing" and "how did the last one end". `idle`
+ * is the account that has no job at all.
  */
 import type { AccountPlatform } from "@velachess/infra-platforms";
 
@@ -23,12 +24,7 @@ export interface ListAccountsDeps {
   listTrackedAccountsByUser: ListTrackedAccountsByUser;
 }
 
-/**
- * Sync state is the newest job's own status, terminal ones included: a
- * client reads whether a sync is running, and how the last one ended, from
- * this one field. `idle` is the account that has no job at all. The error
- * survives only on a failure, so the next success clears it.
- */
+/** The error survives only on a failure, so the next success clears it. */
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
   const accounts = await deps.listTrackedAccountsByUser(userId);
   return accounts.map(({ latestJobStatus, latestJobError, ...account }) =>

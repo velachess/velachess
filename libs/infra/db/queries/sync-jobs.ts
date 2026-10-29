@@ -44,10 +44,7 @@ export async function lockLatestSyncJob(tx: Database, accountId: string) {
   return job ?? null;
 }
 
-/**
- * Every account's active job, for the worker's reconciliation pass.
- * Unscoped by user: a sweep closes rows nobody is looking at.
- */
+/** Unscoped by user: a sweep closes rows nobody is looking at. */
 export async function listActiveSyncJobs(db: Database) {
   return db
     .select({ id: syncJobs.id, accountId: syncJobs.accountId })

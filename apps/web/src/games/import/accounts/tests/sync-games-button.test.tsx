@@ -176,8 +176,6 @@ describe("sync games button", () => {
     landSync(other.id);
 
     expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
-    // Both landed, one toast: it says how syncing went, not how each
-    // account went.
     expect(screen.getAllByText("Games synced")).toHaveLength(1);
   });
 

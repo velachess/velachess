@@ -26,31 +26,21 @@ const SETTLEMENT_COPY = {
 } as const;
 
 /**
- * The session's one stream, opened by the authenticated layout and closed
- * with it. A sync runs in the worker whatever the browser does; the frame
- * says it settled and how, React Query reads the rows again, and `GET
- * /accounts` remains the authority on what they now say.
- *
- * Transport failures are the client's to retry (exponential backoff, 30 s
- * cap), and every reconnection after the first repairs its gap with the same
- * refetch. Only a 401 means something else — the session ended, and the app
- * already knows what to do about that.
- *
- * A frame nobody was connected for is not replayed, so its toast is lost
- * while the rows it changed are not. Recovering that would need a record of
- * notifications, which is not worth having.
+ * Nothing polls alongside this: a stream that dies silently leaves the screen
+ * stale until something else refetches, and a frame nobody was connected for
+ * loses its toast. Both are accepted — see `docs/explanation/apps/web.md`.
  */
 export function useSyncEvents(): void {
   const queryClient = useQueryClient();
   const { i18n } = useLingui();
 
+  // react-doctor-disable-next-line react-doctor/effect-needs-cleanup -- the cleanup is `controller.abort()`, which event-source-plus documents as what stops the stream
   useEffect(() => {
     const refresh = () => {
       void queryClient.invalidateQueries({ queryKey: gamesQueryKey });
       void queryClient.invalidateQueries({ queryKey: trackedAccountsQuery.queryKey });
     };
 
-    let streams = 0;
     const source = new EventSourcePlus(`${apiBaseUrl}/syncs/events`);
     const controller = source.listen({
       onMessage: ({ event }) => {
@@ -63,21 +53,22 @@ export function useSyncEvents(): void {
         refresh();
 
         const failed = event === SYNC_SETTLED_EVENTS.failed;
-        // One id, so two accounts settling moments apart leave one toast
-        // saying how the last of them went.
+        // One id, so two accounts settling moments apart leave one toast.
         toast.add({
           id: "sync-settled",
           type: failed ? "error" : "success",
           title: i18n._(failed ? SETTLEMENT_COPY.failed : SETTLEMENT_COPY.succeeded),
         });
       },
-      // Fires for every response, failures included, so only a stream that
-      // opened counts, and only the ones after the first mean a gap.
+      // Fires for failures too, so the check is the connection: whatever
+      // settled while this client had none is in the rows.
       onResponse: ({ response }) => {
-        const type = response.headers.get("content-type") ?? "";
-        if (!response.ok || !type.includes("text/event-stream")) return;
-        streams += 1;
-        if (streams > 1) refresh();
+        if (
+          response.ok &&
+          response.headers.get("content-type")?.includes("text/event-stream")
+        ) {
+          refresh();
+        }
       },
       onResponseError: ({ response }) => {
         if (response.status !== 401) return;

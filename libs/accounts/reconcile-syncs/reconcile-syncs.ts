@@ -1,9 +1,7 @@
 /**
- * Closes the sync jobs whose delivery pg-boss ended without the worker
- * recording it. Nothing consumes the dead-letter queue, so a job out of
- * retries would otherwise stay active with nothing running it, and
- * `sync_jobs_one_active_per_account` would hold every later sync out of the
- * account.
+ * Nothing consumes the dead-letter queue, so a job out of retries would stay
+ * active with nothing running it, and `sync_jobs_one_active_per_account`
+ * would hold every later sync out of the account.
  */
 import type { Database, SyncJob } from "@velachess/infra-db";
 
@@ -25,12 +23,8 @@ export interface ReconcileSyncsDeps {
   abandonSyncJob: AbandonSyncJob;
 }
 
-/**
- * The same three steps a sync request takes over a dead job, so one
- * discipline closes a job however it is noticed: lock the row, read the
- * delivery under that lock, close only what has ended. Returns how many it
- * closed.
- */
+/** The same three steps a sync request takes over a dead job, so one
+ * discipline closes a job however it is noticed. */
 export async function reconcileSyncs(deps: ReconcileSyncsDeps): Promise<number> {
   const candidates = await deps.listActiveSyncJobs();
   let closed = 0;
@@ -39,8 +33,7 @@ export async function reconcileSyncs(deps: ReconcileSyncsDeps): Promise<number> 
     // oxlint-disable-next-line eslint/no-await-in-loop -- each pass holds row locks, and a sweep has no deadline worth contending for them
     const didClose = await deps.withTransaction(async (tx) => {
       const latest = await deps.lockLatestSyncJob(tx, candidate.accountId);
-      // The listing is unlocked, so the row may have settled, been replaced
-      // or gone with its account since.
+      // The listing is unlocked, so the row may have moved on since.
       if (!latest || latest.id !== candidate.id) return false;
       if (!isActiveSyncStatus(latest.status)) return false;
       if (await deps.isSyncDeliveryLive(tx, latest.id)) return false;

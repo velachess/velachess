@@ -54,9 +54,6 @@ export function SyncGamesButton() {
     },
   });
 
-  // Running means the server says so: the request in flight, or an account
-  // whose job the worker still holds — a reload or another screen shows the
-  // same thing, because none of it lives here.
   const syncing =
     sync.isPending || accounts.some((account) => isSyncActive(account.syncStatus));
   const label = syncing ? SYNC_COPY.running : SYNC_COPY.action;

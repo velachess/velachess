@@ -1,8 +1,7 @@
 // @vitest-environment node
 /**
- * `GET /accounts` is the one authoritative read of a sync, and it only
- * reports: a job whose pg-boss delivery ended is closed by the worker's
- * reconciliation pass, never by someone looking at it.
+ * `GET /accounts` only reports: a job whose delivery ended is closed by the
+ * worker's reconciliation pass, never by someone looking at it.
  */
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -66,8 +65,7 @@ describe("GET /accounts sync state", () => {
     await harness.runSync(account.syncId);
 
     // A row with nothing queued behind it: what a sync out of retries
-    // leaves in the dead-letter queue, and what an enqueue that never
-    // landed leaves too.
+    // leaves in the dead-letter queue.
     const orphan = await createSyncJob(harness.db, {
       userId,
       accountId: account.id,

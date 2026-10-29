@@ -51,10 +51,8 @@ export function makeSyncQueue(boss: PgBoss): SyncQueue {
     },
     async isLive(dbOrTx, jobId) {
       // Locked, not just read: pg-boss claims with `for update skip locked`
-      // and an operator's retry is a plain update, so holding this row is
-      // what stops a delivery reviving between this answer and the caller
-      // closing the job on it. A row retention already deleted locks
-      // nothing and reads as ended.
+      // and an operator's retry is a plain update, so holding this row stops
+      // a revival landing between this answer and the caller's close.
       const [row] = await dbOrTx
         .select({ state: bossJob.state })
         .from(bossJob)

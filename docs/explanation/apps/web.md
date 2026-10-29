@@ -206,9 +206,10 @@ closed with it. It holds the session's one `GET /syncs/events` stream
 invalidates `games` and `accounts` and raises one toast under a fixed id — the
 event name is the whole outcome, so nothing reads the payload, compares a
 previous status or tracks a sync id. Any other frame, the keep-alive included,
-is ignored. The stream is a signal, not a record: every reconnection after the
-first repairs its gap with the same invalidation, a failed attempt invalidates
-nothing, and a `401` ends the session the usual way.
+is ignored. The stream is a signal, not a record: every connection that opens
+repairs whatever gap preceded it with the same invalidation — the first one
+included, which costs one refetch and saves counting connections — a failed
+attempt invalidates nothing, and a `401` ends the session the usual way.
 
 Nothing polls. There is no `refetchInterval` on `accounts` and no timer
 anywhere in this flow, which is the accepted trade: a stream that dies

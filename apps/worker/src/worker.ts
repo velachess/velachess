@@ -47,11 +47,9 @@ export class Worker {
     await ensureQueues(boss);
 
     // No DLQ handler: consuming a dead letter completes it and takes away
-    // the operator's options. A failed sync is revived by retrying it in the
-    // dashboard, which keeps the sync job's id, where a redrive of the DLQ
-    // copy mints one the slice cannot resolve. What the dead letter leaves
-    // behind — a job row still active with nothing running it — is the
-    // reconciliation pass's job, not this handler's.
+    // the operator's retry, which keeps the sync job's id where a redrive
+    // mints one the slice cannot resolve. The row it leaves active is the
+    // reconciliation pass's job.
     const reconcile = async () => {
       const closed = await reconcileSyncs(
         buildReconcileSyncsDeps(db, makeSyncQueue(boss)),
@@ -79,8 +77,7 @@ export class Worker {
       }
     });
 
-    // A restart does not wait for the next tick to free an account whose
-    // delivery died while this worker was down.
+    // A restart does not wait for the next tick.
     await reconcile();
   }
 

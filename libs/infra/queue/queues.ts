@@ -20,8 +20,7 @@ const DEFAULT_HEARTBEAT_SECONDS = 30;
 
 const RECONCILE_EXPIRE_IN_SECONDS = 120;
 
-/** Cron's floor. The pass is a cheap read and closes nothing that is still
- * alive, so running it more often would buy nothing. */
+/** Cron's floor, and enough: the pass is a read that closes nothing alive. */
 const RECONCILE_CRON = "* * * * *";
 
 /**
@@ -50,10 +49,10 @@ const POLICY = {
     heartbeatSeconds: DEFAULT_HEARTBEAT_SECONDS,
   },
   /**
-   * "exclusive" is one job queued or active, which is what a sweep wants:
-   * "short" caps the queued state alone, so a pass slower than the cron
-   * would overlap the next one, and occurrences would pile up while the
-   * worker is down. No retry either — the next tick is the retry.
+   * "exclusive" is one job queued or active: "short" caps the queued state
+   * alone, so a pass slower than the cron would overlap the next, and
+   * occurrences would pile up while the worker is down. The next tick is the
+   * retry, so there is none.
    */
   syncReconcile: {
     policy: "exclusive",
