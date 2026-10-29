@@ -154,13 +154,13 @@ export async function syncAccount(
     });
   });
   if (!fetched.complete) {
-    throw new Error(`sync ${job.id} incomplete: ${describe(fetched.failures)}`);
+    throw new Error(`sync ${job.id} incomplete: ${failureSummary(fetched.failures)}`);
   }
 }
 
 /** The reasons, not just how many: a count sends whoever reads the log to
- * the provider to find out what actually went wrong. */
-function describe(failures: SyncResult["failures"]): string {
+ * the provider to find out what broke. */
+function failureSummary(failures: SyncResult["failures"]): string {
   const named = failures
     .slice(0, DESCRIBED_FAILURES)
     .map(({ scope, ref, reason, detail }) => `${scope} ${ref} ${reason} (${detail})`)

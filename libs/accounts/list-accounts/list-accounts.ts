@@ -33,16 +33,13 @@ export interface ListAccountsDeps {
  * active, then `idle` with the error it failed on, which the next success
  * clears.
  *
- * An active row whose delivery pg-boss ended is closed first, the same way
- * `getSync` closes it. Read raw, such a row says "syncing" for good: the
- * dead-letter queue is where the job went and nothing comes back to settle
- * it, so the button never re-enables and the one-active-per-account index
- * holds every later sync out.
+ * An active row whose delivery pg-boss ended is closed first, as `getSync`
+ * closes it: read raw, it says "syncing" for good, and the
+ * one-active-per-account index holds every later sync out.
  */
 export async function listAccounts(deps: ListAccountsDeps, userId: string) {
   const listed = await deps.listTrackedAccountsByUser(userId);
-  // flatMap rather than filter: it narrows the id, which a predicate over
-  // the account does not.
+  // flatMap, not filter: it narrows the id.
   const running = listed.flatMap(({ latestJobId, latestJobStatus }) =>
     isActiveSyncStatus(latestJobStatus) && latestJobId !== null ? [latestJobId] : [],
   );
