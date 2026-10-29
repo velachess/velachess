@@ -128,6 +128,44 @@ describe("fetchChessCom", () => {
     expect(result.games).toEqual([]);
   });
 
+  it("keeps a historical month that 404s as a failure, holding the cursor at it", async () => {
+    // Skipping it would advance the cursor past games nobody fetched, and
+    // the month coming back later would never be read.
+    const requested: string[] = [];
+    const fetch = respondingTo((href) => {
+      requested.push(href);
+      if (href.endsWith("/games/archives"))
+        return jsonResponse({
+          archives: [
+            "https://api.chess.com/pub/player/test-player/games/2023/08",
+            "https://api.chess.com/pub/player/test-player/games/2023/09",
+            "https://api.chess.com/pub/player/test-player/games/2023/10",
+          ],
+        });
+      if (href.endsWith("/2023/09")) return new Response("not found", { status: 404 });
+      return jsonResponse({ games: [] });
+    });
+
+    const cursor: ChessComCursor = { month: "2023/08", lastEndTime: 0 };
+    const result = await fetchChessCom("test-player", cursor, { fetch });
+
+    expect(result.failures).toEqual([
+      {
+        scope: "archive-month",
+        ref: "2023/09",
+        reason: "http-error",
+        retryable: true,
+        detail: "HTTP 404",
+      },
+    ]);
+    expect(result.complete).toBe(false);
+    // August read clean, so the cursor may sit there; never past the gap.
+    expect(result.cursor).toEqual({ month: "2023/08", lastEndTime: 0 });
+    expect(requested).toContain(
+      "https://api.chess.com/pub/player/test-player/games/2023/10",
+    );
+  });
+
   it("a malformed month response becomes an invalid-response failure", async () => {
     const fetch = respondingTo((href) => {
       if (href.endsWith("/games/archives"))
