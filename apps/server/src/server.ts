@@ -147,7 +147,7 @@ export function createApp(deps: ApiDeps) {
     .route(
       "/accounts",
       accountsRoutes({
-        list: buildListAccountsDeps(deps.db),
+        list: buildListAccountsDeps(deps.db, deps.syncQueue),
         games: buildListAccountGamesDeps(deps.db),
         connect: buildImportAccountDeps(deps.db, deps.syncQueue, deps.sync?.fetch),
         sync: buildRequestSyncDeps(deps.db, deps.syncQueue),

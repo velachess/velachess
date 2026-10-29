@@ -20,6 +20,8 @@ import {
 } from "@velachess/infra-platforms";
 import type { Database, TrackedAccount } from "@velachess/infra-db";
 
+const DESCRIBED_FAILURES = 3;
+
 type Tx = Database;
 type Cursor = ChessComCursor | LichessCursor;
 /** This delivery's claim on the row: the `started_at` it wrote. */
@@ -152,8 +154,19 @@ export async function syncAccount(
     });
   });
   if (!fetched.complete) {
-    throw new Error(`sync ${job.id} incomplete (${fetched.failures.length} failures)`);
+    throw new Error(`sync ${job.id} incomplete: ${describe(fetched.failures)}`);
   }
+}
+
+/** The reasons, not just how many: a count sends whoever reads the log to
+ * the provider to find out what actually went wrong. */
+function describe(failures: SyncResult["failures"]): string {
+  const named = failures
+    .slice(0, DESCRIBED_FAILURES)
+    .map(({ scope, ref, reason, detail }) => `${scope} ${ref} ${reason} (${detail})`)
+    .join("; ");
+  const rest = failures.length - DESCRIBED_FAILURES;
+  return rest > 0 ? `${named}; and ${rest} more` : named;
 }
 
 /**

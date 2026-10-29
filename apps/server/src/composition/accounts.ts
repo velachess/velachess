@@ -33,9 +33,14 @@ import type {
 import type { FetchFn } from "@velachess/infra-platforms";
 import type { SyncQueue } from "@velachess/infra-queue";
 
-export function buildListAccountsDeps(db: Database): ListAccountsDeps {
+export function buildListAccountsDeps(
+  db: Database,
+  syncQueue: SyncQueue,
+): ListAccountsDeps {
   return {
     listTrackedAccountsByUser: (userId) => listTrackedAccountsByUser(db, userId),
+    isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
+    abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
   };
 }
 
