@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 
 /**
- * A call that waits for the typing to stop, with the timer and its teardown
- * kept out of the screen. The callback is this render's, so it closes over
- * what the screen knew when the call was scheduled.
- *
  * Local to this domain: `es-toolkit` and `@tanstack/pacer-lite` are both in
  * the tree, but only as someone else's transitive dependency.
  */
@@ -22,8 +18,7 @@ export function useDebouncedCallback<Args extends unknown[]>(
   };
 
   return {
-    /** Read during render: a call still waiting outranks anything that
-     * would overwrite what is being typed. */
+    /** Read during render, where a waiting call outranks a reset. */
     isPending: () => pending.current !== undefined,
     cancel,
     call: (...args: Args) => {

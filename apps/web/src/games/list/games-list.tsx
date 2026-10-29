@@ -95,8 +95,8 @@ function GamesResults({
   );
 }
 
-/** Its own subscription with its own `select`, and always rendered:
- * appearing once the count is known would push the toolbar down. */
+/** Always rendered: appearing once the count is known would push the
+ * toolbar down. */
 function GamesCount({ search }: { search: GamesSearch }) {
   const { i18n } = useLingui();
   const total = useQuery({

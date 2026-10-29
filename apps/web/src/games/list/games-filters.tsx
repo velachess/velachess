@@ -97,12 +97,9 @@ function triggerStyle(isFiltering: boolean): string {
   return "border-primary text-primary hover:text-primary";
 }
 
-/**
- * Out of the flow: counted inline, the badge would resize the trigger with
- * the first choice and the open popover would jump after it. Solid rather
- * than the tinted `info`, which the trigger shows straight through, and
- * ringed in the page's own colour so it reads as sitting on the edge.
- */
+/** Out of the flow, or the first choice resizes the trigger and the open
+ * popover jumps after it. Solid, because the trigger shows straight
+ * through the tinted `info`. */
 function ActiveFilterBadge({ active }: { active: number }) {
   if (active === 0) return null;
 
@@ -148,8 +145,6 @@ function ChoiceGroup({
   );
 }
 
-/** Several at once, so checkboxes rather than chips: the server matches
- * any of them. */
 function TimeControlGroup({
   search,
   onChange,
@@ -218,8 +213,7 @@ function SourceChoice({
     ...SOURCE_OPTIONS,
   ];
 
-  // Only the catalogue's own ids narrow; anything else, `ANY_SOURCE`
-  // included, widens.
+  // Only the catalogue's own ids narrow; `ANY_SOURCE` widens.
   const handleChange = (next: unknown) => {
     const chosen = SOURCE_OPTIONS.find((option) => option.value === next);
     onChange({ source: chosen?.value, page: 1 });

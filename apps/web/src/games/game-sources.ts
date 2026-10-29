@@ -1,7 +1,5 @@
 import { ChessComIcon, FileText, LichessIcon } from "@velachess/ui/icons";
 
-/** The list is the source and the union is read off it, so a filter's
- * options and the presentation map cannot disagree. */
 export const GAME_SOURCE_IDS = ["chess_com", "lichess", "pgn"] as const;
 
 export type GameSource = (typeof GAME_SOURCE_IDS)[number];

@@ -25,23 +25,21 @@ export function GamesSearchBox({
 }) {
   const { i18n } = useLingui();
   const [draft, setDraft] = useState(opponent ?? "");
-  // What this box last asked the URL for, until the URL answers with it.
   const [asked, setAsked] = useState<{ term: string | undefined }>();
 
   const commit = (term: string) => {
     const next = term === "" ? undefined : term;
     setAsked({ term: next });
-    // The first term is a step; refining it is not, or the way back would
-    // walk every pause taken while typing.
+    // The first term is a history step; refining it is not, or the way
+    // back walks every pause taken while typing.
     onChange({ opponent: next, page: 1 }, { replace: opponent !== undefined });
   };
 
   const commitSoon = useDebouncedCallback(commit, DEBOUNCE_MS);
 
-  // Back and forward move the term under the field, and a field still
-  // holding the old one lies about the rows. A commit of this box's own
-  // reaches `opponent` a render or two later and must not read as one, so
-  // it is awaited by name; a keystroke not yet committed outranks both.
+  // Back and forward move the term under the field. A commit of this box's
+  // own reaches `opponent` a render or two later and must not read as one,
+  // so it is awaited by name; an uncommitted keystroke outranks both.
   if (asked !== undefined) {
     if (opponent === asked.term) setAsked(undefined);
   } else if (!commitSoon.isPending() && (opponent ?? "") !== draft) {
