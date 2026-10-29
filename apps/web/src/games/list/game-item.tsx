@@ -128,10 +128,11 @@ export function GameItem({ game }: { game: Game }) {
 
   return (
     // A link, not an onClick: opening a game is navigation, and a keyboard
-    // can reach a link.
+    // can reach a link. Square, because the row is separated by a straight
+    // rule: a rounded hover leaves the corners showing through it.
     <Item
       render={<Link to="/games/$gameId" params={{ gameId: game.id }} />}
-      className="gap-3 rounded-md px-2 py-3 no-underline sm:px-3"
+      className="gap-3 rounded-none px-2 py-3 no-underline sm:px-3"
     >
       <ItemMedia>
         {/* Until static FEN thumbnails exist. */}
