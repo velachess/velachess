@@ -89,7 +89,11 @@ describe("an account with no games", () => {
     landSync(job.id);
 
     expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    // By its own copy, not by role: a toast is a dialog too, and a sync
+    // landing raises one.
+    await waitFor(() =>
+      expect(screen.queryByText("Reading your games")).not.toBeInTheDocument(),
+    );
   });
 
   it("releases the app once the games are in", async () => {
@@ -106,7 +110,9 @@ describe("an account with no games", () => {
     landSync(latestSync().id);
 
     // Nothing closes it: its reason to exist stops being true.
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText("Reading your games")).not.toBeInTheDocument(),
+    );
     expect(await screen.findByText("magnuscarlsen")).toBeInTheDocument();
   });
 });

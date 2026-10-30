@@ -29,9 +29,6 @@ the row — and is null for manually imported PGNs. Disconnecting an account
 deletes the games it imported (manual PGNs stay); deleting a user takes them
 all.
 
-Provider profile metadata is public cache data keyed by platform and username.
-It does not own games, a cursor, or a user identity.
-
 Provider identity is unique by account, source, and external id when one
 exists — each account owns a complete, independent copy of whatever it
 imports. Movetext deduplication is scoped by `(user_id, account_id)` with
@@ -81,10 +78,13 @@ after the account's newest job.
   minute before any retry, as Lichess asks after a `429`.
 - The worker never writes a retryable `failed`: pg-boss owns the retry
   schedule and its exhaustion. A job left active after pg-boss ended its
-  delivery (retries spent, or a worker crash) is closed as `failed` by the
-  next `GET /syncs/:id` or sync request — keeping the error the last pass
-  recorded (`incomplete`), `internal` when it left none — so polling never
-  follows a job nothing runs.
+  delivery (retries spent, expired, cancelled, or a worker crash) is closed
+  as `failed` by the `sync-reconcile` pass — scheduled every minute and run
+  once at worker startup — keeping the error the last pass recorded
+  (`incomplete`), `internal` when it left none. A sync request closes the
+  same row the same way when it arrives first; both read the delivery under
+  a lock, so a revival cannot land between the read and the close. No read
+  closes anything.
 - A job reaching `succeeded` or `failed` — the worker's write or the api's
   abandon — notifies the `sync_job_changed` channel with its id from the same
   transaction, so the api's `GET /syncs/events` stream hears it only once the

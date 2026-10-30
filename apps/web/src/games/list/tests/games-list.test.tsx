@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { addGames } from "../../../test/archive.ts";
@@ -225,21 +225,13 @@ describe("games list", () => {
     expect(screen.queryByText("You played white")).not.toBeInTheDocument();
   });
 
-  it("shows the opponent's cached flag, and nothing when there is none", async () => {
-    addGames(
-      aGame({
-        blackName: "flagged",
-        blackIdentity: { avatarUrl: null, flair: null, countryCode: "BR" },
-      }),
-      aGame({ blackName: "unflagged" }),
-    );
+  it("draws the opponent from their name alone, with no picture", async () => {
+    addGames(aGame({ blackName: "gothamchess" }));
 
     await renderApp();
 
-    await screen.findByText("flagged");
-    expect(screen.getByRole("img", { name: "Brazil" })).toBeInTheDocument();
-    // One game carries a country; the other must not borrow it.
-    expect(screen.getAllByRole("img", { name: "Brazil" })).toHaveLength(1);
+    const row = (await screen.findByText("gothamchess")).closest("div")!;
+    expect(row.querySelectorAll("img")).toHaveLength(0);
   });
 
   it("links each row to its review", async () => {
@@ -250,6 +242,48 @@ describe("games list", () => {
     // A link, so a keyboard can reach it.
     const link = await screen.findByRole("link", { name: /linked-opponent/ });
     expect(link).toHaveAttribute("href", "/games/game-1");
+  });
+
+  it("says how many games match, in the header, next to the title", async () => {
+    addGames(...Array.from({ length: 30 }, () => aGame()));
+
+    await renderApp();
+
+    expect(await screen.findByText("30 games")).toBeInTheDocument();
+  });
+
+  it("does not stand the previous filter's rows in for the ones still loading", async () => {
+    addGames(
+      aGame({ result: "1-0", perspective: "white", blackName: "beat-them" }),
+      aGame({ result: "0-1", perspective: "white", blackName: "lost-to-them" }),
+    );
+
+    const { user } = await renderApp();
+    expect(await screen.findByText("lost-to-them")).toBeInTheDocument();
+
+    // Never answered, so mid-flight can be read rather than raced.
+    server.use(http.get("/api/games", () => delay("infinite")));
+
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    await user.click(await screen.findByRole("button", { name: "Win" }));
+
+    expect(await screen.findByLabelText("Loading games")).toBeInTheDocument();
+    expect(screen.queryByText("lost-to-them")).toBeNull();
+    expect(screen.queryByText("beat-them")).toBeNull();
+  });
+
+  it("keeps the rows in place while the next page loads", async () => {
+    addGames(...Array.from({ length: 30 }, () => aGame({ blackName: "an-opponent" })));
+
+    const { user } = await renderApp();
+    expect(await screen.findByText("1–25 of 30 games")).toBeInTheDocument();
+
+    server.use(http.get("/api/games", () => delay("infinite")));
+
+    await user.click(screen.getByRole("link", { name: "Go to next page" }));
+
+    expect(screen.getAllByText("an-opponent").length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText("Loading games")).toBeNull();
   });
 
   it("lists the library and offers both import paths with no account connected", async () => {

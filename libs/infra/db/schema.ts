@@ -267,37 +267,6 @@ export const syncJobs = pgTable(
   ],
 );
 
-/**
- * Public provider metadata for any player, cached under the handle rather
- * than under whoever is connected to it, so an opponent is not a tracked
- * account and two users sharing an opponent share one refresh budget.
- *
- * Keyed `(platform, username)` globally: the metadata is public, so unlike
- * `tracked_accounts` there is no per-user ownership.
- */
-export const providerProfiles = pgTable(
-  "provider_profiles",
-  {
-    platform: platformEnum("platform").notNull(),
-    // Lowercase, like tracked_accounts.username — both providers'
-    // usernames are case-insensitive and the key must not fork on case.
-    username: text("username").notNull(),
-    avatarUrl: text("avatar_url"),
-    /** Lichess only, an asset id like `people.santa-claus` rather than a
-     * URL. */
-    flair: text("flair"),
-    /** ISO 3166-1 alpha-2, uppercase. Neither provider reports it on a
-     * game, so a flag can only come from here. */
-    countryCode: text("country_code"),
-    /** Stamped on every attempt, successful or not, so a dead endpoint is
-     * retried at the refresh cadence and not on every game open. */
-    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("provider_profiles_platform_username").on(table.platform, table.username),
-  ],
-);
-
 export const games = pgTable(
   "games",
   {
@@ -361,7 +330,6 @@ export const games = pgTable(
 export type TrackedAccount = typeof trackedAccounts.$inferSelect;
 export type NewTrackedAccount = typeof trackedAccounts.$inferInsert;
 export type SyncJob = typeof syncJobs.$inferSelect;
-export type ProviderProfile = typeof providerProfiles.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
 export type User = typeof users.$inferSelect;

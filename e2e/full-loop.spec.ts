@@ -61,10 +61,10 @@ it("full loop: HTTP in, worker in the background, a synced library out", async (
   const { syncId } = account;
   if (!syncId) throw new Error("expected a first sync on a fresh connect");
   const synced = await poll(async () => {
-    const job = await parseResponse(app.api.syncs[":id"].$get({ param: { id: syncId } }));
-    return job.status === "succeeded" ? job : null;
+    const [listed] = await parseResponse(app.api.accounts.$get());
+    return listed?.syncStatus === "succeeded" ? listed : null;
   }, 60_000);
-  expect(synced.progress.gamesInserted).toBe(2);
+  expect(synced.lastSyncError).toBeNull();
 
   const library = await parseResponse(app.api.games.$get({ query: {} }));
   expect(library.games).toHaveLength(2);

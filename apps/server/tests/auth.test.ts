@@ -430,8 +430,7 @@ describe("ownership isolation", () => {
     expect(before.accounts).toEqual([
       expect.objectContaining({
         id: alice.account.id,
-        syncStatus: "idle",
-        activeSyncId: null,
+        syncStatus: "succeeded",
       }),
     ]);
 
@@ -455,24 +454,11 @@ describe("ownership isolation", () => {
     ).toEqual([bob.account.id]);
   });
 
-  it("a stranger's sync job reads as unknown, and syncing everything stays per user", async () => {
+  it("syncing everything stays per user, and so does what each list reports", async () => {
     const alice = (await harness.signUp("sync-alice@test.local")).app;
     const bob = (await harness.signUp("sync-bob@test.local")).app;
     const aliceAccount = await connectLooper(alice);
     const bobAccount = await connectLooper(bob);
-    const aliceJob = () =>
-      parseResponse(alice.api.syncs[":id"].$get({ param: { id: aliceAccount.syncId } }));
-    const queued = await aliceJob();
-    expect(queued).toMatchObject({
-      id: aliceAccount.syncId,
-      accountId: aliceAccount.id,
-      status: "queued",
-    });
-
-    const theirs = await bob.request(`/syncs/${aliceAccount.syncId}`);
-    const unknown = await bob.request(`/syncs/${randomUUID()}`);
-    expect(theirs.status).toBe(404);
-    expect(await theirs.json()).toEqual(await unknown.json());
 
     expect(await parseResponse(bob.api.accounts.sync.$post())).toEqual({
       syncIds: [bobAccount.syncId],
@@ -480,7 +466,14 @@ describe("ownership isolation", () => {
     expect(await parseResponse(alice.api.accounts.sync.$post())).toEqual({
       syncIds: [aliceAccount.syncId],
     });
-    expect(await aliceJob()).toEqual(queued);
+
+    for (const app of [alice, bob]) {
+      const listed = await parseResponse(app.api.accounts.$get());
+      expect(listed.map(({ id }) => id)).toEqual(
+        app === alice ? [aliceAccount.id] : [bobAccount.id],
+      );
+      expect(listed[0]?.syncStatus).toBe("queued");
+    }
   });
 
   it("the library holds only the caller's games, under every filter and page", async () => {

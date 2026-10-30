@@ -43,9 +43,6 @@ export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
       <PlayerStrip
         name={top.name}
         rating={top.rating}
-        avatarSrc={top.avatarUrl}
-        flairSrc={top.flair}
-        countryCode={top.countryCode}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 
@@ -71,9 +68,6 @@ export function BoardPane({ game, orientation, top, bottom }: BoardPaneProps) {
       <PlayerStrip
         name={bottom.name}
         rating={bottom.rating}
-        avatarSrc={bottom.avatarUrl}
-        flairSrc={bottom.flair}
-        countryCode={bottom.countryCode}
         className={cn(STRIP_INSET, BOARD_WIDTH)}
       />
 

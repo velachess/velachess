@@ -9,7 +9,7 @@ screens, routes, translated copy, and product-specific workflows belong in
 
 - Internal: `@velachess/chess` is used by chess-board types.
 - External runtime: React, Base UI, lucide-react, react-chessboard, Recharts,
-  Tailwind/shadcn styling utilities, and flag-icons.
+  and Tailwind/shadcn styling utilities.
 
 ## Usage / Development
 

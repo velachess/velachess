@@ -1,6 +1,7 @@
 import {
   ESTIMATED_MOVES,
   TIME_CLASS_CEILINGS,
+  type GameSource,
   type TimeClass,
 } from "@velachess/infra-platforms";
 import { and, count, eq, sql, type SQL } from "drizzle-orm";
@@ -15,7 +16,9 @@ export interface GameFilters {
   color?: "white" | "black" | undefined;
   /** From your side of the board, not the scoresheet's. */
   outcome?: "win" | "loss" | "draw" | undefined;
-  timeClass?: TimeClass | undefined;
+  timeClasses?: readonly TimeClass[] | undefined;
+  source?: GameSource | undefined;
+  opponent?: string | undefined;
 }
 
 export interface GamePage {
@@ -63,14 +66,38 @@ function outcomePredicate(
     or ((${perspective}) = 'black' and ${games.result} = ${theirResult}))`;
 }
 
+/**
+ * `opposite(perspective)` in SQL; a game with no resolved seat has no
+ * opponent, so both names answer. `apps/server/tests/library-filters.test.ts`
+ * holds the two together.
+ */
+function opponentPredicate(opponent: string, perspective: SQL): SQL {
+  // `%` and `_` are ILIKE's own wildcards.
+  const pattern = `%${opponent.replace(/[\\%_]/g, "\\$&")}%`;
+
+  return sql`(case (${perspective})
+      when 'white' then ${games.blackName}
+      when 'black' then ${games.whiteName}
+    end ilike ${pattern}
+    or ((${perspective}) is null
+      and (${games.whiteName} ilike ${pattern} or ${games.blackName} ilike ${pattern})))`;
+}
+
 function gameFilterConditions(userId: string, filters: GameFilters): SQL[] {
   const conditions: SQL[] = [eq(games.userId, userId)];
+  const timeClasses = filters.timeClasses ?? [];
 
   if (filters.color) conditions.push(sql`(${perspectiveSql}) = ${filters.color}`);
   if (filters.outcome) {
     conditions.push(outcomePredicate(filters.outcome, perspectiveSql));
   }
-  if (filters.timeClass) conditions.push(timeClassPredicate(filters.timeClass));
+  if (timeClasses.length > 0) {
+    conditions.push(sql`(${sql.join(timeClasses.map(timeClassPredicate), sql` or `)})`);
+  }
+  if (filters.source) conditions.push(eq(games.source, filters.source));
+  if (filters.opponent) {
+    conditions.push(opponentPredicate(filters.opponent, perspectiveSql));
+  }
 
   return conditions;
 }

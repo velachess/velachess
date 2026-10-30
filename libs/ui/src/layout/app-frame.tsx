@@ -58,11 +58,7 @@ export function AppFrame({
         className="max-md:*:data-[slot=resizable-handle]:hidden! max-md:*:data-[slot=sidebar-panel]:hidden!"
       >
         <SidebarPanel>{nav}</SidebarPanel>
-        <ResizableHandle
-          withHandle
-          aria-label={resizeLabel}
-          className="bg-sidebar-border"
-        />
+        <ResizableHandle withHandle aria-label={resizeLabel} />
         <ResizablePanel id="content" className="flex min-w-0 flex-col">
           {banner}
           <main

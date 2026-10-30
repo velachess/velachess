@@ -29,7 +29,6 @@
     "@tanstack/react-table": "^9.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "flag-icons": "^7.5.0",
     "lucide-react": "^1.52.0",
     "react-chessboard": "^5.12.1",
     "react-easy-crop": "^6.2.3",
