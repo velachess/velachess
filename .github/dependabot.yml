@@ -29,6 +29,13 @@ updates:
       lingui:
         patterns:
           - "@lingui/*"
+      # better-auth pins @better-auth/core exactly while each adapter
+      # peers on the matching core, so bumping one alone lands two cores
+      # (#260). They only move together.
+      better-auth:
+        patterns:
+          - "better-auth"
+          - "@better-auth/*"
 
     ignore:
       # Pinned to an exact 6.6.0 in apps/site, and held there. The 6.7.0
