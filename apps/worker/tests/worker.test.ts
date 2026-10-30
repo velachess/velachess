@@ -2,7 +2,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  abandonSyncJob,
   createSyncJob,
   createUser,
   deleteTrackedAccountAndGames,
@@ -15,8 +14,8 @@ import {
   insertTrackedAccount,
 } from "@velachess/infra-db";
 import {
-  getSync,
   listGamesWithStatus,
+  reconcileSyncs,
   syncAccount,
   type SyncDeps,
 } from "@velachess/accounts";
@@ -32,7 +31,10 @@ import {
 import { logger } from "@velachess/infra-logger";
 import { QUEUES } from "@velachess/infra-queue";
 
-import { buildSyncAccountDeps } from "../src/composition/accounts.ts";
+import {
+  buildReconcileSyncsDeps,
+  buildSyncAccountDeps,
+} from "../src/composition/accounts.ts";
 import { Worker } from "../src/worker.ts";
 
 let h: LoopHarness;
@@ -125,17 +127,8 @@ function multiMonthFetch(opts: { failMonth?: string } = {}) {
 const jobOf = (job: { id: string; userId: string }) =>
   getSyncJobForUser(h.db, job.userId, job.id);
 
-/** As `GET /syncs/:id` answers it, closing one pg-boss ended. */
-const jobAsPolled = (job: { id: string; userId: string }) =>
-  getSync(
-    {
-      getSyncJobForUser: (u, id) => getSyncJobForUser(h.db, u, id),
-      isSyncDeliveryLive: (id) => h.syncQueue.isLive(h.db, id),
-      abandonSyncJob: (id) => abandonSyncJob(h.db, id),
-    },
-    job.userId,
-    job.id,
-  );
+/** The worker's reconciliation pass, as its schedule runs it. */
+const reconcile = () => reconcileSyncs(buildReconcileSyncsDeps(h.db, h.syncQueue));
 
 const signalHonoringFetch: typeof fetch = async (input, init) => {
   init?.signal?.throwIfAborted();
@@ -240,7 +233,7 @@ describe("sync deliveries", () => {
     expect(await gamesWithStatus(job.userId, job.accountId)).toHaveLength(2);
   });
 
-  it("an incomplete pass is retried; once the retries are spent, polling closes it", async () => {
+  it("an incomplete pass is retried; once the retries are spent, reconciliation closes it", async () => {
     const job = await newSyncJob();
     const failing = { fetch: brokenMonth };
 
@@ -256,11 +249,12 @@ describe("sync deliveries", () => {
     }
     expect(await bossStateOf(job)).toMatchObject({ state: "failed" });
 
-    // The worker never decides "last attempt": the next read of a job whose
-    // delivery pg-boss ended closes it, keeping the reason.
-    expect(await jobAsPolled(job)).toMatchObject({
+    // The handler never decides "last attempt": the pass that sweeps jobs
+    // whose delivery pg-boss ended closes it, keeping the reason.
+    expect(await reconcile()).toBe(1);
+    expect(await jobOf(job)).toMatchObject({
       status: "failed",
-      error: { code: "incomplete", retryable: true },
+      errorCode: "incomplete",
     });
     // No cursor for a pass that never completed, and nothing saved twice.
     expect((await getTrackedAccount(h.db, job.accountId))?.syncCursor).toBeNull();
@@ -368,9 +362,11 @@ describe("sync deliveries", () => {
     expect(await jobOf(job)).toMatchObject({ status: "succeeded", gamesInserted: 2 });
   });
 
-  it("a dead-lettered sync retried by an operator runs again and recovers", async () => {
+  it("a dead-lettered sync retried by an operator, before reconciliation, recovers", async () => {
     // The dashboard's "retry" keeps the sync job's id, so the row picks up
-    // where it left off once the provider answers.
+    // where it left off once the provider answers. Only while the row is
+    // still active: once the pass has closed it, the delivery finds a
+    // settled job and does nothing.
     const job = await newSyncJob();
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const delivery = await deliver(job);
@@ -423,14 +419,15 @@ describe("sync deliveries", () => {
     await h.boss.complete(QUEUES.sync, redriven);
   });
 
-  it("retrying a job polling already closed does nothing", async () => {
+  it("retrying a job reconciliation already closed does nothing", async () => {
     const job = await newSyncJob();
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const delivery = await deliver(job);
       await expect(sync({ fetch: brokenMonth }, delivery)).rejects.toThrow(/incomplete/);
       await h.boss.fail(QUEUES.sync, delivery);
     }
-    expect(await jobAsPolled(job)).toMatchObject({ status: "failed" });
+    await reconcile();
+    expect(await jobOf(job)).toMatchObject({ status: "failed" });
 
     await h.boss.retry(QUEUES.sync, job.id);
     await expect(sync(fixture, await deliver(job))).resolves.toBeUndefined();

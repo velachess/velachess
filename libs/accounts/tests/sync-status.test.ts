@@ -1,9 +1,8 @@
 // @vitest-environment node
 /**
- * The one definition of "a sync is still on its way", now that
- * `get-sync`, `request-sync` and `list-accounts` all read it from here.
- * Dropping a status from the list silently reported `idle` for a retrying
- * job and left a stale one un-abandoned, and nothing failed.
+ * The one definition of "a sync is still on its way", which
+ * `request-sync` and `reconcile-syncs` both read from here. Dropping a
+ * status from the list left a stale job un-abandoned, and nothing failed.
  */
 import { syncJobErrorEnum, syncJobStatusEnum } from "@velachess/infra-db";
 import { describe, expect, it } from "vitest";

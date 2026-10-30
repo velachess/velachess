@@ -7,7 +7,7 @@
  */
 
 export { getGameForReview } from "./get-game/get-game.ts";
-export type { GetGameDeps, SeatIdentity } from "./get-game/get-game.ts";
+export type { GetGameDeps } from "./get-game/get-game.ts";
 
 export { openLibrary } from "./list-games/list-games.ts";
 export type { Library, ListGamesDeps } from "./list-games/list-games.ts";

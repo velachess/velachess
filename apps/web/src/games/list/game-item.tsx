@@ -1,9 +1,8 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react";
 import { Link } from "@tanstack/react-router";
 
-import { gameOutcomeFor, opposite, timeClassOf, type TimeClass } from "@velachess/chess";
+import { gameOutcomeFor, opposite, timeClassOf } from "@velachess/chess";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { Badge } from "@velachess/ui/components/badge";
 import {
@@ -14,18 +13,11 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@velachess/ui/components/item";
-import {
-  BookOpen,
-  ChevronRight,
-  Clock3,
-  Hourglass,
-  Timer,
-  Zap,
-} from "@velachess/ui/icons";
+import { BookOpen, ChevronRight } from "@velachess/ui/icons";
 
 import { GAME_SOURCES } from "../game-sources.ts";
-import { flairImageOf } from "../import/index.ts";
 import { SourceMark } from "../source-mark.tsx";
+import { TIME_CLASS_MARKS } from "./time-class-marks.tsx";
 import { formatTimeControl } from "./time-control.ts";
 import type { Game } from "./queries.ts";
 
@@ -35,22 +27,9 @@ const GAME_ITEM_COPY = {
   loss: msg`Loss`,
   draw: msg`Draw`,
   unfinished: msg`Unfinished`,
-  bullet: msg`Bullet`,
-  blitz: msg`Blitz`,
-  rapid: msg`Rapid`,
-  classical: msg`Classical`,
   playedWhite: msg`You played white`,
   playedBlack: msg`You played black`,
 } as const;
-
-/** Chess has no conventional glyph for a time control, so the choice is
- * made once here rather than at each use. */
-const TIME_CLASSES: Record<TimeClass, { label: MessageDescriptor; Mark: typeof Zap }> = {
-  bullet: { label: GAME_ITEM_COPY.bullet, Mark: Zap },
-  blitz: { label: GAME_ITEM_COPY.blitz, Mark: Timer },
-  rapid: { label: GAME_ITEM_COPY.rapid, Mark: Clock3 },
-  classical: { label: GAME_ITEM_COPY.classical, Mark: Hourglass },
-};
 
 const OUTCOME_BADGE = {
   win: { label: GAME_ITEM_COPY.win, variant: "success" },
@@ -91,7 +70,7 @@ function TimeControl({ game }: { game: Game }) {
   );
   if (!timeClass) return null;
 
-  const { label, Mark } = TIME_CLASSES[timeClass];
+  const { label, Mark } = TIME_CLASS_MARKS[timeClass];
   const clock = formatTimeControl(
     game.timeControlInitialSeconds,
     game.timeControlIncrementSeconds,
@@ -122,17 +101,11 @@ function Opponent({ game, side }: { game: Game; side: "white" | "black" }) {
   const { i18n } = useLingui();
   const white = side === "white";
   const rating = white ? game.whiteRating : game.blackRating;
-  const { avatarUrl, flair, countryCode } = white
-    ? game.whiteIdentity
-    : game.blackIdentity;
 
   return (
     <PlayerStrip
       name={white ? game.whiteName : game.blackName}
       rating={rating === null ? undefined : i18n.number(rating)}
-      avatarSrc={avatarUrl ?? undefined}
-      flairSrc={flair ? flairImageOf(flair) : undefined}
-      countryCode={countryCode ?? undefined}
     />
   );
 }
@@ -148,10 +121,11 @@ export function GameItem({ game }: { game: Game }) {
 
   return (
     // A link, not an onClick: opening a game is navigation, and a keyboard
-    // can reach a link.
+    // can reach a link. Square, or the hover's corners show the rule under
+    // the row straight through.
     <Item
       render={<Link to="/games/$gameId" params={{ gameId: game.id }} />}
-      className="gap-3 rounded-md px-2 py-3 no-underline sm:px-3"
+      className="gap-3 rounded-none px-2 py-3 no-underline sm:px-3"
     >
       <ItemMedia>
         {/* Until static FEN thumbnails exist. */}

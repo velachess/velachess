@@ -9,12 +9,11 @@ export const gameSourceSchema = z.enum(["chess_com", "lichess", "pgn"]);
 export type GameSource = z.infer<typeof gameSourceSchema>;
 
 /**
- * `gameSourceSchema` minus `"pgn"`, a paste having no archive to walk and
- * no profile to ask about.
+ * `gameSourceSchema` minus `"pgn"`, a paste having no archive to walk.
  *
- * Canonical: `tracked_accounts.platform` and `provider_profiles.platform`
- * are built from `.options`, and every module that names the concept
- * imports this instead of writing the union again. `GameSource` answers
+ * Canonical: `tracked_accounts.platform` is built from `.options`, and
+ * every module that names the concept imports this instead of writing the
+ * union again. `GameSource` answers
  * "where did this game come from"; this answers "whose archive can we
  * walk". Two different questions, which is why both exist.
  */

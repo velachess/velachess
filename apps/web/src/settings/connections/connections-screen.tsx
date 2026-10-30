@@ -47,12 +47,12 @@ import { GAME_SOURCES } from "../../games/game-sources.ts";
 import { SourceMark } from "../../games/source-mark.tsx";
 import {
   ConnectAccount,
-  isSyncInProgress,
+  isSyncActive,
   SOURCE_ORDER,
   trackedAccountsQuery,
   useDisconnectAccount,
+  SYNC_RETRY_IN,
   useSyncAccount,
-  useSyncSettlementToast,
   type SourceId,
   type TrackedAccount,
 } from "../../games/import/index.ts";
@@ -88,8 +88,6 @@ const CONNECTIONS_COPY = {
   disconnectFailedTitle: msg`Couldn't remove the connection`,
   disconnectFailedDescription: msg`Try again in a moment.`,
 } as const;
-
-const retryIn = msg`{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}`;
 
 const CONNECTIONS_VIEW_KIND = {
   LOADING: "loading",
@@ -309,17 +307,16 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
     });
   };
 
-  const { watch } = useSyncSettlementToast();
   const sync = useSyncAccount({
     onTooSoon: (retryAfterSeconds) => {
       toast.add({
         id: "sync-account-too-soon",
         type: "info",
         title: i18n._(CONNECTIONS_COPY.tooSoon),
-        description: i18n._({
-          ...retryIn,
-          values: { seconds: retryAfterSeconds },
-        }),
+        description:
+          retryAfterSeconds === null
+            ? i18n._(CONNECTIONS_COPY.retry)
+            : i18n._({ ...SYNC_RETRY_IN, values: { seconds: retryAfterSeconds } }),
       });
     },
     onError: () => {
@@ -334,15 +331,11 @@ function ConnectedRow({ account }: { account: TrackedAccount }) {
 
   // The server's status, not this row's, so a held job reads as running
   // after a reload.
-  const syncing = isSyncInProgress(sync.isPending, [account]);
+  const syncing = sync.isPending || isSyncActive(account.syncStatus);
   const label = syncing ? CONNECTIONS_COPY.running : CONNECTIONS_COPY.sync;
 
   const handleSync = () => {
-    sync.mutate(account.id, {
-      onSuccess: (answer) => {
-        if (!("retryAfterSeconds" in answer)) watch([answer.syncId]);
-      },
-    });
+    sync.mutate(account.id);
   };
 
   return (

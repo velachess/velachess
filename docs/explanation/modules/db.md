@@ -34,8 +34,6 @@ users ── sessions         cascade   Better Auth session, one row per browser
 users ── auth_accounts    cascade   password hash or external identity link
 verifications                       short-lived proofs, keyed by identifier
 auth_rate_limits                    Better Auth's rate-limit store, keyed by key
-provider_profiles                   avatar + flair + country per
-                                    (platform, username), no owner
 ```
 
 Deleting an account is `deleteUser`, run as Better Auth's `beforeDelete`
@@ -45,8 +43,7 @@ credential to retry with. It is one transaction that locks the user's
 `sync_jobs` rows first, the order sync writers take them, then deletes the
 `users` row and lets the cascades take everything above. Reset-password
 `verifications` carry the user id as a value rather than a key, so the same
-transaction deletes them by value. `provider_profiles` has no owner and is
-left alone.
+transaction deletes them by value.
 
 The API's own rate limiter is Redis-backed
 (`apps/server/src/middleware/rate-limit.ts`, see `docs/explanation/apps/api.md`),
@@ -78,17 +75,6 @@ keeps the unique constraint a plain column pair
 time only — the two providers' cursors are structurally different shapes,
 and this package never reads inside either one, only stores and returns it
 opaquely.
-
-`provider_profiles` holds the same kind of key but nobody's ownership:
-avatar, flair and country are public metadata about a _player_, so the
-table has no `user_id` — an opponent gets a row because a game was opened
-against them, not because anyone tracked them, and two users reviewing
-games against the same opponent share one row and one refresh budget. The
-games list reads the table in one batch per page and never writes it: only
-opening a game spends a provider request.
-`fetched_at` is stamped on every attempt, failed ones included: it is a
-refresh cursor, not a success log, so a dead provider is retried at the
-cadence instead of on every game open.
 
 `games` has no normalized `players`/`events`/`sites` tables. Real-world
 comparison (En Croissant's SQLite schema) normalizes those because it
@@ -217,9 +203,8 @@ sync jobs and their notifications (`sync-jobs.test.ts`,
 
 ```
 schema.ts                    users, sessions, auth_accounts, verifications,
-                             auth_rate_limits, tracked_accounts,
-                             provider_profiles, games, sync_jobs — enums,
-                             indexes, inferred types
+                             auth_rate_limits, tracked_accounts, games,
+                             sync_jobs — enums, indexes, inferred types
 client.ts                    module-scope singleton + exported schema
 advisory-lock.ts             sessionAdvisoryLock (pg_try_advisory_lock)
 queries/
@@ -231,7 +216,6 @@ queries/
   pagination.ts              withPagination
   perspective.ts             perspectiveSql — which side was you
   users.ts                   countUsers, markEmailVerified, writeAvatarState, createUser, ensureUser
-  provider-profiles.ts       isProfileFresh, findProviderProfiles, upsertProviderProfile
 drizzle.config.ts            schema/out paths, dbCredentials from DATABASE_URL
 migrations/                  NNNN_name.sql
 tests/

@@ -1,6 +1,6 @@
 ---
 name: game-ingestion
-description: Change or debug VelaChess public-game import and account sync across Chess.com, Lichess, PGN normalization, provider cursors, tracked-account ownership, game identity, deduplication, rate limits, profiles, partial failures, and idempotency. Use for provider clients, normalized game storage, sync routes/workers, or ingestion fixtures.
+description: Change or debug VelaChess public-game import and account sync across Chess.com, Lichess, PGN normalization, provider cursors, tracked-account ownership, game identity, deduplication, rate limits, partial failures, and idempotency. Use for provider clients, normalized game storage, sync routes/workers, or ingestion fixtures.
 ---
 
 # Work on game ingestion

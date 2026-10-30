@@ -10,7 +10,7 @@
     "i18n:compile": "lingui compile --typescript"
   },
   "dependencies": {
-    "@lingui/core": "^6.9.0",
+    "@lingui/core": "^6.10.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-email": "6.11.3",
@@ -18,7 +18,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@lingui/cli": "^6.9.0",
+    "@lingui/cli": "^6.10.1",
     "@types/react": "^19.3.0"
   },
   "type": "module",

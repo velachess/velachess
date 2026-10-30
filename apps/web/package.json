@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lingui/core": "^6.9.0",
-    "@lingui/react": "^6.9.0",
+    "@lingui/core": "^6.10.1",
+    "@lingui/react": "^6.10.1",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-query": "^5.104.5",
     "@tanstack/react-router": "^1.170.45",
@@ -36,11 +36,11 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.6",
-    "@lingui/babel-plugin-lingui-macro": "^6.9.0",
-    "@lingui/cli": "^6.9.0",
-    "@lingui/conf": "^6.9.0",
-    "@lingui/vite-plugin": "^6.9.0",
+    "@babel/core": "^8.0.9",
+    "@lingui/babel-plugin-lingui-macro": "^6.10.1",
+    "@lingui/cli": "^6.10.1",
+    "@lingui/conf": "^6.10.1",
+    "@lingui/vite-plugin": "^6.10.1",
     "@rolldown/plugin-babel": "^0.2.4",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
@@ -54,7 +54,7 @@
     "@velachess/fixtures": "workspace:*",
     "@velachess/server": "workspace:*",
     "@vitejs/plugin-react": "^6.1.1",
-    "fake-indexeddb": "^6.2.5",
+    "fake-indexeddb": "^6.2.6",
     "msw": "^3.0.3",
     "vite": "^8.3.4"
   }

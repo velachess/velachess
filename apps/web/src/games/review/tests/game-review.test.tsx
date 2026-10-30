@@ -1,16 +1,7 @@
-import { fireEvent, screen, within } from "@testing-library/react";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { addGames, stageMovetext, stageSeatIdentities } from "../../../test/archive.ts";
+import { addGames, stageMovetext } from "../../../test/archive.ts";
 import { deviceHasImported } from "../../../test/device.ts";
 import { GAME_SANS, ME, aGame, aGradedPly } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
@@ -94,14 +85,10 @@ function stageRecoverableAnalysis(moves: GradedPly[]) {
   };
 }
 
-const openGame = async (
-  moves?: GradedPly[],
-  identities?: Parameters<typeof stageSeatIdentities>[1],
-) => {
+const openGame = async (moves?: GradedPly[]) => {
   const game = aGame();
   addGames(game);
   if (moves) stageAnalysis(moves);
-  if (identities) stageSeatIdentities(game.id, identities);
   const rendered = await renderApp({ path: `/games/${game.id}` });
   return { game, ...rendered };
 };
@@ -482,57 +469,14 @@ describe("game header", () => {
   });
 });
 
-/** Each seat's provider picture, and initials for a seat nobody could
- * resolve. */
-describe("provider identity on the board", () => {
-  const MY_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/461825478.test.jpg";
-  const MY_FLAIR = "people.santa-claus-light-skin-tone";
-  const OPPONENT_AVATAR = "https://images.chesscomfiles.com/uploads/v1/user/rival.jpg";
-
-  beforeAll(() => {
-    // jsdom loads no resources, so base-ui's Avatar waits forever on a
-    // preload that never fires. Make it say what a browser reports.
-    vi.stubGlobal(
-      "Image",
-      class {
-        onload: (() => void) | null = null;
-        onerror: (() => void) | null = null;
-        complete = true;
-        naturalWidth = 64;
-      },
-    );
-  });
-
-  afterAll(() => {
-    vi.unstubAllGlobals();
-  });
-
+/** A seat is its name and its rating: no picture, nothing remote. */
+describe("player presentation on the board", () => {
   beforeEach(() => {
     deviceHasImported();
     vi.mocked(analyzeGameInBrowser).mockReset();
   });
 
-  it("shows each player's own picture beside their name", async () => {
-    await openGame(gradedPlies(), {
-      white: { avatarUrl: MY_AVATAR, flair: MY_FLAIR },
-      black: { avatarUrl: OPPONENT_AVATAR },
-    });
-
-    const board = await screen.findByRole("region", { name: "Board" });
-
-    const mine = within(board).getByText(ME).closest("div")!;
-    expect(
-      [...mine.querySelectorAll("img")].map((image) => image.getAttribute("src")),
-    ).toEqual([MY_AVATAR, `https://lichess1.org/assets/flair/img/${MY_FLAIR}.webp`]);
-
-    const theirs = within(board).getByText("gothamchess").closest("div")!;
-    const sources = [...theirs.querySelectorAll("img")].map((image) =>
-      image.getAttribute("src"),
-    );
-    expect(sources).toEqual([OPPONENT_AVATAR]);
-  });
-
-  it("leaves a seat with no resolvable profile on initials alone", async () => {
+  it("draws both seats from their names, with no picture", async () => {
     await openGame(gradedPlies());
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -540,19 +484,6 @@ describe("provider identity on the board", () => {
       const strip = within(board).getByText(name).closest("div")!;
       expect(strip.querySelectorAll("img")).toHaveLength(0);
     }
-  });
-
-  it("hides the flair when its asset fails to load", async () => {
-    // A 404 must not leave a broken-image glyph.
-    await openGame(gradedPlies(), { white: { flair: MY_FLAIR } });
-
-    const board = await screen.findByRole("region", { name: "Board" });
-    const strip = within(board).getByText(ME).closest("div")!;
-    const flair = [...strip.querySelectorAll("img")].at(-1)!;
-
-    fireEvent(flair, new Event("error"));
-
-    expect(flair).not.toBeVisible();
   });
 });
 

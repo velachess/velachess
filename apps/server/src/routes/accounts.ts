@@ -51,6 +51,17 @@ const ACCOUNT_NOT_FOUND_ERROR = "account not found";
 export const ACCOUNT_PLATFORM = ["chess_com", "lichess"] as const;
 /** Guarded alongside `ACCOUNT_PLATFORM`. */
 export const SYNC_JOB_ERROR = ["not-found", "incomplete", "internal"] as const;
+/** Guarded alongside `ACCOUNT_PLATFORM`. */
+export const SYNC_JOB_STATUS = [
+  "queued",
+  "running",
+  "retrying",
+  "succeeded",
+  "failed",
+] as const;
+/** `idle` is this endpoint's own word for an account with no job yet; every
+ * other value is the newest job's own status. */
+const TRACKED_SYNC_STATUS = [...SYNC_JOB_STATUS, "idle"] as const;
 
 const createAccountSchema = z.object({
   platform: z.enum(ACCOUNT_PLATFORM),
@@ -117,9 +128,8 @@ const trackedAccountSchema = z.object({
   username: z.string(),
   lastSyncedAt: z.string().nullable(),
   syncStatus: z
-    .enum(["queued", "running", "retrying", "idle"])
-    .describe("The active sync job's status, or idle when none is active"),
-  activeSyncId: z.string().uuid().nullable(),
+    .enum(TRACKED_SYNC_STATUS)
+    .describe("The newest sync job's status, or idle when the account has none"),
   lastSyncError: z
     .enum(SYNC_JOB_ERROR)
     .nullable()
@@ -146,7 +156,7 @@ const listAccountsRoute = createRoute({
 
 const syncAcceptedSchema = z.object({
   syncId: z.string().uuid(),
-  status: z.enum(["queued", "running", "retrying", "succeeded", "failed"]),
+  status: z.enum(SYNC_JOB_STATUS),
 });
 
 const rateLimitedSchema = errorResponseSchema.extend({
@@ -162,7 +172,7 @@ const syncAllAccountsRoute = createRoute({
   path: "/sync",
   summary: "Schedule a sync of every account this user tracks",
   description:
-    "One request for every tracked account: a cooldown or an already-active job on one of them is folded in silently, so this answers only the jobs actually now in flight. An empty list is a valid answer — there is nothing new to watch. Follow each id with GET /syncs/{id} or the SSE stream.",
+    "One request for every tracked account: a cooldown or an already-active job on one of them is folded in silently, so this answers only the jobs actually now in flight. An empty list is a valid answer — there is nothing new to watch. Each account's progress reads from GET /accounts.",
   responses: {
     202: {
       description: "Every job now in flight for this user, new or already running",
@@ -176,7 +186,7 @@ const syncAccountRoute = createRoute({
   path: "/{id}/sync",
   summary: "Schedule a sync of this account",
   description:
-    "Records a sync job and queues it; the worker fetches and persists the archive. A request while a job is active returns that job. Follow it with GET /syncs/{id}. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
+    "Records a sync job and queues it; the worker fetches and persists the archive. A request while a job is active returns that job, whose progress reads from GET /accounts. No engine runs — analysis is triggered by opening a game. Rate limited per account; 429 carries Retry-After.",
   request: { params: idParamSchema },
   responses: {
     202: {
