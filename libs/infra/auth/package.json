@@ -8,7 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.7.7",
+    "@better-auth/drizzle-adapter": "1.7.14",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-email": "workspace:*",
     "@velachess/infra-logger": "workspace:*",
