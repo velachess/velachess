@@ -22,7 +22,7 @@
     "@velachess/chess": "workspace:*",
     "@velachess/infra-engine": "workspace:*",
     "@velachess/ui": "workspace:*",
-    "better-auth": "1.7.7",
+    "better-auth": "1.7.14",
     "effection": "^4.2.0",
     "event-source-plus": "^0.1.15",
     "hono": "^4.13.13",
