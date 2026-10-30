@@ -71,7 +71,7 @@ separate domain library — see the module doc comments for the current set.
 ## A slice
 
 ```
-libs/accounts/     connect-account/  request-sync/  get-sync/  sync-account/  list-accounts/  list-account-games/
+libs/accounts/     connect-account/  request-sync/  reconcile-syncs/  sync-account/  list-accounts/  list-account-games/
 libs/games/        list-games/  import-pgn/  get-game/
 libs/user/         bootstrap-user/  set-avatar/  read-avatar/  remove-avatar/
 ```
@@ -99,7 +99,7 @@ complexity, never installed in advance.
   and which code changes together?
 - No `core/`, `common/`, `shared/`, `utils/` buckets.
 - No mediator/command-bus. Commands and queries are separated by being
-  different slices (`request-sync` vs `get-sync`), not by a framework.
+  different slices (`request-sync` vs `list-accounts`), not by a framework.
 
 ## Sharing, and when it is legitimate
 

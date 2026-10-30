@@ -14,6 +14,8 @@ export interface SyncQueue {
     job: { id: string; accountId: string; platform: TrackedAccount["platform"] },
   ): Promise<void>;
   /** False once the delivery reached a terminal state, which only an
-   * operator's retry or redrive revives. */
+   * operator's retry or redrive revives. Locks the delivery for the
+   * caller's transaction, so a caller that closes the job on this answer
+   * cannot be raced by a revival. */
   isLive(dbOrTx: Database, jobId: string): Promise<boolean>;
 }

@@ -1,5 +1,4 @@
 @import "./theme.css";
-@import "flag-icons/css/flag-icons.min.css";
 
 /* Tailwind ignores node_modules, and this package is reached by symlink. */
 @source "../**/*.{ts,tsx}";

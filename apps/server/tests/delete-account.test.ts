@@ -6,7 +6,6 @@
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
-import { eq } from "drizzle-orm";
 import { parseResponse } from "hono/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -15,7 +14,7 @@ import {
   LOOPER_USERNAME,
   MIXED_COLOR_PGN,
 } from "@velachess/fixtures";
-import { countUsers, schema, upsertProviderProfile } from "@velachess/infra-db";
+import { countUsers, schema } from "@velachess/infra-db";
 import { chessComFixtureFetch } from "@velachess/test-utils";
 import { bootstrapUser } from "@velachess/user";
 
@@ -156,14 +155,9 @@ describe("deleting your account", () => {
     expect((await deleteSelf(owner.app)).status).toBe(401);
   });
 
-  it("leaves other people and the shared provider metadata alone", async () => {
+  it("leaves other people alone", async () => {
     const owner = await aFullAccount("delete-me@test.local");
     const bystander = await aFullAccount("not-me@test.local");
-    await upsertProviderProfile(
-      harness.db,
-      { platform: "chess_com", username: LOOPER_USERNAME },
-      { status: "fetched", profile: { avatarUrl: null, flair: null, countryCode: null } },
-    );
     const untouched = await ownedRows(bystander.userId);
 
     await deleteSelf(owner.app);
@@ -171,12 +165,6 @@ describe("deleting your account", () => {
     expect(await ownedRows(bystander.userId)).toEqual(untouched);
     expect(await harness.deps.files.get(avatarKey(bystander.userId))).not.toBeNull();
     expect((await bystander.app.request("/games")).status).toBe(200);
-    expect(
-      await harness.db
-        .select()
-        .from(schema.providerProfiles)
-        .where(eq(schema.providerProfiles.username, LOOPER_USERNAME.toLowerCase())),
-    ).toHaveLength(1);
   });
 });
 

@@ -3,7 +3,12 @@
  * its filter predicate from these constants and may not depend on the chess
  * package directly (see `.oxlintrc.json`).
  */
-export { ESTIMATED_MOVES, TIME_CLASS_CEILINGS, type TimeClass } from "@velachess/chess";
+export {
+  ESTIMATED_MOVES,
+  TIME_CLASS_CEILINGS,
+  TIME_CLASSES,
+  type TimeClass,
+} from "@velachess/chess";
 
 export * from "./schema.ts";
 export * from "./normalize.ts";
@@ -17,4 +22,4 @@ export * from "./opening.ts";
 export * from "./providers/chess-com.ts";
 export * from "./providers/lichess.ts";
 export * from "./providers/pgn.ts";
-export * from "./providers/profile.ts";
+export * from "./providers/account.ts";

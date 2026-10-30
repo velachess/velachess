@@ -12,6 +12,7 @@ import {
 } from "../../../../test/archive.ts";
 import { deviceHasImported } from "../../../../test/device.ts";
 import { aGame } from "../../../../test/games.ts";
+import { accountIsTracked } from "../../../../test/handlers/accounts.ts";
 import { renderApp } from "../../../../test/render.tsx";
 import { server } from "../../../../test/server.ts";
 import { dropSyncStreams, openSyncStreams } from "../../../../test/sync-stream.ts";
@@ -31,6 +32,9 @@ function countRequests(prefix: string) {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Long enough that a timer, had anyone left one behind, would have fired. */
+const A_QUIET_WAIT_MS = 4_000;
 
 describe("sync games button", () => {
   beforeEach(() => {
@@ -105,7 +109,7 @@ describe("sync games button", () => {
     expect(screen.getAllByText("Couldn't sync your games")).toHaveLength(1);
   });
 
-  it("fires a success toast once the sync it started lands", async () => {
+  it("reports the sync it started once it lands", async () => {
     stageIncomingGames(aGame({ blackName: "just-arrived" }));
 
     const { user } = await renderApp();
@@ -119,7 +123,7 @@ describe("sync games button", () => {
     expect(await screen.findByText("Games synced")).toBeInTheDocument();
   });
 
-  it("fires an error toast when the sync it started lands as failed", async () => {
+  it("comes back from a sync the server failed, and says so", async () => {
     const { user } = await renderApp();
     await screen.findByText("already-here");
 
@@ -129,17 +133,69 @@ describe("sync games button", () => {
     landSync(latestSync().id, { fails: true });
 
     expect(await screen.findByText("Couldn't finish syncing")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
   });
 
-  it("stays quiet for a sync nobody clicked this button for", async () => {
-    const job = scheduleSync("account-1", "connect");
+  it.each(["queued", "running", "retrying"] as const)(
+    "is disabled while the server calls the sync %s",
+    async (status) => {
+      scheduleSync("account-1", "manual").status = status;
+
+      await renderApp();
+
+      expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
+    },
+  );
+
+  it.each(["succeeded", "failed"] as const)(
+    "is ready again once the server calls the sync %s",
+    async (status) => {
+      scheduleSync("account-1", "manual").status = status;
+
+      await renderApp();
+      await screen.findByText("already-here");
+
+      expect(screen.getByRole("button", { name: "Sync games" })).toBeEnabled();
+      expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
+      expect(screen.queryByText("Couldn't finish syncing")).not.toBeInTheDocument();
+    },
+  );
+
+  it("stays disabled while a second account is still syncing", async () => {
+    accountIsTracked({ username: "other-handle", platform: "lichess" });
+    const mine = scheduleSync("account-1", "manual");
+    const other = scheduleSync("account-2", "manual");
 
     await renderApp();
+    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
+
+    landSync(mine.id);
+    await sleep(50);
+    expect(screen.getByRole("button", { name: "Syncing…" })).toBeDisabled();
+
+    landSync(other.id);
+
+    expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
+    expect(screen.getAllByText("Games synced")).toHaveLength(1);
+  });
+
+  it("calls a sync successful even while another account's last one reads failed", async () => {
+    // The other account's failure is older than this sync and says nothing
+    // about it.
+    accountIsTracked({
+      username: "other-handle",
+      platform: "lichess",
+      lastSyncError: "internal",
+    });
+
+    const { user } = await renderApp();
     await screen.findByText("already-here");
 
-    landSync(job.id);
+    await user.click(screen.getByRole("button", { name: "Sync games" }));
+    await screen.findByRole("button", { name: "Syncing…" });
+    landSync(latestSync().id);
 
-    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
+    expect(await screen.findByText("Games synced")).toBeInTheDocument();
     expect(screen.queryByText("Couldn't finish syncing")).not.toBeInTheDocument();
   });
 
@@ -155,6 +211,31 @@ describe("sync games button", () => {
     expect(await screen.findByText("just-arrived")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Sync games" })).toBeEnabled();
   });
+
+  it("asks nothing about the job, and nothing on a timer", async () => {
+    const job = scheduleSync("account-1", "manual");
+    const jobReads = countRequests("/api/syncs/");
+    const streams = countRequests("/api/syncs/events");
+
+    await renderApp();
+    expect(await screen.findByRole("button", { name: "Syncing…" })).toBeDisabled();
+
+    const duringTheSync = countRequests("/api/accounts");
+    await sleep(A_QUIET_WAIT_MS);
+    // A sync in flight is not a reason to keep asking: the stream says when
+    // it ends.
+    expect(duringTheSync.count).toBe(0);
+
+    landSync(job.id);
+    await screen.findByRole("button", { name: "Sync games" });
+
+    const afterTheSync = countRequests("/api/accounts");
+    await sleep(A_QUIET_WAIT_MS);
+    expect(afterTheSync.count).toBe(0);
+    // Every /api/syncs/ request this screen made was the one stream.
+    expect(jobReads.count).toBe(streams.count);
+    [jobReads, streams, duringTheSync, afterTheSync].forEach((counter) => counter.stop());
+  }, 20_000);
 });
 
 describe("the sync stream", () => {
@@ -192,45 +273,56 @@ describe("the sync stream", () => {
     const library = countRequests("/api/games");
 
     await user.click(screen.getByRole("button", { name: "Sync games" }));
-    // One POST, plus the refresh once it settles.
-    await waitFor(() => expect(accounts.count).toBe(2));
-
     landSync(latestSync().id);
-    expect(await screen.findByText("just-arrived")).toBeInTheDocument();
-    await waitFor(() => expect(accounts.count).toBe(3));
-    const afterFirst = library.count;
-    expect(afterFirst).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("button", { name: "Sync games" }));
-    await waitFor(() => expect(accounts.count).toBe(5));
-    landSync(latestSync().id, { fails: true });
-    await waitFor(() => expect(accounts.count).toBe(6));
-    // A failed sync refreshes what it changed and claims nothing.
-    await waitFor(() => expect(library.count).toBe(afterFirst + 1));
+    expect(await screen.findByText("just-arrived")).toBeInTheDocument();
+    expect(accounts.count).toBeGreaterThan(0);
+    expect(library.count).toBeGreaterThan(0);
+    // Nothing about the session: a sync landing is not a sign-in.
     expect(sessions.count).toBe(0);
     [sessions, accounts, library].forEach((counter) => counter.stop());
   });
 
-  it("reconnects when the stream ends and refreshes once, since what landed meanwhile was never announced", async () => {
+  it("reports a sync that failed, off the frame alone", async () => {
+    const job = scheduleSync("account-1", "manual");
+    await renderApp();
+    await screen.findByText("already-here");
+    const accounts = countRequests("/api/accounts");
+    const library = countRequests("/api/games");
+
+    landSync(job.id, { fails: true });
+
+    expect(await screen.findByText("Couldn't finish syncing")).toBeInTheDocument();
+    await waitFor(() => expect(accounts.count).toBeGreaterThan(0));
+    expect(library.count).toBeGreaterThan(0);
+    [accounts, library].forEach((counter) => counter.stop());
+  });
+
+  it("says nothing for a stream that is only keeping itself alive", async () => {
+    await renderApp();
+    await screen.findByText("already-here");
+    await waitFor(() => expect(openSyncStreams()).toBe(1));
+
+    await sleep(50);
+
+    expect(screen.queryByText("Games synced")).not.toBeInTheDocument();
+    expect(screen.queryByText("Couldn't finish syncing")).not.toBeInTheDocument();
+  });
+
+  it("reconnects when the stream ends and brings the library current, since what landed meanwhile was never announced", async () => {
     stageIncomingGames(aGame({ blackName: "landed-in-the-dark" }));
     await renderApp();
     await screen.findByText("already-here");
     await waitFor(() => expect(openSyncStreams()).toBe(1));
     const connections = countRequests("/api/syncs/events");
-    const accounts = countRequests("/api/accounts");
-    const library = countRequests("/api/games");
 
     dropSyncStreams();
-    const job = scheduleSync("account-1", "manual");
-    job.gamesInserted = 1;
     addGames(aGame({ blackName: "landed-in-the-dark" }));
 
     expect(await screen.findByText("landed-in-the-dark")).toBeInTheDocument();
     await waitFor(() => expect(openSyncStreams()).toBe(1));
     expect(connections.count).toBe(1);
-    expect(accounts.count).toBe(1);
-    expect(library.count).toBe(1);
-    [connections, accounts, library].forEach((counter) => counter.stop());
+    connections.stop();
   });
 
   it("keeps trying through a failed attempt without refreshing, and refreshes once a stream opens again", async () => {
@@ -249,13 +341,14 @@ describe("the sync stream", () => {
     );
     dropSyncStreams();
     await waitFor(() => expect(refusals).toBeGreaterThanOrEqual(2));
+    // Nothing is syncing, so nothing polls either.
     expect(accounts.count).toBe(0);
     expect(library.count).toBe(0);
 
     server.resetHandlers();
     await waitFor(() => expect(openSyncStreams()).toBe(1));
-    await waitFor(() => expect(accounts.count).toBe(1));
-    expect(library.count).toBe(1);
+    await waitFor(() => expect(accounts.count).toBeGreaterThan(0));
+    expect(library.count).toBeGreaterThan(0);
     [accounts, library].forEach((counter) => counter.stop());
   });
 

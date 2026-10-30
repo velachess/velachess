@@ -3,17 +3,21 @@
  * `syncAccount` declared.
  */
 import {
+  abandonSyncJob,
   finishSyncJob,
   getTrackedAccount,
   claimSyncAttempt,
+  listActiveSyncJobs,
+  lockLatestSyncJob,
   markSyncRunning,
   markTrackedAccountSynced,
   saveGames,
   updateTrackedAccountCursor,
 } from "@velachess/infra-db";
 import type { Database } from "@velachess/infra-db";
-import type { SyncAccountDeps, SyncDeps } from "@velachess/accounts";
+import type { ReconcileSyncsDeps, SyncAccountDeps, SyncDeps } from "@velachess/accounts";
 import { logger } from "@velachess/infra-logger";
+import type { SyncQueue } from "@velachess/infra-queue";
 
 /** The slice declares the callback; the composition root owns the sink. */
 const syncLogger = logger.child({ component: "sync" });
@@ -35,5 +39,20 @@ export function buildSyncAccountDeps(db: Database, sync: SyncDeps = {}): SyncAcc
     // value, which would erase the default.
     ...(sync.fetch ? { fetch: sync.fetch } : {}),
     ...(sync.onUnreadableCursor ? { onUnreadableCursor: sync.onUnreadableCursor } : {}),
+  };
+}
+
+/** The same liveness read and the same locking the API's sync request
+ * takes over a dead job. */
+export function buildReconcileSyncsDeps(
+  db: Database,
+  syncQueue: SyncQueue,
+): ReconcileSyncsDeps {
+  return {
+    listActiveSyncJobs: () => listActiveSyncJobs(db),
+    withTransaction: (fn) => db.transaction(fn),
+    lockLatestSyncJob,
+    isSyncDeliveryLive: (tx, jobId) => syncQueue.isLive(tx, jobId),
+    abandonSyncJob,
   };
 }

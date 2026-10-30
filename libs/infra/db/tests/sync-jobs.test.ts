@@ -189,15 +189,15 @@ describe("sync jobs", () => {
   it("an account lists alongside its newest job", async () => {
     const owner = await anAccount();
     expect(await listTrackedAccountsByUser(db, owner.userId)).toEqual([
-      expect.objectContaining({ latestJobId: null, latestJobStatus: null }),
+      expect.objectContaining({ latestJobStatus: null, latestJobError: null }),
     ]);
 
     const old = (await createSyncJob(db, { ...owner, trigger: "connect" }))!;
     await finishSyncJob(db, await deliver(old), { status: "succeeded", errorCode: null });
-    const newest = (await createSyncJob(db, { ...owner, trigger: "manual" }))!;
+    await createSyncJob(db, { ...owner, trigger: "manual" });
 
     expect(await listTrackedAccountsByUser(db, owner.userId)).toEqual([
-      expect.objectContaining({ latestJobId: newest.id, latestJobStatus: "queued" }),
+      expect.objectContaining({ latestJobStatus: "queued" }),
     ]);
   });
 

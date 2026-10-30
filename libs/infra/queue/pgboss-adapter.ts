@@ -50,10 +50,14 @@ export function makeSyncQueue(boss: PgBoss): SyncQueue {
       if (!sent) throw new Error(`sync job ${job.id} was not enqueued`);
     },
     async isLive(dbOrTx, jobId) {
+      // Locked, not just read: pg-boss claims with `for update skip locked`
+      // and an operator's retry is a plain update, so holding this row stops
+      // a revival landing between this answer and the caller's close.
       const [row] = await dbOrTx
         .select({ state: bossJob.state })
         .from(bossJob)
-        .where(and(eq(bossJob.name, QUEUES.sync), eq(bossJob.id, jobId)));
+        .where(and(eq(bossJob.name, QUEUES.sync), eq(bossJob.id, jobId)))
+        .for("update");
       return row !== undefined && LIVE_STATES.has(row.state ?? "");
     },
   };

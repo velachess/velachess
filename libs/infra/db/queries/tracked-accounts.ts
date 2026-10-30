@@ -141,7 +141,6 @@ export async function listTrackedAccountsByUser(db: Database, userId: string) {
   const latestJob = db
     .selectDistinctOn([syncJobs.accountId], {
       accountId: syncJobs.accountId,
-      id: syncJobs.id,
       status: syncJobs.status,
       errorCode: syncJobs.errorCode,
     })
@@ -156,7 +155,6 @@ export async function listTrackedAccountsByUser(db: Database, userId: string) {
       platform: trackedAccounts.platform,
       username: trackedAccounts.username,
       lastSyncedAt: trackedAccounts.lastSyncedAt,
-      latestJobId: latestJob.id,
       latestJobStatus: latestJob.status,
       latestJobError: latestJob.errorCode,
     })

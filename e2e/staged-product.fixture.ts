@@ -30,8 +30,7 @@ const account = {
   platform: "chess_com",
   username: LANDING_PLAYER,
   lastSyncedAt: "2026-08-20T18:00:00.000Z",
-  syncStatus: "idle",
-  activeSyncId: null,
+  syncStatus: "succeeded",
   lastSyncError: null,
 };
 

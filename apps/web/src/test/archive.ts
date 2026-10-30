@@ -21,19 +21,12 @@ const DEFAULT_ACCOUNT: ArchiveAccount = {
   lastSyncedAt: "2026-05-04T18:30:00.000Z",
 };
 
-/** One seat's provider identity, which the server resolves from a shared
- * per-handle cache. */
-export type SeatProfile = Game["whiteIdentity"];
-
-const NO_PROFILE: SeatProfile = { avatarUrl: null, flair: null, countryCode: null };
-
 interface ArchiveState {
   account: ArchiveAccount;
   games: Game[];
   incoming: Game[];
   /** Set when the next refresh should answer 429. */
   refusesRefreshFor: number | null;
-  identities: Map<string, { white: SeatProfile; black: SeatProfile }>;
   movetext: Map<string, string>;
   syncs: Map<string, SyncJob>;
 }
@@ -52,7 +45,6 @@ function fresh(): ArchiveState {
     games: [],
     incoming: [],
     refusesRefreshFor: null,
-    identities: new Map(),
     movetext: new Map(),
     syncs: new Map(),
   };
@@ -96,29 +88,6 @@ export function stageMovetext(gameId: string, rawPgn: string): void {
 
 export function movetextOf(gameId: string): string | undefined {
   return state.movetext.get(gameId);
-}
-
-/** An absent side stays on initials. */
-export function stageSeatIdentities(
-  gameId: string,
-  seats: { white?: Partial<SeatProfile>; black?: Partial<SeatProfile> },
-): void {
-  state.identities.set(gameId, {
-    white: { ...NO_PROFILE, ...seats.white },
-    black: { ...NO_PROFILE, ...seats.black },
-  });
-}
-
-/** Shaped as GET /games/:id reports it. */
-export function seatIdentityFields(gameId: string): {
-  whiteIdentity: SeatProfile;
-  blackIdentity: SeatProfile;
-} {
-  const staged = state.identities.get(gameId);
-  return {
-    whiteIdentity: staged?.white ?? { ...NO_PROFILE },
-    blackIdentity: staged?.black ?? { ...NO_PROFILE },
-  };
 }
 
 /**
@@ -166,9 +135,11 @@ export function knowsPlayer(platform: string, username: string): boolean {
 }
 
 export interface ArchiveView {
+  opponent: string | null;
   color: string | null;
   outcome: string | null;
-  timeClass: string | null;
+  timeClasses: string[];
+  source: string | null;
   page: number;
   pageSize: number;
 }
@@ -183,9 +154,15 @@ export interface ArchivePage {
 
 export function readArchive(view: ArchiveView): ArchivePage {
   const matching = state.games
+    .filter((game) => view.opponent === null || facesOpponent(game, view.opponent))
     .filter((game) => view.color === null || game.perspective === view.color)
     .filter((game) => view.outcome === null || hasOutcome(game, view.outcome))
-    .filter((game) => view.timeClass === null || timeClassOf(game) === view.timeClass)
+    .filter(
+      (game) =>
+        view.timeClasses.length === 0 ||
+        view.timeClasses.includes(timeClassOf(game) ?? ""),
+    )
+    .filter((game) => view.source === null || game.source === view.source)
     // Newest first, as the query orders it: paging assertions are only
     // meaningful against a defined order.
     .toSorted((left, right) => (right.playedAt ?? "").localeCompare(left.playedAt ?? ""));
@@ -259,7 +236,13 @@ export function refreshArchive(accountId: string): RefreshResult {
   return { status: "accepted", job: scheduleSync(accountId, "manual") };
 }
 
-/** The job active for an account, as `GET /accounts` reports it. */
+/** The account's newest job, whatever became of it: what `GET /accounts`
+ * reports as `syncStatus`. */
+export function latestSyncOf(accountId: string): SyncJob | undefined {
+  return [...state.syncs.values()].findLast((job) => job.accountId === accountId);
+}
+
+/** The job still on its way, which a repeat request is answered with. */
 export function activeSyncOf(accountId: string): SyncJob | undefined {
   return [...state.syncs.values()].find(
     (job) =>
@@ -267,6 +250,19 @@ export function activeSyncOf(accountId: string): SyncJob | undefined {
       job.status !== "succeeded" &&
       job.status !== "failed",
   );
+}
+
+/**
+ * The opponent is the seat you did not have; an unattributed game has no
+ * opponent, so both names answer. Mirrors the server's predicate.
+ */
+function facesOpponent(game: Game, term: string): boolean {
+  const needle = term.toLowerCase();
+  const names =
+    game.perspective === null
+      ? [game.whiteName, game.blackName]
+      : [game.perspective === "white" ? game.blackName : game.whiteName];
+  return names.some((name) => name.toLowerCase().includes(needle));
 }
 
 /** Which side you were on decides whether "1-0" is good news. */

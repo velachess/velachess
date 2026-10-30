@@ -136,11 +136,11 @@ app, and when a status stays local to the one file that branches on it.
 `libs/accounts/sync-status.ts` is case 1 done: "a sync is still on its way"
 was a `Set` in three slices plus a SQL list, and dropping a status from any
 of them failed no test. It answers through a **type predicate** rather than
-exporting the list, because `list-accounts` uses the status it just checked —
+exporting the list, so a caller can keep using the status it just checked —
 `includes` returns a plain boolean and throws that narrowing away. `apps/web`
-keeps its own over its own vocabulary: a job settles on `succeeded`/`failed`
-while an account's `syncStatus` collapses both into `idle`, and the frontend
-must not import a backend module to learn the active sets coincide.
+keeps its own over its own vocabulary: the API reports the newest job's own
+status plus an `idle` the job lifecycle has no word for, and the frontend must
+not import a backend module to learn the active sets coincide.
 
 Slice vocabularies are a deliberate exception to all three: a slice names
 the states it answers with in its own words rather than importing a

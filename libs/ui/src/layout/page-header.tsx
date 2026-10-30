@@ -11,6 +11,8 @@ export interface PageHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   breadcrumbs?: React.ReactNode;
+  /** A fact about the screen, right of the title: a count, a status. */
+  meta?: React.ReactNode;
   actions?: React.ReactNode;
   /** Full width under the title row: filters, a search, tabs. */
   bottom?: React.ReactNode;
@@ -23,6 +25,7 @@ export function PageHeader({
   title,
   description,
   breadcrumbs,
+  meta,
   actions,
   bottom,
   compact = false,
@@ -53,6 +56,7 @@ export function PageHeader({
             </p>
           )}
         </div>
+        {meta !== undefined && <div className="shrink-0">{meta}</div>}
         {actions !== undefined && (
           <div className="flex flex-wrap items-center gap-2">{actions}</div>
         )}
