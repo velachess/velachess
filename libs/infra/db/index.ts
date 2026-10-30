@@ -8,7 +8,6 @@ export * from "./schema.ts";
 export * from "./client.ts";
 export * from "./queries/tracked-accounts.ts";
 export * from "./queries/sync-jobs.ts";
-export * from "./queries/provider-profiles.ts";
 export * from "./queries/games.ts";
 export * from "./queries/users.ts";
 export * from "./queries/pagination.ts";

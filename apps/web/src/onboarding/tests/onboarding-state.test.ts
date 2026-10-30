@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { onboardingState, type OnboardingInput } from "../onboarding-state.ts";
 
 const account = (
-  syncStatus: "idle" | "queued" | "running" | "retrying",
+  syncStatus: "idle" | "queued" | "running" | "retrying" | "succeeded" | "failed",
   lastSyncError: "incomplete" | null = null,
 ) => ({
   id: "account-1",
@@ -11,7 +11,6 @@ const account = (
   username: "looper",
   lastSyncedAt: null,
   syncStatus,
-  activeSyncId: syncStatus === "idle" ? null : "sync-1",
   lastSyncError,
 });
 

@@ -1,0 +1,1 @@
+DROP TABLE "provider_profiles" CASCADE;

@@ -5,7 +5,9 @@
  * announce without importing msw.
  */
 
-import type { SYNC_SETTLED_EVENT_NAMES } from "../games/import/index.ts";
+/** The server's own names, written again rather than imported, per
+ * `docs/how-to/write-a-test.md`. */
+type SyncSettledEvent = "sync.completed" | "sync.failed";
 
 type Controller = ReadableStreamDefaultController<Uint8Array>;
 
@@ -38,7 +40,7 @@ export function openSyncStreams(): number {
 
 /** The frame the real route writes once a job settles. */
 export function announceSync(
-  event: (typeof SYNC_SETTLED_EVENT_NAMES)[number],
+  event: SyncSettledEvent,
   job: { id: string; accountId: string; gamesInserted: number | null },
 ): void {
   const frame = `event: ${event}\nid: ${job.id}\ndata: ${JSON.stringify({

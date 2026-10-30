@@ -104,24 +104,33 @@ application owns the column after that.
 ## Import and refresh
 
 No archive is fetched inside an HTTP request. `POST /accounts` confirms the
-handle with one profile request — `404` when the provider has no such handle,
-`503` when it cannot tell — then creates the account and its first sync job and
+handle exists with one request to the provider's public user endpoint, reading
+only its status and storing nothing about the player — `404` when the provider
+has no such handle, `503` when it cannot tell — then creates the account and its first sync job and
 enqueues that job in one transaction, so a new account always has a sync
 scheduled and a failed enqueue leaves no account; reconnecting the handle
 already tracked answers `201` with `syncId: null` and schedules nothing. `POST /accounts/:id/sync` answers `202
 { syncId, status }`: the account's active job when it has one, otherwise a new
 job after the per-account cooldown (`429` with `Retry-After` inside it).
-`GET /syncs/:id` reports an owner's job — status, progress, error — and is what
-clients poll; `GET /accounts` carries each account's `syncStatus`,
-`activeSyncId` and `lastSyncError`. The worker does the fetching (see
-`docs/reference/ingestion.md`).
+`GET /accounts` is the one authoritative read of a sync: each account carries
+`syncStatus` — the newest job's own status, `succeeded` and `failed` included,
+`idle` for an account with no job — plus `lastSyncError` and `lastSyncedAt`.
+There is no per-job endpoint, and no sync id leaves the API beyond the one the
+request that started it answers with. Reading never writes: a job whose
+delivery pg-boss ended is closed by the worker's reconciliation pass. The
+worker does the fetching (see `docs/reference/ingestion.md`).
 
 `POST /games/import` is the manual source: PGN text uploaded without any
 connected account. It normalizes in-request, resolves the named player's seat
 per game, and persists with user-scoped conflict-ignore (a duplicate-only upload
 succeeds with counts) — never Stockfish.
 `GET /games` is the unified library: one filtered page of every game the caller
-owns across all sources, ownership read straight off `games.user_id`.
+owns across all sources, ownership read straight off `games.user_id`. It narrows
+on the opponent's handle (a case-insensitive substring of the seat the caller did
+not have), the side played, the outcome from that side, the source, and any of
+the four time classes — `timeClass` repeats, so `?timeClass=blitz&timeClass=rapid`
+is one question. Every narrowing applies to the whole library, never to the page
+already fetched, and `total` counts the matches rather than the page.
 
 All import paths fetch or parse, normalize, and persist. None of them run
 Stockfish. Analysis has no endpoint here: it runs entirely in the browser
@@ -140,7 +149,9 @@ every id against the row before a user's stream sees it — the payload is
 never trusted for ownership. Notifications are not durable, so no frame is a
 record: a client that reconnects refreshes its accounts and games from the
 rows, and when the api's own listener reconnects every open stream ends so
-clients do the same. `GET /syncs/:id` stays for anything that prefers to ask.
+clients do the same. A client with no stream, or one whose stream fell behind,
+reads `GET /accounts` again — which is also what the web app polls while a sync
+is active.
 
 ## Validation and errors
 

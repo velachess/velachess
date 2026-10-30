@@ -8,14 +8,12 @@ import {
   createSyncJob,
   deleteTrackedAccountAndGames,
   findTrackedAccountByPlatform,
-  getSyncJobForUser,
   getSyncJobSettlement,
   getTrackedAccountForUser,
   listGamesWithStatusForAccount,
   listTrackedAccountsByUser,
   lockLatestSyncJob,
   markUserOnboarded,
-  upsertProviderProfile,
   insertTrackedAccount,
 } from "@velachess/infra-db";
 import type { Database, SyncNotifications } from "@velachess/infra-db";
@@ -23,7 +21,6 @@ import { requestSync } from "@velachess/accounts";
 import type {
   ConnectAccountDeps,
   DisconnectAccountDeps,
-  GetSyncDeps,
   ListAccountGamesDeps,
   ListAccountsDeps,
   RequestSyncDeps,
@@ -78,14 +75,6 @@ export function buildSyncAllAccountsDeps(
   };
 }
 
-export function buildGetSyncDeps(db: Database, syncQueue: SyncQueue): GetSyncDeps {
-  return {
-    getSyncJobForUser: (userId, id) => getSyncJobForUser(db, userId, id),
-    isSyncDeliveryLive: (jobId) => syncQueue.isLive(db, jobId),
-    abandonSyncJob: (jobId) => abandonSyncJob(db, jobId),
-  };
-}
-
 /** The process's one LISTEN, and the unscoped row read the slice checks
  * ownership against: the signal is never trusted. */
 export function buildWatchSyncsDeps(
@@ -104,7 +93,6 @@ export function buildImportAccountDeps(
   fetch?: FetchFn,
 ): ConnectAccountDeps {
   return {
-    upsertProviderProfile: (seat, fetched) => upsertProviderProfile(db, seat, fetched),
     getTrackedAccountByPlatform: (userId, platform) =>
       findTrackedAccountByPlatform(db, userId, platform),
     withTransaction: (fn) => db.transaction(fn),

@@ -106,6 +106,11 @@ export async function fetchChessCom(
     ? indexParsed.data.archives.filter((url) => monthOf(url) >= cursor.month)
     : indexParsed.data.archives.slice(-DEFAULT_BOOTSTRAP_MONTHS);
 
+  // Only the newest one: the index names the current month before its
+  // archive exists, so that one 404s. An older month 404ing is a fault, and
+  // skipping it would advance the cursor past games nobody fetched.
+  const unpublished = indexParsed.data.archives.at(-1);
+
   const games: SyncResult["games"] = [];
   const failures: SyncFailure[] = [];
   let nextCursor = cursor;
@@ -115,6 +120,8 @@ export async function fetchChessCom(
     const month = monthOf(archiveUrl);
     const monthStartIndex = games.length;
     const monthRes = await doFetch(archiveUrl, init);
+
+    if (monthRes.status === 404 && archiveUrl === unpublished) continue;
 
     if (!monthRes.ok) {
       const retryAfter = monthRes.headers.get("Retry-After");

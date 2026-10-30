@@ -5,27 +5,47 @@ import { PAGE_SIZE, type GamesSearch } from "./filters.ts";
 
 export type Game = InferResponseType<typeof api.games.$get, 200>["games"][number];
 
+/** One segment, so the page is its own: the previous page's rows are a
+ * fair placeholder while the next loads, the previous filter's are not. */
+function narrowingKey(search: GamesSearch): string {
+  return JSON.stringify([
+    search.opponent ?? null,
+    search.color ?? null,
+    search.outcome ?? null,
+    search.timeClass ?? null,
+    search.source ?? null,
+  ]);
+}
+
 /**
  * The user's unified library: synced accounts and manual PGN imports in
  * one list, so neither the account nor its absence gates the read.
- * Search lives in the cache key so changing a filter avoids a flash of
- * stale rows.
  */
 export function libraryQuery(search: GamesSearch) {
+  const narrowing = narrowingKey(search);
+
   return queryOptions({
-    queryKey: [...gamesQueryKey, search],
-    queryFn: () =>
+    queryKey: [...gamesQueryKey, narrowing, search.page],
+    queryFn: ({ signal }) =>
       parseResponse(
-        api.games.$get({
-          query: {
-            ...(search.color ? { color: search.color } : {}),
-            ...(search.outcome ? { outcome: search.outcome } : {}),
-            ...(search.timeClass ? { timeClass: search.timeClass } : {}),
-            page: String(search.page),
-            pageSize: String(PAGE_SIZE),
+        api.games.$get(
+          {
+            query: {
+              ...(search.opponent ? { opponent: search.opponent } : {}),
+              ...(search.color ? { color: search.color } : {}),
+              ...(search.outcome ? { outcome: search.outcome } : {}),
+              ...(search.timeClass?.length ? { timeClass: search.timeClass } : {}),
+              ...(search.source ? { source: search.source } : {}),
+              page: String(search.page),
+              pageSize: String(PAGE_SIZE),
+            },
           },
-        }),
+          { init: { signal } },
+        ),
       ),
-    placeholderData: (previous) => previous,
+    placeholderData: (previous, previousQuery) => {
+      if (previousQuery?.queryKey[1] !== narrowing) return undefined;
+      return previous;
+    },
   });
 }

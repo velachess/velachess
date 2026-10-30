@@ -4,6 +4,8 @@ import {
   activeSyncOf,
   archiveAccount,
   knowsPlayer,
+  landSync,
+  latestSyncOf,
   refreshArchive,
   scheduleSync,
 } from "../archive.ts";
@@ -29,6 +31,9 @@ export function accountIsTracked(
     lastSyncError: account.lastSyncError ?? null,
   };
   trackedAccounts = [...trackedAccounts, row];
+  // A failure is a job that failed: the API reads the error off the newest
+  // job rather than beside it, so the fake cannot hold one without one.
+  if (row.lastSyncError) landSync(scheduleSync(row.id, "manual").id, { fails: true });
   return row;
 }
 
@@ -40,12 +45,12 @@ export const accountsHandlers = [
   http.get("/api/accounts", () =>
     HttpResponse.json(
       trackedAccounts.map((account) => {
-        const active = activeSyncOf(account.id);
+        const latest = latestSyncOf(account.id);
         return {
           ...account,
-          syncStatus: active?.status ?? "idle",
-          activeSyncId: active?.id ?? null,
-          lastSyncError: account.lastSyncError,
+          syncStatus: latest?.status ?? "idle",
+          lastSyncError:
+            latest?.status === "failed" ? (account.lastSyncError ?? "internal") : null,
         };
       }),
     ),
