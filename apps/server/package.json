@@ -23,7 +23,7 @@
     "@velachess/user": "workspace:*",
     "@velachess/infra-queue": "workspace:*",
     "@velachess/infra-storage": "workspace:*",
-    "hono": "^4.13.13",
+    "hono": "^4.13.16",
     "hono-rate-limiter": "^0.5.4",
     "ioredis": "^6.0.0",
     "postgres": "^3.4.0",
