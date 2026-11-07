@@ -31,7 +31,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.66.0",
     "react-chessboard": "^5.12.1",
-    "react-easy-crop": "^6.2.3",
+    "react-easy-crop": "^6.2.4",
     "react-resizable-panels": "4.15.0",
     "recharts": "3.10.1",
     "tailwind-merge": "^3.6.0"
