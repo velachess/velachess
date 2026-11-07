@@ -9,8 +9,12 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
+    "@velachess/chess": "workspace:*",
     "@velachess/infra-db": "workspace:*",
     "@velachess/infra-platforms": "workspace:*"
+  },
+  "devDependencies": {
+    "@velachess/fixtures": "workspace:*"
   },
   "exports": {
     ".": "./index.ts"

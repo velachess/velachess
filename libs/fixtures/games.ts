@@ -43,6 +43,14 @@ export const MULTI_GAME_PGN = `${FOOLS_MATE_PGN}
 1. e4 e5 *
 `;
 
+/** Eighteen plies, so the eighth full move is not the last position. */
+export const CLOSED_RUY_LOPEZ_PGN = `[Event "Closed Ruy Lopez"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6
+8. c3 O-O 9. h3 Nb8 *
+`;
+
 /** Invented: a fixture has no business shipping a real player's name. */
 export const IMPORTED_PLAYER_NAME = "Ada Lovelace";
 

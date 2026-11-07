@@ -10,6 +10,10 @@ export const STARTING_POSITION =
 export const FOOLS_MATE_CHECKMATE =
   "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3";
 
+/** After 8...O-O of `CLOSED_RUY_LOPEZ_PGN`. */
+export const CLOSED_RUY_LOPEZ_AFTER_EIGHT_MOVES =
+  "r1bq1rk1/2p1bppp/p1np1n2/1p2p3/4P3/1BP2N2/PP1P1PPP/RNBQR1K1 w - - 1 9";
+
 /** Black to move, not in check, and with no legal move. */
 export const STALEMATE_KING_IN_CORNER = "k7/8/1Q6/8/8/8/8/7K b - - 0 1";
 
