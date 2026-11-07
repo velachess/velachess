@@ -48,7 +48,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
-    "@pg-boss/dashboard": "1.11.0",
+    "@pg-boss/dashboard": "1.13.0",
     "@playwright/test": "1.63.0",
     "@types/node": "^26.6.5",
     "@velachess/accounts": "workspace:*",
