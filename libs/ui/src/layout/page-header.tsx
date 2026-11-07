@@ -35,13 +35,18 @@ export function PageHeader({
     <header
       className={cn(
         "flex shrink-0 flex-col gap-2 border-b px-4 py-4 md:px-6",
-        compact && "py-3",
+        compact && "py-2",
         className,
       )}
     >
       {breadcrumbs}
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 flex-1 basis-xs flex-col gap-1">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 basis-xs flex-col gap-1",
+            compact && "gap-0.5",
+          )}
+        >
           <h1
             className={cn(
               "text-2xl/7 font-semibold wrap-break-word",

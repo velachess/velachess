@@ -176,22 +176,6 @@ describe("game analysis", () => {
     expect(strips.at(-1)).toHaveTextContent("yurimutti");
   });
 
-  it("gives its place in the trail, back to the games list", async () => {
-    const { user } = await openGame(gradedPlies());
-    await findBlunderButton();
-
-    const nav = await screen.findByRole("navigation", { name: "Breadcrumb" });
-    expect(within(nav).getByRole("link", { name: "Games" })).toHaveAttribute(
-      "href",
-      "/games",
-    );
-    expect(within(nav).getAllByRole("link")).toHaveLength(1);
-    expect(within(nav).getByText("Review")).toHaveAttribute("aria-current", "page");
-
-    await user.click(within(nav).getByRole("link", { name: "Games" }));
-    expect(await screen.findByRole("heading", { name: "Games" })).toBeInTheDocument();
-  }, 30_000);
-
   it("shows a contextual message when the game itself cannot be loaded", async () => {
     await renderApp({ path: "/games/does-not-exist" });
 
@@ -367,11 +351,10 @@ describe("game header", () => {
     return { title, ...rendered };
   };
 
-  it("keeps the matchup out of the trail", async () => {
+  it("leaves the trail out, so the board gets the height", async () => {
     await openHeader({});
 
-    const nav = await screen.findByRole("navigation", { name: "Breadcrumb" });
-    expect(nav.textContent).toBe("GamesReview");
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
   });
 
   it("names the opponent first when you played white", async () => {

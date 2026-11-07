@@ -1,4 +1,3 @@
-import { msg } from "@lingui/core/macro";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -58,7 +57,6 @@ function TestAppLayout() {
 const gamesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/games",
-  staticData: { crumb: msg`Games` },
   component: Outlet,
 });
 
@@ -80,7 +78,6 @@ const gamesIndexRoute = createRoute({
 const analysisRoute = createRoute({
   getParentRoute: () => gamesRoute,
   path: "/$gameId",
-  staticData: { crumb: msg`Review` },
   loader: ({ context, params }) => loadGameReview(context.queryClient, params.gameId),
   component: GameReview,
 });
@@ -94,7 +91,6 @@ const importRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/settings",
-  staticData: { crumb: msg`Settings` },
   component: SettingsLayout,
 });
 
@@ -109,35 +105,30 @@ const settingsIndexRoute = createRoute({
 const accountRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/account",
-  staticData: { crumb: msg`Account` },
   component: AccountScreen,
 });
 
 const connectionsRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/connections",
-  staticData: { crumb: msg`Chess accounts` },
   component: ConnectionsScreen,
 });
 
 const languageRegionRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/language-region",
-  staticData: { crumb: msg`Language` },
   component: LanguageRegionScreen,
 });
 
 const appearanceRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/appearance",
-  staticData: { crumb: msg`Appearance` },
   component: AppearanceScreen,
 });
 
 const gameplayRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/gameplay",
-  staticData: { crumb: msg`Gameplay` },
   component: GameplayScreen,
 });
 

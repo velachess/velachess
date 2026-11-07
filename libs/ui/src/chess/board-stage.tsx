@@ -8,23 +8,23 @@
  */
 import type * as React from "react";
 
-import { Skeleton } from "../components/skeleton.tsx";
 import { cn } from "../lib/utils.ts";
 
 /**
- * Capped because an uncapped square on a 768px screen pushes the panel
- * below the fold. Side by side it must fit vertically too, in `svh` because
- * mobile chrome shrinks the viewport, minus the furniture. Container units
- * cannot do this: Tailwind's `@container` has no `cqh`.
+ * Stacked, the board is capped so it still fits a screenful, in `svh`
+ * because mobile chrome shrinks the viewport. Side by side, the column
+ * `BoardStage` sizes is the width.
  */
 export const BOARD_STAGE_WIDTH =
-  "w-full min-w-0 max-w-[32rem] @4xl/content:max-w-[min(100svh-10.5rem,100%)]";
+  "w-full min-w-0 max-w-[min(100%,100svh-7rem)] @4xl/content:max-w-none";
 
 /**
- * Grid, not flex, because the panel gets a width range. `minmax(0,1fr)`
- * lets the board column shrink, a track's default minimum being its
- * content, and `auto-rows-min` stops the stacked board painting over the
- * panel.
+ * Side by side, the stage is a size container so the board column can be
+ * as wide as the height allows: two player strips (2 × 1.75rem) above and
+ * below, an evaluation bar (1.75rem) beside. That track is filled before
+ * the panel's `1fr`, so the panel only grows past its minimum with width
+ * the board cannot use, and only up to 34rem — beyond that the stage
+ * centers. `auto-rows-min` stops the stacked board painting over the panel.
  */
 export function BoardStage({
   children,
@@ -36,11 +36,13 @@ export function BoardStage({
   return (
     <div
       className={cn(
-        "grid min-h-0 flex-1 auto-rows-min gap-4 @4xl/content:auto-rows-fr @4xl/content:grid-cols-[minmax(0,1fr)_minmax(24rem,34rem)]",
+        "flex min-h-0 flex-1 flex-col @4xl/content:@container-size",
         className,
       )}
     >
-      {children}
+      <div className="mx-auto grid min-h-0 w-full flex-1 auto-rows-min gap-4 @4xl/content:auto-rows-fr @4xl/content:max-w-[calc(100cqh-1.75rem+1rem+34rem)] @4xl/content:grid-cols-[minmax(0,calc(100cqh-1.75rem))_minmax(24rem,1fr)]">
+        {children}
+      </div>
     </div>
   );
 }
@@ -101,53 +103,5 @@ export function BoardStatus({ children }: { children: React.ReactNode }) {
     <p aria-live="polite" className="sr-only">
       {children}
     </p>
-  );
-}
-
-/**
- * At the size it will be: a placeholder smaller than what replaces it makes
- * everything below jump when the board arrives.
- */
-export function BoardStageSkeleton({
-  label,
-  panel,
-}: {
-  /** Announced while the screen is empty; already translated. */
-  label: string;
-  panel?: React.ReactNode;
-}) {
-  return (
-    <output
-      aria-label={label}
-      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4 @4xl/content:overflow-hidden"
-    >
-      {/* Where the breadcrumb will be. */}
-      <Skeleton className="h-5 w-56 shrink-0" />
-
-      <BoardStage>
-        <div className="flex min-h-0 min-w-0 flex-col items-center gap-2 @4xl/content:justify-center">
-          <Skeleton className={cn("aspect-square rounded-lg", BOARD_STAGE_WIDTH)} />
-          <Skeleton className={cn("h-11 md:h-9", BOARD_STAGE_WIDTH)} />
-        </div>
-
-        <aside className="bg-card flex min-h-0 flex-col gap-3 overflow-hidden rounded-lg border p-3">
-          {panel ?? <DefaultPanelSkeleton />}
-        </aside>
-      </BoardStage>
-    </output>
-  );
-}
-
-function DefaultPanelSkeleton() {
-  return (
-    <>
-      <Skeleton className="h-6 w-48" />
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="h-9 w-36" />
-      <Skeleton className="h-px w-full" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-5/6" />
-      <Skeleton className="h-4 w-2/3" />
-    </>
   );
 }

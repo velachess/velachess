@@ -53,7 +53,7 @@ msgstr "{page} / {lastPage}"
 msgid "{platform} is connected"
 msgstr "{platform} is connected"
 
-#: src/games/import/accounts/queries.ts:19
+#: src/games/import/accounts/queries.ts:18
 msgid "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 msgstr "{seconds, plural, one {Try again in # second.} other {Try again in # seconds.}}"
 
@@ -63,10 +63,8 @@ msgid "{white} vs {black}"
 msgstr "{white} vs {black}"
 
 #: src/app-shell/user-menu.tsx:41
-#: src/routes/_app/settings/account.tsx:7
 #: src/settings/account/account-screen.tsx:15
 #: src/settings/layout/navigation.ts:39
-#: src/test/routes.tsx:112
 msgid "Account"
 msgstr "Account"
 
@@ -74,7 +72,7 @@ msgstr "Account"
 msgid "Account deleted"
 msgstr "Account deleted"
 
-#: src/games/list/filters.ts:91
+#: src/games/list/filters.ts:87
 msgid "All sources"
 msgstr "All sources"
 
@@ -103,10 +101,8 @@ msgid "Analyzing move {ply} of {total} — depth {depth}…"
 msgstr "Analyzing move {ply} of {total} — depth {depth}…"
 
 #: src/app-shell/user-menu.tsx:43
-#: src/routes/_app/settings/appearance.tsx:7
 #: src/settings/appearance/appearance-screen.tsx:16
 #: src/settings/layout/navigation.ts:42
-#: src/test/routes.tsx:133
 msgid "Appearance"
 msgstr "Appearance"
 
@@ -139,7 +135,7 @@ msgid "Best was"
 msgstr "Best was"
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:51
-#: src/games/list/filters.ts:71
+#: src/games/list/filters.ts:67
 #: src/games/review/game-result.tsx:9
 msgid "Black"
 msgstr "Black"
@@ -159,10 +155,6 @@ msgstr "Board"
 #: src/settings/gameplay/gameplay-screen.tsx:22
 msgid "Board interaction preferences."
 msgstr "Board interaction preferences."
-
-#: src/app-shell/route-breadcrumbs.tsx:17
-msgid "Breadcrumb"
-msgstr "Breadcrumb"
 
 #: src/games/list/time-class-marks.tsx:13
 msgid "Bullet"
@@ -200,10 +192,8 @@ msgstr "Changing…"
 msgid "Check your inbox: we sent a sign-in link to {email}. It works once and expires in 5 minutes."
 msgstr "Check your inbox: we sent a sign-in link to {email}. It works once and expires in 5 minutes."
 
-#: src/routes/_app/settings/connections.tsx:7
 #: src/settings/connections/connections-screen.tsx:63
 #: src/settings/layout/navigation.ts:40
-#: src/test/routes.tsx:119
 msgid "Chess accounts"
 msgstr "Chess accounts"
 
@@ -227,11 +217,11 @@ msgstr "Choose how you played before importing."
 msgid "Classical"
 msgstr "Classical"
 
-#: src/games/list/filters.ts:97
+#: src/games/list/filters.ts:93
 msgid "Clear search"
 msgstr "Clear search"
 
-#: src/games/list/filters.ts:68
+#: src/games/list/filters.ts:64
 msgid "Color"
 msgstr "Color"
 
@@ -400,7 +390,7 @@ msgstr "Drag and drop or choose a .pgn file"
 msgid "Drag to reposition, and zoom to fill the circle."
 msgstr "Drag to reposition, and zoom to fill the circle."
 
-#: src/games/list/filters.ts:63
+#: src/games/list/filters.ts:59
 #: src/games/list/game-item.tsx:29
 #: src/games/review/game-heading.tsx:21
 #: src/games/review/game-result.tsx:11
@@ -477,7 +467,7 @@ msgstr "Every game you've imported, and how it went."
 msgid "Fetch new games from your connected accounts"
 msgstr "Fetch new games from your connected accounts"
 
-#: src/games/list/filters.ts:87
+#: src/games/list/filters.ts:83
 msgid "Filters"
 msgstr "Filters"
 
@@ -489,16 +479,12 @@ msgstr "For your security, sign out and sign back in, then try again."
 msgid "Forgot password?"
 msgstr "Forgot password?"
 
-#: src/routes/_app/settings/gameplay.tsx:7
 #: src/settings/gameplay/gameplay-screen.tsx:21
 #: src/settings/layout/navigation.ts:43
-#: src/test/routes.tsx:140
 msgid "Gameplay"
 msgstr "Gameplay"
 
 #: src/games/list/games-list.tsx:24
-#: src/routes/_app/games.tsx:6
-#: src/test/routes.tsx:61
 msgid "Games"
 msgstr "Games"
 
@@ -639,11 +625,9 @@ msgstr "It keeps the position healthy without giving anything away."
 msgid "Keep it under 100 characters."
 msgstr "Keep it under 100 characters."
 
-#: src/routes/_app/settings/language-region.tsx:7
 #: src/settings/language-region/language-region-screen.tsx:24
 #: src/settings/language-region/language-region-screen.tsx:26
 #: src/settings/layout/navigation.ts:41
-#: src/test/routes.tsx:126
 msgid "Language"
 msgstr "Language"
 
@@ -672,7 +656,7 @@ msgstr "Loading the game…"
 msgid "Locale preferences for this device."
 msgstr "Locale preferences for this device."
 
-#: src/games/list/filters.ts:62
+#: src/games/list/filters.ts:58
 #: src/games/list/game-item.tsx:28
 #: src/games/review/game-heading.tsx:20
 msgid "Loss"
@@ -885,7 +869,7 @@ msgstr "Report"
 msgid "Request a new link"
 msgstr "Request a new link"
 
-#: src/games/list/filters.ts:88
+#: src/games/list/filters.ts:84
 msgid "Reset"
 msgstr "Reset"
 
@@ -897,13 +881,11 @@ msgstr "Reset your password"
 msgid "Resize navigation"
 msgstr "Resize navigation"
 
-#: src/games/list/filters.ts:59
+#: src/games/list/filters.ts:55
 msgid "Result"
 msgstr "Result"
 
 #: src/games/review/analysis-panel.tsx:26
-#: src/routes/_app/games/$gameId.tsx:7
-#: src/test/routes.tsx:83
 msgid "Review"
 msgstr "Review"
 
@@ -932,11 +914,11 @@ msgstr "Saved."
 msgid "Saving…"
 msgstr "Saving…"
 
-#: src/games/list/filters.ts:95
+#: src/games/list/filters.ts:91
 msgid "Search opponent"
 msgstr "Search opponent"
 
-#: src/games/list/filters.ts:96
+#: src/games/list/filters.ts:92
 msgid "Search opponent…"
 msgstr "Search opponent…"
 
@@ -958,9 +940,7 @@ msgid "Set — you can sign in with your email and password."
 msgstr "Set — you can sign in with your email and password."
 
 #: src/app-shell/user-menu.tsx:42
-#: src/routes/_app/settings.tsx:12
 #: src/settings/layout/settings-layout.tsx:10
-#: src/test/routes.tsx:97
 msgid "Settings"
 msgstr "Settings"
 
@@ -1027,7 +1007,7 @@ msgstr "Something went wrong."
 msgid "Sounds"
 msgstr "Sounds"
 
-#: src/games/list/filters.ts:90
+#: src/games/list/filters.ts:86
 msgid "Source"
 msgstr "Source"
 
@@ -1129,7 +1109,7 @@ msgstr "This reset link is invalid or has expired."
 msgid "This takes a moment. The app opens as soon as they land."
 msgstr "This takes a moment. The app opens as soon as they land."
 
-#: src/games/list/filters.ts:89
+#: src/games/list/filters.ts:85
 msgid "Time control"
 msgstr "Time control"
 
@@ -1205,7 +1185,7 @@ msgid "Where VelaChess imports your games from."
 msgstr "Where VelaChess imports your games from."
 
 #: src/games/import/pgn/pgn-import-dialog.tsx:50
-#: src/games/list/filters.ts:70
+#: src/games/list/filters.ts:66
 #: src/games/review/game-result.tsx:8
 msgid "White"
 msgstr "White"
@@ -1214,7 +1194,7 @@ msgstr "White"
 msgid "White or Black applies to every game in this upload."
 msgstr "White or Black applies to every game in this upload."
 
-#: src/games/list/filters.ts:61
+#: src/games/list/filters.ts:57
 #: src/games/list/game-item.tsx:27
 #: src/games/review/game-heading.tsx:19
 msgid "Win"
