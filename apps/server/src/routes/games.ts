@@ -99,6 +99,7 @@ const gameListRowSchema = z.object({
   timeControlInitialSeconds: z.number().int().nullable(),
   timeControlIncrementSeconds: z.number().int().nullable(),
   openingName: z.string().nullable(),
+  thumbnailFen: z.string().nullable(),
 });
 
 /** `apps/web`'s `gameQuery` spreads this response straight into
@@ -150,7 +151,8 @@ const libraryRoute = createRoute({
   request: { query: libraryQuery },
   responses: {
     200: {
-      description: "One page of the user's games across every source (no PGN payloads)",
+      description:
+        "One page of the user's games across every source (thumbnail position derived, no PGN payloads)",
       content: {
         "application/json": {
           schema: z.object({

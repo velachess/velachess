@@ -10,6 +10,8 @@ export const GAME_PGN = "1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0";
 
 export const GAME_SANS = ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#"] as const;
 
+const AFTER_E4_E5 = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+
 let sequence = 0;
 
 export function resetGameIds(): void {
@@ -34,6 +36,7 @@ export function aGame(overrides: Partial<Game> = {}): Game {
     timeControlInitialSeconds: 600,
     timeControlIncrementSeconds: 0,
     openingName: "Sicilian Defense",
+    thumbnailFen: AFTER_E4_E5,
     ...overrides,
   };
 }

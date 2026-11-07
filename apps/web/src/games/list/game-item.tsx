@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react";
 import { Link } from "@tanstack/react-router";
 
 import { gameOutcomeFor, opposite, timeClassOf } from "@velachess/chess";
+import { GameThumbnail } from "@velachess/ui/chess/game-thumbnail";
 import { PlayerStrip } from "@velachess/ui/chess/player-strip";
 import { Badge } from "@velachess/ui/components/badge";
 import {
@@ -128,11 +129,17 @@ export function GameItem({ game }: { game: Game }) {
       className="gap-3 rounded-none px-2 py-3 no-underline sm:px-3"
     >
       <ItemMedia>
-        {/* Until static FEN thumbnails exist. */}
         <div
           aria-hidden
-          className="size-14 shrink-0 rounded-md border bg-muted sm:size-20"
-        />
+          className="size-14 shrink-0 overflow-hidden rounded-md border bg-muted sm:size-20"
+        >
+          {game.thumbnailFen && (
+            <GameThumbnail
+              fen={game.thumbnailFen}
+              orientation={game.perspective ?? "white"}
+            />
+          )}
+        </div>
       </ItemMedia>
 
       <ItemContent className="min-w-0 gap-1.5">

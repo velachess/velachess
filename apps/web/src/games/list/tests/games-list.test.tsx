@@ -8,6 +8,13 @@ import { ME, aGame } from "../../../test/games.ts";
 import { renderApp } from "../../../test/render.tsx";
 import { server } from "../../../test/server.ts";
 
+const SLOW = 15_000;
+const thumbnails = () => document.querySelectorAll('[data-slot="game-thumbnail"]');
+const rookSeat = (thumbnail: Element) =>
+  thumbnail.querySelector('[data-square="a1"]')?.getAttribute("x");
+const thumbnailIn = (row: HTMLElement | null) =>
+  row?.querySelector('[data-slot="game-thumbnail"]');
+
 /**
  * Through a route, over HTTP, reading what a person would read: every
  * assertion is on rendered text or an accessible name, never a handler or a
@@ -284,6 +291,73 @@ describe("games list", () => {
 
     expect(screen.getAllByText("an-opponent").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Loading games")).toBeNull();
+  });
+
+  describe("thumbnails", () => {
+    it(
+      "draws one on every row",
+      async () => {
+        addGames(aGame(), aGame(), aGame());
+
+        await renderApp();
+        await screen.findAllByText("gothamchess");
+
+        expect(thumbnails()).toHaveLength(3);
+        expect(
+          thumbnails()[0]
+            ?.querySelector('[data-square="e5"]')
+            ?.getAttribute("data-piece"),
+        ).toBe("bP");
+      },
+      SLOW,
+    );
+
+    it(
+      "seats you at the bottom, whichever colour you played",
+      async () => {
+        addGames(
+          aGame({ whiteName: "magnuscarlsen", blackName: ME, perspective: "black" }),
+          aGame({ perspective: "white" }),
+        );
+
+        await renderApp();
+        await screen.findByText("magnuscarlsen");
+
+        expect(
+          rookSeat(thumbnailIn(screen.getByText("magnuscarlsen").closest("li"))!),
+        ).toBe("7");
+        expect(
+          rookSeat(thumbnailIn(screen.getByText("gothamchess").closest("li"))!),
+        ).toBe("0");
+      },
+      SLOW,
+    );
+
+    it(
+      "defaults to white's seat when nothing attributed the game",
+      async () => {
+        addGames(aGame({ perspective: null, whiteName: "a", blackName: "b" }));
+
+        await renderApp();
+        await screen.findByText("a vs b");
+
+        expect(rookSeat(thumbnails()[0]!)).toBe("0");
+      },
+      SLOW,
+    );
+
+    it(
+      "keeps the row, with a placeholder, for a game imported before thumbnails",
+      async () => {
+        addGames(aGame({ thumbnailFen: null }));
+
+        await renderApp();
+
+        expect(await screen.findByText("gothamchess")).toBeInTheDocument();
+        expect(thumbnails()).toHaveLength(0);
+      },
+      SLOW,
+    );
   });
 
   it("lists the library and offers both import paths with no account connected", async () => {

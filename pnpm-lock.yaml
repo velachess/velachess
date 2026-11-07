@@ -409,12 +409,19 @@ importers:
 
   libs/games:
     dependencies:
+      '@velachess/chess':
+        specifier: workspace:*
+        version: link:../chess
       '@velachess/infra-db':
         specifier: workspace:*
         version: link:../infra/db
       '@velachess/infra-platforms':
         specifier: workspace:*
         version: link:../infra/platforms
+    devDependencies:
+      '@velachess/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
 
   libs/infra/auth:
     dependencies:

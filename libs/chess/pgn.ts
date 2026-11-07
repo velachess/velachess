@@ -55,6 +55,7 @@ export interface ReplayedGame {
  * wild is data, not something to assume correct. */
 export function replayMainline(
   game: Game<PgnNodeData>,
+  maxPlies = Infinity,
 ): Result<ReplayedGame, FenError | PositionError> {
   return startingPosition(game.headers).map((pos) => {
     const startFen = makeFen(pos.toSetup());
@@ -62,6 +63,7 @@ export function replayMainline(
     let legal = true;
 
     for (const node of game.moves.mainline()) {
+      if (moves.length === maxPlies) break;
       const fenBefore = makeFen(pos.toSetup());
       const move = parseSan(pos, node.san);
       if (!move) {

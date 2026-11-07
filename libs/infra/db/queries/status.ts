@@ -130,6 +130,7 @@ export async function listGamesPage(
       timeControlInitialSeconds: games.timeControlInitialSeconds,
       timeControlIncrementSeconds: games.timeControlIncrementSeconds,
       openingName: games.openingName,
+      rawPgn: games.rawPgn,
     })
     .from(games)
     // Provenance, not ownership: a PGN row has no account and must survive

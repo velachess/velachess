@@ -55,6 +55,7 @@ describe("reading games", () => {
         "playedAt",
         "result",
         "source",
+        "thumbnailFen",
         "timeControlIncrementSeconds",
         "timeControlInitialSeconds",
         "whiteName",
