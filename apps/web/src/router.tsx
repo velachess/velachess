@@ -1,5 +1,4 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import type { MessageDescriptor } from "@lingui/core";
 
 import { routeTree } from "./routeTree.gen.ts";
 import { sessionQueryKey } from "./auth/session.ts";
@@ -34,10 +33,5 @@ export function getRouter() {
 declare module "@tanstack/react-router" {
   interface Register {
     router: ReturnType<typeof getRouter>;
-  }
-  interface StaticDataRouteOption {
-    /** The label a route contributes to `RouteBreadcrumbs`: a link back as
-     * an ancestor, the current page as the deepest. */
-    crumb?: MessageDescriptor;
   }
 }

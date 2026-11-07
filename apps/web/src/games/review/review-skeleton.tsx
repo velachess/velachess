@@ -46,16 +46,24 @@ export function AnalysisSkeleton() {
   return (
     <output
       aria-label={i18n._(REVIEW_COPY.loading)}
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 @4xl/content:overflow-hidden"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto @4xl/content:overflow-hidden"
     >
-      <BoardStage>
+      <div className="flex shrink-0 flex-col gap-0.5 border-b px-4 py-2 md:px-6">
+        <Skeleton className="my-0.5 h-5 w-56" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+
+      <BoardStage className="px-4 pt-4 md:px-6 @4xl/content:pb-4">
         {/* The board's real width, so nothing shifts when it lands: a
             placeholder narrower than what replaces it makes the page jump
             at the moment a person is deciding whether it works. */}
         <section className="flex min-w-0 flex-col items-center justify-center gap-2">
-          <Skeleton className={cn("h-4", BOARD_STAGE_WIDTH)} />
-          <Skeleton className={cn("aspect-square rounded-lg", BOARD_STAGE_WIDTH)} />
-          <Skeleton className={cn("h-4", BOARD_STAGE_WIDTH)} />
+          <Skeleton className={cn("h-5", BOARD_STAGE_WIDTH)} />
+          <div className={cn("flex gap-2", BOARD_STAGE_WIDTH)}>
+            <Skeleton className="w-5 shrink-0 rounded-sm" />
+            <Skeleton className="aspect-square flex-1 rounded-lg" />
+          </div>
+          <Skeleton className={cn("h-5", BOARD_STAGE_WIDTH)} />
         </section>
 
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card">
